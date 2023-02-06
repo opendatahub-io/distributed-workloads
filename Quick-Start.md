@@ -42,7 +42,7 @@ Fist we will use [Helm](https://helm.sh/) to install MCAD. (Make sure you have H
 git clone https://github.com/project-codeflare/multi-cluster-app-dispatcher.git 
 helm list -n kube-system
 cd multi-cluster-app-dispatcher/deployment/mcad-controller/
-helm upgrade --install --wait mcad . --namespace kube-system --set loglevel=4 --set image.repository=darroyo/mcad-controller --set image.tag=quota-management-v1.29.40 --set image.pullPolicy=Always --set configMap.name=mcad-controller-configmap --set configMap.quotaEnabled='"false"' --set coscheduler.rbac.apiGroup="scheduling.sigs.k8s.io" --set coscheduler.rbac.resource="podgroups"
+helm upgrade --install --wait mcad . --namespace kube-system --set loglevel=4 image.repository=quay.io/project-codeflare/mcad-controller --set image.tag=quota-management-v1.29.49 --set image.pullPolicy=Always --set configMap.name=mcad-controller-configmap --set configMap.quotaEnabled='"false"' --set coscheduler.rbac.apiGroup="scheduling.sigs.k8s.io" --set coscheduler.rbac.resource="podgroups"
 cd ../../..
 rm -rf multi-cluster-app-dispatcher
 ```
