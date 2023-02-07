@@ -99,6 +99,8 @@ oc apply -f custom-nb-image/imagestream.yaml -n <your Open Data Hub namespace>
 
 At this point you should be able to go to your notebook spawner page and select "Codeflare Notebook" from your list of notebook images and start an instance. 
 
+You can access the spawner page through the Open Data Hub dashboard. The default route should be `https://odh-dashboard-<your ODH namespace>.apps.<your cluster's uri>`. Once you are on your dashboard, you can select "Launch application" on the Jupyter application. This will take you to your notebook spawner page.   
+
 
 ## Submit your first job
 
