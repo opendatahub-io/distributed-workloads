@@ -91,9 +91,12 @@ Great! You should now have the CodeFlare Stack up and running on your cluster!
 
 ## Add the Codeflare notebook image to Open Data Hub 
 
-Now to make the stack accessible for our Open Data Hub users, we will need to add an image stream to our deployment for the custom image, [codeflare-sdk notebook image](https://quay.io/repository/project-codeflare/notebook). This image is managed by project CodeFlare and contains the correct packages of codeflare-sdk, pytorch, torchx, ect required to run distributed workloads.  
+Now to make the stack accessible for our Open Data Hub users, we will need to add an image stream to our deployment for the custom image, [codeflare-sdk notebook image](https://quay.io/repository/project-codeflare/notebook). This image is managed by project CodeFlare and contains the correct packages of codeflare-sdk, pytorch, torchx, ect required to run distributed workloads. 
+The image stream yaml is available from [here](https://github.com/project-codeflare/codeflare-sdk/blob/main/custom-nb-image/imagestream.yaml) or from the cloned `codeflare-sdk` repository in the `custom-nb-image` directory.
 
-```bash 
+
+```bash
+cd codeflare-sdk  # if you have navigated away from the repository
 oc apply -f custom-nb-image/imagestream.yaml -n <your Open Data Hub namespace>
 ```
 
