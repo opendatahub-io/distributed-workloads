@@ -1,0 +1,6 @@
+apiVersion: codeflare.codeflare.dev/v1alpha1
+kind: InstaScale
+metadata:
+  name: instascale
+spec:
+  maxScaleoutAllowed: 15
