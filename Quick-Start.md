@@ -19,10 +19,6 @@ This Quick Start guide assumes that you have administrator access to an OpenShif
 
 If you want to run GPU enabled workloads, you will need to install the [Node Feature Discovery Operator](https://github.com/openshift/cluster-nfd-operator) and the [NVIDIA GPU Operator](https://github.com/NVIDIA/gpu-operator) from the OperatorHub. 
 
-### Helm
-
-We also assume that you have Helm 3 installed in your working environment. You can find instructions to install it [here](https://helm.sh/docs/intro/install/).   
-
 
 ## Clone the demo code
 
@@ -33,78 +29,31 @@ git clone https://github.com/project-codeflare/codeflare-sdk
 cd codeflare-sdk
 ```
 
-## Install the CodeFlare Stack
+## Install the CodeFlare Operator
 
-Fist we will use [Helm](https://helm.sh/) to install MCAD. (Make sure you have Helm 3 or above).
-
-```bash
-# MCAD
-git clone https://github.com/project-codeflare/multi-cluster-app-dispatcher.git 
-helm list -n kube-system
-cd multi-cluster-app-dispatcher/deployment/mcad-controller/
-helm upgrade --install --wait mcad . --namespace kube-system --set loglevel=4 --set image.repository=quay.io/project-codeflare/mcad-controller --set image.tag=main-v1.29.50 --set image.pullPolicy=Always --set configMap.name=mcad-controller-configmap --set configMap.quotaEnabled='"false"' --set coscheduler.rbac.apiGroup="scheduling.sigs.k8s.io" --set coscheduler.rbac.resource="podgroups"
-cd ../../..
-rm -rf multi-cluster-app-dispatcher
-```
-
-Then we will install Instascale. 
-
-_Note_: Instascale is intended for public cloud environments where it is possible to provision additional resources on demand. You can **skip installing Instascale** if you do not anticipate dynamically scaling up or down your OpenShift cluster.  
+1. First, install the CodeFlare operator from the operatorhub. The default settings for the operator will suffice.
+2. Create the odh-core kfdef. This kfdef can be found in the [odh-manifests repository](https://github.com/opendatahub-io/odh-manifests/blob/master/kfdef/odh-core.yaml)
+3. Create the kfdef in this directory.
 
 ```bash
-# Instascale
-git clone https://github.com/project-codeflare/instascale.git
-cd instascale/deployment/
-oc apply -f instascale-configmap.yaml
-oc apply -f instascale-sa.yaml
-oc apply -f instascale-clusterrole.yaml
-oc apply -f instascale-clusterrolebinding.yaml
-oc apply -f deployment.yaml
-cd ../..
-rm -rf instascale
-```
-Next, let's install the KubeRay Operator to manage our Ray clusters. This will also use Helm (Helm 3 or greater).
-
-```bash
-# KubeRay
-oc create -k "github.com/ray-project/kuberay/ray-operator/config/crd?ref=v0.3.0"
-helm install kuberay-operator --namespace ray-system --create-namespace $(curl -s https://api.github.com/repos/ray-project/kuberay/releases/tags/v0.3.0 | grep '"browser_download_url":' | sort | grep -om1 'https.*helm-chart-kuberay-operator.*tgz')
-
+$ curl -O https://raw.githubusercontent.com/opendatahub-io/odh-manifests/master/kfdef/odh-core.yaml
+$ oc apply -f odh-core.yaml -n opendatahub
+$ oc apply -f codeflare-stack-kfdef.yaml -n opendatahub  # This should be the same namespace as that for the odh-core deployment
 ```
 
-Finally, we need to make a small patch to our ClusterRoles to get MCAD and Ray to work together.
+Creating the above kfdef will result in the following objects being added to your cluster:
 
-```bash
-# ClusterRole Patch
-git clone https://github.com/project-codeflare/multi-cluster-app-dispatcher.git
-cd multi-cluster-app-dispatcher/doc/usage/examples/kuberay/config
-oc delete ClusterRole system:controller:xqueuejob-controller || true
-oc apply -f xqueuejob-controller.yaml
-oc delete clusterrolebinding kuberay-operator
-oc create clusterrolebinding kuberay-operator --clusterrole=cluster-admin --user="system:serviceaccount:ray-system:kuberay-operator"
-cd ../../../../../..
-rm -rf multi-cluster-app-dispatcher
-```
+1. MCAD
+2. InstaScale
+3. KubeRay Operator
+4. CodeFlare Notebook Image for the Open Data Hub notebook interface
 
-Great! You should now have the CodeFlare Stack up and running on your cluster! 
-
-
-## Add the Codeflare notebook image to Open Data Hub 
-
-Now to make the stack accessible for our Open Data Hub users, we will need to add an image stream to our deployment for the custom image, [codeflare-sdk notebook image](https://quay.io/repository/project-codeflare/notebook). This image is managed by project CodeFlare and contains the correct packages of codeflare-sdk, pytorch, torchx, ect required to run distributed workloads. 
-The image stream yaml is available from [here](https://github.com/project-codeflare/codeflare-sdk/blob/main/custom-nb-image/imagestream.yaml) or from the cloned `codeflare-sdk` repository in the `custom-nb-image` directory.
-
-
-```bash
-cd codeflare-sdk  # if you have navigated away from the repository
-oc apply -f custom-nb-image/imagestream.yaml -n <your Open Data Hub namespace>
-```
+    This image is managed by project CodeFlare and contains the correct packages of codeflare-sdk, pytorch, torchx, ect required to run distributed workloads.
 
 At this point you should be able to go to your notebook spawner page and select "Codeflare Notebook" from your list of notebook images and start an instance. 
 
 
 ## Submit your first job
-
 
 
 We can now go ahead and submit our first distributed model training job to our cluster. 
@@ -148,7 +97,7 @@ If you are working in an on-prem environment, you can simply set `instascale=Fal
 ```python
 cluster_config = ClusterConfiguration(
     name='mnist', 
-    namespace="default", 
+    namespace="opendatahub", 
     machine_types = ["m4.xlarge", "g4dn.xlarge"]
     min_worker=2, 
     max_worker=2, 
