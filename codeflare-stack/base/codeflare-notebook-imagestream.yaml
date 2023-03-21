@@ -17,3 +17,5 @@ spec:
       from:
         kind: DockerImage
         name: quay.io/project-codeflare/notebook:latest
+      importPolicy:
+            scheduled: true
