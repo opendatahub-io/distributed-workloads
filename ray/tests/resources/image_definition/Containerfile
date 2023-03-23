@@ -1,0 +1,6 @@
+FROM python:3.8.14-slim
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY ray_tests.py /tests/ray_test.py
+WORKDIR /tests
+ENTRYPOINT [ "/bin/bash" ]
