@@ -12,36 +12,30 @@ This stack integrates well with [Open Data Hub](https://opendatahub.io/), and he
 
 ### OpenShift
 
-This Quick Start guide assumes that you have administrator access to an OpenShift cluster and an existing Open Data Hub installation on your cluster. If you do not currently have Open Data Hub installed on your cluster, you can find instructions for installing it [here](https://opendatahub.io/docs/getting-started/quick-installation.html). 
+This Quick Start guide assumes that you have administrator access to an OpenShift cluster and an existing Open Data Hub installation on your cluster. If you do not currently have Open Data Hub installed on your cluster, you can find instructions for installing it [here](https://opendatahub.io/docs/getting-started/quick-installation.html). The default settings for the Open Data Hub Operator will suffice.
 
 
 ### NFD and GPU Operators
 
 If you want to run GPU enabled workloads, you will need to install the [Node Feature Discovery Operator](https://github.com/openshift/cluster-nfd-operator) and the [NVIDIA GPU Operator](https://github.com/NVIDIA/gpu-operator) from the OperatorHub. 
 
-
-## Clone the demo code
-
-To test our CodeFlare stack we will want to run though some of the demo notebooks provided by the CodeFlare community. So let's start by cloning their repo into our working environment.
-
-```bash 
-git clone https://github.com/project-codeflare/codeflare-sdk
-cd codeflare-sdk
-```
-
 ## Install the CodeFlare Operator
 
-1. First, install the CodeFlare operator from the operatorhub. The default settings for the operator will suffice.
-2. Create the odh-core kfdef. This kfdef can be found in the [odh-manifests repository](https://github.com/opendatahub-io/odh-manifests/blob/master/kfdef/odh-core.yaml)
-3. Create the kfdef in this directory.
-
+1. First, install the CodeFlare operator from the OperatorHub. The default settings for the CodeFlare Operator will suffice.
+2. Create the opendatahub namespace with the following command:
 ```bash
-$ curl -O https://raw.githubusercontent.com/opendatahub-io/odh-manifests/master/kfdef/odh-core.yaml
-$ oc apply -f odh-core.yaml -n opendatahub
-$ oc apply -f codeflare-stack-kfdef.yaml -n opendatahub  # This should be the same namespace as that for the odh-core deployment
+$ oc create ns opendatahub
+```
+3. Apply the odh-core kfdef with this command:
+```bash
+$ oc apply -f https://raw.githubusercontent.com/opendatahub-io/odh-manifests/master/kfdef/odh-core.yaml -n opendatahub
+```
+4. Create the CodeFlare-Stack kfdef with this command:
+```bash
+$ oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-stack-kfdef.yaml -n opendatahub
 ```
 
-Creating the above kfdef will result in the following objects being added to your cluster:
+Applying the above kfdef will result in the following objects being added to your cluster:
 
 1. MCAD
 2. InstaScale
