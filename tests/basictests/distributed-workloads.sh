@@ -18,6 +18,17 @@ function example_test() {
 
 function install_codeflare_operator() {
     header "Installing Codeflare Operator"
+    os::cmd::expect_success "oc apply -f $RESOURCEDIR/codeflare-subscription.yaml"
+
+    # Wait until both pods are ready
+    os::cmd::try_until_text "oc get pods -n openshift-operators | grep "codeflare-operator-controller-manager" | awk '{print \$2}'" "2/2"
+
+    # Ensure that all CRDs are created
+    os::cmd::expect_success_and_text "oc get crd instascales.codeflare.codeflare.dev  | wc -l" "2"
+    os::cmd::expect_success_and_text "oc get crd mcads.codeflare.codeflare.dev | wc -l" "2"
+    os::cmd::expect_success_and_text "oc get crd appwrappers.mcad.ibm.com | wc -l" "2"
+    os::cmd::expect_success_and_text "oc get crd queuejobs.mcad.ibm.com | wc -l" "2"
+    os::cmd::expect_success_and_text "oc get crd schedulingspecs.mcad.ibm.com | wc -l" "2"
 }
 
 function install_distributed_workloads_kfdef(){
