@@ -12,7 +12,7 @@ os::test::junit::declare_suite_start "$MY_SCRIPT"
 
 function check_ray_operator() {
     header "Testing Ray Operator"
-    os::cmd::expect_success "oc project ray-system"
+    os::cmd::expect_success "oc project ${ODHPROJECT}"
     os::cmd::try_until_text "oc get crd rayclusters.ray.io" "rayclusters.ray.io" $odhdefaulttimeout $odhdefaultinterval
     os::cmd::try_until_text "oc get role kuberay-operator-leader-election" "kuberay-operator-leader-election" $odhdefaulttimeout $odhdefaultinterval
     os::cmd::try_until_text "oc get rolebinding kuberay-operator-leader-election" "kuberay-operator-leader-election" $odhdefaulttimeout $odhdefaultinterval
@@ -50,7 +50,7 @@ function test_metrics() {
     monitoring_token=$(oc sa get-token prometheus-k8s -n openshift-monitoring)
     oc label service ray-cluster-example-ray-head app=ray-monitor
     sleep 30
-    os::cmd::try_until_text "oc -n openshift-monitoring exec -c prometheus prometheus-k8s-0 -- curl -k -H \"Authorization: Bearer $monitoring_token\" https://thanos-querier.openshift-monitoring.svc:9091/api/v1/query?query=count(pod:container_cpu_usage:sum{namespace='ray-system'}) | jq '.data.result[0].value[1]'" "1" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc -n openshift-monitoring exec -c prometheus prometheus-k8s-0 -- curl -k -H \"Authorization: Bearer $monitoring_token\" https://thanos-querier.openshift-monitoring.svc:9091/api/v1/query?query=count(pod:container_cpu_usage:sum{namespace='${ODHPROJECT}'}) | jq '.data.result[0].value[1]'" "1" $odhdefaulttimeout $odhdefaultinterval
 }
 
 check_operator
