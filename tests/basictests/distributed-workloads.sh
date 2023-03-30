@@ -6,7 +6,7 @@ MY_DIR=$(readlink -f `dirname "${BASH_SOURCE[0]}"`)
 
 RESOURCEDIR="${MY_DIR}/../resources"
 
-source ${MY_DIR}/../util
+source ${MY_DIR}/../../util
 
 os::test::junit::declare_suite_start "$MY_SCRIPT"
 
@@ -21,7 +21,7 @@ function install_codeflare_operator() {
     os::cmd::expect_success "oc apply -f $RESOURCEDIR/codeflare-subscription.yaml"
 
     # Wait until both pods are ready
-    os::cmd::try_until_text "oc get pods -n openshift-operators | grep "codeflare-operator-controller-manager" | awk '{print \$2}'" "2/2"
+    os::cmd::try_until_text "oc get pods -n openshift-operators | grep "codeflare-operator-controller-manager" | awk '{print \$2}'" "2/2" $odhdefaulttimeout $odhdefaultinterval
 
     # Ensure that all CRDs are created
     os::cmd::expect_success_and_text "oc get crd instascales.codeflare.codeflare.dev  | wc -l" "2"
