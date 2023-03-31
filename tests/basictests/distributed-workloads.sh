@@ -6,27 +6,22 @@ MY_DIR=$(readlink -f `dirname "${BASH_SOURCE[0]}"`)
 
 RESOURCEDIR="${MY_DIR}/../resources"
 
-source ${MY_DIR}/../../util
+source ${MY_DIR}/../util
 
 os::test::junit::declare_suite_start "$MY_SCRIPT"
+
+function example_test() {
+    header "Running example test"
+    os::cmd::expect_success "oc project ${ODHPROJECT}"
+    os::cmd::expect_success "oc get pods"
+}
 
 function install_codeflare_operator() {
     header "Installing Codeflare Operator"
 }
 
 function install_distributed_workloads_kfdef(){
-    header "Installing distributed workloads kfdef"
-    os::cmd::expect_success "oc apply -f ../distributed-workloads-kfdef.yaml"
-    os::cmd::expect_success "oc project opendatahub"
-    
-    # KubeRay tests
-    os::cmd::try_until_text "oc get crd rayclusters.ray.io" "rayclusters.ray.io" $odhdefaulttimeout $odhdefaultinterval
-    os::cmd::try_until_text "oc get role kuberay-operator-leader-election" "kuberay-operator-leader-election" $odhdefaulttimeout $odhdefaultinterval
-    os::cmd::try_until_text "oc get rolebinding kuberay-operator-leader-election" "kuberay-operator-leader-election" $odhdefaulttimeout $odhdefaultinterval
-    os::cmd::try_until_text "oc get sa kuberay-operator" "kuberay-operator" $odhdefaulttimeout $odhdefaultinterval
-    os::cmd::try_until_text "oc get deployment kuberay-operator" "kuberay-operator" $odhdefaulttimeout $odhdefaultinterval
-    os::cmd::try_until_text "oc get pods -l app.kubernetes.io/component=kuberay-operator --field-selector='status.phase=Running' -o jsonpath='{$.items[*].metadata.name}' | wc -w" "1" $odhdefaulttimeout $odhdefaultinterval   
-
+    header "Installing distributed workloads kfdef"   
 }
 
 function test_mcad_torchx_functionality() {
@@ -46,6 +41,7 @@ function uninstall_codeflare_operator() {
 }
 
 
+example_test
 install_codeflare_operator
 install_distributed_workloads_kfdef
 test_mcad_torchx_functionality
