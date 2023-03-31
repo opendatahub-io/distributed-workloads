@@ -38,6 +38,27 @@ function uninstall_distributed_workloads_kfdef() {
 
 function uninstall_codeflare_operator() {
     header "Uninstalling Codeflare Operator"
+    # Figure out the csv name of the codeflare operator
+    CODEFLARE_CSV_VER=$(oc get csv | awk '{print $1}' |grep codeflare-operator)
+
+    # Uninstall the subscription, csv and crds of the CodeFlare Operator
+    os::cmd::expect_success "oc delete sub codeflare-operator -n openshift-operators"
+    os::cmd::expect_success "oc delete csv $CODEFLARE_CSV_VER -n openshift-operators"
+    os::cmd::expect_success "oc delete crd appwrappers.mcad.ibm.com instascales.codeflare.codeflare.dev mcads.codeflare.codeflare.dev queuejobs.mcad.ibm.com schedulingspecs.mcad.ibm.com"
+
+    # Wait until the CodeFlare Operator pods is gone
+    os::cmd::try_until_text "oc get pods -n openshift-operators -l control-plane=controller-manager" "No resources found in openshift-operators namespace." $odhdefaulttimeout $odhdefaultinterval
+
+    # Ensure that the CodeFlare Operator subscription and csv are deleted
+    os::cmd::expect_failure "oc get sub codeflare-operator -n openshift-operators"
+    os::cmd::expect_failure "oc get csv codeflare-operator.v0.0.1 -n openshift-operators"
+
+    # Ensure that all CRDs are deleted
+    os::cmd::expect_failure "oc get crd instascales.codeflare.codeflare.dev"
+    os::cmd::expect_failure "oc get crd mcads.codeflare.codeflare.dev"
+    os::cmd::expect_failure "oc get crd appwrappers.mcad.ibm.com"
+    os::cmd::expect_failure "oc get crd queuejobs.mcad.ibm.com"
+    os::cmd::expect_failure "oc get crd schedulingspecs.mcad.ibm.com"
 }
 
 
