@@ -11,16 +11,13 @@ spec:
         name: manifests
         path: codeflare-stack
     name: codeflare-stack
-  # Ray.io
+  # KubeRay
   - kustomizeConfig:
       repoRef:
-        name: manifests-contrib
+        name: manifests
         path: ray/operator
     name: ray-operator
   repos:
     # ODH Core component manifests
   - name: manifests
     uri: https://github.com/opendatahub-io/distributed-workloads/tarball/main
-    # ODH Contrib component manifests
-  - name: manifests-contrib
-    uri: https://github.com/opendatahub-io-contrib/odh-contrib-manifests/tarball/main

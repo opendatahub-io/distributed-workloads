@@ -7,9 +7,11 @@ Distributed Workloads is a simple, user-friendly abstraction for scaling,
 queuing and resource management of distributed AI/ML and Python workloads.
 It consists of three components: 
 
-* [CodeFlare SDK](https://github.com/project-codeflare/codeflare-sdk) for controlling remote Ray clusters through any Python based environment
+* [CodeFlare SDK](https://github.com/project-codeflare/codeflare-sdk) to define and control remote distributed compute jobs and infrastructure with any Python based environment
 * [Multi-Cluster Application Dispatcher (MCAD)](https://github.com/project-codeflare/multi-cluster-app-dispatcher) for management of batch jobs
 * [Instascale](https://github.com/project-codeflare/instascale) for on-demand scaling of a Kubernetes cluster
+
+* [KubeRay](https://github.com/ray-project/kuberay) for management of remote Ray clusters on Kubernetes for running distributed compute workloads
 
 Intrgration of this stack into the Open Data Hub is owned by the Distributed Workloads Working
 Group. See [this page](https://github.com/opendatahub-io/opendatahub-community/tree/master/wg-distributed-workloads)

@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ray-simple-test
+  labels:
+    app: ray-simple-test
+spec:
+  replicas: 1
+  selector:
+    type: Recreate
+    matchLabels:
+      app: ray-simple-test
+  template:
+    metadata:
+      labels:
+        app: ray-simple-test
+    spec:
+      containers:
+      - name: ray-odh-tests
+        image: quay.io/opendatahub-contrib/ray-odh-tests:latest
+        imagePullPolicy: Always
+        command:
+        - /bin/sh
+        - -c
+        - |
+          python ray_test.py
+          sleep infinity
+        resources: {}
+         
