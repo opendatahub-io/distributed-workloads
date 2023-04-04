@@ -36,9 +36,9 @@ function install_distributed_workloads_kfdef(){
     os::cmd::expect_success "oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-stack-kfdef.yaml -n ${ODHPROJECT}"
 
     # Ensure that MCAD, Instascale, KubeRay pods start
-    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} |grep mcad-controller | awk '{print \$3}'"  "Running"
-    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} |grep instascale-instascale | awk '{print \$3}'"  "Running"
-    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} |grep kuberay-operator | awk '{print \$3}'"  "Running"
+    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} |grep mcad-controller | awk '{print \$2}'"  "1/1" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} |grep instascale-instascale | awk '{print \$2}'"  "1/1" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} |grep kuberay-operator | awk '{print \$2}'"  "1/1" $odhdefaulttimeout $odhdefaultinterval
 
     # Ensure the codeflare-notebook imagestream is there
     os::cmd::expect_success_and_text "oc get imagestreams -n ${ODHPROJECT} codeflare-notebook --no-headers=true |awk '{print \$1}'"  "codeflare-notebook"
@@ -80,12 +80,13 @@ function tests_mcad_ray_functionality() {
 
 function uninstall_distributed_workloads_kfdef() {
     header "Uninstalling distributed workloads kfdef"
-    os::cmd::expect_success "oc delete kfdef codeflare-stack -n ${ODHPROJECT}"
+    echo "NOTE, kfdef deletion can take up to 5-8 minutes..."
+    os::cmd::try_until_success "oc delete kfdef codeflare-stack -n ${ODHPROJECT}" $odhdefaulttimeout $odhdefaultinterval
 
     # Ensure that MCAD, Instascale, KubeRay pods are gone
-    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} -l app=mcad-mcad" "No resources found in ${ODHPROJECT} namespace."
-    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} -l app=instascale-instascale" "No resources found in ${ODHPROJECT} namespace."
-    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} -l app.kubernetes.io/component=kuberay-operator" "No resources found in ${ODHPROJECT} namespace."
+    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} -l app=mcad-mcad" "No resources found in ${ODHPROJECT} namespace." $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} -l app=instascale-instascale" "No resources found in ${ODHPROJECT} namespace." $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} -l app.kubernetes.io/component=kuberay-operator" "No resources found in ${ODHPROJECT} namespace." $odhdefaulttimeout $odhdefaultinterval
 
     # Ensure the codeflare-notebook imagestream is removed
     os::cmd::expect_failure "oc get imagestreams -n ${ODHPROJECT} codeflare-notebook"
