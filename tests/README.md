@@ -45,14 +45,6 @@ This should create a directory, `distributed-workloads` in the `operator-tests` 
 
 ## Running Tests
 
-Our tests script needs be executable. So, we need to change permissions on the `distributed-workloads.sh` script.
-
-```bash
-chmod +x operator-tests/distributed-workloads/tests/basictests/distributed-workloads.sh
-```
-
-We can now run our test script! 
-
 `run.sh` will search through the 'operator-tests' directory for a *.sh file name we provide to it as an argument. In this case, we want to run the `distributed-workloads.sh` script.
 
 ```bash
