@@ -50,8 +50,8 @@ function test_mcad_torchx_functionality() {
     ########### ToDo: Clean Cluster should be free of those resources ############
     # Clean up resources
     os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin|| true"
-    os::cmd::expect_success "oc delete cm notebooks || true"
-    os::cmd::expect_success "oc delete appwrapper mnisttest -n default || true"
+    os::cmd::expect_success "oc delete cm notebooks-mcad || true"
+    os::cmd::expect_success "oc delete appwrapper mnisttest || true"
     ##############################################################################
 
     # Wait for the notebook controller ready
