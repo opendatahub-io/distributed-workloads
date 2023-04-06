@@ -55,7 +55,7 @@ spec:
         - name: OCP_TOKEN
           value: OCPTOKEN
         image: image-registry.openshift-image-registry.svc:5000/opendatahub/codeflare-notebook:latest
-        command: ["/bin/sh", "-c", "pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks-mcad/mnist_ray_mini.ipynb /opt/app-root/src/mcad-out.ipynb"]
+        command: ["/bin/sh", "-c", "pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks-mcad/mnist_mcad_mini.ipynb /opt/app-root/src/mcad-out.ipynb"]
         # args: ["pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks/mcad.ipynb /opt/app-root/src/mcad-out.ipynb" ]
         imagePullPolicy: Always
         # livenessProbe:
