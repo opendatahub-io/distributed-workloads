@@ -62,8 +62,8 @@ function test_mcad_ray_functionality() {
     # Wait for the notebook controller ready
     os::cmd::try_until_text "oc get deployment odh-notebook-controller-manager -n ${ODHPROJECT} --no-headers=true | awk '{print \$2}'" "1/1" $odhdefaulttimeout $odhdefaultinterval
 
-    # Create a mcad.ipynb as a configMap
-    os::cmd::expect_success "oc create configmap notebooks --from-file=${RESOURCEDIR}/mcad.ipynb"
+    # Create a mnist_ray_mini.ipynb as a configMap
+    os::cmd::expect_success "oc create configmap notebooks --from-file=${RESOURCEDIR}/mnist_ray_mini.ipynb"
 
     # Spawn notebook-server using the codeflare custom nb image
     os::cmd::expect_success "cat ${RESOURCEDIR}/custom-nb-small.yaml | sed s/%INGRESS%/$(oc get ingresses.config/cluster -o jsonpath={.spec.domain})/g |sed s/OCPSERVER/$(oc whoami --show-server=true|cut -f3 -d "/")/g | sed s/OCPTOKEN/$(oc whoami --show-token=true)/g | oc apply -n ${ODHPROJECT} -f -"
