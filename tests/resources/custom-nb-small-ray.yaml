@@ -55,7 +55,7 @@ spec:
         - name: OCP_TOKEN
           value: OCPTOKEN
         image: image-registry.openshift-image-registry.svc:5000/opendatahub/codeflare-notebook:latest
-        command: ["/bin/sh", "-c", "pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks/mnist_ray_mini.ipynb /opt/app-root/src/mcad-out.ipynb"]
+        command: ["/bin/sh", "-c", "pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks-ray/mnist_ray_mini.ipynb /opt/app-root/src/mcad-out.ipynb"]
         # args: ["pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks/mcad.ipynb /opt/app-root/src/mcad-out.ipynb" ]
         imagePullPolicy: Always
         # livenessProbe:
@@ -83,8 +83,8 @@ spec:
         volumeMounts:
         - mountPath: /opt/app-root/src
           name: jupyterhub-nb-kube-3aadmin-pvc
-        - mountPath: /opt/app-root/notebooks
-          name: notebooks
+        - mountPath: /opt/app-root/notebooks-ray
+          name: notebooks-ray
         workingDir: /opt/app-root/src
       - args:
         - --provider=openshift
@@ -160,9 +160,9 @@ spec:
         secret:
           defaultMode: 420
           secretName: jupyter-nb-kube-3aadmin-tls
-      - name: notebooks
+      - name: notebooks-ray
         configMap:
-          name: notebooks
+          name: notebooks-ray
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
