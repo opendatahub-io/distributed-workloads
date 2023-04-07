@@ -49,7 +49,7 @@ function test_mcad_torchx_functionality() {
 
     ########### Clean Cluster should be free of these resources ############
     # Get appwrapper name
-    AW=$(oc get appwrapper -n ${ODHPROJECT} | grep mnistjob | cut -d ' ' -f 1)
+    AW=$(oc get appwrapper -n ${ODHPROJECT} | grep mnistjob | cut -d ' ' -f 1) || true
     # Clean up resources
     if [[ -n $AW ]]; then
         os::cmd::expect_success "oc delete appwrapper $AW -n ${ODHPROJECT} || true"
