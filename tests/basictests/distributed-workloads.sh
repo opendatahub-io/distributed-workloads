@@ -47,11 +47,10 @@ function install_distributed_workloads_kfdef(){
 function test_mcad_torchx_functionality() {
     header "Testing MCAD TorchX Functionality"
 
-    ########### ToDo: Clean Cluster should be free of those resources ############
+    ########### Clean Cluster should be free of these resources ############
     # Clean up resources
     os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT} || true"
     os::cmd::expect_success "oc delete cm notebooks-mcad -n ${ODHPROJECT} || true"
-    os::cmd::expect_success "oc delete appwrapper mnisttest -n ${ODHPROJECT} || true"
     ##############################################################################
 
     # Wait for the notebook controller ready
@@ -69,11 +68,27 @@ function test_mcad_torchx_functionality() {
     # Wait for the notebook-server to be ready
     os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} | grep "jupyter-nb-kube-3aadmin" | awk '{print \$2}'" "2/2" $odhdefaulttimeout $odhdefaultinterval
 
+    # Wait for appwrapper to exist
+    os::cmd::try_until_text "oc get appwrapper -n ${ODHPROJECT} | grep mnistjob" "mnistjob-*" $odhdefaulttimeout $odhdefaultinterval
+
+    # Get appwrapper name
+    AW=$(oc get appwrapper -n ${ODHPROJECT} | grep mnistjob | cut -d ' ' -f 1)
+    
     # Wait for the mnisttest appwrapper state to become running
-    os::cmd::try_until_text "oc get appwrapper mnistjob -n ${ODHPROJECT} -ojsonpath='{.status.state}'" "Running" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc get appwrapper $AW -n ${ODHPROJECT} -ojsonpath='{.status.state}'" "Running" $odhdefaulttimeout $odhdefaultinterval
 
     # Wait for workload to succeed
-    #os::cmd::try_until_text "oc get raycluster -n ${ODHPROJECT} mnisttest -ojsonpath='{.status.state}'" "ready" $odhdefaulttimeout $odhdefaultinterval
+    #os::cmd::try_until_text "check job log here" "success" $odhdefaulttimeout $odhdefaultinterval
+
+    # Test clean up resources
+    os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT}"
+    os::cmd::expect_failure "oc get notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT}"
+
+    os::cmd::expect_success "oc delete cm notebooks-mcad -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get cm notebooks-mcad -n ${ODHPROJECT}"
+
+    os::cmd::expect_success "oc delete appwrapper $AW -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get appwrapper $AW -n ${ODHPROJECT}"
 }
 
 function test_mcad_ray_functionality() {
