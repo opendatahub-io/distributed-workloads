@@ -48,7 +48,12 @@ function test_mcad_torchx_functionality() {
     header "Testing MCAD TorchX Functionality"
 
     ########### Clean Cluster should be free of these resources ############
+    # Get appwrapper name
+    AW=$(oc get appwrapper -n ${ODHPROJECT} | grep mnistjob | cut -d ' ' -f 1)
     # Clean up resources
+    if [[ -n $AW ]]; then
+        os::cmd::expect_success "oc delete appwrapper $AW -n ${ODHPROJECT} || true"
+    fi
     os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT} || true"
     os::cmd::expect_success "oc delete cm notebooks-mcad -n ${ODHPROJECT} || true"
     ##############################################################################
