@@ -80,8 +80,8 @@ function test_mcad_ray_functionality() {
     # Clean up resources
     os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin|| true"
     os::cmd::expect_success "oc delete cm notebooks-ray || true"
-    os::cmd::expect_success "oc delete appwrapper mnisttest -n default || true"
-    os::cmd::expect_success "oc delete raycluster mnisttest -n default || true"
+    os::cmd::expect_success "oc delete appwrapper mnisttest || true"
+    os::cmd::expect_success "oc delete raycluster mnisttest || true"
     ##############################################################################
 
     # Wait for the notebook controller ready
