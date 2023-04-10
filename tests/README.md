@@ -12,6 +12,16 @@ brew install coreutils
 ln -s /usr/local/bin/greadlink /usr/local/bin/readlink
 ```
 
+* If you have not deployed the Open Data Hub on your OpenShift cluster:
+```bash
+# Install ODH operator and wait for the deployment/opendatahub-operator in the openshift-operators namespace to become available
+oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/tests/resources/odh-subscriptoin.yaml
+
+# Deploy Open Data Hub core components
+oc new-project opendatahub
+oc apply -f https://raw.githubusercontent.com/opendatahub-io/odh-manifests/master/kfdef/odh-core.yaml -n opendatahub
+
+```
 ## Setup
 
 Clone the [opendatahub-io/peak](https://github.com/opendatahub-io/peak) project anywhere you like in your working environment. But, do not clone it into the `distributed-workloads` directory.
@@ -25,7 +35,7 @@ Then we need to update the peak project with its submodule dependencies. Specifi
 
 ```bash
 git submodule update --init
-``` 
+```
 
 Now we need to pull our `distributed workloads` project into the peak repo for testing. This is done by creating a file, `my-list`, that contains the repository name you want to use, the channel, the repo's location (this can be a github url or a relative path to a local directory) and branch name.
 
@@ -88,4 +98,4 @@ Uninstalling Codeflare Operator
 
 ## Troubleshooting
 
-If any of the above is unclear or you run into any problems, please open an issue in the [opendatahub-io/distributed-workloads](https://github.com/opendatahub-io/distributed-workloads/issues) repository. 
+If any of the above is unclear or you run into any problems, please open an issue in the [opendatahub-io/distributed-workloads](https://github.com/opendatahub-io/distributed-workloads/issues) repository.
