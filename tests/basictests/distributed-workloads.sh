@@ -82,8 +82,8 @@ function test_mcad_torchx_functionality() {
     # Wait for the mnisttest appwrapper state to become running
     os::cmd::try_until_text "oc get appwrapper $AW -n ${ODHPROJECT} -ojsonpath='{.status.state}'" "Running" $odhdefaulttimeout $odhdefaultinterval
 
-    # Wait for workload to succeed
-    #os::cmd::try_until_text "check job log here" "success" $odhdefaulttimeout $odhdefaultinterval
+    # Wait for workload to succeed and clean up
+    os::cmd::try_until_text "oc get appwrapper $AW -n ${ODHPROJECT}" "*NotFound*" $odhdefaulttimeout $odhdefaultinterval
 
     # Test clean up resources
     os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT}"
@@ -127,6 +127,10 @@ function test_mcad_ray_functionality() {
 
     # Wait for Raycluster to be ready
     os::cmd::try_until_text "oc get raycluster -n ${ODHPROJECT} mnisttest -ojsonpath='{.status.state}'" "ready" $odhdefaulttimeout $odhdefaultinterval
+
+    # Wait for job to be completed and cleaned up
+    os::cmd::try_until_text "oc get appwrapper mnisttest -n ${ODHPROJECT}" "*NotFound*" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::expect_failure "oc get raycluster mnisttest -n ${ODHPROJECT}"
 
     # Test clean up resources
     os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT}"
