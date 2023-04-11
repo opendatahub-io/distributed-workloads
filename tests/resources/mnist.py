@@ -14,7 +14,6 @@
 
 # In[]
 import os
-from tkinter import W
 
 import torch
 from pytorch_lightning import LightningModule, Trainer
