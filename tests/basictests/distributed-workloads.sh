@@ -184,7 +184,7 @@ function uninstall_codeflare_operator() {
     os::cmd::expect_success "oc delete crd appwrappers.mcad.ibm.com instascales.codeflare.codeflare.dev mcads.codeflare.codeflare.dev queuejobs.mcad.ibm.com schedulingspecs.mcad.ibm.com"
 
     # Wait until the CodeFlare Operator deployment is gone
-    os::cmd::try_until_text "oc get deploy mcad-controller-mcad -n ${ODHPROJECT}" "*NotFound*" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc get deploy codeflare-operator-controller-manager -n openshift-operators" "*NotFound*" $odhdefaulttimeout $odhdefaultinterval
 
     # Ensure that the CodeFlare Operator subscription and csv are deleted
     os::cmd::expect_failure "oc get sub codeflare-operator -n openshift-operators"
