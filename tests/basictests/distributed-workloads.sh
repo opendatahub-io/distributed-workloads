@@ -171,6 +171,9 @@ function uninstall_distributed_workloads_kfdef() {
 
     # Ensure the codeflare-notebook imagestream is removed
     os::cmd::expect_failure "oc get imagestreams -n ${ODHPROJECT} codeflare-notebook"
+
+    # Delete the underlying notebook pvc
+    os::cmd::expect_success "oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT}"
 }
 
 function uninstall_codeflare_operator() {
