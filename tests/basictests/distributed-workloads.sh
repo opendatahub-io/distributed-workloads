@@ -56,6 +56,7 @@ function test_mcad_torchx_functionality() {
     fi
     os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT} || true"
     os::cmd::expect_success "oc delete cm notebooks-mcad -n ${ODHPROJECT} || true"
+    os::cmd::expect_success "oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT} || true"
     ##############################################################################
 
     # Wait for the notebook controller ready
@@ -65,10 +66,12 @@ function test_mcad_torchx_functionality() {
     os::cmd::expect_success "oc create configmap notebooks-mcad -n ${ODHPROJECT} --from-file=${RESOURCEDIR}/mnist_mcad_mini.ipynb"
 
     # Spawn notebook-server using the codeflare custom nb image
-    os::cmd::expect_success "cat ${RESOURCEDIR}/custom-nb-small-mcad.yaml \
+    os::cmd::expect_success "cat ${RESOURCEDIR}/custom-nb-small.yaml \
                             | sed s/%INGRESS%/$(oc get ingresses.config/cluster -o jsonpath={.spec.domain})/g \
-                            | sed s/OCPSERVER/$(oc whoami --show-server=true|cut -f3 -d "/")/g \
-                            | sed s/OCPTOKEN/$(oc whoami --show-token=true)/g | oc apply -n ${ODHPROJECT} -f -"
+                            | sed s/%OCPSERVER%/$(oc whoami --show-server=true|cut -f3 -d "/")/g \
+                            | sed s/%OCPTOKEN%/$(oc whoami --show-token=true)/g \
+                            | sed s/%NAMESPACE%/${ODHPROJECT}/g \
+                            | sed s/%JOBTYPE%/mcad/g | oc apply -n ${ODHPROJECT} -f -"
 
     # Wait for the notebook-server to be ready
     os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} | grep "jupyter-nb-kube-3aadmin" | awk '{print \$2}'" "2/2" $odhdefaulttimeout $odhdefaultinterval
@@ -94,6 +97,9 @@ function test_mcad_torchx_functionality() {
 
     os::cmd::expect_success "oc delete appwrapper $AW -n ${ODHPROJECT} || true"
     os::cmd::expect_failure "oc get appwrapper $AW -n ${ODHPROJECT}"
+
+    os::cmd::expect_success "oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT}"
 }
 
 function test_mcad_ray_functionality() {
@@ -105,6 +111,7 @@ function test_mcad_ray_functionality() {
     os::cmd::expect_success "oc delete cm notebooks-ray -n ${ODHPROJECT} || true"
     os::cmd::expect_success "oc delete appwrapper mnisttest -n ${ODHPROJECT} || true"
     os::cmd::expect_success "oc delete raycluster mnisttest -n ${ODHPROJECT} || true"
+    os::cmd::expect_success "oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT} || true"
     ##############################################################################
 
     # Wait for the notebook controller ready
@@ -114,10 +121,12 @@ function test_mcad_ray_functionality() {
     os::cmd::expect_success "oc create configmap notebooks-ray -n ${ODHPROJECT} --from-file=${RESOURCEDIR}/mnist_ray_mini.ipynb --from-file=${RESOURCEDIR}/mnist.py --from-file=${RESOURCEDIR}/requirements.txt"
 
     # Spawn notebook-server using the codeflare custom nb image
-    os::cmd::expect_success "cat ${RESOURCEDIR}/custom-nb-small-ray.yaml \
+    os::cmd::expect_success "cat ${RESOURCEDIR}/custom-nb-small.yaml \
                             | sed s/%INGRESS%/$(oc get ingresses.config/cluster -o jsonpath={.spec.domain})/g \
-                            | sed s/OCPSERVER/$(oc whoami --show-server=true|cut -f3 -d "/")/g \
-                            | sed s/OCPTOKEN/$(oc whoami --show-token=true)/g | oc apply -n ${ODHPROJECT} -f -"
+                            | sed s/%OCPSERVER%/$(oc whoami --show-server=true|cut -f3 -d "/")/g \
+                            | sed s/%OCPTOKEN%/$(oc whoami --show-token=true)/g \
+                            | sed s/%NAMESPACE%/${ODHPROJECT}/g \
+                            | sed s/%JOBTYPE%/ray/g | oc apply -n ${ODHPROJECT} -f -"
 
     # Wait for the notebook-server to be ready
     os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} | grep "jupyter-nb-kube-3aadmin" | awk '{print \$2}'" "2/2" $odhdefaulttimeout $odhdefaultinterval
@@ -144,6 +153,9 @@ function test_mcad_ray_functionality() {
 
     os::cmd::expect_success "oc delete raycluster mnisttest -n ${ODHPROJECT} || true"
     os::cmd::expect_failure "oc get raycluster mnisttest -n ${ODHPROJECT}"
+
+    os::cmd::expect_success "oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT}"
 
 }
 
