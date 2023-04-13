@@ -55,7 +55,7 @@ spec:
         - name: OCP_TOKEN
           value: OCPTOKEN
         image: quay.io/project-codeflare/notebook:sdk0.4.3-v1
-        command: ["/bin/sh", "-c", "pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && cp /opt/app-root/notebooks-ray/mnist.py /opt/app-root/src/mnist.py && papermill /opt/app-root/notebooks-ray/mnist_ray_mini.ipynb /opt/app-root/src/mcad-out.ipynb && sleep infinity"]
+        command: ["/bin/sh", "-c", "pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks-ray/mnist_ray_mini.ipynb /opt/app-root/src/mcad-out.ipynb && sleep infinity"]
         # args: ["pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks/mcad.ipynb /opt/app-root/src/mcad-out.ipynb" ]
         imagePullPolicy: Always
         # livenessProbe:
