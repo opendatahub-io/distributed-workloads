@@ -46,29 +46,89 @@ function install_distributed_workloads_kfdef(){
 
 function test_mcad_torchx_functionality() {
     header "Testing MCAD TorchX Functionality"
-}
 
-function tests_mcad_ray_functionality() {
-    header "Testing MCAD Ray Functionality"
-
-    ########### ToDo: Clean Cluser should be free of those resoruces ############
+    ########### Clean Cluster should be free of these resources ############
+    # Get appwrapper name
+    AW=$(oc get appwrapper -n ${ODHPROJECT} | grep mnistjob | cut -d ' ' -f 1) || true
     # Clean up resources
-    os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin|| true"
-    os::cmd::expect_success "oc delete cm notebooks || true"
-    os::cmd::expect_success "oc delete appwrapper mnisttest -n default || true"
-    os::cmd::expect_success "oc delete raycluster mnisttest -n default || true"
-    ########################################################################################
+    if [[ -n $AW ]]; then
+        os::cmd::expect_success "oc delete appwrapper $AW -n ${ODHPROJECT} || true"
+    fi
+    os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT} || true"
+    os::cmd::expect_success "oc delete cm notebooks-mcad -n ${ODHPROJECT} || true"
+    os::cmd::expect_success "oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT} || true"
+    ##############################################################################
 
     # Wait for the notebook controller ready
     os::cmd::try_until_text "oc get deployment odh-notebook-controller-manager -n ${ODHPROJECT} --no-headers=true | awk '{print \$2}'" "1/1" $odhdefaulttimeout $odhdefaultinterval
 
-    # Create a mcad.ipynb as a configMap
-    os::cmd::expect_success "oc create configmap notebooks --from-file=${RESOURCEDIR}/mcad.ipynb"
+    # Create a mnist_ray_mini.ipynb as a configMap
+    os::cmd::expect_success "oc create configmap notebooks-mcad -n ${ODHPROJECT} --from-file=${RESOURCEDIR}/mnist_mcad_mini.ipynb"
 
     # Spawn notebook-server using the codeflare custom nb image
-    os::cmd::expect_success "cat ${RESOURCEDIR}/custom-nb-small.yaml | sed s/%INGRESS%/$(oc get ingresses.config/cluster -o jsonpath={.spec.domain})/g |sed s/OCPSERVER/$(oc whoami --show-server=true|cut -f3 -d "/")/g | sed s/OCPTOKEN/$(oc whoami --show-token=true)/g | oc apply -n ${ODHPROJECT} -f -"
+    os::cmd::expect_success "cat ${RESOURCEDIR}/custom-nb-small.yaml \
+                            | sed s/%INGRESS%/$(oc get ingresses.config/cluster -o jsonpath={.spec.domain})/g \
+                            | sed s/%OCPSERVER%/$(oc whoami --show-server=true|cut -f3 -d "/")/g \
+                            | sed s/%OCPTOKEN%/$(oc whoami --show-token=true)/g \
+                            | sed s/%NAMESPACE%/${ODHPROJECT}/g \
+                            | sed s/%JOBTYPE%/mcad/g | oc apply -n ${ODHPROJECT} -f -"
 
-    # Wait for the nodebook-server to be ready
+    # Wait for the notebook-server to be ready
+    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} | grep "jupyter-nb-kube-3aadmin" | awk '{print \$2}'" "2/2" $odhdefaulttimeout $odhdefaultinterval
+
+    # Wait for appwrapper to exist
+    os::cmd::try_until_text "oc get appwrapper -n ${ODHPROJECT} | grep mnistjob" "mnistjob-*" $odhdefaulttimeout $odhdefaultinterval
+
+    # Get appwrapper name
+    AW=$(oc get appwrapper -n ${ODHPROJECT} | grep mnistjob | cut -d ' ' -f 1)
+    
+    # Wait for the mnisttest appwrapper state to become running
+    os::cmd::try_until_text "oc get appwrapper $AW -n ${ODHPROJECT} -ojsonpath='{.status.state}'" "Running" $odhdefaulttimeout $odhdefaultinterval
+
+    # Wait for workload to succeed and clean up
+    os::cmd::try_until_text "oc get appwrapper $AW -n ${ODHPROJECT}" "*NotFound*" $odhdefaulttimeout $odhdefaultinterval
+
+    # Test clean up resources
+    os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT}"
+    os::cmd::expect_failure "oc get notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT}"
+
+    os::cmd::expect_success "oc delete cm notebooks-mcad -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get cm notebooks-mcad -n ${ODHPROJECT}"
+
+    os::cmd::expect_success "oc delete appwrapper $AW -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get appwrapper $AW -n ${ODHPROJECT}"
+
+    os::cmd::expect_success "oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT}"
+}
+
+function test_mcad_ray_functionality() {
+    header "Testing MCAD Ray Functionality"
+
+    ########### ToDo: Clean Cluster should be free of those resources ############
+    # Clean up resources
+    os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT} || true"
+    os::cmd::expect_success "oc delete cm notebooks-ray -n ${ODHPROJECT} || true"
+    os::cmd::expect_success "oc delete appwrapper mnisttest -n ${ODHPROJECT} || true"
+    os::cmd::expect_success "oc delete raycluster mnisttest -n ${ODHPROJECT} || true"
+    os::cmd::expect_success "oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT} || true"
+    ##############################################################################
+
+    # Wait for the notebook controller ready
+    os::cmd::try_until_text "oc get deployment odh-notebook-controller-manager -n ${ODHPROJECT} --no-headers=true | awk '{print \$2}'" "1/1" $odhdefaulttimeout $odhdefaultinterval
+
+    # Create a mnist_ray_mini.ipynb as a configMap
+    os::cmd::expect_success "oc create configmap notebooks-ray -n ${ODHPROJECT} --from-file=${RESOURCEDIR}/mnist_ray_mini.ipynb --from-file=${RESOURCEDIR}/mnist.py --from-file=${RESOURCEDIR}/requirements.txt"
+
+    # Spawn notebook-server using the codeflare custom nb image
+    os::cmd::expect_success "cat ${RESOURCEDIR}/custom-nb-small.yaml \
+                            | sed s/%INGRESS%/$(oc get ingresses.config/cluster -o jsonpath={.spec.domain})/g \
+                            | sed s/%OCPSERVER%/$(oc whoami --show-server=true|cut -f3 -d "/")/g \
+                            | sed s/%OCPTOKEN%/$(oc whoami --show-token=true)/g \
+                            | sed s/%NAMESPACE%/${ODHPROJECT}/g \
+                            | sed s/%JOBTYPE%/ray/g | oc apply -n ${ODHPROJECT} -f -"
+
+    # Wait for the notebook-server to be ready
     os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} | grep "jupyter-nb-kube-3aadmin" | awk '{print \$2}'" "2/2" $odhdefaulttimeout $odhdefaultinterval
 
     # Wait for the mnisttest appwrapper state to become running
@@ -76,6 +136,27 @@ function tests_mcad_ray_functionality() {
 
     # Wait for Raycluster to be ready
     os::cmd::try_until_text "oc get raycluster -n ${ODHPROJECT} mnisttest -ojsonpath='{.status.state}'" "ready" $odhdefaulttimeout $odhdefaultinterval
+
+    # Wait for job to be completed and cleaned up
+    os::cmd::try_until_text "oc get appwrapper mnisttest -n ${ODHPROJECT}" "*NotFound*" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::expect_failure "oc get raycluster mnisttest -n ${ODHPROJECT}"
+
+    # Test clean up resources
+    os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT}"
+    os::cmd::expect_failure "oc get notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT}"
+
+    os::cmd::expect_success "oc delete cm notebooks-ray -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get cm notebooks-ray -n ${ODHPROJECT}"
+
+    os::cmd::expect_success "oc delete appwrapper mnisttest -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get appwrapper mnisttest -n ${ODHPROJECT}"
+
+    os::cmd::expect_success "oc delete raycluster mnisttest -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get raycluster mnisttest -n ${ODHPROJECT}"
+
+    os::cmd::expect_success "oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT}"
+
 }
 
 function uninstall_distributed_workloads_kfdef() {
@@ -122,7 +203,7 @@ example_test
 install_codeflare_operator
 install_distributed_workloads_kfdef
 test_mcad_torchx_functionality
-tests_mcad_ray_functionality
+test_mcad_ray_functionality
 uninstall_distributed_workloads_kfdef
 uninstall_codeflare_operator
 
