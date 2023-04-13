@@ -6,9 +6,14 @@ MY_DIR=$(readlink -f `dirname "${BASH_SOURCE[0]}"`)
 
 RESOURCEDIR="${MY_DIR}/../resources"
 
-source ${MY_DIR}/../util
+source ${MY_DIR}/../../../util
 
 os::test::junit::declare_suite_start "$MY_SCRIPT"
+
+function install_distributed_workloads_kfdef(){
+    header "Installing distributed workloads kfdef"
+    os::cmd::expect_success "oc apply -f $MY_DIR/../../../codeflare-stack-kfdef.yaml -n ${ODHPROJECT}"
+}
 
 function check_ray_operator() {
     header "Testing Ray Operator"
@@ -22,9 +27,9 @@ function check_ray_operator() {
 }
 
 function start_test_ray_cluster(){
-    header: "Starting Ray Cluster"
-    os::cmd:expect_success "oc project ${ODHPROJECT}"
-    os:cmd:expect_success "oc apply -f ${RESOURCEDIR}/ray/ray-test-cluster-deploy.yaml"
+    header "Starting Ray Cluster"
+    os::cmd::expect_success "oc project ${ODHPROJECT}"
+    os::cmd::expect_success "oc apply -f ${RESOURCEDIR}/ray/ray-test-cluster-test.yaml"
     os::cmd::try_until_text "oc get RayCluster kuberay-cluster-test" "kuberay-cluster-test" $odhdefaulttimeout $odhdefaultinterval
     sleep 15
 }
@@ -40,23 +45,24 @@ function check_functionality(){
     os::cmd::try_until_text "oc logs ${pod_name} | grep 'Simple tests passed'" "Simple tests passed" $odhdefaulttimeout $odhdefaultinterval
 }
 
-function setup_monitoring() {
-    header "Enabling User Workload Monitoring on the cluster"
-    oc apply -f ${RESOURCEDIR}/enable-uwm.yaml
-}    
-
-function test_metrics() {
-    header "Checking metrics"
-    monitoring_token=$(oc sa get-token prometheus-k8s -n openshift-monitoring)
-    oc label service ray-cluster-example-ray-head app=ray-monitor
-    sleep 30
-    os::cmd::try_until_text "oc -n openshift-monitoring exec -c prometheus prometheus-k8s-0 -- curl -k -H \"Authorization: Bearer $monitoring_token\" https://thanos-querier.openshift-monitoring.svc:9091/api/v1/query?query=count(pod:container_cpu_usage:sum{namespace='${ODHPROJECT}'}) | jq '.data.result[0].value[1]'" "1" $odhdefaulttimeout $odhdefaultinterval
+function clean_up_ray_cluster(){
+    header "Cleaning up Ray cluster"
+    os::cmd::expect_success "oc project ${ODHPROJECT}"
+    os::cmd::expect_success "oc delete deployment ray-simple-test -n ${ODHPROJECT}"
+    os::cmd::expect_success "oc delete RayCluster kuberay-cluster-test -n ${ODHPROJECT}"
 }
 
-check_operator
-start_cluster
+function uninstall_distributed_workloads_kfdef() {
+    header "Uninstalling distributed workloads kfdef"
+    echo "NOTE, kfdef deletion can take up to 5-8 minutes..."
+    os::cmd::try_until_success "oc delete kfdef codeflare-stack -n ${ODHPROJECT}" $odhdefaulttimeout $odhdefaultinterval
+}
+
+install_distributed_workloads_kfdef
+check_ray_operator
+start_test_ray_cluster
 check_functionality
-setup_monitoring
-test_metrics
+clean_up_ray_cluster
+uninstall_distributed_workloads_kfdef
 
 os::test::junit::declare_suite_end
