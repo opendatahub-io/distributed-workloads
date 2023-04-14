@@ -12,10 +12,10 @@ brew install coreutils
 ln -s /usr/local/bin/greadlink /usr/local/bin/readlink
 ```
 
-* If you have not deployed the Open Data Hub on your OpenShift cluster:
+* If you run these tests in a local cluster and have not deployed the Open Data Hub on your OpenShift cluster:
 ```bash
 # Install ODH operator and wait for the deployment/opendatahub-operator in the openshift-operators namespace to become available
-oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/tests/resources/odh-subscriptoin.yaml
+oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/tests/resources/odh-subscription.yaml
 
 # Deploy Open Data Hub core components
 oc new-project opendatahub
