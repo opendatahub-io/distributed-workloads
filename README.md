@@ -1,11 +1,12 @@
 # distributed-workloads
+
 Artifacts for installing the Distributed Workloads stack as part of ODH
 
 ## Overview
 
 Distributed Workloads is a simple, user-friendly abstraction for scaling,
 queuing and resource management of distributed AI/ML and Python workloads.
-It consists of three components: 
+It consists of three components:
 
 * [CodeFlare SDK](https://github.com/project-codeflare/codeflare-sdk) to define and control remote distributed compute jobs and infrastructure with any Python based environment
 * [Multi-Cluster Application Dispatcher (MCAD)](https://github.com/project-codeflare/multi-cluster-app-dispatcher) for management of batch jobs
