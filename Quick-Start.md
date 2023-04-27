@@ -8,6 +8,29 @@ This stack integrates well with [Open Data Hub](https://opendatahub.io/), and he
 
 ## Prerequisites
 
+### Resources
+
+In addition to the resources required by the odh-core deployment, you will need the following to deploy the Distributed Workloads stack infrastructure pods:
+
+```text
+Total:
+    CPU: 4100m
+    Memory: 4608Mi
+
+# By component
+Ray:
+    CPU: 100m
+    Memory: 512Mi
+MCAD
+    cpu: 2000m
+    memory: 2Gi
+InstaScale:
+    cpu: 2000m
+    memory: 2Gi
+```
+
+NOTE: The above resources are just for the infrastructure pods. To be able to run actual workloads on your cluster you will need additional resources based on the size and type of workload.
+
 ### OpenShift and Open Data Hub
 
 This Quick Start guide assumes that you have administrator access to an OpenShift cluster and an existing Open Data Hub installation on your cluster. If you do not currently have the Open Data Hub operator installed on your cluster, you can find instructions for installing it [here](https://opendatahub.io/docs/getting-started/quick-installation.html). The default settings for the Open Data Hub Operator will suffice.
