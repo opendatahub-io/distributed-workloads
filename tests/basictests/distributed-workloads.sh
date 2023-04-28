@@ -6,34 +6,16 @@ MY_DIR=$(readlink -f `dirname "${BASH_SOURCE[0]}"`)
 
 RESOURCEDIR="${MY_DIR}/../resources"
 
-source ${MY_DIR}/../../util
+source ${MY_DIR}/../util
+
+TEST_USER=${OPENSHIFT_TESTUSER_NAME:-"admin"}
+TEST_PASS=${OPENSHIFT_TESTUSER_PASS:-"admin"}
+OPENSHIFT_OAUTH_ENDPOINT="https://$(oc get route -n openshift-authentication   oauth-openshift -o json | jq -r '.spec.host')"
 
 os::test::junit::declare_suite_start "$MY_SCRIPT"
 
-function example_test() {
-    header "Running example test"
-    os::cmd::expect_success "oc project ${ODHPROJECT}"
-    os::cmd::expect_success "oc get pods"
-}
-
-function install_codeflare_operator() {
-    header "Installing Codeflare Operator"
-    os::cmd::expect_success "oc apply -f $RESOURCEDIR/codeflare-subscription.yaml"
-
-    # Wait until both pods are ready
-    os::cmd::try_until_text "oc get pods -n openshift-operators | grep "codeflare-operator-controller-manager" | awk '{print \$2}'" "2/2" $odhdefaulttimeout $odhdefaultinterval
-
-    # Ensure that all CRDs are created
-    os::cmd::expect_success_and_text "oc get crd instascales.codeflare.codeflare.dev  | wc -l" "2"
-    os::cmd::expect_success_and_text "oc get crd mcads.codeflare.codeflare.dev | wc -l" "2"
-    os::cmd::expect_success_and_text "oc get crd appwrappers.mcad.ibm.com | wc -l" "2"
-    os::cmd::expect_success_and_text "oc get crd queuejobs.mcad.ibm.com | wc -l" "2"
-    os::cmd::expect_success_and_text "oc get crd schedulingspecs.mcad.ibm.com | wc -l" "2"
-}
-
-function install_distributed_workloads_kfdef(){
-    header "Installing distributed workloads kfdef"
-    os::cmd::expect_success "oc apply -f $MY_DIR/../../codeflare-stack-kfdef.yaml -n ${ODHPROJECT}"
+function check_distributed_workloads_kfdef(){
+    header "Checking distributed workloads stack"
 
     # Ensure that MCAD, Instascale, KubeRay pods start
     os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} |grep mcad-controller | awk '{print \$2}'"  "1/1" $odhdefaulttimeout $odhdefaultinterval
@@ -42,6 +24,10 @@ function install_distributed_workloads_kfdef(){
 
     # Ensure the codeflare-notebook imagestream is there
     os::cmd::expect_success_and_text "oc get imagestreams -n ${ODHPROJECT} codeflare-notebook --no-headers=true |awk '{print \$1}'"  "codeflare-notebook"
+
+    # Add additional role required by notebook sa
+    oc adm policy add-role-to-user admin -n ${ODHPROJECT} --rolebinding-name "admin-$TEST_USER" $TEST_USER
+    oc adm policy add-role-to-user kuberay-operator -n ${ODHPROJECT} --rolebinding-name "kuberay-operator-$TEST_USER" $TEST_USER
 }
 
 function test_mcad_torchx_functionality() {
@@ -65,11 +51,14 @@ function test_mcad_torchx_functionality() {
     # Create a mnist_ray_mini.ipynb as a configMap
     os::cmd::expect_success "oc create configmap notebooks-mcad -n ${ODHPROJECT} --from-file=${RESOURCEDIR}/mnist_mcad_mini.ipynb"
 
+    # Get Token
+    local TESTUSER_BEARER_TOKEN="$(curl -skiL -u $TEST_USER:$TEST_PASS -H 'X-CSRF-Token: xxx' "$OPENSHIFT_OAUTH_ENDPOINT/oauth/authorize?response_type=token&client_id=openshift-challenging-client" | grep -oP 'access_token=\K[^&]*')"
+
     # Spawn notebook-server using the codeflare custom nb image
     os::cmd::expect_success "cat ${RESOURCEDIR}/custom-nb-small.yaml \
                             | sed s/%INGRESS%/$(oc get ingresses.config/cluster -o jsonpath={.spec.domain})/g \
                             | sed s/%OCPSERVER%/$(oc whoami --show-server=true|cut -f3 -d "/")/g \
-                            | sed s/%OCPTOKEN%/$(oc whoami --show-token=true)/g \
+                            | sed s/%OCPTOKEN%/${TESTUSER_BEARER_TOKEN}/g \
                             | sed s/%NAMESPACE%/${ODHPROJECT}/g \
                             | sed s/%JOBTYPE%/mcad/g | oc apply -n ${ODHPROJECT} -f -"
 
@@ -120,11 +109,14 @@ function test_mcad_ray_functionality() {
     # Create a mnist_ray_mini.ipynb as a configMap
     os::cmd::expect_success "oc create configmap notebooks-ray -n ${ODHPROJECT} --from-file=${RESOURCEDIR}/mnist_ray_mini.ipynb --from-file=${RESOURCEDIR}/mnist.py --from-file=${RESOURCEDIR}/requirements.txt"
 
+    # Get Token
+    local TESTUSER_BEARER_TOKEN="$(curl -skiL -u $TEST_USER:$TEST_PASS -H 'X-CSRF-Token: xxx' "$OPENSHIFT_OAUTH_ENDPOINT/oauth/authorize?response_type=token&client_id=openshift-challenging-client" | grep -oP 'access_token=\K[^&]*')"
+
     # Spawn notebook-server using the codeflare custom nb image
     os::cmd::expect_success "cat ${RESOURCEDIR}/custom-nb-small.yaml \
                             | sed s/%INGRESS%/$(oc get ingresses.config/cluster -o jsonpath={.spec.domain})/g \
                             | sed s/%OCPSERVER%/$(oc whoami --show-server=true|cut -f3 -d "/")/g \
-                            | sed s/%OCPTOKEN%/$(oc whoami --show-token=true)/g \
+                            | sed s/%OCPTOKEN%/${TESTUSER_BEARER_TOKEN}/g \
                             | sed s/%NAMESPACE%/${ODHPROJECT}/g \
                             | sed s/%JOBTYPE%/ray/g | oc apply -n ${ODHPROJECT} -f -"
 
@@ -159,53 +151,17 @@ function test_mcad_ray_functionality() {
 
 }
 
-function uninstall_distributed_workloads_kfdef() {
-    header "Uninstalling distributed workloads kfdef"
-    echo "NOTE, kfdef deletion can take up to 5-8 minutes..."
-    os::cmd::try_until_success "oc delete kfdef codeflare-stack -n ${ODHPROJECT}" $odhdefaulttimeout $odhdefaultinterval
-
-    # Ensure that MCAD, Instascale, KubeRay pods are gone
-    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} -l app=mcad-mcad" "No resources found in ${ODHPROJECT} namespace." $odhdefaulttimeout $odhdefaultinterval
-    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} -l app=instascale-instascale" "No resources found in ${ODHPROJECT} namespace." $odhdefaulttimeout $odhdefaultinterval
-    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} -l app.kubernetes.io/component=kuberay-operator" "No resources found in ${ODHPROJECT} namespace." $odhdefaulttimeout $odhdefaultinterval
-
-    # Ensure the codeflare-notebook imagestream is removed
-    os::cmd::expect_failure "oc get imagestreams -n ${ODHPROJECT} codeflare-notebook"
-}
-
-function uninstall_codeflare_operator() {
-    header "Uninstalling Codeflare Operator"
-    # Figure out the csv name of the codeflare operator
-    CODEFLARE_CSV_VER=$(oc get csv | awk '{print $1}' |grep codeflare-operator)
-
-    # Uninstall the subscription, csv and crds of the CodeFlare Operator
-    os::cmd::expect_success "oc delete sub codeflare-operator -n openshift-operators"
-    os::cmd::expect_success "oc delete csv $CODEFLARE_CSV_VER -n openshift-operators"
-    os::cmd::expect_success "oc delete crd appwrappers.mcad.ibm.com instascales.codeflare.codeflare.dev mcads.codeflare.codeflare.dev queuejobs.mcad.ibm.com schedulingspecs.mcad.ibm.com"
-
-    # Wait until the CodeFlare Operator deployment is gone
-    os::cmd::try_until_text "oc get deploy codeflare-operator-controller-manager -n openshift-operators" "*NotFound*" $odhdefaulttimeout $odhdefaultinterval
-
-    # Ensure that the CodeFlare Operator subscription and csv are deleted
-    os::cmd::expect_failure "oc get sub codeflare-operator -n openshift-operators"
-    os::cmd::expect_failure "oc get csv codeflare-operator.v0.0.1 -n openshift-operators"
-
-    # Ensure that all CRDs are deleted
-    os::cmd::expect_failure "oc get crd instascales.codeflare.codeflare.dev"
-    os::cmd::expect_failure "oc get crd mcads.codeflare.codeflare.dev"
-    os::cmd::expect_failure "oc get crd appwrappers.mcad.ibm.com"
-    os::cmd::expect_failure "oc get crd queuejobs.mcad.ibm.com"
-    os::cmd::expect_failure "oc get crd schedulingspecs.mcad.ibm.com"
+function clean_permissions() {
+    header "Cleaning extra admin roles"
+    oc adm policy remove-role-from-user admin -n ${ODHPROJECT} $TEST_USER
+    oc adm policy remove-role-from-user kuberay-operator -n ${ODHPROJECT} $TEST_USER
 }
 
 
-example_test
-install_codeflare_operator
-install_distributed_workloads_kfdef
+check_distributed_workloads_kfdef
 test_mcad_torchx_functionality
 test_mcad_ray_functionality
-uninstall_distributed_workloads_kfdef
-uninstall_codeflare_operator
+clean_permissions
 
 
 os::test::junit::declare_suite_end
