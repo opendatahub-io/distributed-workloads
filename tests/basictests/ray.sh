@@ -6,14 +6,9 @@ MY_DIR=$(readlink -f `dirname "${BASH_SOURCE[0]}"`)
 
 RESOURCEDIR="${MY_DIR}/../resources"
 
-source ${MY_DIR}/../../../util
+source ${MY_DIR}/../util
 
 os::test::junit::declare_suite_start "$MY_SCRIPT"
-
-function install_distributed_workloads_kfdef(){
-    header "Installing distributed workloads kfdef"
-    os::cmd::expect_success "oc apply -f $MY_DIR/../../../codeflare-stack-kfdef.yaml -n ${ODHPROJECT}"
-}
 
 function check_ray_operator() {
     header "Testing Ray Operator"
@@ -52,17 +47,9 @@ function clean_up_ray_cluster(){
     os::cmd::expect_success "oc delete RayCluster kuberay-cluster-test -n ${ODHPROJECT}"
 }
 
-function uninstall_distributed_workloads_kfdef() {
-    header "Uninstalling distributed workloads kfdef"
-    echo "NOTE, kfdef deletion can take up to 5-8 minutes..."
-    os::cmd::try_until_success "oc delete kfdef codeflare-stack -n ${ODHPROJECT}" $odhdefaulttimeout $odhdefaultinterval
-}
-
-install_distributed_workloads_kfdef
 check_ray_operator
 start_test_ray_cluster
 check_functionality
 clean_up_ray_cluster
-uninstall_distributed_workloads_kfdef
 
 os::test::junit::declare_suite_end

@@ -7,21 +7,31 @@ Manually running tests requires use of the the [opendatahub-io/peak](https://git
 * Admin access to an OpenShift cluster ([CRC](https://developers.redhat.com/products/openshift-local/overview) is fine)
 
 * Mac users may need to do the following:
+
 ```bash
 brew install coreutils
 ln -s /usr/local/bin/greadlink /usr/local/bin/readlink
 ```
 
+* NOTE: The tests appear to be flaky when running from mac. Running from linux is actually the recommended way to run them.
+
 * If you run these tests in a local cluster and have not deployed the Open Data Hub on your OpenShift cluster:
+
 ```bash
-# Install ODH operator and wait for the deployment/opendatahub-operator in the openshift-operators namespace to become available
+# Install CodeFlare operator
+oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/tests/resources/codeflare-subscription.yaml
+
+# Install ODH operator and wait for the deploy/opendatahub-operator-controller-manager in the openshift-operators namespace to become available
 oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/tests/resources/odh-subscription.yaml
 
 # Deploy Open Data Hub core components
 oc new-project opendatahub
 oc apply -f https://raw.githubusercontent.com/opendatahub-io/odh-manifests/master/kfdef/odh-core.yaml -n opendatahub
 
+# Deploy CodeFlare stack
+oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-stack-kfdef.yaml
 ```
+
 ## Setup
 
 Clone the [opendatahub-io/peak](https://github.com/opendatahub-io/peak) project anywhere you like in your working environment. But, do not clone it into the `distributed-workloads` directory.
@@ -60,6 +70,7 @@ This should create a directory, `distributed-workloads` in the `operator-tests` 
 ```bash
 ./run.sh distributed-workloads.sh
 ```
+
 If everything is working correctly you should see an output similar to the below:
 
 ```bash
@@ -95,6 +106,11 @@ Uninstalling Codeflare Operator
 
 ```
 
+In some cases, your cluster may not have the default user+password(admin, admin) combination on it. In those situations, you can manually pass in a custom user and password by running tests as below:
+
+```bash
+OPENSHIFT_TESTUSER_NAME=<user_name> OPENSHIFT_TESTUSER_PASS=<password> ./run.sh distributed-workloads.sh
+```
 
 ## Troubleshooting
 
