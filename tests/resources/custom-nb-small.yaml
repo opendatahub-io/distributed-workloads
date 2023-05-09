@@ -76,10 +76,10 @@ spec:
         resources:
           limits:
             cpu: "2"
-            memory: 8Gi
+            memory: 3Gi
           requests:
             cpu: "1"
-            memory: 8Gi
+            memory: 3Gi
         volumeMounts:
         - mountPath: /opt/app-root/src
           name: jupyterhub-nb-kube-3aadmin-pvc
