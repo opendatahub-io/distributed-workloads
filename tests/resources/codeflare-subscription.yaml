@@ -8,3 +8,5 @@ spec:
   name: codeflare-operator
   source: community-operators
   sourceNamespace: openshift-marketplace
+  installPlanApproval: Manual
+  startingCSV: codeflare-operator.v0.0.1
