@@ -21,6 +21,9 @@ ln -s /usr/local/bin/greadlink /usr/local/bin/readlink
 # Install CodeFlare operator
 oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/tests/resources/codeflare-subscription.yaml
 
+installPlanName=$(oc get installplans -n openshift-operators -o jsonpath='{.items[?(@.metadata.ownerReferences[0].name=="codeflare-operator")].metadata.name}')
+oc patch installplan $installPlanName -n openshift-operators --type merge -p '{"spec":{"approved":true}}'
+
 # Install ODH operator and wait for the deploy/opendatahub-operator-controller-manager in the openshift-operators namespace to become available
 oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/tests/resources/odh-subscription.yaml
 
