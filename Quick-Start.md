@@ -33,7 +33,7 @@ NOTE: The above resources are just for the infrastructure pods. To be able to ru
 
 ### OpenShift and Open Data Hub
 
-This Quick Start guide assumes that you have administrator access to an OpenShift cluster and an existing Open Data Hub installation on your cluster. If you do not currently have the Open Data Hub operator installed on your cluster, you can find instructions for installing it [here](https://opendatahub.io/docs/getting-started/quick-installation.html). The default settings for the Open Data Hub Operator will suffice.
+This Quick Start guide assumes that you have administrator access to an OpenShift cluster and an existing Open Data Hub installation on your cluster. If you do not currently have the Open Data Hub operator installed on your cluster, you can find instructions for installing it [here](https://opendatahub.io/docs/quick-installation/). The default settings for the Open Data Hub Operator will suffice.
 
 ### NFD and GPU Operators
 
