@@ -25,6 +25,6 @@ resources:
 
 images:
 - name: kuberay/operator
-  newName: kuberay/operator
+  newName: quay.io/opendatahub/kuberay-operator
   newTag: v0.3.0
 
