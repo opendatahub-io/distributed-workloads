@@ -53,6 +53,8 @@ If you want to run GPU enabled workloads, you will need to install the [Node Fea
     oc create ns opendatahub
     ```
 
+1. Create a secret in the opendatahub namespace containing your ocm token. You can find your token [here](https://console.redhat.com/openshift/token). Navigate to Workloads -> secrets in the Openshift Console. Click Create and choose a key/value secret. Secret name: instascale-ocm-secret Key: token, Value: <ocm token> and click create.
+
 1. Apply the odh-core kfdef with this command:
 
     ```bash
