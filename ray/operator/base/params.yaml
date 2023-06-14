@@ -1,3 +1,5 @@
 varReference:
   - path: subjects[]/namespace
     kind: ClusterRoleBinding
+  - path: users[]
+    kind: SecurityContextConstraints
