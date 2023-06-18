@@ -6,6 +6,17 @@ The CodeFlare-SDK was built to make managing distributed compute infrastructure 
 
 This stack integrates well with [Open Data Hub](https://opendatahub.io/), and helps to bring batch workloads, jobs, and queuing to the Data Science platform.
 
+## Automatic deployment
+
+As a quick alternative to the following manual deployment steps an automaic *makefile* script can be used to deploy the CodeFlare stack. This script also deploys the prerequisite operators and the entire CodeFlare stack up to the step [Submit your first job](#submit-your-first-job).
+To use this script, clone the repo and execute:
+
+```bash
+make all-in-one
+```
+
+> Note : Execute ```make help``` to list additional available operations.
+
 ## Prerequisites
 
 ### Resources

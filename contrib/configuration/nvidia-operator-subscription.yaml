@@ -1,0 +1,22 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: gpu-operator-certified
+  namespace: nvidia-gpu-operator
+spec:
+  targetNamespaces:
+  - opendatahub
+--- 
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: gpu-operator-certified
+  labels:
+    operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator: ''
+  namespace: nvidia-gpu-operator
+spec:
+  channel: v23.3
+  name: gpu-operator-certified
+  installPlanApproval: Automatic
+  source: certified-operators
+  sourceNamespace: openshift-marketplace
