@@ -78,6 +78,12 @@ At this point you should be able to go to your notebook spawner page and select 
 
 You can access the spawner page through the Open Data Hub dashboard. The default route should be `https://odh-dashboard-<your ODH namespace>.apps.<your cluster's uri>`. Once you are on your dashboard, you can select "Launch application" on the Jupyter application. This will take you to your notebook spawner page.
 
+
+### Using an Openshift Dedicated or ROSA Cluster
+If you are using an Openshift Dedicated or ROSA Cluster you will need to create a secret in the opendatahub namespace containing your ocm token. You can find your token [here](https://console.redhat.com/openshift/token). Navigate to Workloads -> secrets in the Openshift Console. Click Create and choose a key/value secret. Secret name: instascale-ocm-secret, Key: token, Value: < ocm token > and click create.
+
+<img src="images/instascale-ocm-secret.png" width="80%" height="80%">
+
 ## Submit your first job
 
 We can now go ahead and submit our first distributed model training job to our cluster.
