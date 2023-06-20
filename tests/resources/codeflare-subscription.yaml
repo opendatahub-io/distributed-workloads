@@ -9,4 +9,4 @@ spec:
   source: community-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Manual
-  startingCSV: codeflare-operator.v0.0.1
+  startingCSV: codeflare-operator.v0.0.4
