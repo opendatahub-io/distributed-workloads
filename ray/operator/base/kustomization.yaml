@@ -22,6 +22,7 @@ resources:
 - ../rbac
 - ../manager
 - ../prometheus
+- ../scc
 
 images:
 - name: kuberay/operator
