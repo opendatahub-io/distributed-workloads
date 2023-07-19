@@ -35,7 +35,7 @@ oc apply -f https://raw.githubusercontent.com/opendatahub-io/odh-manifests/maste
 oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-stack-kfdef.yaml
 ```
 
-## Setup
+## Bash tests - Setup
 
 Clone the [opendatahub-io/peak](https://github.com/opendatahub-io/peak) project anywhere you like in your working environment. But, do not clone it into the `distributed-workloads` directory.
 
@@ -66,7 +66,7 @@ Now we can setup our tests.
 
 This should create a directory, `distributed-workloads` in the `operator-tests` directory of the peak repo.
 
-## Running Tests
+## Bash tests - Running Tests
 
 `run.sh` will search through the 'operator-tests' directory for a *.sh file name we provide to it as an argument. In this case, we want to run the `distributed-workloads.sh` script.
 
@@ -113,6 +113,23 @@ In some cases, your cluster may not have the default user+password(admin, admin)
 
 ```bash
 OPENSHIFT_TESTUSER_NAME=<user_name> OPENSHIFT_TESTUSER_PASS=<password> ./run.sh distributed-workloads.sh
+```
+
+## Go tests - Setup
+
+* Install Go 1.20
+
+## Go tests - Environment variables
+
+* `ODH_NAMESPACE` - Namespace where ODH is installed
+* `CODEFLARE_TEST_OUTPUT_DIR` - Output directory for test logs
+
+## Go tests - Running Tests
+
+Execute tests like standard Go unit tests.
+
+```bash
+go test -v ./integration
 ```
 
 ## Troubleshooting
