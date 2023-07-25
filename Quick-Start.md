@@ -21,7 +21,7 @@ Total:
 Ray:
     CPU: 100m
     Memory: 512Mi
-MCAD
+MCAD:
     cpu: 2000m
     memory: 2Gi
 InstaScale:
@@ -78,6 +78,20 @@ At this point you should be able to go to your notebook spawner page and select 
 
 You can access the spawner page through the Open Data Hub dashboard. The default route should be `https://odh-dashboard-<your ODH namespace>.apps.<your cluster's uri>`. Once you are on your dashboard, you can select "Launch application" on the Jupyter application. This will take you to your notebook spawner page.
 
+### [Optional] - Install custom images of MCAD and/or InstaScale
+After adding the MCAD and InstaScale objects, the simplest way to update their versions is by replacing the `controllerImage` value in their Custom Resource Definitions (CRDs) with the path to your custom image. This image might be stored in a registry, such as quay.io. To help you build and push your custom image to a registry, both the [MCAD](https://github.com/project-codeflare/multi-cluster-app-dispatcher) and [InstaScale](https://github.com/project-codeflare/instascale) repositories provide `make` commands to achieve this.
+
+Replacing the value of the `controllerImage` may be done manually or by running the following command:
+
+#### OpenShift
+```
+oc patch instascale instascale -n opendatahub --type='json' -p='[{"op": "replace", "path": "/spec/controllerImage", "value": "<PathToYourCustomImage>"}]'
+```
+
+#### Kubernetes
+```
+kubectl patch instascale instascale -n opendatahub --type='json' -p='[{"op": "replace", "path": "/spec/controllerImage", "value": "<PathToYourCustomImage>"}]'
+```
 
 ### Using an Openshift Dedicated or ROSA Cluster
 If you are using an Openshift Dedicated or ROSA Cluster you will need to create a secret in the opendatahub namespace containing your ocm token. You can find your token [here](https://console.redhat.com/openshift/token). Navigate to Workloads -> secrets in the Openshift Console. Click Create and choose a key/value secret. Secret name: instascale-ocm-secret, Key: token, Value: < ocm token > and click create.
