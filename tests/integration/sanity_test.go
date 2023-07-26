@@ -20,12 +20,11 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	support "github.com/project-codeflare/codeflare-operator/test/support"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	support "github.com/project-codeflare/codeflare-operator/test/support"
 )
 
 func TestMcadReadyStatus(t *testing.T) {

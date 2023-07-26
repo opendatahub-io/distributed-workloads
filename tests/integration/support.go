@@ -20,7 +20,6 @@ import (
 	"embed"
 
 	"github.com/onsi/gomega"
-
 	"github.com/project-codeflare/codeflare-operator/test/support"
 )
 
