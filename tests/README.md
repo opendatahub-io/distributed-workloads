@@ -123,6 +123,9 @@ OPENSHIFT_TESTUSER_NAME=<user_name> OPENSHIFT_TESTUSER_PASS=<password> ./run.sh 
 
 * `ODH_NAMESPACE` - Namespace where ODH is installed
 * `CODEFLARE_TEST_OUTPUT_DIR` - Output directory for test logs
+* `CODEFLARE_TEST_TIMEOUT_SHORT` - Timeout duration for short tasks
+* `CODEFLARE_TEST_TIMEOUT_MEDIUM` - Timeout duration for medium tasks
+* `CODEFLARE_TEST_TIMEOUT_LONG` - Timeout duration for long tasks
 
 ## Go tests - Running Tests
 
