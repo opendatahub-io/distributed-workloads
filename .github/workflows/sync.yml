@@ -2,6 +2,7 @@
 
 name: update manifests in odh-manifests repo
 on:
+  push:
   workflow_dispatch:
     inputs:
       codeflare-operator-version:
