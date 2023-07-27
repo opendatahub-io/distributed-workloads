@@ -1,0 +1,97 @@
+# This workflow will update the manifests, tests and compatibilty matrix in odh-manifests repository
+
+name: update manifests in odh-manifests repo
+on:
+  workflow_dispatch:
+    inputs:
+      codeflare-operator-version:
+        description: 'Update latest version of CodeFlare-Operator'
+        required: true
+        default: 'v0.0.0-dev'
+      mcad-version:
+        description: 'Update latest version of multi-cluster-app-dispatcher'
+        required: true
+        default: 'v0.0.0-dev'
+      codeflare-sdk-version:
+        description: 'Update latest version of CodeFlare-SDK'
+        required: true
+        default: 'v0.0.0-dev'
+      instascale-version:
+        description: 'Update latest version of InstaScale'
+        required: true
+        default: 'v0.0.0-dev'
+      kuberay-version:
+        description: 'Update latest version of KubeRay'
+        required: true
+        default: 'v0.0.0-dev'
+
+jobs:
+  update-manifests:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Checkout distributed-workload repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Checkout odh-manifest repository
+        uses: actions/checkout@v3
+        with:
+          repository: ChughShilpa/odh-manifests
+          ref: master
+          path: odh-manifests
+
+      - name: Update manifest & create PR in odh-manifests repository
+        run: |
+          LATEST_TAG=$(git describe --tags --always --abbrev=0)
+          BRANCH_NAME="update-manifests-to-$LATEST_TAG"
+
+          # Change working directory
+          cd odh-manifests
+
+          # Checkout new branch for the changes
+          git checkout -b $BRANCH_NAME
+
+          # Copy distributed-workload manifests using rsync
+          rsync -av --exclude='README.md' ../codeflare-stack/ codeflare-stack/
+          rsync -av --exclude='README.md' ../ray/ ray/
+          rsync -av ../tests/util  tests/util
+          rsync -av ../tests/util  tests/resources/codeflare-stack/util
+          rsync -av --exclude='odh-subscription.yaml'../tests/resources/ tests/resources/codeflare-stack/
+          rsync -av --exclude='distributed-workloads.sh' ../tests/basictests/ tests/basictests/
+
+          # Update compatibilty matrix in codeflare/readme
+          sed -i -E "s/(.*CodeFlare Operator.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.codeflare-operator-version }}\2/" codeflare-stack/README.md
+          sed -i -E "s/(.*Multi-Cluster App Dispatcher.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.mcad-version }}\2/" codeflare-stack/README.md
+          sed -i -E "s/(.*CodeFlare-SDK.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.codeflare-sdk-version }}\2/" codeflare-stack/README.md
+          sed -i -E "s/(.*InstaScale.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" codeflare-stack/README.md
+          sed -i -E "s/(.*KubeRay.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.kuberay-version }}\2/" codeflare-stack/README.md
+
+          # Configure identity for committer
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+
+          # Commit and push the branch to origin
+          echo " status before add ....."
+          git status
+          git add .
+          git commit -m "Manifest_updates_for_Distributed_Workloads_$(LATEST_TAG)_Release"
+          echo "completed commit .........."
+          if git ls-remote --exit-code --heads origin $BRANCH_NAME; then
+            git pull --rebase origin $BRANCH_NAME
+          fi
+          echo "completed if ............"
+          git push origin $BRANCH_NAME
+
+          # Create PR in odh-manifests repo
+          gh pr create \
+            --title "Update distributed-workload manifests for $LATEST_TAG" Release \
+            --body "This is an automated PR to update distributed-workload manifests for $LATEST_TAG" \
+            --head "$BRANCH_NAME" \
+            --base "master"
+        env:
+          GITHUB_TOKEN: ${{ secrets.Access_Token }}
