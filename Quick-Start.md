@@ -19,6 +19,9 @@ make all-in-one
 
 ## Prerequisites
 
+### Red Hat OpenShift
+  Tested on OpenShift 4.10, 4.12 and 4.13
+
 ### Resources
 
 In addition to the resources required by the odh-core deployment, you will need the following to deploy the Distributed Workloads stack infrastructure pods:
@@ -44,12 +47,15 @@ NOTE: The above resources are just for the infrastructure pods. To be able to ru
 
 ### OpenShift and Open Data Hub
 
-This Quick Start guide assumes that you have administrator access to an OpenShift cluster and an existing Open Data Hub installation on your cluster. If you do not currently have the Open Data Hub operator installed on your cluster, you can find instructions for installing it [here](https://opendatahub.io/docs/quick-installation/). The default settings for the Open Data Hub Operator will suffice.
+This Quick Start guide assumes that you have administrator access to an OpenShift cluster and an existing Open Data Hub (ODH) installation on your cluster. More information about ODH can be found  [here](https://opendatahub.io/docs/quick-installation/). But the quick step to install ODH is as follows:
+
+1. Using the OpenShift UI, navigate to Operators --> OperatorHub and search for `Open Data Hub Operator` and install it with the default settings
 
 ### CodeFlare Operator
 
-The CodeFlare operator must be installed from the OperatorHub on your OpenShift cluster. The default settings will
-suffice.
+The CodeFlare operator must be installed from the OperatorHub on your OpenShift cluster. 
+
+1. Using the OpenShift UI, navigate to Operators --> OperatorHub and search for `CodeFlare Operator` and install it with the default settings
 
 ### NFD and GPU Operators
 
@@ -76,7 +82,7 @@ If you want to run GPU enabled workloads, you will need to install the [Node Fea
     oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-stack-kfdef.yaml -n opendatahub
     ```
 
-Applying the above kfdef will result in the following objects being added to your cluster:
+Applying the CodeFlare-Stack kfdef will result in the following objects being added to your cluster:
 
 1. MCAD
 1. InstaScale
@@ -87,7 +93,14 @@ Applying the above kfdef will result in the following objects being added to you
 
 At this point you should be able to go to your notebook spawner page and select "Codeflare Notebook" from your list of notebook images and start an instance.
 
-You can access the spawner page through the Open Data Hub dashboard. The default route should be `https://odh-dashboard-<your ODH namespace>.apps.<your cluster's uri>`. Once you are on your dashboard, you can select "Launch application" on the Jupyter application. This will take you to your notebook spawner page.
+You can access the spawner page through the Open Data Hub dashboard. The default route should be `https://odh-dashboard-<your ODH namespace>.apps.<your cluster's uri>`. 
+
+To quickly find your ODH dashboard URL, you can issue this command:
+```bash
+ oc get route -n opendatahub |grep dash |awk '{print $2}'
+ ```
+
+Once you are on your dashboard, you can select "Launch application" on the Jupyter application. This will take you to your notebook spawner page.
 
 
 ### Using an Openshift Dedicated or ROSA Cluster
@@ -157,7 +170,8 @@ cluster_config = ClusterConfiguration(
 )
 ```
 
-In addition to instantiating our cluster object, this will also write a file, `mnist.yaml`, to your working directory. This file defines an AppWrapper custom resource; everything MCAD needs to deploy your Ray cluster.
+<<<<<<< HEAD
+In addition to instantiating our cluster object, this will also write a file, `jobtest.yaml`, to your working directory. This file defines an AppWrapper custom resource; everything MCAD needs to deploy your Ray cluster.
 
 Next, we can apply this YAML file and spin up our Ray cluster.
 
@@ -236,6 +250,36 @@ To finalize, the following commands can also be used to delete jobs early for bo
 job.cancel()
 auth.logout()
 ```
+
+## Cleaning up the CodeFlare Install
+To completely clean up all the CodeFlare components after an install, follow these steps:
+
+1.  No appwrappers should be left running:
+    ```bash
+    oc get appwrappers -A
+    ```
+     If any are left, you'd want to delete them
+
+2. Remove the notebook and notebook pvc:
+   ```bash
+   oc delete notebook jupyter-nb-kube-3aadmin -n opendatahub
+   oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n opendatahub
+   ```
+3. Remove the codeflare-stack kfdef
+    ``` bash
+    oc delete kfdef codeflare-stack -n opendatahub
+    ```
+
+4. Remove the CodeFlare Operator csv and subscription:
+   ```bash
+   oc delete sub codeflare-operator -n openshift-operators
+   oc delete csv codeflare-operator.v0.0.6 -n openshift-operators
+   ```
+
+5. Remove the CodeFlare CRDs
+   ```bash
+   oc delete crd instascales.codeflare.codeflare.dev mcads.codeflare.codeflare.dev schedulingspecs.mcad.ibm.com queuejobs.mcad.ibm.com
+   ```
 
 ## Next Steps
 
