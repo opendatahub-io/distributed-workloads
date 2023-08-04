@@ -16,6 +16,13 @@ vars:
     apiVersion: v1
   fieldref:
     fieldpath: data.namespace
+- name: odh-kuberay-operator-controller-image
+  objref:
+    kind: ConfigMap
+    name: ray-config
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.odh-kuberay-operator-controller-image
 
 resources:
 - ../crd
@@ -23,9 +30,3 @@ resources:
 - ../manager
 - ../prometheus
 - ../scc
-
-images:
-- name: kuberay/operator
-  newName: quay.io/opendatahub/kuberay-operator
-  newTag: v0.5.0
-

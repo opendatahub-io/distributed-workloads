@@ -3,3 +3,5 @@ varReference:
     kind: ClusterRoleBinding
   - path: users[]
     kind: SecurityContextConstraints
+  - path: spec/template/spec/containers[]/image
+    kind: Deployment

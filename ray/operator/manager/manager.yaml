@@ -25,9 +25,7 @@ spec:
       containers:
       - command:
         - /manager
-#        args:
-#        - --enable-leader-election
-        image: kuberay/operator
+        image: $(odh-kuberay-operator-controller-image)
         ports:
         - name: http
           containerPort: 8080
