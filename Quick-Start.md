@@ -136,13 +136,12 @@ cluster_config = ClusterConfiguration(
     name='mnist', 
     namespace="opendatahub", 
     machine_types = ["m4.xlarge", "g4dn.xlarge"]
-    min_worker=2, 
-    max_worker=2, 
+    num_workers=2,
     min_cpus=2, 
     max_cpus=2, 
     min_memory=8, 
     max_memory=8, 
-    gpu=1, 
+    num_gpus=1,
     instascale=True,
 )
 ```
