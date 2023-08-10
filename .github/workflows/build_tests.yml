@@ -1,0 +1,33 @@
+# This workflow makes sure that integration tests can be compiled. Automated execution of these tests is curently blocked as no suitable environment is available for testing of PRs.
+
+name: Build integration tests
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tests/**'
+
+concurrency:
+  group: ${{ github.head_ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+          cache-dependency-path: tests/go.sum
+
+      - name: Build test code
+        run: |
+          go fmt ./integration && git diff --exit-code
+          go vet ./integration && git diff --exit-code
+        working-directory: ./tests
