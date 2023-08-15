@@ -110,7 +110,7 @@ git clone https://github.com/project-codeflare/codeflare-sdk
 cd codeflare-sdk
 ```
 
-We will rely on this demo code to train an mnist model. So feel free to open `codeflare-sdk/demo-notebooks/batch-job/batch_mnist.ipynb` to follow along instead.
+We will rely on this demo code to train an mnist model. So feel free to open `codeflare-sdk/demo-notebooks/guided-demos/2_basic_jobs.ipynb` to follow along instead.
 
 ### Run the demo notebook
 
@@ -177,7 +177,7 @@ You can check the status of the Ray cluster and see when its ready to use with:
 cluster.status()
 ```
 
-Once the cluster is up, you are ready to submit your first job. Here we will rely on torchx with a ray backend as our distributed training engine. We've created a file `demo-notebook/batch-job/mnist.py` with the required pytorch training code that we'll be submitting.  
+Once the cluster is up, you are ready to submit your first job. Here we will rely on torchx with a ray backend as our distributed training engine. We've created a file `demo-notebook/guided-demos/mnist.py` with the required pytorch training code that we'll be submitting.  
 
 ```python
 ! torchx run -s ray -cfg dashboard_address=mnist-head-svc.<Your Namespace>.svc:8265,requirements=requirements.txt dist.ddp -j 2x1 --gpu 1 --script mnist.py
@@ -200,5 +200,5 @@ And with that you have gotten started using the CodeFlare stack alongside your O
 
 You are now ready to try out the stack with your own machine learning workloads. If you'd like some more examples, you can also run through the existing demo code provided by the Codeflare-SDK community.
 
-* [Submit batch jobs](https://github.com/project-codeflare/codeflare-sdk/tree/main/demo-notebooks/batch-job)
-* [Run an interactive session](https://github.com/project-codeflare/codeflare-sdk/tree/main/demo-notebooks/interactive)
+* [Submit batch jobs](https://github.com/project-codeflare/codeflare-sdk/tree/main/demo-notebooks/guided-demos)
+* [Run an interactive session](https://github.com/project-codeflare/codeflare-sdk/tree/main/demo-notebooks/additional-demos)
