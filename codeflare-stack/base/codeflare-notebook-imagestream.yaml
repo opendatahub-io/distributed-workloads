@@ -13,9 +13,9 @@ spec:
   tags:
     - annotations:
         openshift.io/imported-from: quay.io/project-codeflare/notebook
-      name: latest
+      name: v0.6.1
       from:
         kind: DockerImage
-        name: quay.io/project-codeflare/notebook:latest
+        name: quay.io/project-codeflare/notebook:v0.6.1
       importPolicy:
             scheduled: true
