@@ -154,6 +154,7 @@ cluster_config = ClusterConfiguration(
     max_memory=4, 
     num_gpus=0,
     instascale=False,
+    machine_types = ["m4.xlarge", "g4dn.xlarge"]
 )
 ```
 
