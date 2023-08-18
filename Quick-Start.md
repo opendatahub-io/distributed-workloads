@@ -123,7 +123,6 @@ git clone https://github.com/project-codeflare/codeflare-sdk
 cd codeflare-sdk
 ```
 
-<<<<<<< HEAD
 We will rely on this demo code to train an mnist model. So feel free to open `codeflare-sdk/demo-notebooks/guided-demos/2_basic_jobs.ipynb` to follow along instead.
 
 ### Run the demo notebook
