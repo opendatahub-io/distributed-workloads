@@ -268,12 +268,12 @@ To completely clean up all the CodeFlare components after an install, follow the
    oc delete notebook jupyter-nb-kube-3aadmin -n opendatahub
    oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n opendatahub
    ```
-3. Remove the codeflare-stack kfdef
+3. Remove the codeflare-stack kfdef: (Removes MCAD, InstaScale, KubeRay and the Notebook image)
     ``` bash
     oc delete kfdef codeflare-stack -n opendatahub
     ```
 
-4. Remove the CodeFlare Operator csv and subscription:
+4. Remove the CodeFlare Operator csv and subscription: (Removes the CodeFlare Operator from the OpenShift Cluster)
    ```bash
    oc delete sub codeflare-operator -n openshift-operators
    oc delete csv `oc get csv -n opendatahub |grep codeflare-operator |awk '{print $1}'` -n openshift-operators
