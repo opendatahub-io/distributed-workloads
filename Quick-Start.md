@@ -125,9 +125,6 @@ cd codeflare-sdk
 
 <<<<<<< HEAD
 We will rely on this demo code to train an mnist model. So feel free to open `codeflare-sdk/demo-notebooks/guided-demos/2_basic_jobs.ipynb` to follow along instead.
-=======
-We will rely on this demo code to train an mnist model. So feel free to open `codeflare-sdk/demo-notebooks/guided-demos/0_basic_ray.ipynb` to follow along instead.
->>>>>>> 6e15996 (Change from batch to guided demos)
 
 ### Run the demo notebook
 
@@ -137,10 +134,7 @@ First, we will import what we need from the SDK.
 # Import pieces from codeflare-sdk
 from codeflare_sdk.cluster.cluster import Cluster, ClusterConfiguration
 from codeflare_sdk.cluster.auth import TokenAuthentication
-<<<<<<< HEAD
 from codeflare_sdk.job.jobs import DDPJobDefinition
-=======
->>>>>>> 6e15996 (Change from batch to guided demos)
 ```
 
 Then we will go ahead and create an authentication object to access our cluster.
@@ -150,13 +144,8 @@ Then we will go ahead and create an authentication object to access our cluster.
 # IF unused, SDK will automatically check for default kubeconfig, then in-cluster config
 # KubeConfigFileAuthentication can also be used to specify kubeconfig path manually
 auth = TokenAuthentication(
-<<<<<<< HEAD
-    token = "XXXX",
-    server = "XXXX",
-=======
     token = "XXXXX",
     server = "XXXXX",
->>>>>>> 6e15996 (Change from batch to guided demos)
     skip_tls=False
 )
 auth.login()
@@ -171,7 +160,6 @@ The configuration for `machine_types` is only used if you have instascale instal
 If you are working in an on-prem environment, and for the purposes of following this demo, you can simply set `instascale=False` and ignore the `machine_types` configuration.
 
 ```python
-<<<<<<< HEAD
 cluster_config = ClusterConfiguration(
     name='jobtest', 
     namespace="default", 
@@ -186,26 +174,7 @@ cluster_config = ClusterConfiguration(
 )
 ```
 
-<<<<<<< HEAD
 In addition to instantiating our cluster object, this will also write a file, `jobtest.yaml`, to your working directory. This file defines an AppWrapper custom resource; everything MCAD needs to deploy your Ray cluster.
-=======
-# Create and configure our cluster object (and appwrapper)
-cluster = Cluster(ClusterConfiguration(
-    name='raytest',
-    namespace='default',
-    num_workers=2,
-    min_cpus=1,
-    max_cpus=1,
-    min_memory=2,
-    max_memory=2,
-    num_gpus=0,
-    image="quay.io/project-codeflare/ray:2.5.0-py38-cu116", #current default
-    instascale=False
-))
-```
-
-In addition to instantiating our cluster object, this will also write a file, `raytest.yaml`, to your working directory. This file defines an AppWrapper custom resource; everything MCAD needs to deploy your Ray cluster.
->>>>>>> 6e15996 (Change from batch to guided demos)
 
 Next, we can apply this YAML file and spin up our Ray cluster.
 
@@ -225,20 +194,10 @@ You can check the status of the Ray cluster and see when its ready to use with:
 cluster.status()
 ```
 
-<<<<<<< HEAD
 Once the cluster is up, you are ready to submit your first job.
-=======
-You can check that the Ray cluster is ready:
-```Python
-cluster.wait_ready()
-```
-
-You can also check the cluster details with:
->>>>>>> 6e15996 (Change from batch to guided demos)
 
 We are going to use the CodeFlare SDK to submit batch jobs via TorchX, either to the Ray cluster we have just brought up, or directly to MCAD.
 
-<<<<<<< HEAD
 First, let's begin by submitting to Ray, training a basic NN on the MNIST dataset:
 
 The `mnist.py` file used comes from [here](https://github.com/opendatahub-io/distributed-workloads/blob/main/tests/resources/mnist.py), which is accessed in your jupyter notebook under `codeflare-sdk/demo-notebooks/guided-demos/mnist.py`
@@ -256,11 +215,6 @@ Once the job is submitted you can follow it on the Ray dashboard using the follo
 ```python
 cluster.cluster_dashboard_uri()
 ```
-=======
-Now the cluster is up.  This guided demo just brings it down again, but in the other guided demos you can follow steps that submit training jobs.   
-
-Finally, you can shutdown your Ray nodes, logout and free up the resources on your cluster.
->>>>>>> 6e15996 (Change from batch to guided demos)
 
 ```python
 job.status()
@@ -322,12 +276,12 @@ To completely clean up all the CodeFlare components after an install, follow the
 4. Remove the CodeFlare Operator csv and subscription:
    ```bash
    oc delete sub codeflare-operator -n openshift-operators
-   oc delete csv codeflare-operator.v0.0.6 -n openshift-operators
+   oc delete csv `oc get csv -n opendatahub |grep codeflare-operator |awk '{print $1}'` -n openshift-operators
    ```
 
 5. Remove the CodeFlare CRDs
    ```bash
-   oc delete crd instascales.codeflare.codeflare.dev mcads.codeflare.codeflare.dev schedulingspecs.mcad.ibm.com queuejobs.mcad.ibm.com
+   oc delete crd instascales.codeflare.codeflare.dev mcads.codeflare.codeflare.dev schedulingspecs.mcad.ibm.com appwrappers.mcad.ibm.com quotasubtrees.ibm.com 
    ```
 
 ## Next Steps
