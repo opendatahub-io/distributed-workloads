@@ -3,6 +3,15 @@ export PATH:=$(GOBIN):$(PATH)
 SHELL := /bin/bash
 OCI_RUNTIME ?= $(shell which podman  || which docker)
 CMD_DIR=./cmd/
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
+## Tool Binaries
+KUSTOMIZE ?= $(LOCALBIN)/kustomize
+
+## Tool Versions
+KUSTOMIZE_VERSION ?= v4.5.4
 
 .DEFAULT_GOAL := help
 
@@ -34,6 +43,8 @@ install-opendatahub-operator: ## Install OpenDataHub operator
 	@echo -e "\n==> Installing OpenDataHub Operator \n"
 	-oc create ns opendatahub
 	oc create -f contrib/configuration/opendatahub-operator-subscription.yaml
+	@echo Waiting for opendatahub-operator Subscription to be ready
+	oc wait -n openshift-operators subscription/opendatahub-operator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
 
 .PHONY: delete-opendatahub-operator
 delete-opendatahub-operator: ## Delete OpenDataHub operator
@@ -46,6 +57,8 @@ delete-opendatahub-operator: ## Delete OpenDataHub operator
 install-codeflare-operator: ## Install CodeFlare operator
 	@echo -e "\n==> Installing CodeFlare Operator \n"
 	oc create -f contrib/configuration/codeflare-operator-subscription.yaml
+	@echo Waiting for codeflare-operator Subscription to be ready
+	oc wait -n openshift-operators subscription/codeflare-operator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
 
 .PHONY: delete-codeflare-operator
 delete-codeflare-operator: ## Delete CodeFlare operator
@@ -69,6 +82,21 @@ delete-codeflare: ## Delete CodeFlare
 	@echo -e "\n==> Deleteing CodeFlare \n"
 	-oc delete -f https://raw.githubusercontent.com/opendatahub-io/odh-manifests/master/kfdef/odh-core.yaml -n opendatahub
 	-oc delete -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-stack-kfdef.yaml -n opendatahub
+	-oc delete ns opendatahub
+
+.PHONY: deploy-codeflare-from-filesystem
+deploy-codeflare-from-filesystem: kustomize ## Deploy CodeFlare from local file system
+	@echo -e "\n==> Deploying CodeFlare \n"
+	-oc create ns opendatahub
+	@while [[ -z $$(oc get customresourcedefinition mcads.codeflare.codeflare.dev) ]]; do echo "."; sleep 10; done
+	$(KUSTOMIZE) build ray/operator/base | oc apply --server-side=true -n opendatahub -f -
+	$(KUSTOMIZE) build codeflare-stack/base | oc apply --server-side=true -n opendatahub -f -
+
+.PHONY: delete-codeflare-from-filesystem
+delete-codeflare-from-filesystem: kustomize ## Delete CodeFlare deployed from local file system
+	@echo -e "\n==> Deleteing CodeFlare \n"
+	-$(KUSTOMIZE) build ray/operator/base | oc delete -n opendatahub -f -
+	-$(KUSTOMIZE) build codeflare-stack/base | oc delete -n opendatahub -f -
 	-oc delete ns opendatahub
 
 ##@ GPU Support
@@ -100,5 +128,13 @@ delete-nvidia-operator: ## Delete nvidia operator
 	-export CLUSTER_SERVICE_VERSION=`oc get clusterserviceversion -n nvidia-gpu-operator -l operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator -o custom-columns=:metadata.name`; \
 	oc delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n nvidia-gpu-operator
 	-oc delete ns nvidia-gpu-operator
+
+##@ Tool installations
+
+KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
+.PHONY: kustomize
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
+$(KUSTOMIZE): $(LOCALBIN)
+	test -s $(LOCALBIN)/kustomize || { curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); }
 
 include .mk/observability.mk
