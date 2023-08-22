@@ -104,5 +104,6 @@ jobs:
               --body "This is an automated PR to update distributed-workload manifests for $LATEST_TAG" \
               --head "$BRANCH_NAME" \
               --base "master"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.NEW_ACCESS_TOKEN }}
