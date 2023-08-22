@@ -1,0 +1,116 @@
+# This workflow will release Distributed Workloads stack
+
+name: Tag and Release
+on:
+  workflow_dispatch:
+    inputs:
+      release-version:
+        description: 'Release version of Distributed Workloads stack (i.e. v0.0.0)'
+        required: true
+      operator-version:
+        description: 'Published version of operator image (i.e. v0.0.0)'
+        required: true
+      mcad-version:
+        description: 'Published version of multi-cluster-app-dispatcher (i.e. v0.0.0)'
+        required: true
+      codeflare-sdk-version:
+        description: 'Published version of CodeFlare-SDK (i.e. v0.0.0)'
+        required: true
+      instascale-version:
+        description: 'Published version of InstaScale (i.e. v0.0.0)'
+        required: true
+      kuberay-version:
+        description: 'Published version of KubeRay (i.e. v0.0.0)'
+        required: true
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+
+    # Permission required to create a release
+    permissions:
+      contents: write
+      pull-requests: write
+
+    env:
+      PR_BRANCH_NAME: adjustments-release-${{ github.event.inputs.release-version }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: v1.19
+
+    - name: Verify that release doesn't exist yet
+      shell: bash {0}
+      run: |
+        gh release view ${{ github.event.inputs.release-version }}
+        status=$?
+        if [[ $status -eq 0 ]]; then
+          echo "Release ${{ github.event.inputs.release-version }} already exists."
+          exit 1
+        fi
+      env:
+        GITHUB_TOKEN: ${{ github.TOKEN }}
+
+    - name: Adjust Compatibility Matrix in readme
+      run: |
+        sed -i -E "s/(.*CodeFlare Operator.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.operator-version }}\2/" README.md
+        sed -i -E "s/(.*Multi-Cluster App Dispatcher.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.mcad-version }}\2/" README.md
+        sed -i -E "s/(.*CodeFlare-SDK.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.codeflare-sdk-version }}\2/" README.md
+        sed -i -E "s/(.*InstaScale.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" README.md
+        sed -i -E "s/(.*KubeRay.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.kuberay-version }}\2/" README.md
+
+    - name: Adjust dependencies in the tests
+      run: |
+        go get github.com/project-codeflare/codeflare-operator@${{ github.event.inputs.operator-version }}
+        go mod tidy
+      working-directory: tests
+
+    - name: Adjust CodeFlare notebook ImageStream
+      run: |
+        sed -i -E "s|(.*name: )v[0-9]+\.[0-9]+\.[0-9]+|\1${{ github.event.inputs.codeflare-sdk-version }}|" codeflare-notebook-imagestream.yaml
+        sed -i -E "s|(.*name: quay.io/project-codeflare/notebook:)v[0-9]+\.[0-9]+\.[0-9]+|\1${{ github.event.inputs.codeflare-sdk-version }}|" codeflare-notebook-imagestream.yaml
+      working-directory: codeflare-stack/base
+
+    - name: Commit changes in the code back to repository
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: Update dependency versions for release ${{ github.event.inputs.release-version }}
+        file_pattern: 'README.md *.yaml tests/go.mod tests/go.sum'
+        create_branch: true
+        branch: ${{ env.PR_BRANCH_NAME }}
+
+    - name: Create a PR with code changes
+      run: |
+        GIT_BRANCH=${GITHUB_REF#refs/heads/}
+        gh pr create --base "$GIT_BRANCH" --fill --head "${{ env.PR_BRANCH_NAME }}" --label "lgtm" --label "approved"
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+
+    - name: Wait until PR with code changes is merged
+      run: |
+        timeout 7200 bash -c 'until [[ $(gh pr view '${{ env.PR_BRANCH_NAME }}' --json state --jq .state) == "MERGED" ]]; do sleep 5 && echo "$(gh pr view '${{ env.PR_BRANCH_NAME }}' --json state --jq .state)"; done'
+      env:
+        GITHUB_TOKEN: ${{ github.TOKEN }}
+
+    - name: Delete remote branch
+      run: |
+        git push origin --delete ${{ env.PR_BRANCH_NAME }}
+
+    - name: Creates a release in GitHub
+      run: |
+        gh release create ${{ github.event.inputs.release-version }} --target ${{ github.ref }} --generate-notes
+        # Edit notes to add there compatibility matrix
+        sed --null-data -E "s/(.*<\!-- Compatibility Matrix start -->)(.*)(<\!-- Compatibility Matrix end -->.*)/\2/" README.md > release-notes.md
+        echo "" >> release-notes.md
+        echo "Upstream release notes can be found at https://github.com/project-codeflare/codeflare-operator/releases/tag/${{ github.event.inputs.operator-version }}" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "$(gh release view --json body --jq .body)" >> release-notes.md
+        gh release edit ${{ github.event.inputs.release-version }} --notes-file release-notes.md
+        rm release-notes.md
+      env:
+        GITHUB_TOKEN: ${{ github.TOKEN }}
+      shell: bash

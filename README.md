@@ -16,7 +16,9 @@ It consists of three components:
 
 Integration of this stack into the Open Data Hub is owned by the Distributed Workloads Working Group. See [this page](https://github.com/opendatahub-io/opendatahub-community/tree/master/wg-distributed-workloads) for further details and how to get in touch.
 
-### Compatibilty Matrix
+<!-- Don't delete these comments, they are used to generate Compatibility Matrix table for release automation -->
+<!-- Compatibility Matrix start -->
+### Compatibility Matrix
 
 | Component                    | Version |
 |------------------------------|---------|
@@ -25,6 +27,7 @@ Integration of this stack into the Open Data Hub is owned by the Distributed Wor
 | CodeFlare-SDK                | v0.6.1  |
 | InstaScale                   | v0.0.6  |
 | KubeRay                      | v0.5.0  |
+<!-- Compatibility Matrix end -->
 
 ## Quick Start
 
