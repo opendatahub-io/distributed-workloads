@@ -112,7 +112,7 @@ func TestRayCluster(t *testing.T) {
 	dashboardHostname := dashboard.Status.Ingress[0].Host
 
 	rayClient := support.NewRayClusterClient(url.URL{Scheme: "http", Host: dashboardHostname})
-	defer support.WriteRayJobAPILogs(test, rayClient, support.GetRayJobId(test, rayJob.Namespace, rayJob.Name))
+	defer support.WriteRayJobLogs(test, rayClient, rayJob.Namespace, rayJob.Name)
 
 	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
 	test.Eventually(support.RayJob(test, rayJob.Namespace, rayJob.Name), support.TestTimeoutLong).
