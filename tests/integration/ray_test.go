@@ -79,7 +79,40 @@ func TestRayCluster(t *testing.T) {
 	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
 
 	// Retrieving the job logs once it has completed or timed out
-	defer support.WriteRayJobLogs(test, rayJob.Namespace, rayJob.Name)
+	// Create a route to expose the Ray cluster API
+	dashboardRoute := &routev1.Route{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: routev1.SchemeGroupVersion.String(),
+			Kind:       "Route",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ray",
+			Namespace: namespace.Name,
+		},
+		Spec: routev1.RouteSpec{
+			To: routev1.RouteTargetReference{
+				Name: "raycluster-head-svc",
+			},
+			Port: &routev1.RoutePort{
+				TargetPort: intstr.FromString("dashboard"),
+			},
+		},
+	}
+	_, err = test.Client().Route().RouteV1().Routes(namespace.Name).Create(test.Ctx(), dashboardRoute, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created Route %s/%s successfully", dashboardRoute.Namespace, dashboardRoute.Name)
+
+	test.T().Logf("Waiting for Route %s/%s to be available", dashboardRoute.Namespace, dashboardRoute.Name)
+	test.Eventually(support.Route(test, dashboardRoute.Namespace, dashboardRoute.Name), support.TestTimeoutLong).
+		Should(WithTransform(support.ConditionStatus(routev1.RouteAdmitted), Equal(corev1.ConditionTrue)))
+
+	// Retrieve dashboard hostname
+	dashboard, err := test.Client().Route().RouteV1().Routes(namespace.Name).Get(test.Ctx(), dashboardRoute.Name, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	dashboardHostname := dashboard.Status.Ingress[0].Host
+
+	rayClient := support.NewRayClusterClient(url.URL{Scheme: "http", Host: dashboardHostname})
+	defer support.WriteRayJobAPILogs(test, rayClient, support.GetRayJobId(test, rayJob.Namespace, rayJob.Name))
 
 	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
 	test.Eventually(support.RayJob(test, rayJob.Namespace, rayJob.Name), support.TestTimeoutLong).

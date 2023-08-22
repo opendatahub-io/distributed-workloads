@@ -1,10 +1,10 @@
 module github.com/opendatahub-io/distributed-workloads/tests/new-tests
 
 require (
-	github.com/onsi/gomega v1.27.6
+	github.com/onsi/gomega v1.27.8
 	github.com/openshift/api v0.0.0-20230718161610-2a3e8b481cec
-	github.com/project-codeflare/codeflare-operator v0.0.7-0.20230727155844-a82274750112
-	github.com/ray-project/kuberay/ray-operator v0.0.0-20230614221720-085c29d40fa9
+	github.com/project-codeflare/codeflare-operator v0.1.1-0.20230817124305-be0dd48b43b4
+	github.com/ray-project/kuberay/ray-operator v0.0.0-20230807232553-238cb4e945b6
 	k8s.io/api v0.27.2
 	k8s.io/apimachinery v0.27.2
 )
@@ -30,13 +30,13 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift/client-go v0.0.0-20230718165156-6014fb98e86a // indirect
-	github.com/project-codeflare/multi-cluster-app-dispatcher v1.32.0 // indirect
+	github.com/project-codeflare/multi-cluster-app-dispatcher v1.33.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
-	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
+	golang.org/x/term v0.10.0 // indirect
 	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -44,7 +44,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.26.1 // indirect
 	k8s.io/client-go v0.27.1 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
