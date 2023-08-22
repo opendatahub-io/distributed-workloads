@@ -61,11 +61,11 @@ jobs:
 
           # Update compatibilty matrix in codeflare/readme
           echo "updating compatibilty matrix ........."
-          sed -i -E "s/(.*CodeFlare Operator.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.codeflare-operator-version }}\2/" codeflare-stack/README.md
-          sed -i -E "s/(.*Multi-Cluster App Dispatcher.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.mcad-version }}\2/" codeflare-stack/README.md
-          sed -i -E "s/(.*CodeFlare-SDK.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.codeflare-sdk-version }}\2/" codeflare-stack/README.md
-          sed -i -E "s/(.*InstaScale.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" codeflare-stack/README.md
-          sed -i -E "s/(.*KubeRay.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.kuberay-version }}\2/" codeflare-stack/README.md
+          sed -i -E "s/(.*CodeFlare Operator.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ env.CODEFLARE_OPERATOR_VERSION }}\2/" codeflare-stack/README.md
+          sed -i -E "s/(.*Multi-Cluster App Dispatcher.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ env.MCAD_VERSION }}\2/" codeflare-stack/README.md
+          sed -i -E "s/(.*CodeFlare-SDK.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ env.CODEFLARE_SDK_VERSION }}\2/" codeflare-stack/README.md
+          sed -i -E "s/(.*InstaScale.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ env.INSTASCALE_VERSION }}\2/" codeflare-stack/README.md
+          sed -i -E "s/(.*KubeRay.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ env.KUBERAY_VERSION }}\2/" codeflare-stack/README.md
           echo "update complete ........."
 
           # Configure identity for committer
@@ -75,6 +75,8 @@ jobs:
           # Commit and push the branch to origin
           echo " status before add ....."
           git status
+          echo " diff before add ....."
+          git diff
           if [[ `git status --porcelain` ]]; then
             echo "Changes detected ...."
             git add .
@@ -100,8 +102,8 @@ jobs:
           else
             echo "Creating PR......."
             gh pr create \
-              --title "Update distributed-workload manifests for $LATEST_TAG" Release \
-              --body "This is an automated PR to update distributed-workload manifests for $LATEST_TAG" \
+              --title "Update distributed-workload manifests for $LATEST_TAG Release" \
+              --body "This is an automated PR to update distributed-workload manifests" \
               --head "$BRANCH_NAME" \
               --base "master"
           fi
