@@ -80,7 +80,7 @@ jobs:
           if [[ `git status --porcelain` ]]; then
             echo "Changes detected ...."
             git add .
-            git commit -m "Manifest_updates_for_Distributed_Workloads_$(LATEST_TAG)_Release"
+            git commit -m "Manifest_updates_for_Distributed_Workloads_$LATEST_TAG"
             echo "completed commit .........."
           else
             echo "No changes detected ...."
