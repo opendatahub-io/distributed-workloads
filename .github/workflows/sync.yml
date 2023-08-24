@@ -4,6 +4,9 @@ name: update manifests in odh-manifests repo
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
+      - 'releases/*'
 
 jobs:
   update-manifests-and-create-pull-request:
@@ -34,10 +37,10 @@ jobs:
       - name: Checkout odh-manifest repository
         uses: actions/checkout@v3
         with:
-          repository: ChughShilpa/odh-manifests
+          repository: opendatahub-io/odh-manifests
           ref: master
           path: odh-manifests
-          token: ${{ secrets.NEW_ACCESS_TOKEN }}
+          token: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
 
       - name: Update manifest & create PR in odh-manifests repo
         run: |
@@ -75,8 +78,6 @@ jobs:
           # Commit and push the branch to origin
           echo " status before add ....."
           git status
-          echo " diff before add ....."
-          git diff
           if [[ `git status --porcelain` ]]; then
             echo "Changes detected ...."
             git add .
@@ -108,4 +109,4 @@ jobs:
               --base "master"
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.NEW_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
