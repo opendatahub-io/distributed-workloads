@@ -87,8 +87,8 @@ github.com/openshift/client-go v0.0.0-20230718165156-6014fb98e86a h1:ZKewwwEIURD
 github.com/openshift/client-go v0.0.0-20230718165156-6014fb98e86a/go.mod h1:EjhPQjEm8HM3GThz5ywNGLEec1P1IjTn08kwzdvupvA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/project-codeflare/codeflare-operator v0.1.1-0.20230817124305-be0dd48b43b4 h1:zEkjcrKhY3XC3TNGWFg6QlFZuC2BWfRufAvv+xrVFb8=
-github.com/project-codeflare/codeflare-operator v0.1.1-0.20230817124305-be0dd48b43b4/go.mod h1:BtKefU7oi9bb9M2flQXERqjX3KNTVe9uWkD0C2wdHjM=
+github.com/project-codeflare/codeflare-operator v0.1.1-0.20230823091637-6f7d6b1194dd h1:c1CrFGX9pRPm4vTx5U+A5ptY51gKEM3hhcrPBdEN7bk=
+github.com/project-codeflare/codeflare-operator v0.1.1-0.20230823091637-6f7d6b1194dd/go.mod h1:BtKefU7oi9bb9M2flQXERqjX3KNTVe9uWkD0C2wdHjM=
 github.com/project-codeflare/multi-cluster-app-dispatcher v1.33.0 h1:6a+MnxcFSlheC7RIPGg3s/QCt5+7dD8mJKwdpST7i70=
 github.com/project-codeflare/multi-cluster-app-dispatcher v1.33.0/go.mod h1:0J0BDSaIN5lvlmgw+32FcMqe8SflXHtHByUbHmPl4w8=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
