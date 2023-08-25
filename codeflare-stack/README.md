@@ -21,4 +21,4 @@ for further details and how to get in touch.
 ## Quick Start
 
 There is a sample kfdef at the root of this repository that you can use to deploy the recommended CodeFlare stack.
-Follow our quick start guide [here](https://github.com/opendatahub-io/distributed-workloads/blob/main/Quick-Start.md) to get up and running with Distributed Workflows on Open Data Hub.
+Follow our quick start guide [here](https://github.com/opendatahub-io/distributed-workloads/blob/main/Quick-Start.md) to get up and running with Distributed Workloads on Open Data Hub.
