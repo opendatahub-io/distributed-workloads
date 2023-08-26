@@ -1,4 +1,4 @@
-# Quick Start Guide for Distributed Workflows with the CodeFlare Stack
+# Quick Start Guide for Distributed Workloads with the CodeFlare Stack
 
 This quick start guide is intended to walk existing Open Data Hub users through installation of the CodeFlare stack and an initial demo using the CodeFlare-SDK from within a Jupyter notebook environment. This will enable users to run and submit distributed workloads.  
 
@@ -196,7 +196,7 @@ Great! You have now submitted your first distributed training job with CodeFlare
 
 ## Next Steps
 
-And with that you have gotten started using the CodeFlare stack alongside your Open Data Hub Deployment to add distributed workflows and batch computing to your machine learning platform.
+And with that you have gotten started using the CodeFlare stack alongside your Open Data Hub Deployment to add distributed workloads and batch computing to your machine learning platform.
 
 You are now ready to try out the stack with your own machine learning workloads. If you'd like some more examples, you can also run through the existing demo code provided by the Codeflare-SDK community.
 

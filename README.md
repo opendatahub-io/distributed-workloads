@@ -28,4 +28,4 @@ Integration of this stack into the Open Data Hub is owned by the Distributed Wor
 
 ## Quick Start
 
-Follow our quick start guide [here](/Quick-Start.md) to get up and running with Distributed Workflows on Open Data Hub.  
+Follow our quick start guide [here](/Quick-Start.md) to get up and running with Distributed Workloads on Open Data Hub.  
