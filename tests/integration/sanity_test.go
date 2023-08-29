@@ -20,17 +20,19 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	support "github.com/project-codeflare/codeflare-operator/test/support"
+	cfosupport "github.com/project-codeflare/codeflare-operator/test/support"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	support "github.com/opendatahub-io/distributed-workloads/tests/integration/support"
 )
 
 func TestMcadReadyStatus(t *testing.T) {
-	test := support.With(t)
+	test := cfosupport.With(t)
 
-	mcad, err := test.Client().CodeFlare().CodeflareV1alpha1().MCADs(GetOpenDataHubNamespace()).Get(test.Ctx(), "mcad", metav1.GetOptions{})
+	mcad, err := test.Client().CodeFlare().CodeflareV1alpha1().MCADs(support.GetOpenDataHubNamespace()).Get(test.Ctx(), "mcad", metav1.GetOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 
 	// Assert the MCAD status is 'ready'
@@ -38,9 +40,9 @@ func TestMcadReadyStatus(t *testing.T) {
 }
 
 func TestInstaScaleReadyStatus(t *testing.T) {
-	test := support.With(t)
+	test := cfosupport.With(t)
 
-	instascale, err := test.Client().CodeFlare().CodeflareV1alpha1().InstaScales(GetOpenDataHubNamespace()).Get(test.Ctx(), "instascale", metav1.GetOptions{})
+	instascale, err := test.Client().CodeFlare().CodeflareV1alpha1().InstaScales(support.GetOpenDataHubNamespace()).Get(test.Ctx(), "instascale", metav1.GetOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 
 	// Assert the InstaScale status is 'ready'
@@ -48,11 +50,11 @@ func TestInstaScaleReadyStatus(t *testing.T) {
 }
 
 func TestKubeRayRunning(t *testing.T) {
-	test := support.With(t)
+	test := cfosupport.With(t)
 
-	kuberay, err := test.Client().Core().AppsV1().Deployments(GetOpenDataHubNamespace()).Get(test.Ctx(), "kuberay-operator", metav1.GetOptions{})
+	kuberay, err := test.Client().Core().AppsV1().Deployments(support.GetOpenDataHubNamespace()).Get(test.Ctx(), "kuberay-operator", metav1.GetOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 
 	// Assert the KubeRay Deployment is running
-	test.Expect(kuberay).To(WithTransform(support.ConditionStatus(appsv1.DeploymentAvailable), Equal(corev1.ConditionTrue)))
+	test.Expect(kuberay).To(WithTransform(cfosupport.ConditionStatus(appsv1.DeploymentAvailable), Equal(corev1.ConditionTrue)))
 }

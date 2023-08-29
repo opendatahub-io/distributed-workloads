@@ -1,9 +1,10 @@
-module github.com/opendatahub-io/distributed-workloads/tests/new-tests
+module github.com/opendatahub-io/distributed-workloads/tests
 
 require (
 	github.com/onsi/gomega v1.27.10
 	github.com/openshift/api v0.0.0-20230718161610-2a3e8b481cec
-	github.com/project-codeflare/codeflare-operator v0.2.3
+	github.com/project-codeflare/codeflare-operator v0.2.4-0.20230913142530-526bb53289e1
+	github.com/project-codeflare/multi-cluster-app-dispatcher v1.34.1
 	github.com/ray-project/kuberay/ray-operator v0.0.0-20230908233208-a8f730e5a2b6
 	k8s.io/api v0.27.2
 	k8s.io/apimachinery v0.27.2
@@ -30,7 +31,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift/client-go v0.0.0-20230718165156-6014fb98e86a // indirect
-	github.com/project-codeflare/multi-cluster-app-dispatcher v1.34.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	golang.org/x/net v0.12.0 // indirect
