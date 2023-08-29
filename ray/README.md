@@ -1,4 +1,3 @@
-# ************************* For Testing purpose  ********************************
 # Deploying Ray on Open Data Hub via the KubeRay Operator
 
 The code found here is a subset of <https://github.com/ray-project/kuberay>. Specifically, the manifests needed to enable KubeRay with an Open Data Hub deployment.
