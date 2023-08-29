@@ -149,7 +149,7 @@ print("LOCAL: ", int(os.environ.get("LOCAL_WORLD_SIZE", 1)))
 trainer = Trainer(
     accelerator="auto",
     # devices=1 if torch.cuda.is_available() else None,  # limiting got iPython runs
-    max_epochs=5,
+    max_epochs=2,
     callbacks=[TQDMProgressBar(refresh_rate=20)],
     num_nodes=int(os.environ.get("GROUP_WORLD_SIZE", 1)),
     devices=int(os.environ.get("LOCAL_WORLD_SIZE", 1)),
