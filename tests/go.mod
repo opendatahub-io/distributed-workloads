@@ -1,24 +1,24 @@
 module github.com/opendatahub-io/distributed-workloads/tests/new-tests
 
 require (
-	github.com/onsi/gomega v1.27.8
+	github.com/onsi/gomega v1.27.10
 	github.com/openshift/api v0.0.0-20230718161610-2a3e8b481cec
-	github.com/project-codeflare/codeflare-operator v0.1.1-0.20230823091637-6f7d6b1194dd
-	github.com/ray-project/kuberay/ray-operator v0.0.0-20230807232553-238cb4e945b6
+	github.com/project-codeflare/codeflare-operator v0.2.2
+	github.com/ray-project/kuberay/ray-operator v0.0.0-20230830082034-e7fbf7d73576
 	k8s.io/api v0.27.2
 	k8s.io/apimachinery v0.27.2
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
+	github.com/emicklei/go-restful/v3 v3.10.1 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.1 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/gnostic v0.5.7-v3refs // indirect
+	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
@@ -30,7 +30,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift/client-go v0.0.0-20230718165156-6014fb98e86a // indirect
-	github.com/project-codeflare/multi-cluster-app-dispatcher v1.33.0 // indirect
+	github.com/project-codeflare/multi-cluster-app-dispatcher v1.34.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	golang.org/x/net v0.12.0 // indirect
