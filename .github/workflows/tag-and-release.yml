@@ -24,7 +24,7 @@ on:
         required: true
 
 jobs:
-  push:
+  create-tag-and-release:
     runs-on: ubuntu-latest
 
     # Permission required to create a release
