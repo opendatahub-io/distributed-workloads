@@ -146,7 +146,6 @@ If you are working in an on-prem environment, and for the purposes of following 
 cluster_config = ClusterConfiguration(
     name='jobtest', 
     namespace="default", 
-    # machine_types = ["m4.xlarge", "g4dn.xlarge"]
     num_workers=2,
     min_cpus=1, 
     max_cpus=1, 
@@ -184,6 +183,8 @@ We are going to use the CodeFlare SDK to submit batch jobs via TorchX, either to
 
 First, let's begin by submitting to Ray, training a basic NN on the MNIST dataset:
 
+The `mnist.py` file used comes from [here](https://github.com/opendatahub-io/distributed-workloads/blob/main/tests/resources/mnist.py), which is accessed in your jupyter notebook under `codeflare-sdk/demo-notebooks/guided-demos/mnist.py`
+
 ```python
 jobdef = DDPJobDefinition(
     name="mnisttest",
@@ -193,10 +194,16 @@ jobdef = DDPJobDefinition(
 job = jobdef.submit(cluster)
 ```
 
-Once the job is submitted you can follow it on the Ray dashboard using the following commands to output the job status directly into you're notebook:
+Once the job is submitted you can follow it on the Ray dashboard using the following commands to output the job status directly into your notebook:
 ```python
 cluster.cluster_dashboard_uri()
+```
+
+```python
 job.status()
+```
+
+```python
 job.logs()
 ```
 
