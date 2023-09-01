@@ -115,7 +115,7 @@ To completely clean up all the CodeFlare components after an install, follow the
 5. Remove the CodeFlare Operator csv and subscription:
    ```bash
    oc delete sub codeflare-operator -n openshift-operators
-   oc delete csv `kubectl get csv -n opendatahub |grep codeflare-operator |awk '{print $1}'` -n openshift-operators
+   oc delete csv `oc get csv -n opendatahub |grep codeflare-operator |awk '{print $1}'` -n openshift-operators
    ```
 
 6. Remove the CodeFlare CRDs
