@@ -75,5 +75,64 @@ This document outlines the steps to be followed to install the Distributed Workl
        uri: https://github.com/red-hat-data-services/distributed-workloads/tarball/main
    EOF
    ```
+  Find the dashboard/notebook UI by:
+  ```
+  oc get route -n redhat-ods-applications |grep dash |awk '{print $2}'
+  ```
+   Put the URL into a browser and if prompted, login with your OpenShift userid and password
 
-You can then continue with the normal CodeFlare Quick-Start from this section on: [Submit-Your-First-Job](https://github.com/opendatahub-io/distributed-workloads/blob/main/Quick-Start.md#submit-your-first-job)
+  Once you are on your dashboard, you can select "Launch application" on the Jupyter application. This will take you to your notebook spawner page. 
+
+  You can then continue with the normal CodeFlare Quick-Start from this section on: [Submit-Your-First-Job](https://github.com/opendatahub-io/distributed-workloads/blob/main/Quick-Start.md#submit-your-first-job)
+
+# RHODS Cleanup steps
+
+To completely clean up all the CodeFlare components after an install, follow these steps:
+
+1.  No appwrappers should be left running:
+    ```bash
+    oc get appwrappers -A
+    ```
+     If any are left, you'd want to delete them
+    
+2. Remove the notebook and notebook pvc:
+   ```bash
+   oc delete notebook jupyter-nb-kube-3aadmin -n rhods-notebooks
+   oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n rhods-notebooks
+   ```
+
+3. Remove the clusterrole and clusterrolebindings that were added:
+   ```
+   oc delete ClusterRoleBinding rhods-operator-scc
+   oc delete ClusterRole rhods-operator-scc
+   ```
+
+4. Remove the codeflare-stack kfdef
+    ``` bash
+    oc delete kfdef codeflare-stack -n redhat-ods-applications
+    ```
+
+5. Remove the CodeFlare Operator csv and subscription:
+   ```bash
+   oc delete sub codeflare-operator -n openshift-operators
+   oc delete csv `oc get csv -n opendatahub |grep codeflare-operator |awk '{print $1}'` -n openshift-operators
+   ```
+
+6. Remove the CodeFlare CRDs
+   ```bash
+   oc delete crd instascales.codeflare.codeflare.dev mcads.codeflare.codeflare.dev schedulingspecs.mcad.ibm.com queuejobs.mcad.ibm.com
+   ```
+7. If you're removing the RHODS kfdefs and operator, you'd want to do this:
+
+   7.1 Delete all the kfdefs:  (Note, this can take awhile as it needs to stop all the running pods in redhat-ods-applications, redhat-ods-monitoring and rhods-notebooks)
+   ```
+   oc delete kfdef rhods-anaconda rhods-dashboard  rhods-data-science-pipelines-operator rhods-model-mesh  rhods-nbc
+   oc delete kfdef  modelmesh-monitoring monitoring -n redhat-ods-monitoring
+   oc delete kfdef rhods-notebooks -n rhods-notebooks
+   ```
+
+   7.2 And then delete the subscription and the csv:
+   ```
+   oc delete sub rhods-operator -n redhat-ods-operator
+   oc delete csv `oc get csv -n redhat-ods-operator |grep rhods-operator |awk '{print $1}'` -n redhat-ods-operator
+   ```
