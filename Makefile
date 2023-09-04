@@ -79,7 +79,7 @@ deploy-codeflare: ## Deploy CodeFlare
 
 .PHONY: delete-codeflare
 delete-codeflare: ## Delete CodeFlare
-	@echo -e "\n==> Deleteing CodeFlare \n"
+	@echo -e "\n==> Deleting CodeFlare \n"
 	-oc delete -f https://raw.githubusercontent.com/opendatahub-io/odh-manifests/master/kfdef/odh-core.yaml -n opendatahub
 	-oc delete -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-stack-kfdef.yaml -n opendatahub
 	-oc delete ns opendatahub
@@ -94,7 +94,7 @@ deploy-codeflare-from-filesystem: kustomize ## Deploy CodeFlare from local file 
 
 .PHONY: delete-codeflare-from-filesystem
 delete-codeflare-from-filesystem: kustomize ## Delete CodeFlare deployed from local file system
-	@echo -e "\n==> Deleteing CodeFlare \n"
+	@echo -e "\n==> Deleting CodeFlare \n"
 	-$(KUSTOMIZE) build ray/operator/base | oc delete -n opendatahub -f -
 	-$(KUSTOMIZE) build codeflare-stack/base | oc delete -n opendatahub -f -
 	-oc delete ns opendatahub
