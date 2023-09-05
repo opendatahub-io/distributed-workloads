@@ -18,6 +18,7 @@ package integration
 
 import (
 	"encoding/base64"
+	"net/http"
 	"net/url"
 	"testing"
 
@@ -167,6 +168,12 @@ func TestRayJobSubmissionRest(t *testing.T) {
 	dashboard, err := test.Client().Route().RouteV1().Routes(namespace.Name).Get(test.Ctx(), dashboardRoute.Name, metav1.GetOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	dashboardHostname := dashboard.Status.Ingress[0].Host
+
+	// Wait for 200 reply from dashboard route
+	test.Eventually(func() int {
+		resp, _ := http.Get("http://" + dashboardHostname)
+		return resp.StatusCode
+	}, support.TestTimeoutLong).Should(Equal(200))
 
 	rayClient := support.NewRayClusterClient(url.URL{Scheme: "http", Host: dashboardHostname})
 
