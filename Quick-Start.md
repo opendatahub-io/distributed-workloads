@@ -110,7 +110,7 @@ git clone https://github.com/project-codeflare/codeflare-sdk
 cd codeflare-sdk
 ```
 
-We will rely on this demo code to train an mnist model. So feel free to open `codeflare-sdk/demo-notebooks/batch-job/batch_mnist.ipynb` to follow along instead.
+We will rely on this demo code to train an mnist model. So feel free to open `codeflare-sdk/demo-notebooks/guided-demos/2_basic_jobs.ipynb` to follow along instead.
 
 ### Run the demo notebook
 
@@ -119,7 +119,7 @@ First, we will import what we need from the SDK.
 ```python
 from codeflare_sdk.cluster.cluster import Cluster, ClusterConfiguration
 from codeflare_sdk.cluster.auth import TokenAuthentication
-
+from codeflare_sdk.job.jobs import DDPJobDefinition
 ```
 
 Then we will go ahead and create an authentication object to access our cluster.
@@ -129,7 +129,7 @@ Then we will go ahead and create an authentication object to access our cluster.
 auth = TokenAuthentication(
     token = "XXXX",
     server = "XXXX",
-    skip_tls=True
+    skip_tls=False
 )
 auth.login()
 ```
@@ -140,27 +140,21 @@ _Instascale specific configs:_
 
 The configuration for `machine_types` is only used if you have instascale installed. It defines the machine types for the head node and worker nodes, in that order. You must also have the appropriate `machine_set` templates available on your cluster for instascale to recognize them.
 
-If you are working in an on-prem environment, you can simply set `instascale=False` and ignore the `machine_types` configuration.
+If you are working in an on-prem environment, and for the purposes of following this demo, you can simply set `instascale=False` and ignore the `machine_types` configuration.
 
 ```python
 cluster_config = ClusterConfiguration(
-    name='mnist', 
-    namespace="opendatahub", 
-    machine_types = ["m4.xlarge", "g4dn.xlarge"]
+    name='jobtest', 
+    namespace="default", 
     num_workers=2,
-    min_cpus=2, 
-    max_cpus=2, 
-    min_memory=8, 
-    max_memory=8, 
-    num_gpus=1,
-    instascale=True,
+    min_cpus=1, 
+    max_cpus=1, 
+    min_memory=4, 
+    max_memory=4, 
+    num_gpus=0,
+    instascale=False,
+    machine_types = ["m4.xlarge", "g4dn.xlarge"]
 )
-```
-
-Once the cluster configurations are defined, we can go ahead and create our cluster object.
-
-```python
-cluster = Cluster(cluster_config)
 ```
 
 In addition to instantiating our cluster object, this will also write a file, `mnist.yaml`, to your working directory. This file defines an AppWrapper custom resource; everything MCAD needs to deploy your Ray cluster.
@@ -169,6 +163,12 @@ Next, we can apply this YAML file and spin up our Ray cluster.
 
 ```python
 cluster.up()
+cluster.wait_ready()
+```
+
+You can also check the cluster details with:
+```python
+cluster.details()
 ```
 
 You can check the status of the Ray cluster and see when its ready to use with:
@@ -177,22 +177,65 @@ You can check the status of the Ray cluster and see when its ready to use with:
 cluster.status()
 ```
 
-Once the cluster is up, you are ready to submit your first job. Here we will rely on torchx with a ray backend as our distributed training engine. We've created a file `demo-notebook/batch-job/mnist.py` with the required pytorch training code that we'll be submitting.  
+Once the cluster is up, you are ready to submit your first job.
+
+We are going to use the CodeFlare SDK to submit batch jobs via TorchX, either to the Ray cluster we have just brought up, or directly to MCAD.
+
+First, let's begin by submitting to Ray, training a basic NN on the MNIST dataset:
+
+The `mnist.py` file used comes from [here](https://github.com/opendatahub-io/distributed-workloads/blob/main/tests/resources/mnist.py), which is accessed in your jupyter notebook under `codeflare-sdk/demo-notebooks/guided-demos/mnist.py`
 
 ```python
-! torchx run -s ray -cfg dashboard_address=mnist-head-svc.<Your Namespace>.svc:8265,requirements=requirements.txt dist.ddp -j 2x1 --gpu 1 --script mnist.py
+jobdef = DDPJobDefinition(
+    name="mnisttest",
+    script="mnist.py",
+    scheduler_args={"requirements": "requirements.txt"}
+)
+job = jobdef.submit(cluster)
 ```
 
-Once the job is submitted you can follow it on the Ray dashboard using `cluster.cluster_dash board_uri()` to get the link or `cluster.list_jobs()` and `cluster.job_status(job_id)` to output the job status directly into you're notebook.
-
-Finally, once the job is done you can shutdown your Ray nodes, logout and free up the resources on your cluster.
+Once the job is submitted you can follow it on the Ray dashboard using the following commands to output the job status directly into your notebook:
+```python
+cluster.cluster_dashboard_uri()
+```
 
 ```python
+job.status()
+```
+
+```python
+job.logs()
+```
+
+Finally, once the job is done you can shutdown your Ray nodes.
+```python
 cluster.down()
-auth.logout()
 ```
 
 Great! You have now submitted your first distributed training job with CodeFlare!
+
+Now, an alternative option for job submission is to submit directly to MCAD, which will schedule pods to run the job with requested resources:
+
+```python
+jobdef = DDPJobDefinition(
+    name="mnistjob",
+    script="mnist.py",
+    scheduler_args={"namespace": "default"},
+    j="1x1",
+    gpu=0,
+    cpu=1,
+    memMB=8000,
+    image="quay.io/project-codeflare/mnist-job-test:v0.0.1"
+)
+job = jobdef.submit()
+```
+Once again, we can look at job status and logs as performed previously.
+
+To finalize, the following commands can also be used to delete jobs early for both Ray and MCAD submission and logout and free up the resources on your cluster:
+```python
+job.cancel()
+auth.logout()
+```
 
 ## Next Steps
 
@@ -200,5 +243,5 @@ And with that you have gotten started using the CodeFlare stack alongside your O
 
 You are now ready to try out the stack with your own machine learning workloads. If you'd like some more examples, you can also run through the existing demo code provided by the Codeflare-SDK community.
 
-* [Submit batch jobs](https://github.com/project-codeflare/codeflare-sdk/tree/main/demo-notebooks/batch-job)
-* [Run an interactive session](https://github.com/project-codeflare/codeflare-sdk/tree/main/demo-notebooks/interactive)
+* [Submit batch jobs](https://github.com/project-codeflare/codeflare-sdk/tree/main/demo-notebooks/guided-demos)
+* [Run an interactive session](https://github.com/project-codeflare/codeflare-sdk/tree/main/demo-notebooks/additional-demos)

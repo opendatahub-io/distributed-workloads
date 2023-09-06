@@ -6,6 +6,7 @@ CMD_DIR=./cmd/
 LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
+TMPDIR ?= /tmp
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
@@ -66,6 +67,18 @@ delete-codeflare-operator: ## Delete CodeFlare operator
 	-oc delete subscription codeflare-operator -n openshift-operators
 	-export CLUSTER_SERVICE_VERSION=`oc get clusterserviceversion -n openshift-operators -l operators.coreos.com/codeflare-operator.openshift-operators -o custom-columns=:metadata.name`; \
 	oc delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n openshift-operators
+
+.PHONY: install-codeflare-operator-from-github
+install-codeflare-operator-from-github: ## Install CodeFlare operator from main branch on GitHub
+	@echo -e "\n==> Installing CodeFlare Operator from main branch on GitHub \n"
+	test -d $(TMPDIR)/codeflare || git clone https://github.com/project-codeflare/codeflare-operator.git $(TMPDIR)/codeflare
+	VERSION=dev make deploy -C $(TMPDIR)/codeflare
+
+.PHONY: delete-codeflare-operator-from-github
+delete-codeflare-operator-from-github: ## Delete CodeFlare operator from main branch on GitHub
+	@echo -e "\n==> Deleting CodeFlare Operator from main branch on GitHub \n"
+	test -d $(TMPDIR)/codeflare || git clone https://github.com/project-codeflare/codeflare-operator.git $(TMPDIR)/codeflare
+	make undeploy -C $(TMPDIR)/codeflare
 
 ##@ CodeFlare
 
