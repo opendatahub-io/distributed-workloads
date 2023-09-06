@@ -71,8 +71,8 @@ jobs:
 
     - name: Adjust CodeFlare notebook ImageStream
       run: |
-        sed -i -E "s|(.*name: )v[0-9]+\.[0-9]+\.[0-9]+|\1${{ github.event.inputs.codeflare-sdk-version }}|" codeflare-notebook-imagestream.yaml
-        sed -i -E "s|(.*name: quay.io/project-codeflare/notebook:)v[0-9]+\.[0-9]+\.[0-9]+|\1${{ github.event.inputs.codeflare-sdk-version }}|" codeflare-notebook-imagestream.yaml
+        sed -i -E "s|(.*name: ).*|\1${{ github.event.inputs.codeflare-sdk-version }}|" codeflare-notebook-imagestream.yaml
+        sed -i -E "s|(.*name: quay.io/project-codeflare/notebook:).*|\1${{ github.event.inputs.codeflare-sdk-version }}|" codeflare-notebook-imagestream.yaml
       working-directory: codeflare-stack/base
 
     - name: Commit changes in the code back to repository
