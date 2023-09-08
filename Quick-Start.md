@@ -19,6 +19,9 @@ make all-in-one
 
 ## Prerequisites
 
+### Red Hat OpenShift
+  Tested on OpenShift 4.10, 4.12 and 4.13
+
 ### Resources
 
 In addition to the resources required by the odh-core deployment, you will need the following to deploy the Distributed Workloads stack infrastructure pods:
@@ -44,12 +47,15 @@ NOTE: The above resources are just for the infrastructure pods. To be able to ru
 
 ### OpenShift and Open Data Hub
 
-This Quick Start guide assumes that you have administrator access to an OpenShift cluster and an existing Open Data Hub installation on your cluster. If you do not currently have the Open Data Hub operator installed on your cluster, you can find instructions for installing it [here](https://opendatahub.io/docs/quick-installation/). The default settings for the Open Data Hub Operator will suffice.
+This Quick Start guide assumes that you have administrator access to an OpenShift cluster and an existing Open Data Hub (ODH) installation on your cluster. More information about ODH can be found  [here](https://opendatahub.io/docs/quick-installation/). But the quick step to install ODH is as follows:
+
+   - Using the OpenShift UI, navigate to Operators --> OperatorHub and search for `Open Data Hub Operator` and install it with the default settings.  (It should be version 1.Y.Z which you get from the default `rolling` channel)
 
 ### CodeFlare Operator
 
-The CodeFlare operator must be installed from the OperatorHub on your OpenShift cluster. The default settings will
-suffice.
+The CodeFlare operator must be installed from the OperatorHub on your OpenShift cluster. 
+
+- Using the OpenShift UI, navigate to Operators --> OperatorHub and search for `CodeFlare Operator` and install it with the default settings
 
 ### NFD and GPU Operators
 
@@ -76,7 +82,7 @@ If you want to run GPU enabled workloads, you will need to install the [Node Fea
     oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-stack-kfdef.yaml -n opendatahub
     ```
 
-Applying the above kfdef will result in the following objects being added to your cluster:
+Applying the CodeFlare-Stack kfdef will result in the following objects being added to your cluster:
 
 1. MCAD
 1. InstaScale
@@ -87,7 +93,14 @@ Applying the above kfdef will result in the following objects being added to you
 
 At this point you should be able to go to your notebook spawner page and select "Codeflare Notebook" from your list of notebook images and start an instance.
 
-You can access the spawner page through the Open Data Hub dashboard. The default route should be `https://odh-dashboard-<your ODH namespace>.apps.<your cluster's uri>`. Once you are on your dashboard, you can select "Launch application" on the Jupyter application. This will take you to your notebook spawner page.
+You can access the spawner page through the Open Data Hub dashboard. The default route should be `https://odh-dashboard-<your ODH namespace>.apps.<your cluster's uri>`. 
+
+To quickly find your ODH dashboard URL, you can issue this command:
+```bash
+ oc get route -n opendatahub |grep dash |awk '{print $2}'
+ ```
+
+Once you are on your dashboard, you can select "Launch application" on the Jupyter application. This will take you to your notebook spawner page.
 
 
 ### Using an Openshift Dedicated or ROSA Cluster
@@ -110,132 +123,39 @@ git clone https://github.com/project-codeflare/codeflare-sdk
 cd codeflare-sdk
 ```
 
-We will rely on this demo code to train an mnist model. So feel free to open `codeflare-sdk/demo-notebooks/guided-demos/2_basic_jobs.ipynb` to follow along instead.
+### Run the Guided Demo Notebooks
 
-### Run the demo notebook
+There are a number of guided demos you can follow to become familiar with the CodeFlare-SDK and the CodeFlare stack.  Navigate to the path: `codeflare-sdk/demo-notebooks/guided-demos` to see and run the latest demos.
 
-First, we will import what we need from the SDK.
+## Cleaning up the CodeFlare Install
+To completely clean up all the CodeFlare components after an install, follow these steps:
 
-```python
-from codeflare_sdk.cluster.cluster import Cluster, ClusterConfiguration
-from codeflare_sdk.cluster.auth import TokenAuthentication
-from codeflare_sdk.job.jobs import DDPJobDefinition
-```
+1.  No appwrappers should be left running:
+    ```bash
+    oc get appwrappers -A
+    ```
+     If any are left, you'd want to delete them
 
-Then we will go ahead and create an authentication object to access our cluster.
+2. Remove the notebook and notebook pvc:
+   ```bash
+   oc delete notebook jupyter-nb-kube-3aadmin -n opendatahub
+   oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n opendatahub
+   ```
+3. Remove the codeflare-stack kfdef: (Removes MCAD, InstaScale, KubeRay and the Notebook image)
+    ``` bash
+    oc delete kfdef codeflare-stack -n opendatahub
+    ```
 
-```python
-# Create authentication object for oc user permissions
-auth = TokenAuthentication(
-    token = "XXXX",
-    server = "XXXX",
-    skip_tls=False
-)
-auth.login()
-```
+4. Remove the CodeFlare Operator csv and subscription: (Removes the CodeFlare Operator from the OpenShift Cluster)
+   ```bash
+   oc delete sub codeflare-operator -n openshift-operators
+   oc delete csv `oc get csv -n opendatahub |grep codeflare-operator |awk '{print $1}'` -n openshift-operators
+   ```
 
-Next, we will define the configuration we'd like for our Ray cluster. A user can update this as needed for the resource requirements of their job.
-
-_Instascale specific configs:_
-
-The configuration for `machine_types` is only used if you have instascale installed. It defines the machine types for the head node and worker nodes, in that order. You must also have the appropriate `machine_set` templates available on your cluster for instascale to recognize them.
-
-If you are working in an on-prem environment, and for the purposes of following this demo, you can simply set `instascale=False` and ignore the `machine_types` configuration.
-
-```python
-cluster_config = ClusterConfiguration(
-    name='jobtest', 
-    namespace="default", 
-    num_workers=2,
-    min_cpus=1, 
-    max_cpus=1, 
-    min_memory=4, 
-    max_memory=4, 
-    num_gpus=0,
-    instascale=False,
-    machine_types = ["m4.xlarge", "g4dn.xlarge"]
-)
-```
-
-In addition to instantiating our cluster object, this will also write a file, `mnist.yaml`, to your working directory. This file defines an AppWrapper custom resource; everything MCAD needs to deploy your Ray cluster.
-
-Next, we can apply this YAML file and spin up our Ray cluster.
-
-```python
-cluster.up()
-cluster.wait_ready()
-```
-
-You can also check the cluster details with:
-```python
-cluster.details()
-```
-
-You can check the status of the Ray cluster and see when its ready to use with:
-
-```Python
-cluster.status()
-```
-
-Once the cluster is up, you are ready to submit your first job.
-
-We are going to use the CodeFlare SDK to submit batch jobs via TorchX, either to the Ray cluster we have just brought up, or directly to MCAD.
-
-First, let's begin by submitting to Ray, training a basic NN on the MNIST dataset:
-
-The `mnist.py` file used comes from [here](https://github.com/opendatahub-io/distributed-workloads/blob/main/tests/resources/mnist.py), which is accessed in your jupyter notebook under `codeflare-sdk/demo-notebooks/guided-demos/mnist.py`
-
-```python
-jobdef = DDPJobDefinition(
-    name="mnisttest",
-    script="mnist.py",
-    scheduler_args={"requirements": "requirements.txt"}
-)
-job = jobdef.submit(cluster)
-```
-
-Once the job is submitted you can follow it on the Ray dashboard using the following commands to output the job status directly into your notebook:
-```python
-cluster.cluster_dashboard_uri()
-```
-
-```python
-job.status()
-```
-
-```python
-job.logs()
-```
-
-Finally, once the job is done you can shutdown your Ray nodes.
-```python
-cluster.down()
-```
-
-Great! You have now submitted your first distributed training job with CodeFlare!
-
-Now, an alternative option for job submission is to submit directly to MCAD, which will schedule pods to run the job with requested resources:
-
-```python
-jobdef = DDPJobDefinition(
-    name="mnistjob",
-    script="mnist.py",
-    scheduler_args={"namespace": "default"},
-    j="1x1",
-    gpu=0,
-    cpu=1,
-    memMB=8000,
-    image="quay.io/project-codeflare/mnist-job-test:v0.0.1"
-)
-job = jobdef.submit()
-```
-Once again, we can look at job status and logs as performed previously.
-
-To finalize, the following commands can also be used to delete jobs early for both Ray and MCAD submission and logout and free up the resources on your cluster:
-```python
-job.cancel()
-auth.logout()
-```
+5. Remove the CodeFlare CRDs
+   ```bash
+   oc delete crd instascales.codeflare.codeflare.dev mcads.codeflare.codeflare.dev schedulingspecs.mcad.ibm.com appwrappers.mcad.ibm.com quotasubtrees.ibm.com 
+   ```
 
 ## Next Steps
 
