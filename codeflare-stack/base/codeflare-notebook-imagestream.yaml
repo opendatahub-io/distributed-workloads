@@ -1,11 +1,11 @@
 kind: ImageStream
 apiVersion: image.openshift.io/v1
 metadata:
-  name: codeflare-notebook
+  name: v0.7.1
   labels:
     opendatahub.io/notebook-image: 'true'
   annotations:
-    opendatahub.io/notebook-image-name: "CodeFlare Notebook"
+    opendatahub.io/notebook-image-name: v0.7.1
     opendatahub.io/notebook-image-desc: "Custom Jupyter notebook image with codeflare SDK, Python 3.8, Ray 2.1.0 and PyTorch 1.12.1"
 spec:
   lookupPolicy:
@@ -13,9 +13,9 @@ spec:
   tags:
     - annotations:
         openshift.io/imported-from: quay.io/project-codeflare/notebook
-      name: v0.7.0
+      name: v0.7.1
       from:
         kind: DockerImage
-        name: quay.io/project-codeflare/notebook:v0.7.0
+        name: v0.7.1
       importPolicy:
             scheduled: true
