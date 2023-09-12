@@ -43,6 +43,11 @@ jobs:
       with:
         go-version: v1.19
 
+    - name: Install yq
+      run: |
+        sudo wget -O /usr/bin/yq https://github.com/mikefarah/yq/releases/download/v4.6.1/yq_linux_amd64
+        sudo chmod +x /usr/bin/yq
+
     - name: Verify that release doesn't exist yet
       shell: bash {0}
       run: |
@@ -71,9 +76,12 @@ jobs:
 
     - name: Adjust CodeFlare notebook ImageStream
       run: |
-        sed -i -E "s|(.*name: ).*|\1${{ github.event.inputs.codeflare-sdk-version }}|" codeflare-notebook-imagestream.yaml
-        sed -i -E "s|(.*name: quay.io/project-codeflare/notebook:).*|\1${{ github.event.inputs.codeflare-sdk-version }}|" codeflare-notebook-imagestream.yaml
+        yq eval '.spec.tags[0].name = strenv(CODEFLARE_SDK_VERSION)' -i codeflare-notebook-imagestream.yaml
+        yq eval '.spec.tags[0].from.name = strenv(CODEFLARE_SDK_NOTEBOOK_IMAGE)' -i codeflare-notebook-imagestream.yaml
       working-directory: codeflare-stack/base
+      env:
+        CODEFLARE_SDK_VERSION: ${{ github.event.inputs.codeflare-sdk-version }}
+        CODEFLARE_SDK_NOTEBOOK_IMAGE: "quay.io/project-codeflare/notebook:${{ github.event.inputs.codeflare-sdk-version }}"
 
     - name: Commit changes in the code back to repository
       uses: stefanzweifel/git-auto-commit-action@v4
