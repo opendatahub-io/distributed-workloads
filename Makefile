@@ -86,15 +86,13 @@ delete-codeflare-operator-from-github: ## Delete CodeFlare operator from main br
 deploy-codeflare: ## Deploy CodeFlare
 	@echo -e "\n==> Deploying CodeFlare \n"
 	-oc create ns opendatahub
-	@while [[ -z $$(oc get customresourcedefinition kfdefs.kfdef.apps.kubeflow.org) ]]; do echo "."; sleep 10; done
-	oc apply -f https://raw.githubusercontent.com/opendatahub-io/odh-manifests/master/kfdef/odh-core.yaml -n opendatahub
-	oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-stack-kfdef.yaml -n opendatahub
+	@while [[ -z $$(oc get customresourcedefinition datascienceclusters.datasciencecluster.opendatahub.io) ]]; do echo "."; sleep 10; done
+	oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-dsc.yaml -n opendatahub
 
 .PHONY: delete-codeflare
 delete-codeflare: ## Delete CodeFlare
 	@echo -e "\n==> Deleting CodeFlare \n"
-	-oc delete -f https://raw.githubusercontent.com/opendatahub-io/odh-manifests/master/kfdef/odh-core.yaml -n opendatahub
-	-oc delete -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-stack-kfdef.yaml -n opendatahub
+	-oc delete -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-dsc.yaml -n opendatahub
 	-oc delete ns opendatahub
 
 .PHONY: deploy-codeflare-from-filesystem
