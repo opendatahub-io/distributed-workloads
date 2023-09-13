@@ -6,7 +6,7 @@ metadata:
     operators.coreos.com/opendatahub-operator.openshift-operators: ''
   namespace: openshift-operators
 spec:
-  channel: rolling
+  channel: fast
   name: opendatahub-operator
   installPlanApproval: Automatic
   source: community-operators
