@@ -154,7 +154,7 @@ To completely clean up all the CodeFlare components after an install, follow the
 
 5. Remove the CodeFlare CRDs
    ```bash
-   oc delete crd instascales.codeflare.codeflare.dev mcads.codeflare.codeflare.dev schedulingspecs.mcad.ibm.com appwrappers.mcad.ibm.com quotasubtrees.ibm.com 
+   oc delete crd instascales.codeflare.codeflare.dev mcads.codeflare.codeflare.dev quotasubtrees.quota.codeflare.dev appwrappers.workload.codeflare.dev schedulingspecs.workload.codeflare.dev
    ```
 
 ## Next Steps
