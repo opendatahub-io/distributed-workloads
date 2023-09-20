@@ -33,10 +33,10 @@ function test_mcad_torchx_functionality() {
 
     ########### Clean Cluster should be free of these resources ############
     # Get appwrapper name
-    AW=$(oc get appwrapper -n ${ODHPROJECT} | grep mnistjob | cut -d ' ' -f 1) || true
+    AW=$(oc get appwrapper.workload.codeflare.dev -n ${ODHPROJECT} | grep mnistjob | cut -d ' ' -f 1) || true
     # Clean up resources
     if [[ -n $AW ]]; then
-        os::cmd::expect_success "oc delete appwrapper $AW -n ${ODHPROJECT} || true"
+        os::cmd::expect_success "oc delete appwrapper.workload.codeflare.dev $AW -n ${ODHPROJECT} || true"
     fi
     os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT} || true"
     os::cmd::expect_success "oc delete cm notebooks-mcad -n ${ODHPROJECT} || true"
@@ -50,7 +50,9 @@ function test_mcad_torchx_functionality() {
     os::cmd::expect_success "oc create configmap notebooks-mcad -n ${ODHPROJECT} --from-file=${RESOURCEDIR}/mnist_mcad_mini.ipynb"
 
     # Get Token
-    local TESTUSER_BEARER_TOKEN="$(curl -skiL -u $TEST_USER:$TEST_PASS -H 'X-CSRF-Token: xxx' "$OPENSHIFT_OAUTH_ENDPOINT/oauth/authorize?response_type=token&client_id=openshift-challenging-client" | grep -oE 'access_token=[^&]*'| sed 's/access_token=//')"
+    local TESTUSER_BEARER_TOKEN="$(curl -skiL -u $TEST_USER:$TEST_PASS -H 'X-CSRF-Token: xxx' "$OPENSHIFT_OAUTH_ENDPOINT/oauth/authorize?response_type=token&client_id=openshift-challenging-client" | grep -oP 'access_token=\K[^&]*')"
+
+    # Spawn notebook-server using the codeflare custom nb image
     os::cmd::expect_success "cat ${RESOURCEDIR}/custom-nb-small.yaml \
                             | sed s/%INGRESS%/$(oc get ingresses.config/cluster -o jsonpath={.spec.domain})/g \
                             | sed s/%OCPSERVER%/$(oc whoami --show-server=true|cut -f3 -d "/")/g \
@@ -62,16 +64,16 @@ function test_mcad_torchx_functionality() {
     os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} | grep "jupyter-nb-kube-3aadmin" | awk '{print \$2}'" "2/2" $odhdefaulttimeout $odhdefaultinterval
 
     # Wait for appwrapper to exist
-    os::cmd::try_until_text "oc get appwrapper -n ${ODHPROJECT} | grep mnistjob" "mnistjob-*" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc get appwrapper.workload.codeflare.dev -n ${ODHPROJECT} | grep mnistjob" "mnistjob-*" $odhdefaulttimeout $odhdefaultinterval
 
     # Get appwrapper name
-    AW=$(oc get appwrapper -n ${ODHPROJECT} | grep mnistjob | cut -d ' ' -f 1)
+    AW=$(oc get appwrapper.workload.codeflare.dev -n ${ODHPROJECT} | grep mnistjob | cut -d ' ' -f 1)
 
     # Wait for the mnisttest appwrapper state to become running
-    os::cmd::try_until_text "oc get appwrapper $AW -n ${ODHPROJECT} -ojsonpath='{.status.state}'" "Running" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc get appwrapper.workload.codeflare.dev $AW -n ${ODHPROJECT} -ojsonpath='{.status.state}'" "Running" $odhdefaulttimeout $odhdefaultinterval
 
     # Wait for workload to succeed and clean up
-    os::cmd::try_until_text "oc get appwrapper $AW -n ${ODHPROJECT}" ".*NotFound.*" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc get appwrapper.workload.codeflare.dev $AW -n ${ODHPROJECT}" "*NotFound*" $odhdefaulttimeout $odhdefaultinterval
 
     # Test clean up resources
     os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT}"
@@ -80,8 +82,8 @@ function test_mcad_torchx_functionality() {
     os::cmd::expect_success "oc delete cm notebooks-mcad -n ${ODHPROJECT} || true"
     os::cmd::expect_failure "oc get cm notebooks-mcad -n ${ODHPROJECT}"
 
-    os::cmd::expect_success "oc delete appwrapper $AW -n ${ODHPROJECT} || true"
-    os::cmd::expect_failure "oc get appwrapper $AW -n ${ODHPROJECT}"
+    os::cmd::expect_success "oc delete appwrapper.workload.codeflare.dev $AW -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get appwrapper.workload.codeflare.dev $AW -n ${ODHPROJECT}"
 
     os::cmd::expect_success "oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT} || true"
     os::cmd::expect_failure "oc get pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT}"
@@ -94,7 +96,7 @@ function test_mcad_ray_functionality() {
     # Clean up resources
     os::cmd::expect_success "oc delete notebook jupyter-nb-kube-3aadmin -n ${ODHPROJECT} || true"
     os::cmd::expect_success "oc delete cm notebooks-ray -n ${ODHPROJECT} || true"
-    os::cmd::expect_success "oc delete appwrapper mnisttest -n ${ODHPROJECT} || true"
+    os::cmd::expect_success "oc delete appwrapper.workload.codeflare.dev mnisttest -n ${ODHPROJECT} || true"
     os::cmd::expect_success "oc delete raycluster mnisttest -n ${ODHPROJECT} || true"
     os::cmd::expect_success "oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n ${ODHPROJECT} || true"
     ##############################################################################
@@ -106,7 +108,7 @@ function test_mcad_ray_functionality() {
     os::cmd::expect_success "oc create configmap notebooks-ray -n ${ODHPROJECT} --from-file=${RESOURCEDIR}/mnist_ray_mini.ipynb --from-file=${RESOURCEDIR}/mnist.py --from-file=${RESOURCEDIR}/requirements.txt"
 
     # Get Token
-    local TESTUSER_BEARER_TOKEN="$(curl -skiL -u $TEST_USER:$TEST_PASS -H 'X-CSRF-Token: xxx' "$OPENSHIFT_OAUTH_ENDPOINT/oauth/authorize?response_type=token&client_id=openshift-challenging-client" | grep -oE 'access_token=[^&]*'| sed 's/access_token=//')"
+    local TESTUSER_BEARER_TOKEN="$(curl -skiL -u $TEST_USER:$TEST_PASS -H 'X-CSRF-Token: xxx' "$OPENSHIFT_OAUTH_ENDPOINT/oauth/authorize?response_type=token&client_id=openshift-challenging-client" | grep -oP 'access_token=\K[^&]*')"
 
     # Spawn notebook-server using the codeflare custom nb image
     os::cmd::expect_success "cat ${RESOURCEDIR}/custom-nb-small.yaml \
@@ -120,13 +122,13 @@ function test_mcad_ray_functionality() {
     os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} | grep "jupyter-nb-kube-3aadmin" | awk '{print \$2}'" "2/2" $odhdefaulttimeout $odhdefaultinterval
 
     # Wait for the mnisttest appwrapper state to become running
-    os::cmd::try_until_text "oc get appwrapper mnisttest -n ${ODHPROJECT} -ojsonpath='{.status.state}'" "Running" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc get appwrapper.workload.codeflare.dev mnisttest -n ${ODHPROJECT} -ojsonpath='{.status.state}'" "Running" $odhdefaulttimeout $odhdefaultinterval
 
     # Wait for Raycluster to be ready
     os::cmd::try_until_text "oc get raycluster -n ${ODHPROJECT} mnisttest -ojsonpath='{.status.state}'" "ready" $odhdefaulttimeout $odhdefaultinterval
 
     # Wait for job to be completed and cleaned up
-    os::cmd::try_until_text "oc get appwrapper mnisttest -n ${ODHPROJECT}" ".*NotFound.*" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc get appwrapper.workload.codeflare.dev mnisttest -n ${ODHPROJECT}" "*NotFound*" $odhdefaulttimeout $odhdefaultinterval
     os::cmd::expect_failure "oc get raycluster mnisttest -n ${ODHPROJECT}"
 
     # Test clean up resources
@@ -136,8 +138,8 @@ function test_mcad_ray_functionality() {
     os::cmd::expect_success "oc delete cm notebooks-ray -n ${ODHPROJECT} || true"
     os::cmd::expect_failure "oc get cm notebooks-ray -n ${ODHPROJECT}"
 
-    os::cmd::expect_success "oc delete appwrapper mnisttest -n ${ODHPROJECT} || true"
-    os::cmd::expect_failure "oc get appwrapper mnisttest -n ${ODHPROJECT}"
+    os::cmd::expect_success "oc delete appwrapper.workload.codeflare.dev mnisttest -n ${ODHPROJECT} || true"
+    os::cmd::expect_failure "oc get appwrapper.workload.codeflare.dev mnisttest -n ${ODHPROJECT}"
 
     os::cmd::expect_success "oc delete raycluster mnisttest -n ${ODHPROJECT} || true"
     os::cmd::expect_failure "oc get raycluster mnisttest -n ${ODHPROJECT}"
