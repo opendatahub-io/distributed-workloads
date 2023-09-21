@@ -17,9 +17,7 @@ os::test::junit::declare_suite_start "$MY_SCRIPT"
 function check_distributed_workloads_kfdef(){
     header "Checking distributed workloads stack"
 
-    # Ensure that MCAD, Instascale, KubeRay pods start
-    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} |grep mcad-controller | awk '{print \$2}'"  "1/1" $odhdefaulttimeout $odhdefaultinterval
-    os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} |grep instascale-instascale | awk '{print \$2}'"  "1/1" $odhdefaulttimeout $odhdefaultinterval
+    # Ensure that KubeRay pods start
     os::cmd::try_until_text "oc get pod -n ${ODHPROJECT} |grep kuberay-operator | awk '{print \$2}'"  "1/1" $odhdefaulttimeout $odhdefaultinterval
 
     # Ensure the codeflare-notebook imagestream is there

@@ -26,28 +26,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	support "github.com/opendatahub-io/distributed-workloads/tests/integration/support"
+	"github.com/opendatahub-io/distributed-workloads/tests/integration/support"
 )
-
-func TestMcadReadyStatus(t *testing.T) {
-	test := cfosupport.With(t)
-
-	mcad, err := test.Client().CodeFlare().CodeflareV1alpha1().MCADs(support.GetOpenDataHubNamespace()).Get(test.Ctx(), "mcad", metav1.GetOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-
-	// Assert the MCAD status is 'ready'
-	test.Expect(mcad.Status.Ready).To(Equal(true))
-}
-
-func TestInstaScaleReadyStatus(t *testing.T) {
-	test := cfosupport.With(t)
-
-	instascale, err := test.Client().CodeFlare().CodeflareV1alpha1().InstaScales(support.GetOpenDataHubNamespace()).Get(test.Ctx(), "instascale", metav1.GetOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-
-	// Assert the InstaScale status is 'ready'
-	test.Expect(instascale.Status.Ready).To(Equal(true))
-}
 
 func TestKubeRayRunning(t *testing.T) {
 	test := cfosupport.With(t)

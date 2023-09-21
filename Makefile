@@ -99,7 +99,6 @@ delete-codeflare: ## Delete CodeFlare
 deploy-codeflare-from-filesystem: kustomize ## Deploy CodeFlare from local file system
 	@echo -e "\n==> Deploying CodeFlare \n"
 	-oc create ns opendatahub
-	@while [[ -z $$(oc get customresourcedefinition mcads.codeflare.codeflare.dev) ]]; do echo "."; sleep 10; done
 	$(KUSTOMIZE) build ray/operator/base | oc apply --server-side=true -n opendatahub -f -
 	$(KUSTOMIZE) build codeflare-stack/base | oc apply --server-side=true -n opendatahub -f -
 
