@@ -27,7 +27,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	support "github.com/opendatahub-io/distributed-workloads/tests/integration/support"
+	"github.com/opendatahub-io/distributed-workloads/tests/integration/support"
 )
 
 func TestMnistPyTorchMCAD(t *testing.T) {

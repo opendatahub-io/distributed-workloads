@@ -17,7 +17,7 @@ limitations under the License.
 package support
 
 import (
-	gomega "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	cfosupport "github.com/project-codeflare/codeflare-operator/test/support"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
