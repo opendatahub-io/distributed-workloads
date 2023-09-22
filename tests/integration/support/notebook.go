@@ -22,7 +22,6 @@ import (
 	"html/template"
 
 	. "github.com/onsi/gomega"
-	gomega "github.com/onsi/gomega"
 	cfosupport "github.com/project-codeflare/codeflare-operator/test/support"
 
 	corev1 "k8s.io/api/core/v1"
@@ -88,7 +87,7 @@ func CreateNotebook(test cfosupport.Test, namespace *corev1.Namespace, notebookT
 		NotebookPVC:               notebookPVC.Name,
 	}
 	notebookTemplate, err := files.ReadFile("resources/custom-nb-small.yaml")
-	test.Expect(err).NotTo(gomega.HaveOccurred())
+	test.Expect(err).NotTo(HaveOccurred())
 	parsedNotebookTemplate, err := template.New("notebook").Parse(string(notebookTemplate))
 	test.Expect(err).NotTo(HaveOccurred())
 

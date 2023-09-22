@@ -20,7 +20,8 @@ make all-in-one
 ## Prerequisites
 
 ### Red Hat OpenShift
-  Tested on OpenShift 4.10, 4.12 and 4.13
+
+Tested on OpenShift 4.10, 4.12 and 4.13.
 
 ### Resources
 
@@ -84,8 +85,6 @@ If you want to run GPU enabled workloads, you will need to install the [Node Fea
 
 Applying the CodeFlare-Stack kfdef will result in the following objects being added to your cluster:
 
-1. MCAD
-1. InstaScale
 1. KubeRay Operator
 1. CodeFlare Notebook Image for the Open Data Hub notebook interface
 
@@ -96,17 +95,44 @@ At this point you should be able to go to your notebook spawner page and select 
 You can access the spawner page through the Open Data Hub dashboard. The default route should be `https://odh-dashboard-<your ODH namespace>.apps.<your cluster's uri>`. 
 
 To quickly find your ODH dashboard URL, you can issue this command:
+
 ```bash
  oc get route -n opendatahub |grep dash |awk '{print $2}'
  ```
 
 Once you are on your dashboard, you can select "Launch application" on the Jupyter application. This will take you to your notebook spawner page.
 
-
 ### Using an Openshift Dedicated or ROSA Cluster
-If you are using an Openshift Dedicated or ROSA Cluster you will need to create a secret in the opendatahub namespace containing your ocm token. You can find your token [here](https://console.redhat.com/openshift/token). Navigate to Workloads -> secrets in the Openshift Console. Click Create and choose a key/value secret. Secret name: instascale-ocm-secret, Key: token, Value: < ocm token > and click create.
+
+If you want to enable cluster auto-scaling with InstaScale on Openshift Dedicated or ROSA, you will need to create a secret, containing your OCM token.
+You can find your token [here](https://console.redhat.com/openshift/token).
+Navigate to Workloads -> Secrets in the Openshift Console.
+Click Create and choose a key/value secret:
 
 <img src="images/instascale-ocm-secret.png" width="80%" height="80%">
+
+Then you'll have to edit the CodeFlare operator ConfigMap, with:
+
+```bash
+oc edit -n openshift-operators cm codeflare-operator-config
+```
+
+Then update the `instascale` block, e.g.:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.yaml: |
+    instascale:
+      enabled: true
+      ocmSecretRef:
+        namespace: opendatahub
+        name: instascale-ocm-secret
+      maxScaleoutAllowed: 5
+```
+
+And restart the operator Pod, so it takes the change into account.
 
 ## Submit your first job
 
@@ -116,7 +142,7 @@ This can be done from any python based environment, including a script or a jupy
 
 ### Clone the demo code
 
-Once your notebook environment is ready, in order to test our CodeFlare stack we will want to run though some of the demo notebooks provided by the CodeFlare community. So let's start by cloning their repo into our working environment.
+Once your notebook environment is ready, in order to test our CodeFlare stack we will want to run through some of the demo notebooks provided by the CodeFlare community. So let's start by cloning their repo into our working environment.
 
 ```bash
 git clone https://github.com/project-codeflare/codeflare-sdk
@@ -128,6 +154,7 @@ cd codeflare-sdk
 There are a number of guided demos you can follow to become familiar with the CodeFlare-SDK and the CodeFlare stack.  Navigate to the path: `codeflare-sdk/demo-notebooks/guided-demos` to see and run the latest demos.
 
 ## Cleaning up the CodeFlare Install
+
 To completely clean up all the CodeFlare components after an install, follow these steps:
 
 1.  No appwrappers should be left running:
@@ -141,6 +168,7 @@ To completely clean up all the CodeFlare components after an install, follow the
    oc delete notebook jupyter-nb-kube-3aadmin -n opendatahub
    oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n opendatahub
    ```
+
 3. Remove the codeflare-stack kfdef: (Removes MCAD, InstaScale, KubeRay and the Notebook image)
     ``` bash
     oc delete kfdef codeflare-stack -n opendatahub
@@ -154,7 +182,7 @@ To completely clean up all the CodeFlare components after an install, follow the
 
 5. Remove the CodeFlare CRDs
    ```bash
-   oc delete crd instascales.codeflare.codeflare.dev mcads.codeflare.codeflare.dev quotasubtrees.quota.codeflare.dev appwrappers.workload.codeflare.dev schedulingspecs.workload.codeflare.dev
+   oc delete crd quotasubtrees.quota.codeflare.dev appwrappers.workload.codeflare.dev schedulingspecs.workload.codeflare.dev
    ```
 
 ## Next Steps

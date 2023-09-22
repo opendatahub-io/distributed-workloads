@@ -19,6 +19,4 @@ vars:
 
 resources:
 - codeflare-notebook-imagestream.yaml
-- instascale.yaml
-- mcad.yaml
 - ../rbac
