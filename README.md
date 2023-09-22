@@ -24,10 +24,10 @@ Integration of this stack into the Open Data Hub is owned by the Distributed Wor
 
 | Component                    | Version |
 |------------------------------|---------|
-| CodeFlare Operator           | v0.2.3  |
-| Multi-Cluster App Dispatcher | v1.34.1 |
-| CodeFlare-SDK                | v0.7.1  |
-| InstaScale                   | v0.0.8  |
+| CodeFlare Operator           | v1.0.0-rc.1  |
+| Multi-Cluster App Dispatcher | v1.35.0 |
+| CodeFlare-SDK                | v0.8.0  |
+| InstaScale                   | v0.0.9  |
 | KubeRay                      | v0.6.0  |
 <!-- Compatibility Matrix end -->
 
