@@ -26,7 +26,8 @@ function start_test_ray_cluster(){
     os::cmd::expect_success "oc project ${ODHPROJECT}"
     os::cmd::expect_success "oc apply -f ${RESOURCEDIR}/ray/ray-test-cluster-test.yaml"
     os::cmd::try_until_text "oc get RayCluster kuberay-cluster-test" "kuberay-cluster-test" $odhdefaulttimeout $odhdefaultinterval
-    sleep 15
+    os::cmd::try_until_text "oc get pods -l ray.io/identifier=kuberay-cluster-test-head -o jsonpath='{$.items[*].status.phase}'" "Running" $odhdefaulttimeout $odhdefaultinterval
+    os::cmd::try_until_text "oc get pods -l ray.io/identifier=kuberay-cluster-test-worker -o jsonpath='{$.items[*].status.phase}'" "Running" $odhdefaulttimeout $odhdefaultinterval
 }
 
 function check_functionality(){

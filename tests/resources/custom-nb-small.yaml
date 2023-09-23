@@ -10,7 +10,7 @@ kind: Notebook
 metadata:
   annotations:
     notebooks.opendatahub.io/inject-oauth: "true"
-    notebooks.opendatahub.io/last-image-selection: codeflare-notebook:latest
+    notebooks.opendatahub.io/last-image-selection: codeflare-notebook:v0.7.1
     notebooks.opendatahub.io/last-size-selection: Small
     notebooks.opendatahub.io/oauth-logout-url: https://odh-dashboard-%NAMESPACE%.%INGRESS%/notebookController/kube-3aadmin/home
     opendatahub.io/link: https://jupyter-nb-kube-3aadmin-%NAMESPACE%.%INGRESS%/notebook/%NAMESPACE%/jupyter-nb-kube-3aadmin
@@ -47,14 +47,14 @@ spec:
                               --ServerApp.quit_button=False
                               --ServerApp.tornado_settings={"user":"kube-3aadmin","hub_host":"https://odh-dashboard-%NAMESPACE%.%INGRESS%","hub_prefix":"/notebookController/kube-3aadmin"}
         - name: JUPYTER_IMAGE
-          value: image-registry.openshift-image-registry.svc:5000/%NAMESPACE%/codeflare-notebook:latest
+          value: image-registry.openshift-image-registry.svc:5000/%NAMESPACE%/codeflare-notebook:v0.7.1
         - name: JUPYTER_NOTEBOOK_PORT
           value: "8888"
         - name: OCP_SERVER
           value: https://%OCPSERVER%
         - name: OCP_TOKEN
           value: %OCPTOKEN%
-        image: image-registry.openshift-image-registry.svc:5000/%NAMESPACE%/codeflare-notebook:latest
+        image: image-registry.openshift-image-registry.svc:5000/%NAMESPACE%/codeflare-notebook:v0.7.1
         command: ["/bin/sh", "-c", "pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks-%JOBTYPE%/mnist_%JOBTYPE%_mini.ipynb /opt/app-root/src/mcad-out.ipynb && sleep infinity"]
         # args: ["pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks/mcad.ipynb /opt/app-root/src/mcad-out.ipynb" ]
         imagePullPolicy: Always

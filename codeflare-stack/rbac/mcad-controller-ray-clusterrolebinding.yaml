@@ -4,8 +4,8 @@ metadata:
   name: mcad-controller-ray-clusterrolebinding
 subjects:
   - kind: ServiceAccount
-    name: mcad-controller-mcad
-    namespace: $(namespace)
+    name: codeflare-operator-controller-manager
+    namespace: openshift-operators
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
