@@ -11,16 +11,10 @@ metadata:
 spec:
   components:
     codeflare:
-      enabled: true
+      managementState: Managed
     dashboard:
-      enabled: true
-    datasciencepipelines:
-      enabled: false
-    kserve:
-      enabled: false
-    modelmeshserving:
-      enabled: false
+      managementState: Managed
     ray:
-      enabled: true
+      managementState: Managed
     workbenches:
-      enabled: true
+      managementState: Managed
