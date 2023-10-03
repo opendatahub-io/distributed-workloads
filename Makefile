@@ -26,8 +26,8 @@ help: ## Display this help.
 .PHONY: all-in-one # All-In-One
 all-in-one: ## Install distributed AI platform  
 	@echo -e "\n==> Installing Everything needed for distributed AI platform on OpenShift cluster \n"
-	-make delete-codeflare delete-ndf-operator delete-nvidia-operator delete-codeflare-operator delete-opendatahub-operator
-	make install-opendatahub-operator install-codeflare-operator install-ndf-operator install-nvidia-operator deploy-codeflare
+	-make delete-codeflare delete-nfd-operator delete-nvidia-operator delete-codeflare-operator delete-opendatahub-operator
+	make install-opendatahub-operator install-codeflare-operator install-nfd-operator install-nvidia-operator deploy-codeflare
 	make opendatahub-dashboard
 	@echo -e "\n==> Done (Deploy everything)\n" 
 
@@ -111,15 +111,22 @@ delete-codeflare-from-filesystem: kustomize ## Delete CodeFlare deployed from lo
 
 ##@ GPU Support
 
-.PHONY: install-ndf-operator
-install-ndf-operator: ## Install NDF operator ( Node Feature Discovery )
-	@echo -e "\n==> Installing NDF Operator \n"
+.PHONY: install-nfd-operator
+install-nfd-operator: ## Install NFD operator ( Node Feature Discovery )
+	@echo -e "\n==> Installing NFD Operator \n"
 	-oc create ns openshift-nfd
-	oc create -f contrib/configuration/ndf-operator-subscription.yaml
+	oc create -f contrib/configuration/nfd-operator-subscription.yaml
+	@echo -e "\n==> Creating default NodeFeatureDiscovery CR \n"
+	@while [[ -z $$(oc get customresourcedefinition nodefeaturediscoveries.nfd.openshift.io) ]]; do echo "."; sleep 10; done
+	@while [[ -z $$(oc get csv -n openshift-nfd --selector operators.coreos.com/nfd.openshift-nfd) ]]; do echo "."; sleep 10; done
+	oc get csv -n openshift-nfd --selector operators.coreos.com/nfd.openshift-nfd -ojsonpath={.items[0].metadata.annotations.alm-examples} | jq '.[] | select(.kind=="NodeFeatureDiscovery")' | oc apply -f -
 
-.PHONY: delete-ndf-operator
-delete-ndf-operator: ## Delete NDF operator
-	@echo -e "\n==> Deleting NDF Operator \n"
+.PHONY: delete-nfd-operator
+delete-nfd-operator: ## Delete NFD operator
+	@echo -e "\n==> Deleting NodeFeatureDiscovery CR \n"
+	oc delete NodeFeatureDiscovery --all -n openshift-nfd
+	@while [[ -n $$(oc get NodeFeatureDiscovery -n openshift-nfd) ]]; do echo "."; sleep 10; done
+	@echo -e "\n==> Deleting NFD Operator \n"
 	-oc delete subscription nfd -n openshift-nfd
 	-export CLUSTER_SERVICE_VERSION=`oc get clusterserviceversion -n openshift-nfd -l operators.coreos.com/nfd.openshift-nfd -o custom-columns=:metadata.name`; \
 	oc delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n openshift-nfd
@@ -130,9 +137,16 @@ install-nvidia-operator: ## Install nvidia operator
 	@echo -e "\n==> Installing nvidia Operator \n"
 	-oc create ns nvidia-gpu-operator
 	oc create -f contrib/configuration/nvidia-operator-subscription.yaml
+	@echo -e "\n==> Creating default ClusterPolicy CR \n"
+	@while [[ -z $$(oc get customresourcedefinition clusterpolicies.nvidia.com) ]]; do echo "."; sleep 10; done
+	@while [[ -z $$(oc get csv -n nvidia-gpu-operator --selector operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator) ]]; do echo "."; sleep 10; done
+	oc get csv -n nvidia-gpu-operator --selector operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator -ojsonpath={.items[0].metadata.annotations.alm-examples} | jq .[] | oc apply -f -
 
 .PHONY: delete-nvidia-operator
 delete-nvidia-operator: ## Delete nvidia operator
+	@echo -e "\n==> Deleting ClusterPolicy CR \n"
+	oc delete ClusterPolicy --all -n nvidia-gpu-operator
+	@while [[ -n $$(oc get ClusterPolicy -n nvidia-gpu-operator) ]]; do echo "."; sleep 10; done
 	@echo -e "\n==> Deleting nvidia Operator \n"
 	-oc delete subscription gpu-operator-certified -n nvidia-gpu-operator
 	-export CLUSTER_SERVICE_VERSION=`oc get clusterserviceversion -n nvidia-gpu-operator -l operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator -o custom-columns=:metadata.name`; \
