@@ -1,4 +1,4 @@
-apiVersion: datasciencecluster.opendatahub.io/v1alpha1
+apiVersion: datasciencecluster.opendatahub.io/v1
 kind: DataScienceCluster
 metadata:
   labels:
@@ -11,16 +11,22 @@ metadata:
 spec:
   components:
     codeflare:
-      enabled: false
+      devFlags:
+        manifests:
+          - uri: '<DW PR tarball URI>'
+      managementState: Managed
     dashboard:
-      enabled: true
+      managementState: Managed
     datasciencepipelines:
-      enabled: false
+      managementState: Removed
     kserve:
-      enabled: false
+      managementState: Removed
     modelmeshserving:
-      enabled: false
+      managementState: Removed
     ray:
-      enabled: false
+      devFlags:
+        manifests:
+          - uri: '<DW PR tarball URI>'
+      managementState: Managed
     workbenches:
-      enabled: true
+      managementState: Managed
