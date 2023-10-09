@@ -6,6 +6,17 @@ The CodeFlare-SDK was built to make managing distributed compute infrastructure 
 
 This stack integrates well with [Open Data Hub](https://opendatahub.io/), and helps to bring batch workloads, jobs, and queuing to the Data Science platform.
 
+## Automatic deployment
+
+As a quick alternative to the following manual deployment steps an automatic *makefile* script can be used to deploy the CodeFlare stack. This script also deploys the prerequisite operators and the entire CodeFlare stack up to the step [Using an Openshift Dedicated or ROSA Cluster](#using-an-openshift-dedicated-or-rosa-cluster).
+To use this script, clone the repo and execute:
+
+```bash
+make all-in-one
+```
+
+> Note : Execute ```make help``` to list additional available operations.
+
 ## Prerequisites
 
 ### Resources
@@ -47,6 +58,8 @@ suffice.
 ### NFD and GPU Operators
 
 If you want to run GPU enabled workloads, you will need to install the [Node Feature Discovery Operator](https://github.com/openshift/cluster-nfd-operator) and the [NVIDIA GPU Operator](https://github.com/NVIDIA/gpu-operator) from the OperatorHub. For instructions on how to install and configure these operators, we recommend [this guide](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/openshift/steps-overview.html#high-level-steps).
+
+In order for your OpenShift cluster to discover GPU hardware a ClusterPolicy CR must be created. For more information, this can be done by following the instructions [here](https://docs.nvidia.com/datacenter/cloud-native/openshift/23.6.1/install-gpu-ocp.html#create-the-clusterpolicy-instance). The defaults will suffice.
 
 ## Creating K8s resources
 
