@@ -1,9 +1,0 @@
-FROM ghcr.io/pytorch/torchx:0.5.0dev0
-
-ADD mnist.py /app/mnist.py
-
-# change group permissions for running in OCP
-RUN chgrp -R 0 /app
-RUN chmod -R g+w /app
-
-ENTRYPOINT ["python", "/app/mnist.py"]
