@@ -10,9 +10,6 @@
 # Go to the root folder of the repository
 cd ..
 
-# Install CodeFlare operator
-make install-codeflare-operator
-
 # Install ODH operator
 make install-opendatahub-operator
 
