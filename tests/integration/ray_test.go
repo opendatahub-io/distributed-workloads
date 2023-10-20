@@ -38,10 +38,6 @@ func TestRayCluster(t *testing.T) {
 	test := support.With(t)
 	test.T().Parallel()
 
-	// This test is unstable. It seems that RayJob CR sometimes trigger 2 jobs in Ray, causing confusion in KubeRay operator.
-	// Needs to be checked with newer KubeRay version. If still unstable then it needs to be reported.
-	test.T().Skip("Requires https://github.com/opendatahub-io/distributed-workloads/issues/65")
-
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 
