@@ -34,8 +34,6 @@ import (
 func TestMCADRay(t *testing.T) {
 	test := cfosupport.With(t)
 
-	test.T().Skip("Requires https://github.com/project-codeflare/codeflare-sdk/issues/190")
-
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 
@@ -89,7 +87,7 @@ func TestMCADRay(t *testing.T) {
 		Should(
 			And(
 				HaveLen(1),
-				ContainElement(WithTransform(cfosupport.AppWrapperName, HavePrefix("mnistjob"))),
+				ContainElement(WithTransform(cfosupport.AppWrapperName, HavePrefix("mnisttest"))),
 				ContainElement(WithTransform(cfosupport.AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive))),
 			),
 		)
