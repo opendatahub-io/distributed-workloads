@@ -26,8 +26,14 @@ help: ## Display this help.
 .PHONY: all-in-one # All-In-One
 all-in-one: ## Install distributed AI platform  
 	@echo -e "\n==> Installing Everything needed for distributed AI platform on OpenShift cluster \n"
-	-make delete-codeflare delete-nfd-operator delete-nvidia-operator delete-opendatahub-operator
-	make install-opendatahub-operator install-nfd-operator install-nvidia-operator deploy-codeflare
+	-make delete-codeflare 
+	-make delete-nfd-operator
+	-make delete-nvidia-operator
+	-make delete-opendatahub-operator
+	-make install-opendatahub-operator
+	-make install-nfd-operator
+	-make install-nvidia-operator
+	-make deploy-codeflare
 	make opendatahub-dashboard
 	@echo -e "\n==> Done (Deploy everything)\n" 
 
@@ -73,12 +79,12 @@ deploy-codeflare: ## Deploy CodeFlare
 	@echo -e "\n==> Deploying CodeFlare \n"
 	-oc create ns opendatahub
 	@while [[ -z $$(oc get customresourcedefinition datascienceclusters.datasciencecluster.opendatahub.io) ]]; do echo "."; sleep 10; done
-	oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-dsc.yaml -n opendatahub
+	oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-dsc.yaml
 
 .PHONY: delete-codeflare
 delete-codeflare: ## Delete CodeFlare
 	@echo -e "\n==> Deleting CodeFlare \n"
-	-oc delete -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-dsc.yaml -n opendatahub
+	-oc delete -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-dsc.yaml
 	-oc delete ns opendatahub
 
 .PHONY: deploy-codeflare-from-filesystem

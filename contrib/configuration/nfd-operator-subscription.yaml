@@ -3,6 +3,9 @@ kind: OperatorGroup
 metadata:
   name: nfd
   namespace: openshift-nfd
+spec:
+  targetNamespaces:
+  - openshift-nfd
 ---  
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
