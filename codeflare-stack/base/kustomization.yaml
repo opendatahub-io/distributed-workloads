@@ -18,5 +18,4 @@ vars:
     fieldpath: data.namespace
 
 resources:
-- codeflare-notebook-imagestream.yaml
 - ../rbac
