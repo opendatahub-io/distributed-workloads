@@ -316,13 +316,6 @@ func createRayCluster(test support.Test, namespace string, mnist *corev1.ConfigM
 					RayStartParams: map[string]string{},
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
-							InitContainers: []corev1.Container{
-								{
-									Name:    "init-myservice",
-									Image:   "busybox:1.28",
-									Command: []string{"sh", "-c", "until nslookup $RAY_IP.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for myservice; sleep 2; done"},
-								},
-							},
 							Containers: []corev1.Container{
 								{
 									Name:  "ray-worker",
