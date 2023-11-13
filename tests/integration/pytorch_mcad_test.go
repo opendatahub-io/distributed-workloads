@@ -20,14 +20,11 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"github.com/opendatahub-io/distributed-workloads/tests/integration/support"
 	. "github.com/project-codeflare/codeflare-common/support"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 
-	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/opendatahub-io/distributed-workloads/tests/integration/support"
 )
 
 func TestMnistPyTorchMCAD(t *testing.T) {
@@ -38,23 +35,10 @@ func TestMnistPyTorchMCAD(t *testing.T) {
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "mnist_mcad_mini.ipynb"
-	config := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "notebooks-mcad",
-		},
-		BinaryData: map[string][]byte{
-			// MNIST MCAD Notebook
-			jupyterNotebookConfigMapFileName: ReadFile(test, "resources/mnist_mcad_mini.ipynb"),
-		},
-		Immutable: Ptr(true),
-	}
-	config, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), config, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created ConfigMap %s/%s successfully", config.Namespace, config.Name)
+	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
+		// MNIST MCAD Notebook
+		jupyterNotebookConfigMapFileName: ReadFile(test, "resources/mnist_mcad_mini.ipynb"),
+	})
 
 	// Create RBAC, retrieve token for user with limited rights
 	policyRules := []rbacv1.PolicyRule{

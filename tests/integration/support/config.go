@@ -18,11 +18,15 @@ package support
 
 import (
 	"os"
+
+	. "github.com/project-codeflare/codeflare-common/support"
 )
 
 const (
 	// The environment variable for namespace where ODH is installed to.
 	odhNamespaceEnvVar = "ODH_NAMESPACE"
+	// The environment variable for ODH Notebook ImageStream name
+	notebookImageStreamName = "NOTEBOOK_IMAGE_STREAM_NAME"
 )
 
 func GetOpenDataHubNamespace() string {
@@ -34,4 +38,12 @@ func lookupEnvOrDefault(key, value string) string {
 		return v
 	}
 	return value
+}
+
+func GetNotebookImageStreamName(t Test) string {
+	isName, ok := os.LookupEnv(notebookImageStreamName)
+	if !ok {
+		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify what ImageStream to use for Notebook.", notebookImageStreamName)
+	}
+	return isName
 }
