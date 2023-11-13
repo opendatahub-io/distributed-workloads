@@ -18,12 +18,12 @@ package support
 
 import (
 	"github.com/onsi/gomega"
-	cfosupport "github.com/project-codeflare/codeflare-operator/test/support"
+	. "github.com/project-codeflare/codeflare-common/support"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func GetODHCodeFlareImageStreamTag(test cfosupport.Test) string {
+func GetODHCodeFlareImageStreamTag(test Test) string {
 	test.T().Helper()
 
 	cfis, err := test.Client().Image().ImageV1().ImageStreams(GetOpenDataHubNamespace()).Get(test.Ctx(), "codeflare-notebook", metav1.GetOptions{})

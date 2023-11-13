@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	support "github.com/project-codeflare/codeflare-operator/test/support"
-	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
+	. "github.com/project-codeflare/codeflare-common/support"
+	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,7 +36,7 @@ import (
 )
 
 func TestRayCluster(t *testing.T) {
-	test := support.With(t)
+	test := With(t)
 	test.T().Parallel()
 
 	// Create a namespace
@@ -48,16 +48,16 @@ func TestRayCluster(t *testing.T) {
 	// Create Ray cluster
 	rayCluster := createRayCluster(test, namespace.Name, mnist)
 
-	rayJob := &rayv1alpha1.RayJob{
+	rayJob := &rayv1.RayJob{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: rayv1alpha1.GroupVersion.String(),
+			APIVersion: rayv1.GroupVersion.String(),
 			Kind:       "RayJob",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "mnist",
 			Namespace: namespace.Name,
 		},
-		Spec: rayv1alpha1.RayJobSpec{
+		Spec: rayv1.RayJobSpec{
 			Entrypoint: "python /home/ray/jobs/mnist.py",
 			RuntimeEnv: base64.StdEncoding.EncodeToString([]byte(`
 {
@@ -71,12 +71,12 @@ func TestRayCluster(t *testing.T) {
 }
 `)),
 			ClusterSelector: map[string]string{
-				support.RayJobDefaultClusterSelectorKey: rayCluster.Name,
+				RayJobDefaultClusterSelectorKey: rayCluster.Name,
 			},
 			ShutdownAfterJobFinishes: false,
 		},
 	}
-	rayJob, err := test.Client().Ray().RayV1alpha1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
+	rayJob, err := test.Client().Ray().RayV1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
 
@@ -105,20 +105,20 @@ func TestRayCluster(t *testing.T) {
 	test.T().Logf("Created Route %s/%s successfully", dashboardRoute.Namespace, dashboardRoute.Name)
 
 	test.T().Logf("Waiting for Route %s/%s to be available", dashboardRoute.Namespace, dashboardRoute.Name)
-	test.Eventually(support.Route(test, dashboardRoute.Namespace, dashboardRoute.Name), support.TestTimeoutLong).
-		Should(WithTransform(support.ConditionStatus(routev1.RouteAdmitted), Equal(corev1.ConditionTrue)))
+	test.Eventually(Route(test, dashboardRoute.Namespace, dashboardRoute.Name), TestTimeoutLong).
+		Should(WithTransform(ConditionStatus(routev1.RouteAdmitted), Equal(corev1.ConditionTrue)))
 
 	// Retrieve dashboard hostname
 	dashboard, err := test.Client().Route().RouteV1().Routes(namespace.Name).Get(test.Ctx(), dashboardRoute.Name, metav1.GetOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	dashboardHostname := dashboard.Status.Ingress[0].Host
 
-	rayClient := support.NewRayClusterClient(url.URL{Scheme: "http", Host: dashboardHostname})
-	defer support.WriteRayJobLogs(test, rayClient, rayJob.Namespace, rayJob.Name)
+	rayClient := NewRayClusterClient(url.URL{Scheme: "http", Host: dashboardHostname})
+	defer WriteRayJobLogs(test, rayClient, rayJob.Namespace, rayJob.Name)
 
 	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
 	// Will be removed when RHODS-12857 is fixed
-	test.Eventually(Job(test, rayJob.Namespace, rayJob.Name), support.TestTimeoutLong).
+	test.Eventually(Job(test, rayJob.Namespace, rayJob.Name), TestTimeoutLong).
 		Should(WithTransform(func(job *batchv1.Job) int {
 			return int(job.Status.Succeeded)
 		}, Equal(1)))
@@ -127,17 +127,17 @@ func TestRayCluster(t *testing.T) {
 		Should be uncommented when RHODS-12857 is fixed
 
 		test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
-		test.Eventually(support.RayJob(test, rayJob.Namespace, rayJob.Name), support.TestTimeoutLong).
-		Should(WithTransform(support.RayJobStatus, Satisfy(rayv1alpha1.IsJobTerminal)))
+		test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutLong).
+		Should(WithTransform(RayJobStatus, Satisfy(rayv1.IsJobTerminal)))
 
 		// Assert the Ray job has completed successfully
-		test.Expect(support.GetRayJob(test, rayJob.Namespace, rayJob.Name)).
-			To(WithTransform(support.RayJobStatus, Equal(rayv1alpha1.JobStatusSucceeded)))
+		test.Expect(GetRayJob(test, rayJob.Namespace, rayJob.Name)).
+			To(WithTransform(RayJobStatus, Equal(rayv1.JobStatusSucceeded)))
 	*/
 }
 
 func TestRayJobSubmissionRest(t *testing.T) {
-	test := support.With(t)
+	test := With(t)
 	test.T().Parallel()
 
 	// Create a namespace
@@ -173,8 +173,8 @@ func TestRayJobSubmissionRest(t *testing.T) {
 	test.T().Logf("Created Route %s/%s successfully", dashboardRoute.Namespace, dashboardRoute.Name)
 
 	test.T().Logf("Waiting for Route %s/%s to be available", dashboardRoute.Namespace, dashboardRoute.Name)
-	test.Eventually(support.Route(test, dashboardRoute.Namespace, dashboardRoute.Name), support.TestTimeoutLong).
-		Should(WithTransform(support.ConditionStatus(routev1.RouteAdmitted), Equal(corev1.ConditionTrue)))
+	test.Eventually(Route(test, dashboardRoute.Namespace, dashboardRoute.Name), TestTimeoutLong).
+		Should(WithTransform(ConditionStatus(routev1.RouteAdmitted), Equal(corev1.ConditionTrue)))
 
 	// Retrieve dashboard hostname
 	dashboard, err := test.Client().Route().RouteV1().Routes(namespace.Name).Get(test.Ctx(), dashboardRoute.Name, metav1.GetOptions{})
@@ -185,12 +185,12 @@ func TestRayJobSubmissionRest(t *testing.T) {
 	test.Eventually(func() int {
 		resp, _ := http.Get("http://" + dashboardHostname)
 		return resp.StatusCode
-	}, support.TestTimeoutLong).Should(Equal(200))
+	}, TestTimeoutLong).Should(Equal(200))
 
-	rayClient := support.NewRayClusterClient(url.URL{Scheme: "http", Host: dashboardHostname})
+	rayClient := NewRayClusterClient(url.URL{Scheme: "http", Host: dashboardHostname})
 
 	// Create Ray Job using REST API
-	job := support.RayJobSetup{
+	job := RayJobSetup{
 		EntryPoint: "python /home/ray/jobs/mnist.py",
 		RuntimeEnv: map[string]any{
 			"pip": []string{
@@ -205,23 +205,23 @@ func TestRayJobSubmissionRest(t *testing.T) {
 	test.T().Logf("Ray Job %s submitted successfully", jobResponse.JobID)
 
 	// Retrieving the job logs once it has completed or timed out
-	defer support.WriteRayJobAPILogs(test, rayClient, jobResponse.JobID)
+	defer WriteRayJobAPILogs(test, rayClient, jobResponse.JobID)
 
 	test.T().Logf("Waiting for Job %s to finish", jobResponse.JobID)
-	test.Eventually(support.RayJobAPIDetails(test, rayClient, jobResponse.JobID), support.TestTimeoutLong).
+	test.Eventually(RayJobAPIDetails(test, rayClient, jobResponse.JobID), TestTimeoutLong).
 		Should(
 			Or(
-				WithTransform(support.GetRayJobAPIDetailsStatus, Equal("SUCCEEDED")),
-				WithTransform(support.GetRayJobAPIDetailsStatus, Equal("STOPPED")),
-				WithTransform(support.GetRayJobAPIDetailsStatus, Equal("FAILED")),
+				WithTransform(GetRayJobAPIDetailsStatus, Equal("SUCCEEDED")),
+				WithTransform(GetRayJobAPIDetailsStatus, Equal("STOPPED")),
+				WithTransform(GetRayJobAPIDetailsStatus, Equal("FAILED")),
 			))
 
 	// Assert the job has completed successfully
-	test.Expect(support.GetRayJobAPIDetails(test, rayClient, jobResponse.JobID)).
-		To(WithTransform(support.GetRayJobAPIDetailsStatus, Equal("SUCCEEDED")))
+	test.Expect(GetRayJobAPIDetails(test, rayClient, jobResponse.JobID)).
+		To(WithTransform(GetRayJobAPIDetailsStatus, Equal("SUCCEEDED")))
 }
 
-func createMnistConfigMap(test support.Test, namespace string) (mnist *corev1.ConfigMap) {
+func createMnistConfigMap(test Test, namespace string) (mnist *corev1.ConfigMap) {
 	mnist = &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -234,7 +234,7 @@ func createMnistConfigMap(test support.Test, namespace string) (mnist *corev1.Co
 		BinaryData: map[string][]byte{
 			"mnist.py": ReadFile(test, "resources/mnist.py"),
 		},
-		Immutable: support.Ptr(true),
+		Immutable: Ptr(true),
 	}
 	mnist, err := test.Client().Core().CoreV1().ConfigMaps(namespace).Create(test.Ctx(), mnist, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
@@ -242,20 +242,20 @@ func createMnistConfigMap(test support.Test, namespace string) (mnist *corev1.Co
 	return
 }
 
-func createRayCluster(test support.Test, namespace string, mnist *corev1.ConfigMap) (rayCluster *rayv1alpha1.RayCluster) {
+func createRayCluster(test Test, namespace string, mnist *corev1.ConfigMap) (rayCluster *rayv1.RayCluster) {
 	// RayCluster, CR taken from https://github.com/project-codeflare/codeflare-operator/blob/main/test/e2e/mnist_rayjob_mcad_raycluster_test.go
-	rayCluster = &rayv1alpha1.RayCluster{
+	rayCluster = &rayv1.RayCluster{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: rayv1alpha1.GroupVersion.String(),
+			APIVersion: rayv1.GroupVersion.String(),
 			Kind:       "RayCluster",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "raycluster",
 			Namespace: namespace,
 		},
-		Spec: rayv1alpha1.RayClusterSpec{
-			RayVersion: support.GetRayVersion(),
-			HeadGroupSpec: rayv1alpha1.HeadGroupSpec{
+		Spec: rayv1.RayClusterSpec{
+			RayVersion: GetRayVersion(),
+			HeadGroupSpec: rayv1.HeadGroupSpec{
 				RayStartParams: map[string]string{
 					"dashboard-host": "0.0.0.0",
 				},
@@ -264,7 +264,7 @@ func createRayCluster(test support.Test, namespace string, mnist *corev1.ConfigM
 						Containers: []corev1.Container{
 							{
 								Name:  "ray-head",
-								Image: support.GetRayImage(),
+								Image: GetRayImage(),
 								Ports: []corev1.ContainerPort{
 									{
 										ContainerPort: 6379,
@@ -319,11 +319,11 @@ func createRayCluster(test support.Test, namespace string, mnist *corev1.ConfigM
 					},
 				},
 			},
-			WorkerGroupSpecs: []rayv1alpha1.WorkerGroupSpec{
+			WorkerGroupSpecs: []rayv1.WorkerGroupSpec{
 				{
-					Replicas:       support.Ptr(int32(1)),
-					MinReplicas:    support.Ptr(int32(1)),
-					MaxReplicas:    support.Ptr(int32(2)),
+					Replicas:       Ptr(int32(1)),
+					MinReplicas:    Ptr(int32(1)),
+					MaxReplicas:    Ptr(int32(2)),
 					GroupName:      "small-group",
 					RayStartParams: map[string]string{},
 					Template: corev1.PodTemplateSpec{
@@ -331,7 +331,7 @@ func createRayCluster(test support.Test, namespace string, mnist *corev1.ConfigM
 							Containers: []corev1.Container{
 								{
 									Name:  "ray-worker",
-									Image: support.GetRayImage(),
+									Image: GetRayImage(),
 									Lifecycle: &corev1.Lifecycle{
 										PreStop: &corev1.LifecycleHandler{
 											Exec: &corev1.ExecAction{
@@ -358,21 +358,12 @@ func createRayCluster(test support.Test, namespace string, mnist *corev1.ConfigM
 		},
 	}
 
-	rayCluster, err := test.Client().Ray().RayV1alpha1().RayClusters(namespace).Create(test.Ctx(), rayCluster, metav1.CreateOptions{})
+	rayCluster, err := test.Client().Ray().RayV1().RayClusters(namespace).Create(test.Ctx(), rayCluster, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayCluster %s/%s successfully", rayCluster.Namespace, rayCluster.Name)
 
 	test.T().Logf("Waiting for RayCluster %s/%s to complete", rayCluster.Namespace, rayCluster.Name)
-	test.Eventually(support.RayCluster(test, rayCluster.Namespace, rayCluster.Name), support.TestTimeoutLong).
-		Should(WithTransform(support.RayClusterState, Equal(rayv1alpha1.Ready)))
+	test.Eventually(RayCluster(test, rayCluster.Namespace, rayCluster.Name), TestTimeoutLong).
+		Should(WithTransform(RayClusterState, Equal(rayv1.Ready)))
 	return
-}
-
-func Job(t support.Test, namespace, name string) func(g Gomega) *batchv1.Job {
-	return func(g Gomega) *batchv1.Job {
-
-		job, err := t.Client().Core().BatchV1().Jobs(namespace).Get(t.Ctx(), name, metav1.GetOptions{})
-		g.Expect(err).NotTo(HaveOccurred())
-		return job
-	}
 }

@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	cfosupport "github.com/project-codeflare/codeflare-operator/test/support"
+	. "github.com/project-codeflare/codeflare-common/support"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -31,7 +31,7 @@ import (
 )
 
 func TestMnistPyTorchMCAD(t *testing.T) {
-	test := cfosupport.With(t)
+	test := With(t)
 
 	// Create a namespace
 	namespace := test.NewTestNamespace()
@@ -50,7 +50,7 @@ func TestMnistPyTorchMCAD(t *testing.T) {
 			// MNIST MCAD Notebook
 			jupyterNotebookConfigMapFileName: ReadFile(test, "resources/mnist_mcad_mini.ipynb"),
 		},
-		Immutable: cfosupport.Ptr(true),
+		Immutable: Ptr(true),
 	}
 	config, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), config, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
@@ -70,22 +70,25 @@ func TestMnistPyTorchMCAD(t *testing.T) {
 			Resources: []string{"pods/log"},
 		},
 	}
-	token := support.CreateTestRBAC(test, namespace, policyRules)
+	sa := CreateServiceAccount(test, namespace.Name)
+	role := CreateRole(test, namespace.Name, policyRules)
+	CreateRoleBinding(test, namespace.Name, sa, role)
+	token := CreateToken(test, namespace.Name, sa)
 
 	// Create Notebook CR
 	support.CreateNotebook(test, namespace, token, config.Name, jupyterNotebookConfigMapFileName)
 
 	// Make sure the AppWrapper is created and running
-	test.Eventually(cfosupport.AppWrappers(test, namespace), cfosupport.TestTimeoutLong).
+	test.Eventually(AppWrappers(test, namespace), TestTimeoutLong).
 		Should(
 			And(
 				HaveLen(1),
-				ContainElement(WithTransform(cfosupport.AppWrapperName, HavePrefix("mnistjob"))),
-				ContainElement(WithTransform(cfosupport.AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive))),
+				ContainElement(WithTransform(AppWrapperName, HavePrefix("mnistjob"))),
+				ContainElement(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive))),
 			),
 		)
 
 	// Make sure the AppWrapper finishes and is deleted
-	test.Eventually(cfosupport.AppWrappers(test, namespace), cfosupport.TestTimeoutLong).
+	test.Eventually(AppWrappers(test, namespace), TestTimeoutLong).
 		Should(HaveLen(0))
 }

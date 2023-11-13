@@ -22,7 +22,7 @@ import (
 	"html/template"
 
 	. "github.com/onsi/gomega"
-	cfosupport "github.com/project-codeflare/codeflare-operator/test/support"
+	. "github.com/project-codeflare/codeflare-common/support"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -49,7 +49,7 @@ type NotebookProps struct {
 	NotebookPVC               string
 }
 
-func CreateNotebook(test cfosupport.Test, namespace *corev1.Namespace, notebookToken, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string) {
+func CreateNotebook(test Test, namespace *corev1.Namespace, notebookToken, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string) {
 	// Create PVC for Notebook
 	notebookPVC := &corev1.PersistentVolumeClaim{
 		TypeMeta: metav1.TypeMeta{
@@ -76,7 +76,7 @@ func CreateNotebook(test cfosupport.Test, namespace *corev1.Namespace, notebookT
 
 	// Read the Notebook CR from resources and perform replacements for custom values using go template
 	notebookProps := NotebookProps{
-		IngressDomain:             GetIngressDomain(test),
+		IngressDomain:             GetOpenShiftIngressDomain(test),
 		OpenShiftApiUrl:           GetOpenShiftApiUrl(test),
 		KubernetesBearerToken:     notebookToken,
 		Namespace:                 namespace.Name,

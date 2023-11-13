@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	cfosupport "github.com/project-codeflare/codeflare-operator/test/support"
+	. "github.com/project-codeflare/codeflare-common/support"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -30,11 +30,11 @@ import (
 )
 
 func TestKubeRayRunning(t *testing.T) {
-	test := cfosupport.With(t)
+	test := With(t)
 
 	kuberay, err := test.Client().Core().AppsV1().Deployments(support.GetOpenDataHubNamespace()).Get(test.Ctx(), "kuberay-operator", metav1.GetOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 
 	// Assert the KubeRay Deployment is running
-	test.Expect(kuberay).To(WithTransform(cfosupport.ConditionStatus(appsv1.DeploymentAvailable), Equal(corev1.ConditionTrue)))
+	test.Expect(kuberay).To(WithTransform(ConditionStatus(appsv1.DeploymentAvailable), Equal(corev1.ConditionTrue)))
 }
