@@ -28,7 +28,7 @@ Integration of this stack into the Open Data Hub is owned by the Distributed Wor
 | Multi-Cluster App Dispatcher | v1.35.0 |
 | CodeFlare-SDK                | v0.10.1  |
 | InstaScale                   | v0.0.9  |
-| KubeRay                      | v0.6.0  |
+| KubeRay                      | v1.0.0  |
 <!-- Compatibility Matrix end -->
 
 ## Quick Start
