@@ -77,7 +77,19 @@ func TestMCADRay(t *testing.T) {
 			Resources: []string{"routes"},
 		},
 	}
-	token := support.CreateTestRBAC(test, namespace, policyRules)
+	// Create cluster wide RBAC, required for SDK OpenShift check
+	// TODO reevaluate once SDK change OpenShift detection logic
+	clusterPolicyRules := []rbacv1.PolicyRule{
+		{
+			Verbs:         []string{"get", "list"},
+			APIGroups:     []string{"config.openshift.io"},
+			Resources:     []string{"ingresses"},
+			ResourceNames: []string{"cluster"},
+		},
+	}
+	token, sa := support.CreateTestRBAC(test, namespace, policyRules)
+	clusterRole := CreateClusterRole(test, clusterPolicyRules)
+	CreateClusterRoleBinding(test, sa, clusterRole)
 
 	// Create Notebook CR
 	support.CreateNotebook(test, namespace, token, config.Name, jupyterNotebookConfigMapFileName)
@@ -95,4 +107,64 @@ func TestMCADRay(t *testing.T) {
 	// Make sure the AppWrapper finishes and is deleted
 	test.Eventually(cfosupport.AppWrappers(test, namespace), cfosupport.TestTimeoutLong).
 		Should(HaveLen(0))
+}
+
+func CreateClusterRoleBinding(t cfosupport.Test, serviceAccount *corev1.ServiceAccount, role *rbacv1.ClusterRole) *rbacv1.ClusterRoleBinding {
+	t.T().Helper()
+
+	roleBinding := &rbacv1.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rbacv1.SchemeGroupVersion.String(),
+			Kind:       "ClusterRoleBinding",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "crb-",
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.SchemeGroupVersion.Group,
+			Kind:     "ClusterRole",
+			Name:     role.Name,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				APIGroup:  corev1.SchemeGroupVersion.Group,
+				Name:      serviceAccount.Name,
+				Namespace: serviceAccount.Namespace,
+			},
+		},
+	}
+	rb, err := t.Client().Core().RbacV1().ClusterRoleBindings().Create(t.Ctx(), roleBinding, metav1.CreateOptions{})
+	t.Expect(err).NotTo(HaveOccurred())
+	t.T().Logf("Created ClusterRoleBinding %s/%s successfully", role.Namespace, role.Name)
+
+	t.T().Cleanup(func() {
+		t.Client().Core().RbacV1().ClusterRoleBindings().Delete(t.Ctx(), rb.Name, metav1.DeleteOptions{})
+	})
+
+	return rb
+}
+
+func CreateClusterRole(t cfosupport.Test, policyRules []rbacv1.PolicyRule) *rbacv1.ClusterRole {
+	t.T().Helper()
+
+	role := &rbacv1.ClusterRole{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rbacv1.SchemeGroupVersion.String(),
+			Kind:       "ClusterRole",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "clusterrole-",
+		},
+		Rules: policyRules,
+	}
+	role, err := t.Client().Core().RbacV1().ClusterRoles().Create(t.Ctx(), role, metav1.CreateOptions{})
+	t.Expect(err).NotTo(HaveOccurred())
+	t.T().Logf("Created ClusterRole %s/%s successfully", role.Namespace, role.Name)
+
+	t.T().Cleanup(func() {
+		t.Client().Core().RbacV1().ClusterRoles().Delete(t.Ctx(), role.Name, metav1.DeleteOptions{})
+	})
+
+	return role
 }

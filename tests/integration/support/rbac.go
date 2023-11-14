@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateTestRBAC(test cfosupport.Test, namespace *corev1.Namespace, policyRules []rbacv1.PolicyRule) (token string) {
+func CreateTestRBAC(test cfosupport.Test, namespace *corev1.Namespace, policyRules []rbacv1.PolicyRule) (token string, sa *corev1.ServiceAccount) {
 	test.T().Helper()
 
 	serviceAccount := &corev1.ServiceAccount{
@@ -88,5 +88,5 @@ func CreateTestRBAC(test cfosupport.Test, namespace *corev1.Namespace, policyRul
 	}
 	treq, err = test.Client().Core().CoreV1().ServiceAccounts(namespace.Name).CreateToken(test.Ctx(), "odh-dw-test-user", treq, metav1.CreateOptions{})
 	test.Expect(err).NotTo(gomega.HaveOccurred())
-	return treq.Status.Token
+	return treq.Status.Token, serviceAccount
 }

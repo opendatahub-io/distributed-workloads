@@ -70,7 +70,7 @@ func TestMnistPyTorchMCAD(t *testing.T) {
 			Resources: []string{"pods/log"},
 		},
 	}
-	token := support.CreateTestRBAC(test, namespace, policyRules)
+	token, _ := support.CreateTestRBAC(test, namespace, policyRules)
 
 	// Create Notebook CR
 	support.CreateNotebook(test, namespace, token, config.Name, jupyterNotebookConfigMapFileName)
