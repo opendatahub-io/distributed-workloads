@@ -22,6 +22,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
 	support "github.com/project-codeflare/codeflare-operator/test/support"
 	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
@@ -114,7 +115,13 @@ func TestRayCluster(t *testing.T) {
 	dashboardHostname := dashboard.Status.Ingress[0].Host
 
 	rayClient := support.NewRayClusterClient(url.URL{Scheme: "http", Host: dashboardHostname})
-	defer support.WriteRayJobLogs(test, rayClient, rayJob.Namespace, rayJob.Name)
+	defer func() {
+		job, err := test.Client().Ray().RayV1alpha1().RayJobs(rayJob.Namespace).Get(test.Ctx(), rayJob.Name, metav1.GetOptions{})
+		test.Expect(err).NotTo(gomega.HaveOccurred())
+		if job.Status.JobId != "" {
+			support.WriteRayJobLogs(test, rayClient, rayJob.Namespace, rayJob.Name)
+		}
+	}()
 
 	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
 	// Will be removed when RHODS-12857 is fixed
