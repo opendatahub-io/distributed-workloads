@@ -26,8 +26,8 @@ help: ## Display this help.
 .PHONY: all-in-one # All-In-One
 all-in-one: ## Install distributed AI platform  
 	@echo -e "\n==> Installing Everything needed for distributed AI platform on OpenShift cluster \n"
-	-make delete-codeflare delete-nfd-operator delete-nvidia-operator delete-codeflare-operator delete-opendatahub-operator
-	make install-opendatahub-operator install-codeflare-operator install-nfd-operator install-nvidia-operator deploy-codeflare
+	-make delete-codeflare delete-nfd-operator delete-nvidia-operator delete-opendatahub-operator
+	make install-opendatahub-operator install-nfd-operator install-nvidia-operator deploy-codeflare
 	make opendatahub-dashboard
 	@echo -e "\n==> Done (Deploy everything)\n" 
 
@@ -52,20 +52,6 @@ delete-opendatahub-operator: ## Delete OpenDataHub operator
 	@echo -e "\n==> Deleting OpenDataHub Operator \n"
 	-oc delete subscription opendatahub-operator -n openshift-operators
 	-export CLUSTER_SERVICE_VERSION=`oc get clusterserviceversion -n openshift-operators -l operators.coreos.com/opendatahub-operator.openshift-operators -o custom-columns=:metadata.name`; \
-	oc delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n openshift-operators
-
-.PHONY: install-codeflare-operator
-install-codeflare-operator: ## Install CodeFlare operator
-	@echo -e "\n==> Installing CodeFlare Operator \n"
-	oc create -f contrib/configuration/codeflare-operator-subscription.yaml
-	@echo Waiting for codeflare-operator Subscription to be ready
-	oc wait -n openshift-operators subscription/codeflare-operator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
-
-.PHONY: delete-codeflare-operator
-delete-codeflare-operator: ## Delete CodeFlare operator
-	@echo -e "\n==> Deleting CodeFlare Operator \n"
-	-oc delete subscription codeflare-operator -n openshift-operators
-	-export CLUSTER_SERVICE_VERSION=`oc get clusterserviceversion -n openshift-operators -l operators.coreos.com/codeflare-operator.openshift-operators -o custom-columns=:metadata.name`; \
 	oc delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n openshift-operators
 
 .PHONY: install-codeflare-operator-from-github
