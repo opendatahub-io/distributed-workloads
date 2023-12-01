@@ -1,0 +1,8 @@
+name: Use Common Workflow
+on:
+  issues:
+    types:
+      - opened
+jobs:
+  call-common-workflow:
+    uses: project-codeflare/codeflare-common/.github/workflows/common-workflow.yaml@main
