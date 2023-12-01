@@ -33,6 +33,4 @@ Integration of this stack into the Open Data Hub is owned by the Distributed Wor
 
 ## Quick Start
 
-Follow our quick start guide [here](/Quick-Start.md) to get up and running with Distributed Workloads on Open Data Hub.
-
-For the V2 version of the ODH operator follow [this](/Quick-Start-ODH-V2.md) guide instead.
+For the V2 version of the ODH operator follow [this](/Quick-Start.md) guide.

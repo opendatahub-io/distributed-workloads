@@ -6,53 +6,52 @@ The CodeFlare-SDK was built to make managing distributed compute infrastructure 
 
 This stack integrates well with [Open Data Hub](https://opendatahub.io/), and helps to bring batch workloads, jobs, and queuing to the Data Science platform.
 
+## Automatic deployment for developers
+
+As a quick alternative to the following manual deployment steps an automatic *makefile* script can be used to deploy the CodeFlare stack. This script also deploys the prerequisite operators and the entire CodeFlare stack up to the step [Using an Openshift Dedicated or ROSA Cluster](#using-an-openshift-dedicated-or-rosa-cluster). This will give you a fresh install of all the components.
+To use this script, clone the repo and execute:
+
+```bash
+make all-in-one
+```
+
+> Note : Execute ```make help``` to list additional available operations.
+
 ## Prerequisites
-
-### Red Hat OpenShift
-
-Tested on OpenShift 4.10, 4.12 and 4.13.
 
 ### Resources
 
-In addition to the resources required by the odh-core deployment, you will need the following to deploy the Distributed Workloads stack infrastructure pods:
+In addition to the resources required by default ODH deployments, you will need the following to deploy the Distributed
+Workloads stack infrastructure pods:
 
 ```text
 Total:
-    CPU: 4100m
-    Memory: 4608Mi
+    CPU: 1100m
+    Memory: 1536Mi
 
 # By component
 Ray:
     CPU: 100m
     Memory: 512Mi
-MCAD
-    cpu: 2000m
-    memory: 2Gi
-InstaScale:
-    cpu: 2000m
-    memory: 2Gi
+CodeFlare
+    cpu: 1000m
+    memory: 1Gi
 ```
 
-NOTE: The above resources are just for the infrastructure pods. To be able to run actual workloads on your cluster you will need additional resources based on the size and type of workload.
+NOTE: The above resources are just for the infrastructure pods. To be able to run actual workloads on your cluster you
+will need additional resources based on the size and type of workload.
 
 ### OpenShift and Open Data Hub
 
-This Quick Start guide assumes that you have administrator access to an OpenShift cluster and an existing Open Data Hub (ODH) installation on your cluster. More information about ODH can be found  [here](https://opendatahub.io/docs/quick-installation/). But the quick step to install ODH is as follows:
+This Quick Start guide assumes that you have administrator access to an OpenShift cluster and an existing Open Data Hub (ODH) installation with version **>2.4** is present on your cluster. More information about ODH can be found  [here](https://opendatahub.io/docs/quick-installation/). But the quick step to install ODH is as follows:
 
-   - Using the OpenShift UI, navigate to Operators --> OperatorHub and search for `Open Data Hub Operator` and install it with the default settings.  (It should be version 1.Y.Z which you get from the default `rolling` channel)
-
-### CodeFlare Operator
-
-The CodeFlare operator must be installed from the OperatorHub on your OpenShift cluster. 
-
-- Using the OpenShift UI, navigate to Operators --> OperatorHub and search for `CodeFlare Operator` and install it with the default settings
+   - Using the OpenShift UI, navigate to Operators --> OperatorHub and search for `Open Data Hub Operator` and install it using the `fast` channel.  (It should be version 2.Y.Z)
 
 ### NFD and GPU Operators
 
 If you want to run GPU enabled workloads, you will need to install the [Node Feature Discovery Operator](https://github.com/openshift/cluster-nfd-operator) and the [NVIDIA GPU Operator](https://github.com/NVIDIA/gpu-operator) from the OperatorHub. For instructions on how to install and configure these operators, we recommend [this guide](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/openshift/steps-overview.html#high-level-steps).
 
 In order for your OpenShift cluster to discover GPU hardware a ClusterPolicy CR must be created. For more information, this can be done by following the instructions [here](https://docs.nvidia.com/datacenter/cloud-native/openshift/23.6.1/install-gpu-ocp.html#create-the-clusterpolicy-instance). The defaults will suffice.
-
 
 ## Creating K8s resources
 
@@ -62,36 +61,28 @@ In order for your OpenShift cluster to discover GPU hardware a ClusterPolicy CR 
     oc create ns opendatahub
     ```
 
-1. Apply the odh-core kfdef with this command:
+1. Update your existing DataScienceCluster resource to have both CodeFlare and Ray to be `Managed` if they are not already.
 
     ```bash
-    oc apply -f https://raw.githubusercontent.com/opendatahub-io/odh-manifests/master/kfdef/odh-core.yaml -n opendatahub
+    oc patch dsc/<your-dsc> --type merge -p '{"spec":{"components":{"codeflare":{"managementState": "Managed"}}}}'
+    oc patch dsc/<your-dsc> --type merge -p '{"spec":{"components":{"ray":{"managementState": "Managed"}}}}'
     ```
 
-1. Create the CodeFlare-Stack kfdef with this command:
-
+    If you don't have an existing DataScienceCluster you can deploy one using the CustomResource provide by this repo.
     ```bash
-    oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-stack-kfdef.yaml -n opendatahub
+    oc apply -f https://raw.githubusercontent.com/opendatahub-io/distributed-workloads/main/codeflare-dsc.yaml
     ```
 
-Applying the CodeFlare-Stack kfdef will result in the following objects being added to your cluster:
+Applying the above DataScienceCluster will result in the following objects being added to your cluster:
 
 1. KubeRay Operator
-1. CodeFlare Notebook Image for the Open Data Hub notebook interface
-
+1. CodeFlare Operator
+1. CodeFlare Notebook Image for the Open Data Hub notebook interface 
     This image is managed by project CodeFlare and contains the correct packages of codeflare-sdk, pytorch, torchx, ect required to run distributed workloads.
 
-At this point you should be able to go to your notebook spawner page and select "Codeflare Notebook" from your list of notebook images and start an instance.
+At this point you should be able to go to your notebook spawner page and select "Jupyter Data Science" from your list of notebook images and start an instance.
 
-You can access the spawner page through the Open Data Hub dashboard. The default route should be `https://odh-dashboard-<your ODH namespace>.apps.<your cluster's uri>`. 
-
-To quickly find your ODH dashboard URL, you can issue this command:
-
-```bash
- oc get route -n opendatahub |grep dash |awk '{print $2}'
- ```
-
-Once you are on your dashboard, you can select "Launch application" on the Jupyter application. This will take you to your notebook spawner page.
+You can access the spawner page through the Open Data Hub dashboard. The default route should be `https://odh-dashboard-<your ODH namespace>.apps.<your cluster's uri>`. Once you are on your dashboard, you can select "Launch application" on the Jupyter application. This will take you to your notebook spawner page.
 
 ### Using an Openshift Dedicated or ROSA Cluster
 
@@ -123,13 +114,13 @@ data:
       maxScaleoutAllowed: 5
 ```
 
-And restart the operator Pod, so it takes the change into account.
+And restart the CodeFlare Operator pod, so it takes the change into account.
 
 ## Submit your first job
 
 We can now go ahead and submit our first distributed model training job to our cluster.
 
-This can be done from any python based environment, including a script or a jupyter notebook. For this guide, we'll assume you've selected the "Codeflare Notebook" from the list of available images on your notebook spawner page.
+This can be done from any python based environment, including a script or a jupyter notebook. For this guide, we'll assume you've selected the "Jupyter Data Science" from the list of available images on your notebook spawner page.
 
 ### Clone the demo code
 
@@ -154,27 +145,22 @@ To completely clean up all the CodeFlare components after an install, follow the
     ```
      If any are left, you'd want to delete them
 
-2. Remove the notebook and notebook pvc:
+1. Remove the notebook and notebook pvc:
    ```bash
    oc delete notebook jupyter-nb-kube-3aadmin -n opendatahub
    oc delete pvc jupyterhub-nb-kube-3aadmin-pvc -n opendatahub
    ```
+1.  Update your existing DSC if you had one at the beginning of this tutorial to its original state.
 
-3. Remove the codeflare-stack kfdef: (Removes MCAD, InstaScale, KubeRay and the Notebook image)
-    ``` bash
-    oc delete kfdef codeflare-stack -n opendatahub
+    ```bash
+    oc patch dsc/<your-dsc> --type merge -p '{"spec":{"components":{"codeflare":{"managementState": "Removed"}}}}'
+    oc patch dsc/<your-dsc> --type merge -p '{"spec":{"components":{"ray":{"managementState": "Removed"}}}}'
     ```
 
-4. Remove the CodeFlare Operator csv and subscription: (Removes the CodeFlare Operator from the OpenShift Cluster)
-   ```bash
-   oc delete sub codeflare-operator -n openshift-operators
-   oc delete csv `oc get csv -n opendatahub |grep codeflare-operator |awk '{print $1}'` -n openshift-operators
-   ```
-
-5. Remove the CodeFlare CRDs
-   ```bash
-   oc delete crd quotasubtrees.quota.codeflare.dev appwrappers.workload.codeflare.dev schedulingspecs.workload.codeflare.dev
-   ```
+    If you didn't have one, remove the example datascience cluster: (Removes MCAD, InstaScale, KubeRay and the Notebook image)
+    ``` bash
+    oc delete dsc example-dsc
+    ```
 
 ## Next Steps
 
