@@ -1,0 +1,64 @@
+name: Release
+
+on:
+    workflow_dispatch:
+        inputs:
+            release-version:
+                type: string
+                required: true
+                description: 'Version number (for example: v0.0.4)'
+            codeflare-operator-version:
+                type: string
+                required: true
+                description: "Version of Codeflare Operator (for example v0.0.4)"
+            multi-cluster-app-dispatcher-version:
+                type: string
+                required: true
+                description: "Version of Multi-Cluster App Dispatcher (for example v1.31.0)"
+            codeflare-sdk-version:
+                type: string
+                required: true
+                description: "Version of CodeFlare-SDK (for example v0.4.4)"
+            instascale-version:
+                type: string
+                required: true
+                description: "Version of InstaScale (for example v0.0.4)"
+            kuberay-version:
+                type: string
+                required: true
+                description: "Version of KubeRay (for example v0.5.0)"
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Checkout the repository
+              uses: actions/checkout@v3
+            - name: Update codeflare-operator version in tests/resources/codeflare-subscription.yaml file
+              uses: fjogeleit/yaml-update-action@main
+              with:
+                valueFile: "tests/resources/codeflare-subscription.yaml"
+                propertyPath: "spec.startingCSV"
+                value: "codeflare-operator.${{ github.event.inputs.codeflare-operator-version }}"
+
+            - name: Change Codeflare Operator version in README
+              run: sed -i "s/\(| CodeFlare Operator[ ]*\)|.*|/\1| ${{ github.event.inputs.codeflare-operator-version }} |/" README.md
+            - name: Change Multi-Cluster App Dispatcher version in README
+              run: sed -i "s/\(| Multi-Cluster App Dispatcher[ ]*\)|.*|/\1| ${{ github.event.inputs.multi-cluster-app-dispatcher-version }} |/" README.md
+            - name: Change CodeFlare-SDK version in README
+              run: sed -i "s/\(| CodeFlare-SDK[ ]*\)|.*|/\1| ${{ github.event.inputs.codeflare-sdk-version }} |/" README.md
+            - name: Change KubeRay version in README
+              run: sed -i "s/\(| KubeRay[ ]*\)|.*|/\1| ${{ github.event.inputs.kuberay-version }} |/" README.md
+            
+            - name: Commit changes in docs
+              uses: stefanzweifel/git-auto-commit-action@v4
+              with:
+                file_pattern: 'README.md tests/resources/codeflare-subscription.yaml'
+                commit_message: "Adjust versions for release: ${{ github.event.inputs.release-version }}"
+            - name: Create Github release
+              uses: ncipollo/release-action@v1
+              with:
+                generateReleaseNotes: true
+                tag: "${{ github.event.inputs.release-version }}"            
