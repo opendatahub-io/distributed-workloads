@@ -1,36 +1,24 @@
-# distributed-workloads
+# Distributed Workloads Integration Tests
 
-Artifacts for installing the Distributed Workloads stack as part of ODH
+## Prerequisites
 
-## Overview
+* Admin access to an OpenShift cluster ([CRC](https://developers.redhat.com/products/openshift-local/overview) is fine)
 
-Distributed Workloads is a simple, user-friendly abstraction for scaling,
-queuing and resource management of distributed AI/ML and Python workloads.
-It consists of the following components:
+* Installed OpenDataHub or RHOAI, enabled all Distributed Workload components
 
-* [CodeFlare Operator](https://github.com/project-codeflare/codeflare-operator) to manage the control-plane components:
-  * [Multi-Cluster Application Dispatcher (MCAD)](https://github.com/project-codeflare/multi-cluster-app-dispatcher) for management of batch jobs
-  * [Instascale](https://github.com/project-codeflare/instascale) for on-demand scaling of a Kubernetes cluster
+* Installed Go 1.21
 
-* [CodeFlare SDK](https://github.com/project-codeflare/codeflare-sdk) to define and control remote distributed compute jobs and infrastructure with any Python based environment
+## Environment variables
 
-* [KubeRay](https://github.com/ray-project/kuberay) for management of remote Ray clusters on Kubernetes for running distributed compute workloads
+* `CODEFLARE_TEST_OUTPUT_DIR` - Output directory for test logs
+* `CODEFLARE_TEST_TIMEOUT_SHORT` - Timeout duration for short tasks
+* `CODEFLARE_TEST_TIMEOUT_MEDIUM` - Timeout duration for medium tasks
+* `CODEFLARE_TEST_TIMEOUT_LONG` - Timeout duration for long tasks
 
-Integration of this stack into the Open Data Hub is owned by the Distributed Workloads Working Group. See [this page](https://github.com/opendatahub-io/opendatahub-community/tree/master/wg-distributed-workloads) for further details and how to get in touch.
+## Running Tests
 
-<!-- Don't delete these comments, they are used to generate Compatibility Matrix table for release automation -->
-<!-- Compatibility Matrix start -->
-### Compatibility Matrix
+Execute tests like standard Go unit tests.
 
-| Component                    | Version |
-|------------------------------|---------|
-| CodeFlare Operator           | v1.0.0-rc.1  |
-| Multi-Cluster App Dispatcher | v1.35.0 |
-| CodeFlare-SDK                | v0.10.1  |
-| InstaScale                   | v0.0.9  |
-| KubeRay                      | v0.6.0  |
-<!-- Compatibility Matrix end -->
-
-## Quick Start
-
-For the V2 version of the ODH operator follow [this](/Quick-Start.md) guide.
+```bash
+go test -timeout 60m ./tests/kfto/
+```
