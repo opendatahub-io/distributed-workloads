@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package integration
+package kfto
 
 import (
 	"embed"
 
 	"github.com/onsi/gomega"
-	"github.com/project-codeflare/codeflare-operator/test/support"
+	"github.com/project-codeflare/codeflare-common/support"
 )
 
-//go:embed resources/*
+//go:embed *.json
 var files embed.FS
 
 func ReadFile(t support.Test, fileName string) []byte {
