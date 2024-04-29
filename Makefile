@@ -6,8 +6,6 @@ setup-kueue: ## Set up Kueue for e2e tests.
 	kubectl apply --server-side -k "github.com/opendatahub-io/kueue/config/rhoai"
 	echo "Wait for Kueue deployment"
 	kubectl -n opendatahub wait --timeout=300s --for=condition=Available deployments --all
-	echo "Creating Kueue Resources, to be removed once tests creates own Kueue resources"
-	kubectl apply -f kueue-config.yaml
 
 .PHONY: setup-kfto
 setup-kfto: ## Set up Training operator for e2e tests.
