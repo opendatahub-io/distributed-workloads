@@ -7,9 +7,10 @@ toolchain go1.21.5
 require (
 	github.com/kubeflow/training-operator v1.7.0
 	github.com/onsi/gomega v1.31.1
-	github.com/project-codeflare/codeflare-common v0.0.0-20240422163521-380101642c8f
+	github.com/project-codeflare/codeflare-common v0.0.0-20240430071721-f782f78e5bb8
 	k8s.io/api v0.29.2
 	k8s.io/apimachinery v0.29.2
+	sigs.k8s.io/kueue v0.6.2
 )
 
 require (
@@ -78,7 +79,6 @@ require (
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
 	sigs.k8s.io/controller-runtime v0.17.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
-	sigs.k8s.io/kueue v0.6.2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
