@@ -1,0 +1,48 @@
+# This workflow will compile e2e tests and release them
+
+name: ODH Release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Tag to be used for release, i.e.: v0.0.1'
+        required: true
+
+jobs:
+  release-odh:
+    runs-on: ubuntu-latest
+
+    # Permission required to create a release
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: './go.mod'
+
+    - name: Verify that release doesn't exist yet
+      shell: bash {0}
+      run: |
+        gh release view ${{ github.event.inputs.version }}
+        status=$?
+        if [[ $status -eq 0 ]]; then
+          echo "Release ${{ github.event.inputs.version }} already exists."
+          exit 1
+        fi
+      env:
+        GITHUB_TOKEN: ${{ github.TOKEN }}
+
+    - name: Compile tests
+      run: |
+        go test -c -o compiled-tests/kfto ./tests/kfto/
+
+    - name: Creates a release in GitHub
+      run: |
+        gh release create ${{ github.event.inputs.version }} --target ${{ github.ref }} compiled-tests/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+      shell: bash
