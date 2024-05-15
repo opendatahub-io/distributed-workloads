@@ -23,10 +23,16 @@ import (
 const (
 	// The environment variable for FMS HF Tuning image to be tested
 	fmsHfTuningImageEnvVar = "FMS_HF_TUNING_IMAGE"
+	// The environment variable referring to image containing bloom-560m model
+	bloomModelImageEnvVar = "BLOOM_MODEL_IMAGE"
 )
 
 func GetFmsHfTuningImage() string {
-	return lookupEnvOrDefault(fmsHfTuningImageEnvVar, "quay.io/modh/fms-hf-tuning:b71215c3ae202eab9da1d347f52b89feb3d0378c")
+	return lookupEnvOrDefault(fmsHfTuningImageEnvVar, "quay.io/modh/fms-hf-tuning:d0bd35b0297c28b87ee6caa32d5966d77587591f")
+}
+
+func GetBloomModelImage() string {
+	return lookupEnvOrDefault(bloomModelImageEnvVar, "quay.io/ksuta/bloom-560m:0.0.1")
 }
 
 func lookupEnvOrDefault(key, value string) string {
