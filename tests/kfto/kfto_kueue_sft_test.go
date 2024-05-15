@@ -216,12 +216,25 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 					RestartPolicy: "Never",
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
+							InitContainers: []corev1.Container{
+								{
+									Name:            "copy-model",
+									Image:           GetBloomModelImage(),
+									ImagePullPolicy: corev1.PullIfNotPresent,
+									VolumeMounts: []corev1.VolumeMount{
+										{
+											Name:      "model-volume",
+											MountPath: "/tmp/model",
+										},
+									},
+									Command: []string{"cp", "-r", "/models/bloom-560m", "/tmp/model"},
+								},
+							},
 							Containers: []corev1.Container{
 								{
 									Name:            "pytorch",
 									Image:           GetFmsHfTuningImage(),
 									ImagePullPolicy: corev1.PullIfNotPresent,
-									Command:         []string{"python", "/app/launch_training.py"},
 									Env: []corev1.EnvVar{
 										{
 											Name:  "SFT_TRAINER_CONFIG_JSON_PATH",
@@ -232,6 +245,10 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 										{
 											Name:      "config-volume",
 											MountPath: "/etc/config",
+										},
+										{
+											Name:      "model-volume",
+											MountPath: "/tmp/model",
 										},
 									},
 									Resources: corev1.ResourceRequirements{
@@ -261,6 +278,12 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 												},
 											},
 										},
+									},
+								},
+								{
+									Name: "model-volume",
+									VolumeSource: corev1.VolumeSource{
+										EmptyDir: &corev1.EmptyDirVolumeSource{},
 									},
 								},
 							},
