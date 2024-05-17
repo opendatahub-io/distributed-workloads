@@ -32,7 +32,7 @@ func GetFmsHfTuningImage() string {
 }
 
 func GetBloomModelImage() string {
-	return lookupEnvOrDefault(bloomModelImageEnvVar, "quay.io/ksuta/bloom-560m:0.0.1")
+	return lookupEnvOrDefault(bloomModelImageEnvVar, "quay.io/ksuta/bloom-560m@sha256:f6db02bb7b5d09a8d698c04994d747bfb9e581bbb4c07d00290244d207623733")
 }
 
 func lookupEnvOrDefault(key, value string) string {
