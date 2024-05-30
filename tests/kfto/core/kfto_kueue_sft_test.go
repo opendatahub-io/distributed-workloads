@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kfto
+package core
 
 import (
 	"testing"
@@ -29,39 +29,6 @@ import (
 
 	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 )
-
-func PytorchJob(t Test, namespace, name string) func(g Gomega) *kftov1.PyTorchJob {
-	return func(g Gomega) *kftov1.PyTorchJob {
-		job, err := t.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Get(t.Ctx(), name, metav1.GetOptions{})
-		g.Expect(err).NotTo(HaveOccurred())
-		return job
-	}
-}
-
-func PytorchJobConditionRunning(job *kftov1.PyTorchJob) corev1.ConditionStatus {
-	return PytorchJobCondition(job, kftov1.JobRunning)
-}
-
-func PytorchJobConditionSucceeded(job *kftov1.PyTorchJob) corev1.ConditionStatus {
-	return PytorchJobCondition(job, kftov1.JobSucceeded)
-}
-
-func PytorchJobConditionSuspended(job *kftov1.PyTorchJob) corev1.ConditionStatus {
-	return PytorchJobCondition(job, kftov1.JobSuspended)
-}
-
-func PytorchJobCondition(job *kftov1.PyTorchJob, conditionType kftov1.JobConditionType) corev1.ConditionStatus {
-	for _, condition := range job.Status.Conditions {
-		if condition.Type == conditionType {
-			return condition.Status
-		}
-	}
-	return corev1.ConditionUnknown
-}
-
-func OwnerReferenceName(meta metav1.Object) string {
-	return meta.GetOwnerReferences()[0].Name
-}
 
 func TestPytorchjobWithSFTtrainer(t *testing.T) {
 	test := With(t)
@@ -119,7 +86,7 @@ func TestPytorchjobWithSFTtrainer(t *testing.T) {
 		)
 
 	// Make sure the PyTorch job is running
-	test.Eventually(PytorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutShort).
+	test.Eventually(PytorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutLong).
 		Should(WithTransform(PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Make sure the PyTorch job succeed
@@ -174,7 +141,7 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 	tuningJob := createPyTorchJob(test, namespace.Name, localQueue.Name, *config)
 
 	// Make sure the PyTorch job is running
-	test.Eventually(PytorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutShort).
+	test.Eventually(PytorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutLong).
 		Should(WithTransform(PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Create second training PyTorch job

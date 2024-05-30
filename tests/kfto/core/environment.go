@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kfto
+package core
 
 import (
 	"os"
@@ -28,7 +28,7 @@ const (
 )
 
 func GetFmsHfTuningImage() string {
-	return lookupEnvOrDefault(fmsHfTuningImageEnvVar, "quay.io/modh/fms-hf-tuning:d0bd35b0297c28b87ee6caa32d5966d77587591f")
+	return lookupEnvOrDefault(fmsHfTuningImageEnvVar, "quay.io/modh/fms-hf-tuning:bd8bf628cd739c7a201a976bc3c1096785353f1a")
 }
 
 func GetBloomModelImage() string {
