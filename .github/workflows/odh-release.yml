@@ -38,7 +38,8 @@ jobs:
 
     - name: Compile tests
       run: |
-        go test -c -o compiled-tests/kfto ./tests/kfto/
+        go test -c -o compiled-tests/kfto ./tests/kfto/core
+        go test -c -o compiled-tests/kfto-upgrade ./tests/kfto/upgrade
 
     - name: Creates a release in GitHub
       run: |
