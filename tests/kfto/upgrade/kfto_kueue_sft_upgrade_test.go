@@ -164,7 +164,7 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 							Containers: []corev1.Container{
 								{
 									Name:            "pytorch",
-									Image:           kftocore.GetFmsHfTuningImage(),
+									Image:           kftocore.GetFmsHfTuningImage(test),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									Env: []corev1.EnvVar{
 										{

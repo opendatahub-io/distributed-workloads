@@ -18,6 +18,8 @@ package core
 
 import (
 	"os"
+
+	. "github.com/project-codeflare/codeflare-common/support"
 )
 
 const (
@@ -27,8 +29,12 @@ const (
 	bloomModelImageEnvVar = "BLOOM_MODEL_IMAGE"
 )
 
-func GetFmsHfTuningImage() string {
-	return lookupEnvOrDefault(fmsHfTuningImageEnvVar, "quay.io/modh/fms-hf-tuning:bd8bf628cd739c7a201a976bc3c1096785353f1a")
+func GetFmsHfTuningImage(t Test) string {
+	image, ok := os.LookupEnv(fmsHfTuningImageEnvVar)
+	if !ok {
+		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify fms-hf-tuning image to be tested.", fmsHfTuningImageEnvVar)
+	}
+	return image
 }
 
 func GetBloomModelImage() string {
