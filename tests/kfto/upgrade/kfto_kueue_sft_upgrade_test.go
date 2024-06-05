@@ -144,7 +144,7 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 			PyTorchReplicaSpecs: map[kftov1.ReplicaType]*kftov1.ReplicaSpec{
 				"Master": {
 					Replicas:      Ptr(int32(1)),
-					RestartPolicy: "Never",
+					RestartPolicy: "OnFailure",
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
 							InitContainers: []corev1.Container{
