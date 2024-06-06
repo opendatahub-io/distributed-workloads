@@ -27,6 +27,8 @@ const (
 	fmsHfTuningImageEnvVar = "FMS_HF_TUNING_IMAGE"
 	// The environment variable referring to image containing bloom-560m model
 	bloomModelImageEnvVar = "BLOOM_MODEL_IMAGE"
+	// The environment variable referring to image containing Stanford Alpaca dataset
+	alpacaDatasetImageEnvVar = "ALPACA_DATASET_IMAGE"
 )
 
 func GetFmsHfTuningImage(t Test) string {
@@ -39,6 +41,10 @@ func GetFmsHfTuningImage(t Test) string {
 
 func GetBloomModelImage() string {
 	return lookupEnvOrDefault(bloomModelImageEnvVar, "quay.io/ksuta/bloom-560m@sha256:f6db02bb7b5d09a8d698c04994d747bfb9e581bbb4c07d00290244d207623733")
+}
+
+func GetAlpacaDatasetImage() string {
+	return lookupEnvOrDefault(alpacaDatasetImageEnvVar, "quay.io/ksuta/alpaca-dataset@sha256:c0492ff0005c13ac491e00d074902aa9dd21a49691945b122da23db3a3b3ac76")
 }
 
 func lookupEnvOrDefault(key, value string) string {
