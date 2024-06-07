@@ -18,6 +18,7 @@ package core
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -28,6 +29,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
+	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	prometheusmodel "github.com/prometheus/common/model"
 )
 
 func TestMultiGpuPytorchjobWithSFTtrainer(t *testing.T) {
@@ -95,6 +98,21 @@ func TestMultiGpuPytorchjobWithSFTtrainer(t *testing.T) {
 	test.Eventually(PytorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutLong).
 		Should(WithTransform(PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
+	if IsOpenShift(test) {
+		// Check that both GPUs were utilized recently
+		// That itself doesn't guarantee that PyTorchJob generated the load in GPU, but is the best we can achieve for now
+		test.Eventually(openShiftPrometheusGpuUtil(test), TestTimeoutMedium).
+			Should(
+				And(
+					HaveLen(2),
+					HaveEach(
+						// Check that both GPUs were utilized on more than 90%
+						HaveField("Value", BeNumerically(">", 90)),
+					),
+				),
+			)
+	}
+
 	// Make sure the PyTorch job succeed
 	test.Eventually(PytorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutLong).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
@@ -144,7 +162,7 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 										},
 									},
 									Command: []string{"/bin/sh", "-c"},
-									Args:    []string{"mkdir /tmp/dataset; cp /dataset/alpaca_data_hundredth.json /tmp/dataset/alpaca_data.json"},
+									Args:    []string{"mkdir /tmp/dataset; cp /dataset/alpaca_data_tenth.json /tmp/dataset/alpaca_data.json"},
 								},
 							},
 							Containers: []corev1.Container{
@@ -214,4 +232,14 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 	test.T().Logf("Created PytorchJob %s/%s successfully", tuningJob.Namespace, tuningJob.Name)
 
 	return tuningJob
+}
+
+func openShiftPrometheusGpuUtil(test Test) func(g Gomega) prometheusmodel.Vector {
+	return func(g Gomega) prometheusmodel.Vector {
+		prometheusApiClient := GetOpenShiftPrometheusApiClient(test)
+		result, warnings, err := prometheusApiClient.Query(test.Ctx(), "DCGM_FI_DEV_GPU_UTIL", time.Now(), prometheusapiv1.WithTimeout(5*time.Second))
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(warnings).Should(HaveLen(0))
+		return result.(prometheusmodel.Vector)
+	}
 }
