@@ -126,11 +126,12 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									VolumeMounts: []corev1.VolumeMount{
 										{
-											Name:      "model-volume",
-											MountPath: "/tmp/model",
+											Name:      "tmp-volume",
+											MountPath: "/tmp",
 										},
 									},
-									Command: []string{"cp", "-r", "/models/bloom-560m", "/tmp/model"},
+									Command: []string{"/bin/sh", "-c"},
+									Args:    []string{"mkdir /tmp/model; cp -r /models/bloom-560m /tmp/model"},
 								},
 								{
 									Name:            "copy-dataset",
@@ -138,12 +139,12 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									VolumeMounts: []corev1.VolumeMount{
 										{
-											Name:      "dataset-volume",
-											MountPath: "/tmp/dataset",
+											Name:      "tmp-volume",
+											MountPath: "/tmp",
 										},
 									},
 									Command: []string{"/bin/sh", "-c"},
-									Args:    []string{"cp /dataset/alpaca_data_hundredth.json /tmp/dataset/alpaca_data.json"},
+									Args:    []string{"mkdir /tmp/dataset; cp /dataset/alpaca_data_hundredth.json /tmp/dataset/alpaca_data.json"},
 								},
 							},
 							Containers: []corev1.Container{
@@ -156,6 +157,10 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 											Name:  "SFT_TRAINER_CONFIG_JSON_PATH",
 											Value: "/etc/config/config.json",
 										},
+										{
+											Name:  "HF_HOME",
+											Value: "/tmp/huggingface",
+										},
 									},
 									VolumeMounts: []corev1.VolumeMount{
 										{
@@ -163,12 +168,8 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 											MountPath: "/etc/config",
 										},
 										{
-											Name:      "model-volume",
-											MountPath: "/tmp/model",
-										},
-										{
-											Name:      "dataset-volume",
-											MountPath: "/tmp/dataset",
+											Name:      "tmp-volume",
+											MountPath: "/tmp",
 										},
 									},
 									Resources: corev1.ResourceRequirements{
@@ -176,6 +177,10 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 											corev1.ResourceCPU:    resource.MustParse("2"),
 											corev1.ResourceMemory: resource.MustParse("5Gi"),
 										},
+									},
+									SecurityContext: &corev1.SecurityContext{
+										RunAsNonRoot:           Ptr(true),
+										ReadOnlyRootFilesystem: Ptr(true),
 									},
 								},
 							},
@@ -191,13 +196,7 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 									},
 								},
 								{
-									Name: "model-volume",
-									VolumeSource: corev1.VolumeSource{
-										EmptyDir: &corev1.EmptyDirVolumeSource{},
-									},
-								},
-								{
-									Name: "dataset-volume",
+									Name: "tmp-volume",
 									VolumeSource: corev1.VolumeSource{
 										EmptyDir: &corev1.EmptyDirVolumeSource{},
 									},

@@ -190,11 +190,12 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									VolumeMounts: []corev1.VolumeMount{
 										{
-											Name:      "model-volume",
-											MountPath: "/tmp/model",
+											Name:      "tmp-volume",
+											MountPath: "/tmp",
 										},
 									},
-									Command: []string{"cp", "-r", "/models/bloom-560m", "/tmp/model"},
+									Command: []string{"/bin/sh", "-c"},
+									Args:    []string{"mkdir /tmp/model; cp -r /models/bloom-560m /tmp/model"},
 								},
 							},
 							Containers: []corev1.Container{
@@ -207,6 +208,10 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 											Name:  "SFT_TRAINER_CONFIG_JSON_PATH",
 											Value: "/etc/config/config.json",
 										},
+										{
+											Name:  "HF_HOME",
+											Value: "/tmp/huggingface",
+										},
 									},
 									VolumeMounts: []corev1.VolumeMount{
 										{
@@ -214,8 +219,8 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 											MountPath: "/etc/config",
 										},
 										{
-											Name:      "model-volume",
-											MountPath: "/tmp/model",
+											Name:      "tmp-volume",
+											MountPath: "/tmp",
 										},
 									},
 									Resources: corev1.ResourceRequirements{
@@ -223,6 +228,10 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 											corev1.ResourceCPU:    resource.MustParse("2"),
 											corev1.ResourceMemory: resource.MustParse("5Gi"),
 										},
+									},
+									SecurityContext: &corev1.SecurityContext{
+										RunAsNonRoot:           Ptr(true),
+										ReadOnlyRootFilesystem: Ptr(true),
 									},
 								},
 							},
@@ -234,21 +243,11 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 											LocalObjectReference: corev1.LocalObjectReference{
 												Name: config.Name,
 											},
-											Items: []corev1.KeyToPath{
-												{
-													Key:  "config.json",
-													Path: "config.json",
-												},
-												{
-													Key:  "twitter_complaints_small.json",
-													Path: "twitter_complaints_small.json",
-												},
-											},
 										},
 									},
 								},
 								{
-									Name: "model-volume",
+									Name: "tmp-volume",
 									VolumeSource: corev1.VolumeSource{
 										EmptyDir: &corev1.EmptyDirVolumeSource{},
 									},
