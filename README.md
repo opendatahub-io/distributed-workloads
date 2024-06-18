@@ -1,6 +1,12 @@
-# Distributed Workloads Integration Tests
+# Distributed Workloads
 
-## Prerequisites
+## Examples
+
+* Fine-Tune Llama 2 Models with Ray and DeepSpeed on OpenShift AI
+
+## Integration Tests
+
+### Prerequisites
 
 * Admin access to an OpenShift cluster ([CRC](https://developers.redhat.com/products/openshift-local/overview) is fine)
 
@@ -8,7 +14,7 @@
 
 * Installed Go 1.21
 
-## Environment variables
+### Environment variables
 
 * `CODEFLARE_TEST_OUTPUT_DIR` - Output directory for test logs
 * `CODEFLARE_TEST_TIMEOUT_SHORT` - Timeout duration for short tasks
@@ -16,7 +22,7 @@
 * `CODEFLARE_TEST_TIMEOUT_LONG` - Timeout duration for long tasks
 * `FMS_HF_TUNING_IMAGE` - Image tag used in PyTorchJob CR for model training
 
-## Running Tests
+### Running Tests
 
 Execute tests like standard Go unit tests.
 
