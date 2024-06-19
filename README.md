@@ -14,6 +14,7 @@
 * `CODEFLARE_TEST_TIMEOUT_SHORT` - Timeout duration for short tasks
 * `CODEFLARE_TEST_TIMEOUT_MEDIUM` - Timeout duration for medium tasks
 * `CODEFLARE_TEST_TIMEOUT_LONG` - Timeout duration for long tasks
+* `FMS_HF_TUNING_IMAGE` - Image tag used in PyTorchJob CR for model training
 
 ## Running Tests
 
