@@ -137,6 +137,12 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 					RestartPolicy: "OnFailure",
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
+							Tolerations: []corev1.Toleration{
+								{
+									Key:      "nvidia.com/gpu",
+									Operator: corev1.TolerationOpExists,
+								},
+							},
 							InitContainers: []corev1.Container{
 								{
 									Name:            "copy-model",
@@ -194,6 +200,10 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 										Requests: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("2"),
 											corev1.ResourceMemory: resource.MustParse("5Gi"),
+											"nvidia.com/gpu":      resource.MustParse("2"),
+										},
+										Limits: corev1.ResourceList{
+											"nvidia.com/gpu": resource.MustParse("2"),
 										},
 									},
 									SecurityContext: &corev1.SecurityContext{
