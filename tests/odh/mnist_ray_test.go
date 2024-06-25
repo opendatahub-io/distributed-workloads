@@ -17,6 +17,7 @@ limitations under the License.
 package odh
 
 import (
+	"bytes"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -29,7 +30,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestMnistRay(t *testing.T) {
+func TestMnistRayCpu(t *testing.T) {
+	mnistRay(t, false)
+}
+
+func TestMnistRayGpu(t *testing.T) {
+	mnistRay(t, true)
+}
+
+func mnistRay(t *testing.T, gpus_enabled bool) {
 	test := With(t)
 
 	// Create a namespace
@@ -71,10 +80,19 @@ func TestMnistRay(t *testing.T) {
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "mnist_ray_mini.ipynb"
+	mnist := readMnistPy(test)
+	var numGpus int
+	if gpus_enabled {
+		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"gpu\""), 1)
+		numGpus = 1
+	} else {
+		numGpus = 0
+		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"cpu\""), 1)
+	}
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
 		// MNIST Ray Notebook
 		jupyterNotebookConfigMapFileName: ReadFile(test, "resources/mnist_ray_mini.ipynb"),
-		"mnist.py":                       readMnistPy(test),
+		"mnist.py":                       mnist,
 		"requirements.txt":               readRequirementsTxt(test),
 	})
 
@@ -86,7 +104,7 @@ func TestMnistRay(t *testing.T) {
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, localQueue.Name, config.Name, jupyterNotebookConfigMapFileName)
+	createNotebook(test, namespace, userToken, localQueue.Name, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {

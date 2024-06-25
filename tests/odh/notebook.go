@@ -48,9 +48,10 @@ type NotebookProps struct {
 	NotebookConfigMapName     string
 	NotebookConfigMapFileName string
 	NotebookPVC               string
+	NumGpus                   int
 }
 
-func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, localQueue, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string) {
+func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, localQueue, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int) {
 	// Create PVC for Notebook
 	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", corev1.ReadWriteOnce)
 
@@ -72,6 +73,7 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, l
 		NotebookConfigMapName:     jupyterNotebookConfigMapName,
 		NotebookConfigMapFileName: jupyterNotebookConfigMapFileName,
 		NotebookPVC:               notebookPVC.Name,
+		NumGpus:                   numGpus,
 	}
 	notebookTemplate, err := files.ReadFile("resources/custom-nb-small.yaml")
 	test.Expect(err).NotTo(gomega.HaveOccurred())
