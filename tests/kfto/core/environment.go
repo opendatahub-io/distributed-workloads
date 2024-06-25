@@ -29,6 +29,10 @@ const (
 	bloomModelImageEnvVar = "BLOOM_MODEL_IMAGE"
 	// The environment variable referring to image containing Stanford Alpaca dataset
 	alpacaDatasetImageEnvVar = "ALPACA_DATASET_IMAGE"
+	// The environment variable for HuggingFace token to download models which require authentication
+	huggingfaceTokenEnvVar = "HF_TOKEN"
+	// The environment variable specifying existing namespace to be used for multiGPU tests
+	multiGpuNamespaceEnvVar = "MULTIGPU_NAMESPACE"
 )
 
 func GetFmsHfTuningImage(t Test) string {
@@ -45,6 +49,22 @@ func GetBloomModelImage() string {
 
 func GetAlpacaDatasetImage() string {
 	return lookupEnvOrDefault(alpacaDatasetImageEnvVar, "quay.io/ksuta/alpaca-dataset@sha256:c0492ff0005c13ac491e00d074902aa9dd21a49691945b122da23db3a3b3ac76")
+}
+
+func GetHuggingFaceToken(t Test) string {
+	image, ok := os.LookupEnv(huggingfaceTokenEnvVar)
+	if !ok {
+		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify HuggingFace token to download models.", huggingfaceTokenEnvVar)
+	}
+	return image
+}
+
+func GetMultiGpuNamespace(t Test) string {
+	image, ok := os.LookupEnv(multiGpuNamespaceEnvVar)
+	if !ok {
+		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify namespace to be used for multiGPU tests.", multiGpuNamespaceEnvVar)
+	}
+	return image
 }
 
 func lookupEnvOrDefault(key, value string) string {

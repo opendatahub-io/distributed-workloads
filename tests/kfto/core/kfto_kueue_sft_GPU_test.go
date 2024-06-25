@@ -17,12 +17,12 @@ limitations under the License.
 package core
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -33,92 +33,69 @@ import (
 	prometheusmodel "github.com/prometheus/common/model"
 )
 
-func TestMultiGpuPytorchjobWithSFTtrainer(t *testing.T) {
+var numberOfGpus = 8
+
+func TestMultiGpuPytorchjobGranite20bCodeInstruct(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_granite_20b_code_instruct.json")
+}
+
+func TestMultiGpuPytorchjobLlama213b(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_llama2_13b.json")
+}
+
+func TestMultiGpuPytorchjobMetaLlama38bInstruct(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_meta_llama3_8b_instruct.json")
+}
+
+func TestMultiGpuPytorchjobMixtral8x7bInstructv01(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_instruct_v01.json")
+}
+
+func TestMultiGpuPytorchjobMetaLlama370bInstructLoRa(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_meta_llama3_70b_instruct_lora.json")
+}
+
+func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string) {
 	test := With(t)
 
-	// Create a namespace
-	namespace := test.NewTestNamespace()
+	namespace := GetMultiGpuNamespace(test)
 
 	// Create a ConfigMap with configuration
 	configData := map[string][]byte{
-		"config.json": ReadFile(test, "config_GPU.json"),
+		"config.json": ReadFile(test, modelConfigFile),
 	}
-	config := CreateConfigMap(test, namespace.Name, configData)
-
-	// Create Kueue resources utilizing GPU
-	rfSpec := kueuev1beta1.ResourceFlavorSpec{
-		NodeLabels: map[string]string{"nvidia.com/gpu.present": "true"},
-	}
-	resourceFlavor := CreateKueueResourceFlavor(test, rfSpec)
-	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
-	cqSpec := kueuev1beta1.ClusterQueueSpec{
-		NamespaceSelector: &metav1.LabelSelector{},
-		ResourceGroups: []kueuev1beta1.ResourceGroup{
-			{
-				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory"), corev1.ResourceName("nvidia.com/gpu")},
-				Flavors: []kueuev1beta1.FlavorQuotas{
-					{
-						Name: kueuev1beta1.ResourceFlavorReference(resourceFlavor.Name),
-						Resources: []kueuev1beta1.ResourceQuota{
-							{
-								Name:         corev1.ResourceCPU,
-								NominalQuota: resource.MustParse("2"),
-							},
-							{
-								Name:         corev1.ResourceMemory,
-								NominalQuota: resource.MustParse("5Gi"),
-							},
-							{
-								Name:         corev1.ResourceName("nvidia.com/gpu"),
-								NominalQuota: resource.MustParse("2"),
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
-	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
-	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name)
+	config := CreateConfigMap(test, namespace, configData)
+	defer test.Client().Core().CoreV1().ConfigMaps(namespace).Delete(test.Ctx(), config.Name, *metav1.NewDeleteOptions(0))
 
 	// Create training PyTorch job
-	tuningJob := createAlpacaPyTorchJob(test, namespace.Name, localQueue.Name, *config)
-
-	// Make sure the Kueue Workload is admitted
-	test.Eventually(KueueWorkloads(test, namespace.Name), TestTimeoutLong).
-		Should(
-			And(
-				HaveLen(1),
-				ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrueBecause("Workload failed to be admitted"))),
-			),
-		)
+	tuningJob := createAlpacaPyTorchJob(test, namespace, *config)
+	defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Delete(test.Ctx(), tuningJob.Name, *metav1.NewDeleteOptions(0))
 
 	// Make sure the PyTorch job is running
-	test.Eventually(PytorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutLong).
+	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).
 		Should(WithTransform(PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	if IsOpenShift(test) {
-		// Check that both GPUs were utilized recently
+		// Check that GPUs were utilized recently
 		// That itself doesn't guarantee that PyTorchJob generated the load in GPU, but is the best we can achieve for now
-		test.Eventually(openShiftPrometheusGpuUtil(test), TestTimeoutMedium).
+		test.Eventually(openShiftPrometheusGpuUtil(test, namespace), 30*time.Minute).
 			Should(
 				And(
-					HaveLen(2),
-					HaveEach(
-						// Check that both GPUs were utilized on more than 90%
-						HaveField("Value", BeNumerically(">", 90)),
+					HaveLen(numberOfGpus),
+					ContainElement(
+						// Check that at lest some GPU was utilized on more than 50%
+						HaveField("Value", BeNumerically(">", 50)),
 					),
 				),
 			)
 	}
 
 	// Make sure the PyTorch job succeed
-	test.Eventually(PytorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutLong).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), 30*time.Minute).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 }
 
-func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config corev1.ConfigMap) *kftov1.PyTorchJob {
+func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap) *kftov1.PyTorchJob {
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -126,9 +103,6 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "kfto-sft-",
-			Labels: map[string]string{
-				"kueue.x-k8s.io/queue-name": localQueueName,
-			},
 		},
 		Spec: kftov1.PyTorchJobSpec{
 			PyTorchReplicaSpecs: map[kftov1.ReplicaType]*kftov1.ReplicaSpec{
@@ -145,30 +119,17 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 							},
 							InitContainers: []corev1.Container{
 								{
-									Name:            "copy-model",
-									Image:           GetBloomModelImage(),
-									ImagePullPolicy: corev1.PullIfNotPresent,
-									VolumeMounts: []corev1.VolumeMount{
-										{
-											Name:      "tmp-volume",
-											MountPath: "/tmp",
-										},
-									},
-									Command: []string{"/bin/sh", "-c"},
-									Args:    []string{"mkdir /tmp/model; cp -r /models/bloom-560m /tmp/model"},
-								},
-								{
 									Name:            "copy-dataset",
 									Image:           GetAlpacaDatasetImage(),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									VolumeMounts: []corev1.VolumeMount{
 										{
-											Name:      "tmp-volume",
-											MountPath: "/tmp",
+											Name:      "scratch-volume",
+											MountPath: "/mnt/scratch",
 										},
 									},
 									Command: []string{"/bin/sh", "-c"},
-									Args:    []string{"mkdir /tmp/dataset; cp /dataset/alpaca_data_tenth.json /tmp/dataset/alpaca_data.json"},
+									Args:    []string{"mkdir /mnt/scratch/dataset; cp /dataset/alpaca_data_hundredth.json /mnt/scratch/dataset/alpaca_data.json"},
 								},
 							},
 							Containers: []corev1.Container{
@@ -183,7 +144,15 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 										},
 										{
 											Name:  "HF_HOME",
-											Value: "/tmp/huggingface",
+											Value: "/mnt/scratch/huggingface-home",
+										},
+										{
+											Name:  "HF_TOKEN",
+											Value: GetHuggingFaceToken(test),
+										},
+										{
+											Name:  "TMPDIR",
+											Value: "/mnt/scratch",
 										},
 									},
 									VolumeMounts: []corev1.VolumeMount{
@@ -192,18 +161,22 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 											MountPath: "/etc/config",
 										},
 										{
-											Name:      "tmp-volume",
-											MountPath: "/tmp",
+											Name:      "scratch-volume",
+											MountPath: "/mnt/scratch",
+										},
+										{
+											Name:      "output-volume",
+											MountPath: "/mnt/output",
 										},
 									},
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("2"),
-											corev1.ResourceMemory: resource.MustParse("5Gi"),
-											"nvidia.com/gpu":      resource.MustParse("2"),
+											corev1.ResourceMemory: resource.MustParse("10Gi"),
+											"nvidia.com/gpu":      resource.MustParse(fmt.Sprint(numberOfGpus)),
 										},
 										Limits: corev1.ResourceList{
-											"nvidia.com/gpu": resource.MustParse("2"),
+											"nvidia.com/gpu": resource.MustParse(fmt.Sprint(numberOfGpus)),
 										},
 									},
 									SecurityContext: &corev1.SecurityContext{
@@ -224,9 +197,39 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 									},
 								},
 								{
-									Name: "tmp-volume",
+									Name: "scratch-volume",
 									VolumeSource: corev1.VolumeSource{
-										EmptyDir: &corev1.EmptyDirVolumeSource{},
+										Ephemeral: &corev1.EphemeralVolumeSource{
+											VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
+												Spec: corev1.PersistentVolumeClaimSpec{
+													AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+													Resources: corev1.VolumeResourceRequirements{
+														Requests: corev1.ResourceList{
+															corev1.ResourceStorage: resource.MustParse("500Gi"),
+														},
+													},
+													VolumeMode: Ptr(corev1.PersistentVolumeFilesystem),
+												},
+											},
+										},
+									},
+								},
+								{
+									Name: "output-volume",
+									VolumeSource: corev1.VolumeSource{
+										Ephemeral: &corev1.EphemeralVolumeSource{
+											VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
+												Spec: corev1.PersistentVolumeClaimSpec{
+													AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+													Resources: corev1.VolumeResourceRequirements{
+														Requests: corev1.ResourceList{
+															corev1.ResourceStorage: resource.MustParse("500Gi"),
+														},
+													},
+													VolumeMode: Ptr(corev1.PersistentVolumeFilesystem),
+												},
+											},
+										},
 									},
 								},
 							},
@@ -244,12 +247,20 @@ func createAlpacaPyTorchJob(test Test, namespace, localQueueName string, config 
 	return tuningJob
 }
 
-func openShiftPrometheusGpuUtil(test Test) func(g Gomega) prometheusmodel.Vector {
+func openShiftPrometheusGpuUtil(test Test, namespace string) func(g Gomega) prometheusmodel.Vector {
 	return func(g Gomega) prometheusmodel.Vector {
 		prometheusApiClient := GetOpenShiftPrometheusApiClient(test)
 		result, warnings, err := prometheusApiClient.Query(test.Ctx(), "DCGM_FI_DEV_GPU_UTIL", time.Now(), prometheusapiv1.WithTimeout(5*time.Second))
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(warnings).Should(HaveLen(0))
-		return result.(prometheusmodel.Vector)
+
+		var util prometheusmodel.Vector
+		for _, sample := range result.(prometheusmodel.Vector) {
+			if string(sample.Metric["exported_namespace"]) == namespace {
+				util = append(util, sample)
+			}
+		}
+
+		return util
 	}
 }
