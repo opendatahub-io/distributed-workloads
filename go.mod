@@ -7,9 +7,11 @@ toolchain go1.21.5
 require (
 	github.com/kubeflow/training-operator v1.7.0
 	github.com/onsi/gomega v1.31.1
-	github.com/project-codeflare/codeflare-common v0.0.0-20240618073051-795d7ecc5ac7
+	github.com/openshift/api v0.0.0-20230718161610-2a3e8b481cec
+	github.com/project-codeflare/codeflare-common v0.0.0-20240702071428-eae5837bea22
 	github.com/prometheus/client_golang v1.18.0
 	github.com/prometheus/common v0.45.0
+	github.com/ray-project/kuberay/ray-operator v1.1.0-alpha.0
 	k8s.io/api v0.29.2
 	k8s.io/apimachinery v0.29.2
 	sigs.k8s.io/kueue v0.6.2
@@ -51,13 +53,11 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/openshift-online/ocm-sdk-go v0.1.368 // indirect
-	github.com/openshift/api v0.0.0-20230718161610-2a3e8b481cec // indirect
 	github.com/openshift/client-go v0.0.0-20230718165156-6014fb98e86a // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/project-codeflare/appwrapper v0.8.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
-	github.com/ray-project/kuberay/ray-operator v1.1.0-alpha.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
