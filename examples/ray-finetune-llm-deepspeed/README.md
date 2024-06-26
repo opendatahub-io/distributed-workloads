@@ -55,6 +55,8 @@ You can also setup [TensorBoard](https://github.com/tensorflow/tensorboard) to v
     ```console
     kubectl exec `kubectl get pod -l ray.io/node-type=head -o name` -- tensorboard --logdir /tmp/ray --bind_all --port 6006"
     ```
+    Note: You may need to install `tb-nightly` instead of `tensorboard` during the interim a version compatible with NumPy 2 is released.
+    See https://github.com/tensorflow/tensorboard/issues/6869.
 * Port-foward the TensorBoard UI endpoint:
     ```console
     kubectl port-forward `kubectl get pod -l ray.io/node-type=head -o name` 6006:6006
