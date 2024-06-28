@@ -120,6 +120,7 @@ RUN yum install -y \
 
 # Install Ray
 RUN python3 -m pip install --no-cache-dir -U pip \
+    'numpy<2.0.0' \
     'ray[all]==2.23.0'
 
 # Restore user workspace
