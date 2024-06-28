@@ -1,10 +1,10 @@
-FROM registry.access.redhat.com/ubi9/python-311:latest
+FROM registry.access.redhat.com/ubi9/python-39:latest
 
-LABEL name="ray-ubi9-py311-cu121" \
-      summary="CUDA 12.1 Python 3.11 image based on UBI9 for Ray" \
-      description="CUDA 12.1 Python 3.11 image based on UBI9 for Ray" \
-      io.k8s.display-name="CUDA 12.1 Python 3.11 base image for Ray" \
-      io.k8s.description="CUDA 12.1 Python 3.11 image based on UBI9 for Ray" \
+LABEL name="ray-ubi9-py39-cu121" \
+      summary="CUDA 12.1 Python 3.9 image based on UBI9 for Ray" \
+      description="CUDA 12.1 Python 3.9 image based on UBI9 for Ray" \
+      io.k8s.display-name="CUDA 12.1 Python 3.9 base image for Ray" \
+      io.k8s.description="CUDA 12.1 Python 3.9 image based on UBI9 for Ray" \
       authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
 
 # Install CUDA base from:
