@@ -1,0 +1,2 @@
+APP_PORT=${APP_PORT:-"8080"}
+streamlit run --server.port ${APP_PORT} app.py

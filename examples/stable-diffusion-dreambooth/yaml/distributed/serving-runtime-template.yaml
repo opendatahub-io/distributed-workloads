@@ -1,0 +1,72 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  annotations:
+    opendatahub.io/apiProtocol: REST
+    opendatahub.io/modelServingSupport: '["single"]'
+  labels:
+    opendatahub.io/dashboard: "true"
+  name: kserve-torchserve
+  namespace: redhat-ods-applications
+objects:
+- apiVersion: serving.kserve.io/v1alpha1
+  kind: ServingRuntime
+  metadata:
+    name: kserve-torchserve
+  spec:
+    annotations:
+      prometheus.kserve.io/path: /metrics
+      prometheus.kserve.io/port: "8082"
+    volumes:
+      - name: model-tmp
+        emptydir: {}
+      - name: model-logs
+        emptydir: {}  
+      - name: hf-cache
+        emptydir: {}  
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 2Gi
+    containers:
+    - args:
+      - torchserve
+      - --start
+      - --model-store=/mnt/models
+      - --ts-config=/mnt/models/config.properties
+      env:
+      - name: TS_SERVICE_ENVELOPE
+        value: kserve2      
+      image: pytorch/torchserve-kfs:0.11.0-gpu
+      name: kserve-container
+      resources:
+        limits:
+          cpu: "2"
+          memory: 8Gi
+          nvidia.com/gpu: "1"
+        requests:
+          cpu: "1"
+          memory: 4Gi
+          nvidia.com/gpu: "1"
+      volumeMounts:
+        - name: model-tmp
+          mountPath: /home/model-server/tmp
+        - name: model-logs
+          mountPath: /home/model-server/logs
+        - name: hf-cache
+          mountPath: /.cache
+        - name: shm
+          mountPath: /dev/shm          
+      toleration:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+    protocolVersions:
+    - v1
+    - v2
+    - grpc-v2
+    supportedModelFormats:
+    - autoSelect: true
+      name: pytorch
+      priority: 2
+      version: "1"

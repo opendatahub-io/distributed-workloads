@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    opendatahub.io/dashboard: "true"
+  name: stable-diffusion-shared-storage
+  namespace: distributed
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: ocs-storagecluster-cephfs
+  volumeMode: Filesystem  

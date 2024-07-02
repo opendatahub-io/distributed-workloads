@@ -1,0 +1,87 @@
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: stable-diffusion  
+  namespace: distributed
+  labels:
+    kueue.x-k8s.io/queue-name: local-queue
+spec:  
+  headGroupSpec:
+    enableIngress: false
+    rayStartParams:
+      block: 'true'
+      dashboard-host: 0.0.0.0
+      num-gpus: '0'
+    serviceType: ClusterIP
+    template:
+      metadata: {}
+      spec:
+        containers:
+          - env:
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "void"
+            image: 'quay.io/project-codeflare/ray:latest-py39-cu118'
+            imagePullPolicy: Always
+            lifecycle:
+              preStop:
+                exec:
+                  command:
+                    - /bin/sh
+                    - '-c'
+                    - ray stop
+            name: ray-head
+            resources:
+              limits:
+                cpu: '4'
+                memory: 8G
+                nvidia.com/gpu: '0'
+              requests:
+                cpu: '2'
+                memory: 4G
+                nvidia.com/gpu: '0'
+            volumeMounts:    
+              - mountPath: /home/ray/share
+                name: shared-storage             
+        volumes:          
+          - name: shared-storage
+            persistentVolumeClaim:
+              claimName: stable-diffusion-shared-storage
+  rayVersion: 2.7.0
+  suspend: false
+  workerGroupSpecs:
+    - groupName: small-group-stable-diffusion
+      maxReplicas: 4
+      minReplicas: 4
+      numOfHosts: 1
+      rayStartParams:
+        block: 'true'
+        num-gpus: '1'
+      replicas: 4
+      template:        
+        spec:
+          containers:
+            - image: 'quay.io/project-codeflare/ray:latest-py39-cu118'
+              lifecycle:
+                preStop:
+                  exec:
+                    command:
+                      - /bin/sh
+                      - '-c'
+                      - ray stop
+              name: machine-learning
+              resources:
+                limits:
+                  cpu: '4'
+                  memory: 16G
+                  nvidia.com/gpu: '1'
+                requests:
+                  cpu: '2'
+                  memory: 8G
+                  nvidia.com/gpu: '1'
+              volumeMounts:
+                - mountPath: /home/ray/share
+                  name: shared-storage
+          volumes:
+            - name: shared-storage
+              persistentVolumeClaim:
+                claimName: stable-diffusion-shared-storage
