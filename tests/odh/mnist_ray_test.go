@@ -18,6 +18,7 @@ package odh
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -31,14 +32,14 @@ import (
 )
 
 func TestMnistRayCpu(t *testing.T) {
-	mnistRay(t, false)
+	mnistRay(t, 0)
 }
 
 func TestMnistRayGpu(t *testing.T) {
-	mnistRay(t, true)
+	mnistRay(t, 1)
 }
 
-func mnistRay(t *testing.T, gpus_enabled bool) {
+func mnistRay(t *testing.T, numGpus int) {
 	test := With(t)
 
 	// Create a namespace
@@ -66,7 +67,7 @@ func mnistRay(t *testing.T, gpus_enabled bool) {
 							},
 							{
 								Name:         corev1.ResourceName("nvidia.com/gpu"),
-								NominalQuota: resource.MustParse("0"),
+								NominalQuota: resource.MustParse(fmt.Sprint(numGpus)),
 							},
 						},
 					},
@@ -81,12 +82,9 @@ func mnistRay(t *testing.T, gpus_enabled bool) {
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "mnist_ray_mini.ipynb"
 	mnist := readMnistPy(test)
-	var numGpus int
-	if gpus_enabled {
+	if numGpus > 0 {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"gpu\""), 1)
-		numGpus = 1
 	} else {
-		numGpus = 0
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"cpu\""), 1)
 	}
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
