@@ -47,10 +47,10 @@ spec:
                               --ServerApp.quit_button=False
                               --ServerApp.tornado_settings={"user":"kube-3aadmin","hub_host":"https://odh-dashboard-{{.OpenDataHubNamespace}}.{{.IngressDomain}}","hub_prefix":"/notebookController/kube-3aadmin"}
         - name: JUPYTER_IMAGE
-          value: image-registry.openshift-image-registry.svc:5000/{{.OpenDataHubNamespace}}/{{.ImageStreamName}}:{{.ImageStreamTag}}
+          value: {{.NotebookImage}}
         - name: JUPYTER_NOTEBOOK_PORT
           value: "8888"
-        image: image-registry.openshift-image-registry.svc:5000/{{.OpenDataHubNamespace}}/{{.ImageStreamName}}:{{.ImageStreamTag}}
+        image: {{.NotebookImage}}
         command: ["/bin/sh", "-c", "pip install papermill && papermill /opt/app-root/notebooks/{{.NotebookConfigMapFileName}} /opt/app-root/src/mcad-out.ipynb -p namespace {{.Namespace}} -p ray_image {{.RayImage}} -p local_queue {{.LocalQueue}} -p openshift_api_url {{.OpenShiftApiUrl}} -p kubernetes_user_bearer_token {{.KubernetesUserBearerToken}} -p num_gpus {{ .NumGpus }} --log-output && sleep infinity"]
         # args: ["pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks/mcad.ipynb /opt/app-root/src/mcad-out.ipynb" ]
         imagePullPolicy: Always
