@@ -24,9 +24,14 @@ from torch.utils.data import DataLoader, random_split, RandomSampler
 from torchmetrics import Accuracy
 from torchvision import transforms
 from torchvision.datasets import MNIST
+import gzip
+import shutil
+
 
 PATH_DATASETS = os.environ.get("PATH_DATASETS", ".")
 BATCH_SIZE = 256 if torch.cuda.is_available() else 64
+
+local_mnist_path = os.path.dirname(os.path.abspath(__file__))
 # %%
 
 print("prior to running the trainer")
@@ -114,14 +119,14 @@ class LitMNIST(LightningModule):
 
     def prepare_data(self):
         datasetFiles = [
-            "t10k-images-idx3-ubyte",
-            "t10k-labels-idx1-ubyte",
-            "train-images-idx3-ubyte",
-            "train-labels-idx1-ubyte"
+            "t10k-images-idx3-ubyte.gz",
+            "t10k-labels-idx1-ubyte.gz",
+            "train-images-idx3-ubyte.gz",
+            "train-labels-idx1-ubyte.gz"
         ]
 
         # Create required folder structure
-        downloadLocation = os.path.join(PATH_DATASETS, "MNIST", "raw")
+        downloadLocation = os.path.join(local_mnist_path, "MNIST", "raw")
         os.makedirs(downloadLocation, exist_ok=True)
         print(f"{downloadLocation} folder_path created!")
 
@@ -135,14 +140,18 @@ class LitMNIST(LightningModule):
                 if response.status_code == 200:
                     open(filePath, 'wb').write(response.content)
                     print(f"{file}: Downloaded and saved zipped file to path - {filePath}")
+                    #Unzip files
+                    with gzip.open(filePath, 'rb') as f_in:
+                        with open(filePath.split(".")[:-1][0], 'wb') as f_out:
+                            shutil.copyfileobj(f_in, f_out)
                 else:
                     print(f"Failed to download file {file}")
             except Exception as e:
                 print(e)
         print(f"Downloaded MNIST dataset to... {downloadLocation}")
 
-        MNIST(self.data_dir, train=True, download=True)
-        MNIST(self.data_dir, train=False, download=True)
+        MNIST(self.data_dir, train=True, download=False)
+        MNIST(self.data_dir, train=False, download=False)
 
     def setup(self, stage=None):
 
@@ -169,7 +178,7 @@ class LitMNIST(LightningModule):
 
 # Init DataLoader from MNIST Dataset
 
-model = LitMNIST()
+model = LitMNIST(data_dir=local_mnist_path)
 
 print("GROUP: ", int(os.environ.get("GROUP_WORLD_SIZE", 1)))
 print("LOCAL: ", int(os.environ.get("LOCAL_WORLD_SIZE", 1)))

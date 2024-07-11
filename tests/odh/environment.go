@@ -25,8 +25,6 @@ import (
 const (
 	// The environment variable for namespace where ODH is installed to.
 	odhNamespaceEnvVar = "ODH_NAMESPACE"
-	// The environment variable for ODH Notebook ImageStream name
-	notebookImageStreamName = "NOTEBOOK_IMAGE_STREAM_NAME"
 	// Name of the authenticated Notebook user
 	notebookUserName = "NOTEBOOK_USER_NAME"
 	// Token of the authenticated Notebook user
@@ -39,14 +37,6 @@ func GetOpenDataHubNamespace(t Test) string {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify namespace where ODH is installed to.", odhNamespaceEnvVar)
 	}
 	return ns
-}
-
-func GetNotebookImageStreamName(t Test) string {
-	isName, ok := os.LookupEnv(notebookImageStreamName)
-	if !ok {
-		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify what ImageStream to use for Notebook.", notebookImageStreamName)
-	}
-	return isName
 }
 
 func GetNotebookUserName(t Test) string {

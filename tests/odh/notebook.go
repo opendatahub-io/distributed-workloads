@@ -27,8 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/yaml"
-
-	imagev1 "github.com/openshift/api/image/v1"
 )
 
 const recommendedTagAnnotation = "opendatahub.io/workbench-image-recommended"
@@ -44,6 +42,7 @@ type NotebookProps struct {
 	ImageStreamName           string
 	ImageStreamTag            string
 	RayImage                  string
+	NotebookImage             string
 	LocalQueue                string
 	NotebookConfigMapName     string
 	NotebookConfigMapFileName string
@@ -55,10 +54,6 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, l
 	// Create PVC for Notebook
 	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", corev1.ReadWriteOnce)
 
-	// Retrieve ImageStream tag for
-	is := GetImageStream(test, GetOpenDataHubNamespace(test), GetNotebookImageStreamName(test))
-	recommendedTagName := getRecommendedImageStreamTag(test, is)
-
 	// Read the Notebook CR from resources and perform replacements for custom values using go template
 	notebookProps := NotebookProps{
 		IngressDomain:             GetOpenShiftIngressDomain(test),
@@ -66,9 +61,8 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, l
 		KubernetesUserBearerToken: notebookUserToken,
 		Namespace:                 namespace.Name,
 		OpenDataHubNamespace:      GetOpenDataHubNamespace(test),
-		ImageStreamName:           GetNotebookImageStreamName(test),
-		ImageStreamTag:            recommendedTagName,
 		RayImage:                  GetRayImage(),
+		NotebookImage:             "quay.io/modh/odh-generic-data-science-notebook@sha256:bb33abc67af1328d3b32899f58bcdc0cf1681605e1b5da57f8fe8da81523a9bd",
 		LocalQueue:                localQueue,
 		NotebookConfigMapName:     jupyterNotebookConfigMapName,
 		NotebookConfigMapFileName: jupyterNotebookConfigMapFileName,
@@ -103,14 +97,4 @@ func listNotebooks(test Test, namespace *corev1.Namespace) []*unstructured.Unstr
 	}
 
 	return ntbsp
-}
-
-func getRecommendedImageStreamTag(test Test, is *imagev1.ImageStream) (tagName string) {
-	for _, tag := range is.Spec.Tags {
-		if tag.Annotations[recommendedTagAnnotation] == "true" {
-			return tag.Name
-		}
-	}
-	test.T().Fatalf("tag with annotation '%s' not found in ImageStream %s", recommendedTagAnnotation, is.Name)
-	return
 }
