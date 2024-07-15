@@ -48,7 +48,7 @@ func GetBloomModelImage() string {
 }
 
 func GetAlpacaDatasetImage() string {
-	return lookupEnvOrDefault(alpacaDatasetImageEnvVar, "quay.io/ksuta/alpaca-dataset@sha256:c0492ff0005c13ac491e00d074902aa9dd21a49691945b122da23db3a3b3ac76")
+	return lookupEnvOrDefault(alpacaDatasetImageEnvVar, "quay.io/ksuta/alpaca-dataset@sha256:2e90f631180c7b2c916f9569b914b336b612e8ae86efad82546adc5c9fcbbb8d")
 }
 
 func GetHuggingFaceToken(t Test) string {
