@@ -39,20 +39,28 @@ func TestMultiGpuPytorchjobGranite20bCodeInstruct(t *testing.T) {
 	runMultiGpuPytorchjob(t, "config_granite_20b_code_instruct.json")
 }
 
-func TestMultiGpuPytorchjobLlama213b(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_llama2_13b.json")
+func TestMultiGpuPytorchjobGranite34bCodeInstructLoRa(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_granite_34b_code_instruct_lora.json")
+}
+
+func TestMultiGpuPytorchjobLlama213bChatHf(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_llama2_13b_chat_hf.json")
+}
+
+func TestMultiGpuPytorchjobLlama213bChatHfLoRa(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_llama2_13b_chat_hf_lora.json")
 }
 
 func TestMultiGpuPytorchjobMetaLlama38bInstruct(t *testing.T) {
 	runMultiGpuPytorchjob(t, "config_meta_llama3_8b_instruct.json")
 }
 
-func TestMultiGpuPytorchjobMixtral8x7bInstructv01(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_instruct_v01.json")
-}
-
 func TestMultiGpuPytorchjobMetaLlama370bInstructLoRa(t *testing.T) {
 	runMultiGpuPytorchjob(t, "config_meta_llama3_70b_instruct_lora.json")
+}
+
+func TestMultiGpuPytorchjobMixtral8x7bInstructv01(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_instruct_v01.json")
 }
 
 func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string) {
