@@ -39,8 +39,6 @@ type NotebookProps struct {
 	KubernetesUserBearerToken string
 	Namespace                 string
 	OpenDataHubNamespace      string
-	ImageStreamName           string
-	ImageStreamTag            string
 	RayImage                  string
 	NotebookImage             string
 	LocalQueue                string
@@ -62,7 +60,7 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, l
 		Namespace:                 namespace.Name,
 		OpenDataHubNamespace:      GetOpenDataHubNamespace(test),
 		RayImage:                  GetRayImage(),
-		NotebookImage:             "quay.io/modh/odh-generic-data-science-notebook@sha256:bb33abc67af1328d3b32899f58bcdc0cf1681605e1b5da57f8fe8da81523a9bd",
+		NotebookImage:             GetNotebookImage(test),
 		LocalQueue:                localQueue,
 		NotebookConfigMapName:     jupyterNotebookConfigMapName,
 		NotebookConfigMapFileName: jupyterNotebookConfigMapFileName,

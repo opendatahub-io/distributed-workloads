@@ -18,7 +18,7 @@ package odh
 
 import (
 	"bytes"
-	"html/template"
+	"text/template"
 
 	"github.com/onsi/gomega"
 	"github.com/project-codeflare/codeflare-common/support"

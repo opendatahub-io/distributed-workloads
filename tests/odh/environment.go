@@ -29,6 +29,8 @@ const (
 	notebookUserName = "NOTEBOOK_USER_NAME"
 	// Token of the authenticated Notebook user
 	notebookUserToken = "NOTEBOOK_USER_TOKEN"
+	// Image of the Notebook
+	notebookImage = "NOTEBOOK_IMAGE"
 )
 
 func GetOpenDataHubNamespace(t Test) string {
@@ -42,7 +44,7 @@ func GetOpenDataHubNamespace(t Test) string {
 func GetNotebookUserName(t Test) string {
 	name, ok := os.LookupEnv(notebookUserName)
 	if !ok {
-		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify token of the authenticated Notebook user.", notebookUserName)
+		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify name of the authenticated Notebook user.", notebookUserName)
 	}
 	return name
 }
@@ -53,4 +55,12 @@ func GetNotebookUserToken(t Test) string {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify token of the authenticated Notebook user.", notebookUserToken)
 	}
 	return token
+}
+
+func GetNotebookImage(t Test) string {
+	notebook_image, ok := os.LookupEnv(notebookImage)
+	if !ok {
+		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify image of the Notebook.", notebookImage)
+	}
+	return notebook_image
 }
