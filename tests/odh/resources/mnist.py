@@ -26,6 +26,7 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 import gzip
 import shutil
+from minio import Minio
 
 
 PATH_DATASETS = os.environ.get("PATH_DATASETS", ".")
@@ -41,9 +42,14 @@ print("MASTER_PORT: is ", os.getenv("MASTER_PORT"))
 MNIST_DATASET_URL = "{{.MnistDatasetURL}}"
 print("MNIST_DATASET_URL: is ", MNIST_DATASET_URL)
 
+STORAGE_BUCKET_EXISTS = "{{.StorageBucketDefaultEndpointExists}}"
+print("STORAGE_BUCKET_EXISTS: ",STORAGE_BUCKET_EXISTS)
+print(f"{'Storage_Bucket_Default_Endpoint : is {{.StorageBucketDefaultEndpoint}}' if '{{.StorageBucketDefaultEndpointExists}}' == 'true' else ''}")
+print(f"{'Storage_Bucket_Name : is {{.StorageBucketName}}' if '{{.StorageBucketNameExists}}' == 'true' else ''}")
+print(f"{'Storage_Bucket_Mnist_Directory : is {{.StorageBucketMnistDir}}' if '{{.StorageBucketMnistDirExists}}' == 'true' else ''}")
+
 class LitMNIST(LightningModule):
     def __init__(self, data_dir=PATH_DATASETS, hidden_size=64, learning_rate=2e-4):
-
         super().__init__()
 
         # Set our init args as class attributes
@@ -118,40 +124,98 @@ class LitMNIST(LightningModule):
     ####################
 
     def prepare_data(self):
-        datasetFiles = [
-            "t10k-images-idx3-ubyte.gz",
-            "t10k-labels-idx1-ubyte.gz",
-            "train-images-idx3-ubyte.gz",
-            "train-labels-idx1-ubyte.gz"
-        ]
+        # download
+        print("Downloading MNIST dataset...")
 
-        # Create required folder structure
-        downloadLocation = os.path.join(local_mnist_path, "MNIST", "raw")
-        os.makedirs(downloadLocation, exist_ok=True)
-        print(f"{downloadLocation} folder_path created!")
+        if "{{.StorageBucketDefaultEndpointExists}}" != "true":
+            print("Using MNIST_DATASET_URL to download datasets...")
+            datasetFiles = [
+                "t10k-images-idx3-ubyte.gz",
+                "t10k-labels-idx1-ubyte.gz",
+                "train-images-idx3-ubyte.gz",
+                "train-labels-idx1-ubyte.gz",
+            ]
+            # Create required folder structure
+            downloadLocation = os.path.join(local_mnist_path, "MNIST", "raw")
+            os.makedirs(downloadLocation, exist_ok=True)
+            print(f"{downloadLocation} folder_path created!")
 
-        for file in datasetFiles:
-            print(f"Downloading MNIST dataset {file}... to path : {downloadLocation}")
-            response = requests.get(f"{MNIST_DATASET_URL}{file}", stream=True)
-            filePath = os.path.join(downloadLocation, file)
+            for file in datasetFiles:
+                print(f"Downloading MNIST dataset {file} to path : {downloadLocation}")
+                response = requests.get(
+                    f"{MNIST_DATASET_URL+'/' if MNIST_DATASET_URL[-1]!='/' else MNIST_DATASET_URL}{file}", stream=True
+                )
+                filePath = os.path.join(downloadLocation, file)
 
-            #to download dataset file
-            try:
-                if response.status_code == 200:
-                    open(filePath, 'wb').write(response.content)
-                    print(f"{file}: Downloaded and saved zipped file to path - {filePath}")
-                    #Unzip files
-                    with gzip.open(filePath, 'rb') as f_in:
-                        with open(filePath.split(".")[:-1][0], 'wb') as f_out:
-                            shutil.copyfileobj(f_in, f_out)
+                # to download dataset file
+                try:
+                    if response.status_code == 200:
+                        open(filePath, "wb").write(response.content)
+                        print(
+                            f"{file}: Downloaded and saved zipped file to path - {filePath}"
+                        )
+                        # Unzip files
+                        with gzip.open(filePath, "rb") as f_in:
+                            with open(filePath.split(".")[:-1][0], "wb") as f_out:
+                                shutil.copyfileobj(f_in, f_out)
+                        # delete zip file
+                        os.remove(filePath)
+                    else:
+                        print(f"Failed to download file {file}")
+                except Exception as e:
+                    print(e)
+            print(f"Downloaded MNIST dataset to... {downloadLocation}")
+            download_datasets = False
+
+        elif "{{.StorageBucketDefaultEndpointExists}}" == "true" and "{{.StorageBucketDefaultEndpoint}}" != "":
+            print("Using storage bucket to download datasets...")
+            dataset_dir = os.path.join(self.data_dir, "MNIST/raw")
+            endpoint = "{{.StorageBucketDefaultEndpoint}}"
+            access_key = "{{.StorageBucketAccessKeyId}}"
+            secret_key = "{{.StorageBucketSecretKey}}"
+            bucket_name = "{{.StorageBucketName}}"
+
+            client = Minio(
+                endpoint,
+                access_key=access_key,
+                secret_key=secret_key,
+                cert_check=False,
+            )
+
+            if not os.path.exists(dataset_dir):
+                os.makedirs(dataset_dir)
+            else:
+                print(f"Directory '{dataset_dir}' already exists")
+
+            # To download datasets from storage bucket's specific directory, use prefix to provide directory name
+            prefix="{{.StorageBucketMnistDir}}"
+            # download all files from prefix folder of storage bucket recursively
+            for item in client.list_objects(
+                bucket_name, prefix=prefix, recursive=True
+            ):  
+                file_name=item.object_name[len(prefix)+1:]
+                dataset_file_path = os.path.join(dataset_dir, file_name)
+                print(dataset_file_path)
+                if not os.path.exists(dataset_file_path):
+                    client.fget_object(
+                        bucket_name, item.object_name, dataset_file_path
+                    )
                 else:
-                    print(f"Failed to download file {file}")
-            except Exception as e:
-                print(e)
-        print(f"Downloaded MNIST dataset to... {downloadLocation}")
+                    print(f"File-path '{dataset_file_path}' already exists")
+                # Unzip files
+                with gzip.open(dataset_file_path, "rb") as f_in:
+                    with open(dataset_file_path.split(".")[:-1][0], "wb") as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+                # delete zip file
+                os.remove(dataset_file_path)
+            download_datasets = False
 
-        MNIST(self.data_dir, train=True, download=False)
-        MNIST(self.data_dir, train=False, download=False)
+        else:
+            print("Using default MNIST reference to download datasets...")
+            download_datasets = True
+
+        MNIST(self.data_dir, train=True, download=download_datasets)
+        MNIST(self.data_dir, train=False, download=download_datasets)
 
     def setup(self, stage=None):
 

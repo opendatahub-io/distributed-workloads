@@ -139,7 +139,7 @@ func readRequirementsTxt(test Test) []byte {
 		PipIndexUrl    string
 		PipTrustedHost string
 	}{
-		PipIndexUrl: "--index " + GetPipIndexURL(),
+		PipIndexUrl: "--index " + string(GetPipIndexURL()),
 	}
 
 	// Provide trusted host only if defined
@@ -155,10 +155,36 @@ func readRequirementsTxt(test Test) []byte {
 
 func readMnistPy(test Test) []byte {
 	// Read the mnist.py from resources and perform replacements for custom values using go template
+	storage_bucket_endpoint, storage_bucket_endpoint_exists := GetStorageBucketDefaultEndpoint()
+	storage_bucket_access_key_id, storage_bucket_access_key_id_exists := GetStorageBucketAccessKeyId()
+	storage_bucket_secret_key, storage_bucket_secret_key_exists := GetStorageBucketSecretKey()
+	storage_bucket_name, storage_bucket_name_exists := GetStorageBucketName()
+	storage_bucket_mnist_dir, storage_bucket_mnist_dir_exists := GetStorageBucketMnistDir()
+
 	props := struct {
-		MnistDatasetURL string
+		MnistDatasetURL                    string
+		StorageBucketDefaultEndpoint       string
+		StorageBucketDefaultEndpointExists bool
+		StorageBucketAccessKeyId           string
+		StorageBucketAccessKeyIdExists     bool
+		StorageBucketSecretKey             string
+		StorageBucketSecretKeyExists       bool
+		StorageBucketName                  string
+		StorageBucketNameExists            bool
+		StorageBucketMnistDir              string
+		StorageBucketMnistDirExists        bool
 	}{
-		MnistDatasetURL: GetMnistDatasetURL(),
+		MnistDatasetURL:                    GetMnistDatasetURL(),
+		StorageBucketDefaultEndpoint:       storage_bucket_endpoint,
+		StorageBucketDefaultEndpointExists: storage_bucket_endpoint_exists,
+		StorageBucketAccessKeyId:           storage_bucket_access_key_id,
+		StorageBucketAccessKeyIdExists:     storage_bucket_access_key_id_exists,
+		StorageBucketSecretKey:             storage_bucket_secret_key,
+		StorageBucketSecretKeyExists:       storage_bucket_secret_key_exists,
+		StorageBucketName:                  storage_bucket_name,
+		StorageBucketNameExists:            storage_bucket_name_exists,
+		StorageBucketMnistDir:              storage_bucket_mnist_dir,
+		StorageBucketMnistDirExists:        storage_bucket_mnist_dir_exists,
 	}
 	template, err := files.ReadFile("resources/mnist.py")
 	test.Expect(err).NotTo(HaveOccurred())
