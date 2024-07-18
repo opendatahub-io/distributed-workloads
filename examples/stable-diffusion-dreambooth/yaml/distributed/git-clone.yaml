@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: git-clone-job
+  namespace: distributed
+spec:
+  template:
+    metadata:
+      name: git-clone-job
+    spec:
+      containers:
+      - name: git-clone
+        image: bitnami/git:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            git clone https://github.com/tsailiming/openshift-ai-ray /data/openshift-ai-ray 
+        volumeMounts:        
+        - name: data
+          mountPath: /data
+      restartPolicy: Never
+      volumes:      
+      - name: data
+        persistentVolumeClaim:
+          claimName: stable-diffusion-shared-storage
+  backoffLimit: 4
