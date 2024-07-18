@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: setup-s3-job
+  namespace: distributed
+spec:
+  template:
+    metadata:
+      name: setup-s3-job
+    spec:
+      containers:
+      - name: setup-s3
+        image: docker.io/amazon/aws-cli:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            aws s3 mb s3://${AWS_S3_BUCKET}
+        envFrom: 
+          - secretRef:
+              name: aws-connection-minio
+      restartPolicy: Never    
+  backoffLimit: 4

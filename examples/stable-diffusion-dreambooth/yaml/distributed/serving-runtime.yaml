@@ -1,0 +1,67 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  annotations:
+    opendatahub.io/accelerator-name: migrated-gpu
+    opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
+    opendatahub.io/apiProtocol: REST
+    opendatahub.io/template-display-name: kserve-torchserve
+    opendatahub.io/template-name: kserve-torchserve
+    openshift.io/display-name: stable-diffusion
+  labels:
+    opendatahub.io/dashboard: "true"
+  name: stable-diffusion
+  namespace: distributed
+spec:
+  annotations:
+    prometheus.kserve.io/path: /metrics
+    prometheus.kserve.io/port: "8082"
+  containers:
+  - args:
+    - torchserve
+    - --start
+    - --model-store=/mnt/models
+    - --ts-config=/mnt/models/config.properties
+    env:
+    - name: TS_SERVICE_ENVELOPE
+      value: kserve
+    - name: CONFIG_PATH
+      value: /mnt/models/config.properties
+    image: pytorch/torchserve-kfs:0.11.0-gpu
+    name: kserve-container
+    resources:
+      limits:
+        cpu: "2"
+        memory: "16Gi"
+      requests:
+        cpu: "1"
+        memory: "8Gi"
+    volumeMounts:
+    - mountPath: /home/model-server/tmp
+      name: model-tmp
+    - mountPath: /home/model-server/logs
+      name: model-logs
+    - mountPath: /.cache
+      name: hf-cache
+    - mountPath: /dev/shm
+      name: shm
+  protocolVersions:
+  - v1
+  - v2
+  - grpc-v2
+  supportedModelFormats:
+  - autoSelect: true
+    name: pytorch
+    priority: 2
+    version: "1"
+  volumes:
+  - emptyDir: {}
+    name: model-tmp
+  - emptyDir: {}
+    name: model-logs
+  - emptyDir: {}
+    name: hf-cache
+  - emptyDir:
+      medium: Memory
+      sizeLimit: 2Gi
+    name: shm
