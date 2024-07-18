@@ -71,7 +71,7 @@ Run the makefile target. This creates a Data Science Project called `distributed
 * Kueue configurations
 
 > [!WARNING]  
-> The setup script will delete all clsuterqueues and resourceflavors in the cluster
+> The setup script will delete all clusterqueues and resourceflavors in the cluster.
 
 ``` bash
 make setup-ray-distributed-training
