@@ -24,11 +24,11 @@ In this example, a workbench will be automatically created with a few notebooks 
 
 * Ensure there is at least 1 worker node that has a GPU. On AWS, this can be a p3.8xlarge instance, otherwise you can run the makefile target to add a `machineset` for a single replica of p3.8xlarge.
 
-> [!INFO]  
-> Not all p3 instances are available in every availabilty zones. You can run the following command to check:
-> ```bash 
-> aws ec2 describe-instance-type-offerings --location-type availability-zone --filters Name=instance-type,Values=p3.8xlarge --region <region>
-> ```
+  > [!NOTE]  
+  > Not all p3 instances are available in every availabilty zones. You can run the following command to check:
+  > ```bash 
+  > aws ec2 describe-instance-type-offerings --location-type availability-zone --filters Name=instance-type,Values=p3.8xlarge --region <region>
+  > ```
 
   ```bash
   make add-gpu-machineset
