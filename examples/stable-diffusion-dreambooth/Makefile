@@ -66,15 +66,29 @@ deploy-odf:
 deploy-oai:
 	oc apply -f $(BASE)/yaml/operators/serverless.yaml
 	oc apply -f $(BASE)/yaml/operators/servicemesh.yaml
-	oc apply -f $(BASE)/yaml/operators/oai.yaml
-
-	@until oc get crd knativeservings.operator.knative.dev>/dev/null 2>&1; do \
-    	echo "Wait until CRD knativeservings.operator.knative.dev is ready..."; \
+	
+	@csv_name=$$(oc get csv -o jsonpath='{.items[?(@.spec.displayName=="Red Hat OpenShift Serverless")].metadata.name}'); \
+	until oc get csv $$csv_name -n openshift-serverless -o jsonpath='{.status.phase}' | grep -q "Succeeded"; do \
+		echo "Waiting OpenShift Serverless operator to be ready..."; \
+		sleep 10; \
+	done
+	
+	@csv_name=$$(oc get csv -o jsonpath='{.items[?(@.spec.displayName=="Red Hat OpenShift Service Mesh")].metadata.name}'); \
+	until oc get csv $$csv_name -o jsonpath='{.status.phase}' | grep -q "Succeeded"; do \
+		echo "Waiting OpenShift Serverless operator to be ready..."; \
 		sleep 10; \
 	done
 
-	@until oc get crd servicemeshcontrolplanes.maistra.io>/dev/null 2>&1; do \
-    	echo "Wait until CRD servicemeshcontrolplanes.maistra.io is ready..."; \
+	oc apply -f $(BASE)/yaml/operators/oai.yaml	
+
+	@csv_name=$$(oc get csv -o jsonpath='{.items[?(@.spec.displayName=="Red Hat OpenShift AI")].metadata.name}'); \
+	until oc get csv $$csv_name -o jsonpath='{.status.phase}' | grep -q "Succeeded"; do \
+		echo "Waiting OpenShift AI operator to be ready..."; \
+		sleep 10; \
+	done
+	
+	@until oc get DSCInitialization default-dsci -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
+		echo "Waiting for OpenShift AI DSCInitialization to be ready..."; \
 		sleep 10; \
 	done
 
@@ -85,13 +99,8 @@ deploy-oai:
 	
 	oc apply -f $(BASE)/yaml/operators/dsc.yaml
 
-	@until oc get DSCInitialization default-dsci -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
-		echo "Waiting for OpenShift AI DSCInitialization to be ready..."; \
-		sleep 10; \
-	done
-
 	@until oc get datasciencecluster default-dsc -n redhat-ods-applications -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
-		echo "Waiting for OpenShift AI Data Science Cluster  to be ready..."; \
+		echo "Waiting for OpenShift AI Data Science Cluster to be ready..."; \
 		sleep 60; \
 	done
 	
