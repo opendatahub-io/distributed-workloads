@@ -29,7 +29,7 @@ payload = {
   ]
 } 
 
-response = requests.post(args.url, json=payload)
+response = requests.post(args.url, json=payload, verify=False)
 
 # Contruct image from response
 image = Image.fromarray(np.array(json.loads(response.text)['predictions'][0], dtype="uint8"))
