@@ -45,11 +45,7 @@ deploy-odf:
 
 	oc apply -f $(BASE)/yaml/operators/odf-operator.yaml
 
-	@csv_name=$$(oc get csv -n openshift-storage -o jsonpath='{.items[?(@.spec.displayName=="OpenShift Data Foundation")].metadata.name}'); \
-	until oc get csv $$csv_name -n openshift-storage -o jsonpath='{.status.phase}' | grep -q "Succeeded"; do \
-		echo "Waiting ODF operator to be ready..."; \
-		sleep 10; \
-	done
+	@$(BASE)/scripts/install-operator.sh openshift-storage "OpenShift Data Foundation"
 
 	oc apply -f $(BASE)/yaml/operators/odf-storagecluster.yaml
 	oc apply -f $(BASE)/yaml/operators/odf-storagesystem.yaml
@@ -67,26 +63,12 @@ deploy-oai:
 	oc apply -f $(BASE)/yaml/operators/serverless.yaml
 	oc apply -f $(BASE)/yaml/operators/servicemesh.yaml
 	
-	@csv_name=$$(oc get csv -o jsonpath='{.items[?(@.spec.displayName=="Red Hat OpenShift Serverless")].metadata.name}'); \
-	until oc get csv $$csv_name -n openshift-serverless -o jsonpath='{.status.phase}' | grep -q "Succeeded"; do \
-		echo "Waiting OpenShift Serverless operator to be ready..."; \
-		sleep 10; \
-	done
-	
-	@csv_name=$$(oc get csv -o jsonpath='{.items[?(@.spec.displayName=="Red Hat OpenShift Service Mesh")].metadata.name}'); \
-	until oc get csv $$csv_name -o jsonpath='{.status.phase}' | grep -q "Succeeded"; do \
-		echo "Waiting OpenShift Serverless operator to be ready..."; \
-		sleep 10; \
-	done
+	@$(BASE)/scripts/install-operator.sh openshift-serverless "Red Hat OpenShift Serverless"
+	@$(BASE)/scripts/install-operator.sh default "Red Hat OpenShift Service Mesh"
 
 	oc apply -f $(BASE)/yaml/operators/oai.yaml	
+	@$(BASE)/scripts/install-operator.sh redhat-ods-operator "Red Hat OpenShift AI"
 
-	@csv_name=$$(oc get csv -o jsonpath='{.items[?(@.spec.displayName=="Red Hat OpenShift AI")].metadata.name}'); \
-	until oc get csv $$csv_name -o jsonpath='{.status.phase}' | grep -q "Succeeded"; do \
-		echo "Waiting OpenShift AI operator to be ready..."; \
-		sleep 10; \
-	done
-	
 	@until oc get DSCInitialization default-dsci -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
 		echo "Waiting for OpenShift AI DSCInitialization to be ready..."; \
 		sleep 10; \
@@ -103,6 +85,8 @@ deploy-oai:
 		echo "Waiting for OpenShift AI Data Science Cluster to be ready..."; \
 		sleep 60; \
 	done
+
+	@echo "OpenShift AI Data Science Cluster is ready"
 	
 teardown-ray-distributed-training:
 	-oc delete -f $(BASE)/yaml/distributed/git-clone.yaml
