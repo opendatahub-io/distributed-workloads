@@ -79,7 +79,7 @@ make setup-ray-distributed-training
 
 ## Running the Examples
 
-In the workbench, navigate to `examples/stable-diffusion-dreambooth/notebook` to begin exploring the notebooks.
+In the workbench, navigate to `openshift-ai-ray/notebook` to begin exploring the notebooks.
 
 ### Fine-tune of Stable Diffusion with DreamBooth and Ray Train
 
