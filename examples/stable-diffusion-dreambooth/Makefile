@@ -45,8 +45,9 @@ deploy-odf:
 
 	oc apply -f $(BASE)/yaml/operators/odf-operator.yaml
 
-	@until oc get crd storageclusters.ocs.openshift.io>/dev/null 2>&1; do \
-    	echo "Wait until CRD storageclusters.ocs.openshift.io is ready..."; \
+	@csv_name=$$(oc get csv -n openshift-storage -o jsonpath='{.items[?(@.spec.displayName=="OpenShift Data Foundation")].metadata.name}'); \
+	until oc get csv $$csv_name -n openshift-storage -o jsonpath='{.status.phase}' | grep -q "Succeeded"; do \
+		echo "Waiting ODF operator to be ready..."; \
 		sleep 10; \
 	done
 
@@ -54,7 +55,7 @@ deploy-odf:
 	oc apply -f $(BASE)/yaml/operators/odf-storagesystem.yaml
 	
 	@until oc get storagecluster ocs-storagecluster -n openshift-storage -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
-		echo "Waiting for ODF to be ready..."; \
+		echo "Waiting for ODF Storage Cluster to be ready..."; \
 		sleep 60; \
 	done
 	
