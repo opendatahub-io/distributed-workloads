@@ -94,6 +94,7 @@ teardown-ray-distributed-training:
 	-oc delete -f $(BASE)/yaml/distributed/workbench.yaml
 	-oc delete -f $(BASE)/yaml/distributed/cephfs-pvc.yaml
 	-oc delete -f $(BASE)/yaml/distributed/serving-runtime-template.yaml
+	-oc delete -n $(NAMESPACE) -f $(BASE)/yaml/distributed/minio.yaml
 	-oc delete -f $(BASE)/yaml/distributed/ns.yaml
 
 setup-ray-distributed-training: teardown-ray-distributed-training
