@@ -63,6 +63,10 @@ func TestMultiGpuPytorchjobMixtral8x7bInstructv01(t *testing.T) {
 	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_instruct_v01.json")
 }
 
+func TestMultiGpuPytorchjobMerlinite7b(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_merlinite_7b.json")
+}
+
 func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string) {
 	test := With(t)
 
