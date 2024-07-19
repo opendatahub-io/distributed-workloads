@@ -5,7 +5,7 @@ metadata:
   namespace: distributed
 subjects:
   - kind: ServiceAccount
-    name: stable-diffusion
+    name: stable-diffusion-nb
     namespace: distributed
 roleRef:
   apiGroup: rbac.authorization.k8s.io

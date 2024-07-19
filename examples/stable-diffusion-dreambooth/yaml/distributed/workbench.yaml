@@ -4,15 +4,14 @@ metadata:
   annotations:
     notebooks.opendatahub.io/inject-oauth: 'true'
     opendatahub.io/image-display-name: Standard Data Science
-    #notebooks.opendatahub.io/oauth-logout-url: 'https://rhods-dashboard-redhat-ods-applications.apps.cluster-frvw4.frvw4.sandbox1107.opentlc.com/projects/distributed?notebookLogout=stable-diffusion'
     openshift.io/description: ''
-    openshift.io/display-name: stable-diffusion
+    openshift.io/display-name: stable-diffusion-nb
     notebooks.opendatahub.io/last-image-selection: 's2i-generic-data-science-notebook:2024.1'
     notebooks.opendatahub.io/last-size-selection: Medium    
-  name: stable-diffusion
+  name: stable-diffusion-nb
   namespace: distributed
   labels:
-    app: stable-diffusion
+    app: stable-diffusion-nb
     opendatahub.io/dashboard: 'true'
     opendatahub.io/odh-managed: 'true'
 spec:
@@ -30,18 +29,18 @@ spec:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /notebook/distributed/stable-diffusion/api
+              path: /notebook/distributed/stable-diffusion-nb/api
               port: notebook-port
               scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 5
             successThreshold: 1
             timeoutSeconds: 1
-          name: stable-diffusion
+          name: stable-diffusion-nb
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /notebook/distributed/stable-diffusion/api
+              path: /notebook/distributed/stable-diffusion-nb/api
               port: notebook-port
               scheme: HTTP
             initialDelaySeconds: 10
@@ -54,7 +53,7 @@ spec:
                 --ServerApp.port=8888
                                   --ServerApp.token=''
                                   --ServerApp.password=''
-                                  --ServerApp.base_url=/notebook/distributed/stable-diffusion
+                                  --ServerApp.base_url=/notebook/distributed/stable-diffusion-nb
                                   --ServerApp.quit_button=False
                                   --ServerApp.tornado_settings={"user":"admin","hub_host":"https://rhods-dashboard-redhat-ods-applications.apps.cluster-frvw4.frvw4.sandbox1107.opentlc.com","hub_prefix":"/projects/distributed"}
             - name: JUPYTER_IMAGE
@@ -134,7 +133,7 @@ spec:
             - '--provider=openshift'
             - '--https-address=:8443'
             - '--http-address='
-            - '--openshift-service-account=stable-diffusion'
+            - '--openshift-service-account=stable-diffusion-nb'
             - '--cookie-secret-file=/etc/oauth/config/cookie_secret'
             - '--cookie-expire=24h0m0s'
             - '--tls-cert=/etc/tls/private/tls.crt'
@@ -143,10 +142,10 @@ spec:
             - '--upstream-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt'
             - '--email-domain=*'
             - '--skip-provider-button'
-            - '--openshift-sar={"verb":"get","resource":"notebooks","resourceAPIGroup":"kubeflow.org","resourceName":"stable-diffusion","namespace":"$(NAMESPACE)"}'
+            - '--openshift-sar={"verb":"get","resource":"notebooks","resourceAPIGroup":"kubeflow.org","resourceName":"stable-diffusion-nb","namespace":"$(NAMESPACE)"}'
             - '--logout-url=https://rhods-dashboard-redhat-ods-applications.apps.cluster-frvw4.frvw4.sandbox1107.opentlc.com/projects/distributed?notebookLogout=stable-diffusion'
       enableServiceLinks: false
-      serviceAccountName: stable-diffusion
+      serviceAccountName: stable-diffusion-nb
       tolerations:
         - effect: NoSchedule
           key: nvidia.com/gpu
@@ -168,8 +167,8 @@ spec:
         - name: oauth-config
           secret:
             defaultMode: 420
-            secretName: stable-diffusion-oauth-config
+            secretName: stable-diffusion-nb-oauth-config
         - name: tls-certificates
           secret:
             defaultMode: 420
-            secretName: stable-diffusion-tls
+            secretName: stable-diffusion-nb-tls
