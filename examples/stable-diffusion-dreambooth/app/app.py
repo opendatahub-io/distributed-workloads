@@ -39,7 +39,7 @@ def call_api(prompt):
 
     logger.info(f"API endpoint: {endpoint}")
 
-    response = requests.post(endpoint, json=payload)
+    response = requests.post(endpoint, json=payload, verify=False)
 
     return json.loads(response.text)['predictions'][0]
 

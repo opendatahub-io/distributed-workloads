@@ -21,7 +21,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-response = requests.post(args.url, data=args.prompt)
+response = requests.post(args.url, data=args.prompt, verify=False)
 
 print(response)
 
