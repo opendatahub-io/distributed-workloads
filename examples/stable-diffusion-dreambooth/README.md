@@ -54,7 +54,7 @@ ocs-storagecluster-cephfs`. The `stable-diffusion-shared-storage` pvc uses cephf
   oc apply -f yaml/operators/rook-ceph-operator-config.yaml
   ```
 
-  ``` yaml
+  ```yaml
   data:
     CSI_PLUGIN_TOLERATIONS: |-
       - key: nvidia.com/gpu
