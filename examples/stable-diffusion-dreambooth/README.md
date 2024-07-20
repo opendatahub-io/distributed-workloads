@@ -44,13 +44,13 @@ ocs-storagecluster-cephfs`. The `stable-diffusion-shared-storage` pvc uses cephf
 
   You can install OpenShift Data Foundation (ODF) to achieve this. ODF will require a minimum of 3 worker nodes to start with. 
 
-  ```
+  ```bash
   make deploy-odf
   ```
 
   The CSI plugin daemonset will have to be updated to tolerate the GPU taint. 
 
-  ``` 
+  ```bash
   oc apply -f yaml/operators/rook-ceph-operator-config.yaml
   ```
 
@@ -79,7 +79,7 @@ Run the makefile target. This creates a Data Science Project called `distributed
 > [!WARNING]  
 > The setup script will delete all clusterqueues and resourceflavors in the cluster.
 
-``` bash
+```bash
 make setup-ray-distributed-training
 ```
 
@@ -99,7 +99,7 @@ Once a Ray cluster has been created, you can login with your user account to the
 
 Once the model hase been fine tuned, you can [generate](https://docs.ray.io/en/latest/train/examples/pytorch/dreambooth_finetuning.html#step-5-generate-images-of-the-subject) your images which is provided in the notebook.
 
-``` bash
+```bash
   python generate.py \
     --model_dir=$TUNED_MODEL_DIR \
     --output_dir=$IMAGES_NEW_DIR \
