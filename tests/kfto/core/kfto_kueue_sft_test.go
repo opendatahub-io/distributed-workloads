@@ -30,7 +30,15 @@ import (
 	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 )
 
-func TestPytorchjobWithSFTtrainer(t *testing.T) {
+func TestPytorchjobWithSFTtrainerFinetuning(t *testing.T) {
+	runPytorchjobWithSFTtrainer(t, "config.json")
+}
+
+func TestPytorchjobWithSFTtrainerLoRa(t *testing.T) {
+	runPytorchjobWithSFTtrainer(t, "config_lora.json")
+}
+
+func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string) {
 	test := With(t)
 
 	// Create a namespace
@@ -38,7 +46,7 @@ func TestPytorchjobWithSFTtrainer(t *testing.T) {
 
 	// Create a ConfigMap with training dataset and configuration
 	configData := map[string][]byte{
-		"config.json":                   ReadFile(test, "config.json"),
+		"config.json":                   ReadFile(test, modelConfigFile),
 		"twitter_complaints_small.json": ReadFile(test, "twitter_complaints_small.json"),
 	}
 	config := CreateConfigMap(test, namespace.Name, configData)
@@ -90,7 +98,7 @@ func TestPytorchjobWithSFTtrainer(t *testing.T) {
 		Should(WithTransform(PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Make sure the PyTorch job succeed
-	test.Eventually(PytorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutShort).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PytorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutMedium).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 }
 
