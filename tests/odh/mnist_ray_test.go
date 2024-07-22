@@ -162,7 +162,6 @@ func readMnistPy(test Test) []byte {
 	storage_bucket_mnist_dir, storage_bucket_mnist_dir_exists := GetStorageBucketMnistDir()
 
 	props := struct {
-		MnistDatasetURL                    string
 		StorageBucketDefaultEndpoint       string
 		StorageBucketDefaultEndpointExists bool
 		StorageBucketAccessKeyId           string
@@ -174,7 +173,6 @@ func readMnistPy(test Test) []byte {
 		StorageBucketMnistDir              string
 		StorageBucketMnistDirExists        bool
 	}{
-		MnistDatasetURL:                    GetMnistDatasetURL(),
 		StorageBucketDefaultEndpoint:       storage_bucket_endpoint,
 		StorageBucketDefaultEndpointExists: storage_bucket_endpoint_exists,
 		StorageBucketAccessKeyId:           storage_bucket_access_key_id,

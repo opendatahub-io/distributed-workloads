@@ -31,7 +31,6 @@
 * `NOTEBOOK_USER_NAME` - Username of user used for running Workbench
 * `NOTEBOOK_USER_TOKEN` - Login token of user used for running Workbench
 * `NOTEBOOK_IMAGE` - Image used for running Workbench
-* `MNIST_DATASET_URL` - External source from which to download MNIST datasets (Example : http://yann.lecun.com/exdb/mnist)
 
 To download MNIST training script datasets from S3 compatible storage, use the environment variables mentioned below : 
 * `AWS_DEFAULT_ENDPOINT` - Storage bucket endpoint from which to download MNIST datasets

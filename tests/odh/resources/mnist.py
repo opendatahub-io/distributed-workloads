@@ -39,8 +39,6 @@ print("prior to running the trainer")
 print("MASTER_ADDR: is ", os.getenv("MASTER_ADDR"))
 print("MASTER_PORT: is ", os.getenv("MASTER_PORT"))
 
-MNIST_DATASET_URL = "{{.MnistDatasetURL}}"
-print("MNIST_DATASET_URL: is ", MNIST_DATASET_URL)
 
 STORAGE_BUCKET_EXISTS = "{{.StorageBucketDefaultEndpointExists}}"
 print("STORAGE_BUCKET_EXISTS: ",STORAGE_BUCKET_EXISTS)
@@ -127,47 +125,7 @@ class LitMNIST(LightningModule):
         # download
         print("Downloading MNIST dataset...")
 
-        if "{{.StorageBucketDefaultEndpointExists}}" != "true":
-            print("Using MNIST_DATASET_URL to download datasets...")
-            datasetFiles = [
-                "t10k-images-idx3-ubyte.gz",
-                "t10k-labels-idx1-ubyte.gz",
-                "train-images-idx3-ubyte.gz",
-                "train-labels-idx1-ubyte.gz",
-            ]
-            # Create required folder structure
-            downloadLocation = os.path.join(local_mnist_path, "MNIST", "raw")
-            os.makedirs(downloadLocation, exist_ok=True)
-            print(f"{downloadLocation} folder_path created!")
-
-            for file in datasetFiles:
-                print(f"Downloading MNIST dataset {file} to path : {downloadLocation}")
-                response = requests.get(
-                    f"{MNIST_DATASET_URL+'/' if MNIST_DATASET_URL[-1]!='/' else MNIST_DATASET_URL}{file}", stream=True
-                )
-                filePath = os.path.join(downloadLocation, file)
-
-                # to download dataset file
-                try:
-                    if response.status_code == 200:
-                        open(filePath, "wb").write(response.content)
-                        print(
-                            f"{file}: Downloaded and saved zipped file to path - {filePath}"
-                        )
-                        # Unzip files
-                        with gzip.open(filePath, "rb") as f_in:
-                            with open(filePath.split(".")[:-1][0], "wb") as f_out:
-                                shutil.copyfileobj(f_in, f_out)
-                        # delete zip file
-                        os.remove(filePath)
-                    else:
-                        print(f"Failed to download file {file}")
-                except Exception as e:
-                    print(e)
-            print(f"Downloaded MNIST dataset to... {downloadLocation}")
-            download_datasets = False
-
-        elif "{{.StorageBucketDefaultEndpointExists}}" == "true" and "{{.StorageBucketDefaultEndpoint}}" != "":
+        if "{{.StorageBucketDefaultEndpointExists}}" == "true" and "{{.StorageBucketDefaultEndpoint}}" != "":
             print("Using storage bucket to download datasets...")
             dataset_dir = os.path.join(self.data_dir, "MNIST/raw")
             endpoint = "{{.StorageBucketDefaultEndpoint}}"
@@ -211,7 +169,7 @@ class LitMNIST(LightningModule):
             download_datasets = False
 
         else:
-            print("Using default MNIST reference to download datasets...")
+            print("Using default MNIST mirror reference to download datasets...")
             download_datasets = True
 
         MNIST(self.data_dir, train=True, download=download_datasets)
