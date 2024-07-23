@@ -10,7 +10,9 @@ The example codes are from:
 
 ## Overview 
 
-In this example, a workbench will be automatically created with a few notebooks to explore Ray.
+In this example, a workbench will be automatically created with a few notebooks to explore [Ray](https://docs.ray.io/en/latest/index.html). 
+
+[Kueue](https://kueue.sigs.k8s.io/docs/overview/) is used in the example and has native integeration with RayJob and RayCluster.
 
 | Name | Description |
 | -------------------- | ----------- |
@@ -74,7 +76,7 @@ make install-openshift-ai
 Run the makefile target. This creates a Data Science Project called `distributed` with the following
 * A CephFS RWX PVC
 * A single workbench with the git repository already cloned inside
-* Kueue configurations
+* Kueue will be configured. A `LocalQueue` in the project that uses the `distributed-cq` ClusterQueue
 
 > [!WARNING]  
 > The setup script will delete all clusterqueues and resourceflavors in the cluster.
