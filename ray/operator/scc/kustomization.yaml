@@ -1,6 +1,0 @@
-resources:
-- ray_operator_scc.yaml
-
-commonLabels:
-  app.kubernetes.io/name: kuberay
-  app.kubernetes.io/component: kuberay-operator

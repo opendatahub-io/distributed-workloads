@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: null
+  name: nvidia-gpu-operator
+spec: {}
+status: {}
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  annotations:
+    olm.providedAPIs: ClusterPolicy.v1.nvidia.com
+  name: nvidia-gpu-operator
+  namespace: nvidia-gpu-operator
+spec:
+  targetNamespaces:
+  - nvidia-gpu-operator
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  labels:
+    operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator: ""
+  name: gpu-operator-certified
+  namespace: nvidia-gpu-operator
+spec:
+  channel: v23.6
+  installPlanApproval: Automatic
+  name: gpu-operator-certified
+  source: certified-operators
+  sourceNamespace: openshift-marketplace

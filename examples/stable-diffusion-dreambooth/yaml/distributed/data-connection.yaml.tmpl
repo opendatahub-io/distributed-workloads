@@ -1,0 +1,22 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: aws-connection-minio
+  namespace: distributed  
+  labels:
+    opendatahub.io/dashboard: 'true'
+    opendatahub.io/managed: 'true'
+  annotations:
+    opendatahub.io/connection-type: s3
+    openshift.io/display-name: minio
+data:
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+stringData:
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_S3_BUCKET: my-storage
+  # Needed for AWS CLI https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
+  AWS_ENDPOINT_URL_S3: https://${AWS_S3_ENDPOINT}
+  # Need for KServe/OpenShift AI
+  AWS_S3_ENDPOINT: https://${AWS_S3_ENDPOINT}
+type: Opaque
