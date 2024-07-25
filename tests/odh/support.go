@@ -20,7 +20,13 @@ import (
 	"embed"
 
 	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	"github.com/project-codeflare/codeflare-common/support"
+	. "github.com/project-codeflare/codeflare-common/support"
+	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 //go:embed resources/*
@@ -31,4 +37,19 @@ func ReadFile(t support.Test, fileName string) []byte {
 	file, err := files.ReadFile(fileName)
 	t.Expect(err).NotTo(gomega.HaveOccurred())
 	return file
+}
+
+// TODO: This belongs on codeflare-common/support/ray.go
+func rayClusters(t Test, namespace *corev1.Namespace) func(g Gomega) []*rayv1.RayCluster {
+	return func(g Gomega) []*rayv1.RayCluster {
+		rcs, err := t.Client().Ray().RayV1().RayClusters(namespace.Name).List(t.Ctx(), metav1.ListOptions{})
+		g.Expect(err).NotTo(HaveOccurred())
+
+		rcsp := []*rayv1.RayCluster{}
+		for _, v := range rcs.Items {
+			rcsp = append(rcsp, &v)
+		}
+
+		return rcsp
+	}
 }
