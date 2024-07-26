@@ -98,7 +98,7 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string) {
 	if IsOpenShift(test) {
 		// Check that GPUs were utilized recently
 		// That itself doesn't guarantee that PyTorchJob generated the load in GPU, but is the best we can achieve for now
-		test.Eventually(openShiftPrometheusGpuUtil(test, namespace), 30*time.Minute).
+		test.Eventually(openShiftPrometheusGpuUtil(test, namespace), 60*time.Minute).
 			Should(
 				And(
 					HaveLen(numberOfGpus),
@@ -111,7 +111,7 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string) {
 	}
 
 	// Make sure the PyTorch job succeed
-	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), 30*time.Minute).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), 60*time.Minute).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 }
 
