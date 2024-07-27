@@ -24,25 +24,24 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
-	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
 )
 
-func TestMnistRayCpu(t *testing.T) {
-	mnistRay(t, 0)
+func TestMnistRayTuneHpoCpu(t *testing.T) {
+	mnistRayTuneHpo(t, 0)
 }
 
-func TestMnistRayGpu(t *testing.T) {
-	mnistRay(t, 1)
+func TestMnistRayTuneHpoGpu(t *testing.T) {
+	mnistRayTuneHpo(t, 1)
 }
 
-func mnistRay(t *testing.T, numGpus int) {
+func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	test := With(t)
 
-	// Create a namespace
+	// Creating a namespace
 	namespace := test.NewTestNamespace()
 
 	// Create Kueue resources
@@ -80,18 +79,20 @@ func mnistRay(t *testing.T, numGpus int) {
 	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name)
 
 	// Test configuration
-	jupyterNotebookConfigMapFileName := "mnist_ray_mini.ipynb"
-	mnist := readMnistPy(test)
+	jupyterNotebookConfigMapFileName := "mnist_hpo_raytune.ipynb"
+	mnist_hpo := ReadFile(test, "resources/mnist_hpo.py")
+
 	if numGpus > 0 {
-		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"gpu\""), 1)
+		mnist_hpo = bytes.Replace(mnist_hpo, []byte("gpu_value=\"has to be specified\""), []byte("gpu_value=\"1\""), 1)
 	} else {
-		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"cpu\""), 1)
+		mnist_hpo = bytes.Replace(mnist_hpo, []byte("gpu_value=\"has to be specified\""), []byte("gpu_value=\"0\""), 1)
 	}
+
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
-		// MNIST Ray Notebook
-		jupyterNotebookConfigMapFileName: ReadFile(test, "resources/mnist_ray_mini.ipynb"),
-		"mnist.py":                       mnist,
-		"requirements.txt":               readRequirementsTxt(test),
+		// MNIST Raytune HPO Notebook
+		jupyterNotebookConfigMapFileName: ReadFile(test, "resources/mnist_hpo_raytune.ipynb"),
+		"mnist_hpo.py":                   mnist_hpo,
+		"hpo_raytune_requirements.txt":   ReadFile(test, "resources/hpo_raytune_requirements.txt"),
 	})
 
 	// Define the regular(non-admin) user
@@ -131,61 +132,4 @@ func mnistRay(t *testing.T, numGpus int) {
 	// Make sure the RayCluster finishes and is deleted
 	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
 		Should(HaveLen(0))
-}
-
-func readRequirementsTxt(test Test) []byte {
-	// Read the requirements.txt from resources and perform replacements for custom values using go template
-	props := struct {
-		PipIndexUrl    string
-		PipTrustedHost string
-	}{
-		PipIndexUrl: "--index " + string(GetPipIndexURL()),
-	}
-
-	// Provide trusted host only if defined
-	if len(GetPipTrustedHost()) > 0 {
-		props.PipTrustedHost = "--trusted-host " + GetPipTrustedHost()
-	}
-
-	template, err := files.ReadFile("resources/requirements.txt")
-	test.Expect(err).NotTo(HaveOccurred())
-
-	return ParseTemplate(test, template, props)
-}
-
-func readMnistPy(test Test) []byte {
-	// Read the mnist.py from resources and perform replacements for custom values using go template
-	storage_bucket_endpoint, storage_bucket_endpoint_exists := GetStorageBucketDefaultEndpoint()
-	storage_bucket_access_key_id, storage_bucket_access_key_id_exists := GetStorageBucketAccessKeyId()
-	storage_bucket_secret_key, storage_bucket_secret_key_exists := GetStorageBucketSecretKey()
-	storage_bucket_name, storage_bucket_name_exists := GetStorageBucketName()
-	storage_bucket_mnist_dir, storage_bucket_mnist_dir_exists := GetStorageBucketMnistDir()
-
-	props := struct {
-		StorageBucketDefaultEndpoint       string
-		StorageBucketDefaultEndpointExists bool
-		StorageBucketAccessKeyId           string
-		StorageBucketAccessKeyIdExists     bool
-		StorageBucketSecretKey             string
-		StorageBucketSecretKeyExists       bool
-		StorageBucketName                  string
-		StorageBucketNameExists            bool
-		StorageBucketMnistDir              string
-		StorageBucketMnistDirExists        bool
-	}{
-		StorageBucketDefaultEndpoint:       storage_bucket_endpoint,
-		StorageBucketDefaultEndpointExists: storage_bucket_endpoint_exists,
-		StorageBucketAccessKeyId:           storage_bucket_access_key_id,
-		StorageBucketAccessKeyIdExists:     storage_bucket_access_key_id_exists,
-		StorageBucketSecretKey:             storage_bucket_secret_key,
-		StorageBucketSecretKeyExists:       storage_bucket_secret_key_exists,
-		StorageBucketName:                  storage_bucket_name,
-		StorageBucketNameExists:            storage_bucket_name_exists,
-		StorageBucketMnistDir:              storage_bucket_mnist_dir,
-		StorageBucketMnistDirExists:        storage_bucket_mnist_dir_exists,
-	}
-	template, err := files.ReadFile("resources/mnist.py")
-	test.Expect(err).NotTo(HaveOccurred())
-
-	return ParseTemplate(test, template, props)
 }
