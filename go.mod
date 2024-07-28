@@ -16,6 +16,8 @@ require (
 	sigs.k8s.io/kueue v0.6.2
 )
 
+replace github.com/project-codeflare/codeflare-common => /home/abdhumal/abhidev/RedHatDev/codeflare-common
+
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
