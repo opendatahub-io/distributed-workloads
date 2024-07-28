@@ -51,7 +51,7 @@ spec:
         - name: JUPYTER_NOTEBOOK_PORT
           value: "8888"
         image: {{.NotebookImage}}
-        command: ["/bin/sh", "-c", "pip install papermill && papermill /opt/app-root/notebooks/{{.NotebookConfigMapFileName}} /opt/app-root/src/mcad-out.ipynb -p namespace {{.Namespace}} -p ray_image {{.RayImage}} -p local_queue {{.LocalQueue}} -p openshift_api_url {{.OpenShiftApiUrl}} -p kubernetes_user_bearer_token {{.KubernetesUserBearerToken}} -p num_gpus {{ .NumGpus }} --log-output && sleep infinity"]
+        command: ["/bin/sh", "-c", "pip install papermill && papermill /opt/app-root/notebooks/{{.NotebookConfigMapFileName}} /opt/app-root/src/mcad-out.ipynb -p namespace {{.Namespace}} -p ray_image {{.RayImage}} -p openshift_api_url {{.OpenShiftApiUrl}} -p kubernetes_user_bearer_token {{.KubernetesUserBearerToken}} -p num_gpus {{ .NumGpus }} -p s3_bucket_name {{.S3BucketName}} -p s3_access_key_id {{.S3AccessKeyId}} -p s3_secret_access_key {{.S3SecretAccessKey}} -p s3_default_region {{.S3DefaultRegion}} --log-output && sleep infinity"]
         # args: ["pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks/mcad.ipynb /opt/app-root/src/mcad-out.ipynb" ]
         imagePullPolicy: Always
         # livenessProbe:
