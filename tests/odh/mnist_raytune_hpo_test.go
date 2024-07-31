@@ -76,7 +76,10 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	}
 	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
 	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
-	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name)
+	annotations := map[string]string{
+		"kueue.x-k8s.io/default-queue": "true",
+	}
+	CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, annotations)
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "mnist_hpo_raytune.ipynb"
@@ -103,7 +106,7 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, localQueue.Name, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	createNotebook(test, namespace, userToken, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {

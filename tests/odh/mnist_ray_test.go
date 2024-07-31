@@ -77,7 +77,10 @@ func mnistRay(t *testing.T, numGpus int) {
 	}
 	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
 	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
-	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name)
+	annotations := map[string]string{
+		"kueue.x-k8s.io/default-queue": "true",
+	}
+	CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, annotations)
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "mnist_ray_mini.ipynb"
@@ -102,7 +105,7 @@ func mnistRay(t *testing.T, numGpus int) {
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, localQueue.Name, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	createNotebook(test, namespace, userToken, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {
@@ -111,7 +114,7 @@ func mnistRay(t *testing.T, numGpus int) {
 	}()
 
 	// Make sure the RayCluster is created and running
-	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
 		Should(
 			And(
 				HaveLen(1),
@@ -129,7 +132,7 @@ func mnistRay(t *testing.T, numGpus int) {
 		)
 
 	// Make sure the RayCluster finishes and is deleted
-	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
 		Should(HaveLen(0))
 }
 

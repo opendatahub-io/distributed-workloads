@@ -99,7 +99,10 @@ func TestSetupPytorchjob(t *testing.T) {
 	clusterQueue, err = test.Client().Kueue().KueueV1beta1().ClusterQueues().Create(test.Ctx(), clusterQueue, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 
-	localQueue := CreateKueueLocalQueue(test, namespaceName, clusterQueue.Name)
+	annotations := map[string]string{
+		"kueue.x-k8s.io/default-queue": "true",
+	}
+	localQueue := CreateKueueLocalQueue(test, namespaceName, clusterQueue.Name, annotations)
 
 	// Create training PyTorch job
 	tuningJob := createPyTorchJob(test, namespaceName, localQueue.Name, *config)

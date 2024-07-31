@@ -41,14 +41,13 @@ type NotebookProps struct {
 	OpenDataHubNamespace      string
 	RayImage                  string
 	NotebookImage             string
-	LocalQueue                string
 	NotebookConfigMapName     string
 	NotebookConfigMapFileName string
 	NotebookPVC               string
 	NumGpus                   int
 }
 
-func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, localQueue, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int) {
+func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int) {
 	// Create PVC for Notebook
 	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", corev1.ReadWriteOnce)
 
@@ -61,7 +60,6 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, l
 		OpenDataHubNamespace:      GetOpenDataHubNamespace(test),
 		RayImage:                  GetRayImage(),
 		NotebookImage:             GetNotebookImage(test),
-		LocalQueue:                localQueue,
 		NotebookConfigMapName:     jupyterNotebookConfigMapName,
 		NotebookConfigMapFileName: jupyterNotebookConfigMapFileName,
 		NotebookPVC:               notebookPVC.Name,
