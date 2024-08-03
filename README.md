@@ -20,6 +20,9 @@
 * `CODEFLARE_TEST_TIMEOUT_SHORT` - Timeout duration for short tasks
 * `CODEFLARE_TEST_TIMEOUT_MEDIUM` - Timeout duration for medium tasks
 * `CODEFLARE_TEST_TIMEOUT_LONG` - Timeout duration for long tasks
+* `CODEFLARE_TEST_RAY_IMAGE` (Optional) - Ray image used for raycluster configuration 
+
+    NOTE: `quay.io/rhoai/ray:2.23.0-py39-cu121` is the default community image used for creating a raycluster resource. If you have your own custom ray image which suits your purposes, specify it in `CODEFLARE_TEST_RAY_IMAGE` environment variable.
 
 ### Environment variables for Training operator test suite
 
@@ -38,8 +41,6 @@ To download MNIST training script datasets from S3 compatible storage, use the e
 * `AWS_SECRET_ACCESS_KEY` - Storage bucket secret key
 * `AWS_STORAGE_BUCKET` - Storage bucket name
 * `AWS_STORAGE_BUCKET_MNIST_DIR` - Storage bucket directory from which to download MNIST datasets.
-
-Note : Either use 
 
 ### Running Tests
 
