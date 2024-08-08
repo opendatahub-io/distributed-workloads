@@ -57,10 +57,18 @@ type NotebookProps struct {
 func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int) {
 	// Create PVC for Notebook
 	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", corev1.ReadWriteOnce)
-	s3BucketName, _ := GetStorageBucketName()
+	s3BucketName, exists := GetStorageBucketName()
 	s3AccessKeyId, _ := GetStorageBucketAccessKeyId()
 	s3SecretAccessKey, _ := GetStorageBucketSecretKey()
 	s3DefaultRegion, _ := GetStorageBucketDefaultRegion()
+
+	if !exists {
+		println("Storage bucket doesn't exists!")
+		s3BucketName = "\"\""
+		s3AccessKeyId = "\"\""
+		s3SecretAccessKey = "\"\""
+		s3DefaultRegion = "\"\""
+	}
 
 	// Read the Notebook CR from resources and perform replacements for custom values using go template
 	notebookProps := NotebookProps{

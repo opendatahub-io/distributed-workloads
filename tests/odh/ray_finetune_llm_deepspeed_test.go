@@ -17,7 +17,9 @@ limitations under the License.
 package odh
 
 import (
+	"os"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -33,20 +35,19 @@ func mnistRayLlmFinetune(t *testing.T, numGpus int) {
 
 	// Create a namespace
 	namespace := test.NewTestNamespace()
+	var workingDirectory, _ = os.Getwd()
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "ray_finetune_llm_deepspeed.ipynb"
-
-	// Test configuration
 	configMap := map[string][]byte{
 		// MNIST Ray Notebook
 		jupyterNotebookConfigMapFileName: ReadFile(test, "resources/ray_finetune_demo/ray_finetune_llm_deepspeed.ipynb"),
-		"ray_finetune_llm_deepspeed.py":  ReadFile(test, "resources/ray_finetune_demo/ray_finetune_llm_deepspeed.py"),
+		"ray_finetune_llm_deepspeed.py":  ReadFileExt(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/ray_finetune_llm_deepspeed.py"),
 		"ray_finetune_requirements.txt":  ReadRayFinetuneRequirementsTxt(test),
-		"create_dataset.py":              ReadFile(test, "resources/ray_finetune_demo/create_dataset.py"),
-		"lora.json":                      ReadFile(test, "resources/ray_finetune_demo/lora.json"),
-		"zero_3_llama_2_7b.json":         ReadFile(test, "resources/ray_finetune_demo/zero_3_llama_2_7b.json"),
-		"utils.py":                       ReadFile(test, "resources/ray_finetune_demo/utils.py"),
+		"create_dataset.py":              ReadFileExt(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/create_dataset.py"),
+		"lora.json":                      ReadFileExt(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/lora_configs/lora.json"),
+		"zero_3_llama_2_7b.json":         ReadFileExt(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/deepspeed_configs/zero_3_llama_2_7b.json"),
+		"utils.py":                       ReadFileExt(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/utils.py"),
 	}
 
 	config := CreateConfigMap(test, namespace.Name, configMap)
@@ -75,9 +76,13 @@ func mnistRayLlmFinetune(t *testing.T, numGpus int) {
 				ContainElement(WithTransform(RayClusterState, Equal(rayv1.Ready))),
 			),
 		)
+	time.Sleep(30 * time.Second)
+
+	jobStatus := ReadJobLogs(test, namespace)
+	test.Expect(jobStatus).To(Equal("SUCCEEDED"))
 
 	// Make sure the RayCluster finishes and is deleted
-	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutGpuProvisioning).
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutMedium).
 		Should(HaveLen(0))
 }
 

@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -128,6 +129,11 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 				ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrueBecause("Workload failed to be admitted"))),
 			),
 		)
+
+	time.Sleep(30 * time.Second)
+
+	jobStatus := ReadJobLogs(test, namespace)
+	test.Expect(jobStatus).To(Equal("SUCCEEDED"))
 
 	// Make sure the RayCluster finishes and is deleted
 	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
