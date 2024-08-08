@@ -601,6 +601,9 @@ def parse_args():
 
     parser.add_argument("--lora", action="store_true", default=False,
                         help="If passed, will enable parameter efficient fine-tuning with LoRA.")
+    
+    parser.add_argument("--lora-config", type=str, default="./lora_configs/lora.json",
+                        help="Lora config json to use.")
 
     parser.add_argument("--num-epochs", type=int, default=1,
                         help="Number of epochs to train for.")
@@ -669,7 +672,7 @@ def main():
 
     # Add LoRA config if needed
     if args.lora:
-        with open("./lora_configs/lora.json", "r") as json_file:
+        with open(args.lora_config, "r") as json_file:
             lora_config = json.load(json_file)
         config["lora_config"] = lora_config
 
