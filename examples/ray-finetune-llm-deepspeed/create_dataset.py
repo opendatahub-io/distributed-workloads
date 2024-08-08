@@ -2,6 +2,10 @@ from datasets import load_dataset
 import json
 import os
 
+cache_dir="../../datasets"
+if not os.path.exists(cache_dir):
+    cache_dir=""
+dataset = load_dataset("gsm8k", "main", cache_dir=cache_dir)
 
 def gsm8k_qa_tokens_template():
     dataset = load_dataset("gsm8k", "main")
