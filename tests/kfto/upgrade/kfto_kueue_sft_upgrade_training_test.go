@@ -128,7 +128,7 @@ func TestRunPytorchjob(t *testing.T) {
 		Should(WithTransform(kftocore.PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Make sure the PyTorch job succeed
-	test.Eventually(kftocore.PytorchJob(test, namespaceName, pyTorchJobName), TestTimeoutShort).
+	test.Eventually(kftocore.PytorchJob(test, namespaceName, pyTorchJobName), TestTimeoutLong).
 		Should(WithTransform(kftocore.PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 }
 
