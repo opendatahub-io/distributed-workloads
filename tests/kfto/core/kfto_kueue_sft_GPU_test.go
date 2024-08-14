@@ -59,6 +59,10 @@ func TestMultiGpuPytorchjobMetaLlama38bInstruct(t *testing.T) {
 	runMultiGpuPytorchjob(t, "config_meta_llama3_8b_instruct.json")
 }
 
+func TestMultiGpuPytorchjobMetaLlama3170bLoRa(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_meta_llama3_1_70b_lora.json")
+}
+
 func TestMultiGpuPytorchjobMetaLlama370bInstructLoRa(t *testing.T) {
 	runMultiGpuPytorchjob(t, "config_meta_llama3_70b_instruct_lora.json")
 }

@@ -1,5 +1,5 @@
 {
-    "model_name_or_path": "ibm-granite/granite-34b-code-instruct",
+    "model_name_or_path": "meta-llama/Meta-Llama-3.1-70B",
     "training_data_path": "/mnt/scratch/dataset/alpaca_data.json",
     "output_dir": "/mnt/output/model",
     "num_train_epochs": 1.0,
@@ -14,7 +14,6 @@
     "response_template": "\n### Response:",
     "dataset_text_field": "output",
     "use_flash_attn": false,
-    "tokenizer_name_or_path": "ibm-granite/granite-34b-code-instruct",
-    "peft_method": "lora",
-    "target_modules": ["all-linear"]
+    "tokenizer_name_or_path": "meta-llama/Meta-Llama-3.1-70B",
+    "peft_method": "lora"
 }
