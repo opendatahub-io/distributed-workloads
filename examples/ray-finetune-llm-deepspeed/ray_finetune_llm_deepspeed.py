@@ -578,7 +578,7 @@ def training_function(kwargs: dict):
 def parse_args():
     parser = argparse.ArgumentParser(description="LLM fine-tuning with DeepSpeed")
 
-    parser.add_argument("--model-name", type=str, default="meta-llama/Llama-2-7b-chat-hf")
+    parser.add_argument("--model-name", type=str, default="meta-llama/Meta-Llama-3.1-8B")
 
     parser.add_argument("--train-path", type=str, default="./data/train.jsonl",
                         help="Path to training jsonl file")
@@ -596,7 +596,7 @@ def parse_args():
                         help="Whether to use mixed precision. Choose between fp16 and bf16 (bfloat16). "
                              "Bf16 requires PyTorch >= 1.10 and an Nvidia Ampere GPU.")
 
-    parser.add_argument("--ds-config", type=str, default="./deepspeed_configs/zero_3_llama_2_7b.json",
+    parser.add_argument("--ds-config", type=str, default="./deepspeed_configs/zero_3_offload_optim+param.json",
                         help="Deepspeed config json to use.")
 
     parser.add_argument("--lora", action="store_true", default=False,
