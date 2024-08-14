@@ -2,7 +2,7 @@
 
 ## Examples
 
-* Fine-Tune Llama 2 Models with Ray and DeepSpeed on OpenShift AI
+* Fine-Tune LLMs with Ray and DeepSpeed on OpenShift AI
 
 ## Integration Tests
 
