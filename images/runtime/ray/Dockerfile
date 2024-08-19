@@ -118,10 +118,15 @@ RUN yum install -y \
     && yum clean all \
     && rm -rf /var/cache/yum/*
 
-# Install Ray
-RUN python3 -m pip install --no-cache-dir -U pip \
-    'numpy<2.0.0' \
-    'ray[all]==2.23.0'
+# Install Python packages
+
+# Install micropipenv to deploy packages from Pipfile.lock
+RUN pip install --no-cache-dir -U "micropipenv[toml]"
+
+# Install Python dependencies from Pipfile.lock file
+COPY Pipfile.lock ./
+
+RUN micropipenv install && rm -f ./Pipfile.lock
 
 # Restore user workspace
 USER 1001
