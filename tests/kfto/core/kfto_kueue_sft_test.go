@@ -133,7 +133,7 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 							},
 							{
 								Name:         corev1.ResourceMemory,
-								NominalQuota: resource.MustParse("6Gi"),
+								NominalQuota: resource.MustParse("8Gi"),
 							},
 						},
 					},
@@ -234,7 +234,11 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("2"),
-											corev1.ResourceMemory: resource.MustParse("5Gi"),
+											corev1.ResourceMemory: resource.MustParse("7Gi"),
+										},
+										Limits: corev1.ResourceList{
+											corev1.ResourceCPU:    resource.MustParse("2"),
+											corev1.ResourceMemory: resource.MustParse("7Gi"),
 										},
 									},
 									SecurityContext: &corev1.SecurityContext{
