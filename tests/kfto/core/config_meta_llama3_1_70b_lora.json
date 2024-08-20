@@ -14,6 +14,5 @@
     "response_template": "\n### Response:",
     "dataset_text_field": "output",
     "use_flash_attn": false,
-    "tokenizer_name_or_path": "meta-llama/Meta-Llama-3.1-70B",
     "peft_method": "lora"
 }

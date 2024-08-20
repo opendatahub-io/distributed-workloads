@@ -13,6 +13,5 @@
     "include_tokens_per_second": true,
     "response_template": "\n### Response:",
     "dataset_text_field": "output",
-    "use_flash_attn": false,
-    "tokenizer_name_or_path": "meta-llama/Meta-Llama-3.1-8B"
+    "use_flash_attn": false
 }

@@ -14,7 +14,6 @@
     "response_template": "\n### Label:",
     "dataset_text_field": "output",
     "use_flash_attn": false,
-    "tokenizer_name_or_path": "/tmp/model/bloom-560m",
     "peft_method": "lora",
     "target_modules": ["all-linear"]
 }
