@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -77,11 +78,11 @@ func mnistRay(t *testing.T, numGpus int) {
 	}
 	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
 	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
-	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name)
+	CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "mnist_ray_mini.ipynb"
-	mnist := readMnistPy(test)
+	mnist := readMnistScriptTemplate(test, "resources/mnist.py")
 	if numGpus > 0 {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"gpu\""), 1)
 	} else {
@@ -91,7 +92,7 @@ func mnistRay(t *testing.T, numGpus int) {
 		// MNIST Ray Notebook
 		jupyterNotebookConfigMapFileName: ReadFile(test, "resources/mnist_ray_mini.ipynb"),
 		"mnist.py":                       mnist,
-		"requirements.txt":               readRequirementsTxt(test),
+		"requirements.txt":               ReadFile(test, "resources/requirements.txt"),
 	})
 
 	// Define the regular(non-admin) user
@@ -102,7 +103,7 @@ func mnistRay(t *testing.T, numGpus int) {
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, localQueue.Name, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	createNotebook(test, namespace, userToken, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {
@@ -111,7 +112,7 @@ func mnistRay(t *testing.T, numGpus int) {
 	}()
 
 	// Make sure the RayCluster is created and running
-	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
 		Should(
 			And(
 				HaveLen(1),
@@ -128,32 +129,53 @@ func mnistRay(t *testing.T, numGpus int) {
 			),
 		)
 
+	time.Sleep(30 * time.Second)
+
+	// Fetch created raycluster
+	rayClusterName := "mnisttest"
+	rayCluster, err := test.Client().Ray().RayV1().RayClusters(namespace.Name).Get(test.Ctx(), rayClusterName, metav1.GetOptions{})
+	test.Expect(err).ToNot(HaveOccurred())
+
+	// Initialise raycluster client to interact with raycluster to get rayjob details using REST-API
+	dashboardUrl := GetDashboardUrl(test, namespace, rayCluster)
+	rayClusterClientConfig := RayClusterClientConfig{Address: dashboardUrl.String(), Client: nil, InsecureSkipVerify: true}
+	rayClient, err := NewRayClusterClient(rayClusterClientConfig, test.Config().BearerToken)
+	if err != nil {
+		test.T().Errorf("%s", err)
+	}
+
+	jobID := GetTestJobId(test, rayClient, dashboardUrl.Host)
+	test.Expect(jobID).ToNot(Equal(nil))
+
+	// Wait for the job to be succeeded or failed
+	var rayJobStatus string
+	fmt.Printf("Waiting for job to be Succeeded...\n")
+	test.Eventually(func() string {
+		resp, err := rayClient.GetJobDetails(jobID)
+		test.Expect(err).ToNot(HaveOccurred())
+		rayJobStatusVal := resp.Status
+		if rayJobStatusVal == "SUCCEEDED" || rayJobStatusVal == "FAILED" {
+			fmt.Printf("JobStatus : %s\n", rayJobStatusVal)
+			rayJobStatus = rayJobStatusVal
+			return rayJobStatus
+		}
+		if rayJobStatus != rayJobStatusVal && rayJobStatusVal != "SUCCEEDED" {
+			fmt.Printf("JobStatus : %s...\n", rayJobStatusVal)
+			rayJobStatus = rayJobStatusVal
+		}
+		return rayJobStatus
+	}, TestTimeoutDouble, 3*time.Second).Should(Or(Equal("SUCCEEDED"), Equal("FAILED")), "Job did not complete within the expected time")
+	test.Expect(rayJobStatus).To(Equal("SUCCEEDED"), "RayJob failed !")
+
+	// Store job logs in output directory
+	WriteRayJobAPILogs(test, rayClient, jobID)
+
 	// Make sure the RayCluster finishes and is deleted
-	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
 		Should(HaveLen(0))
 }
 
-func readRequirementsTxt(test Test) []byte {
-	// Read the requirements.txt from resources and perform replacements for custom values using go template
-	props := struct {
-		PipIndexUrl    string
-		PipTrustedHost string
-	}{
-		PipIndexUrl: "--index " + string(GetPipIndexURL()),
-	}
-
-	// Provide trusted host only if defined
-	if len(GetPipTrustedHost()) > 0 {
-		props.PipTrustedHost = "--trusted-host " + GetPipTrustedHost()
-	}
-
-	template, err := files.ReadFile("resources/requirements.txt")
-	test.Expect(err).NotTo(HaveOccurred())
-
-	return ParseTemplate(test, template, props)
-}
-
-func readMnistPy(test Test) []byte {
+func readMnistScriptTemplate(test Test, filePath string) []byte {
 	// Read the mnist.py from resources and perform replacements for custom values using go template
 	storage_bucket_endpoint, storage_bucket_endpoint_exists := GetStorageBucketDefaultEndpoint()
 	storage_bucket_access_key_id, storage_bucket_access_key_id_exists := GetStorageBucketAccessKeyId()
@@ -184,7 +206,7 @@ func readMnistPy(test Test) []byte {
 		StorageBucketMnistDir:              storage_bucket_mnist_dir,
 		StorageBucketMnistDirExists:        storage_bucket_mnist_dir_exists,
 	}
-	template, err := files.ReadFile("resources/mnist.py")
+	template, err := files.ReadFile(filePath)
 	test.Expect(err).NotTo(HaveOccurred())
 
 	return ParseTemplate(test, template, props)
