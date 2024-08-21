@@ -87,14 +87,14 @@ This example has been validated on the following configurations:
     ```python
     ClusterConfiguration(
         num_workers=5,
-        min_cpus=8,
-        max_cpus=8,
+        worker_cpu_requests=8,
+        worker_cpu_limits=8,
         head_cpus=16,
-        min_memory=48,
-        max_memory=48,
+        worker_memory_requests=48,
+        worker_memory_limits=48,
         head_memory=48,
-        head_gpus=1,
-        num_gpus=1,
+        head_extended_resource_requests={'nvidia.com/gpu':1},
+        worker_extended_resource_requests={'nvidia.com/gpu':1},
     )
     ```
 * Ray job:
@@ -118,14 +118,14 @@ This example has been validated on the following configurations:
     ```python
     ClusterConfiguration(
         num_workers=5,
-        min_cpus=8,
-        max_cpus=8,
+        worker_cpu_requests=8,
+        worker_cpu_limits=8,
         head_cpus=16,
-        min_memory=48,
-        max_memory=48,
+        worker_memory_requests=48,
+        worker_memory_limits=48,
         head_memory=48,
-        head_gpus=1,
-        num_gpus=1,
+        head_extended_resource_requests={'nvidia.com/gpu':1},
+        worker_extended_resource_requests={'nvidia.com/gpu':1},
     )
     ```
 * Ray job:
@@ -148,14 +148,14 @@ This example has been validated on the following configurations:
     ```python
     ClusterConfiguration(
         num_workers=7,
-        min_cpus=16,
-        max_cpus=16,
+        worker_cpu_requests=16,
+        worker_cpu_limits=16,
         head_cpus=16,
-        min_memory=128,
-        max_memory=128,
+        worker_memory_requests=128,
+        worker_memory_limits=128,
         head_memory=128,
-        head_gpus=1,
-        num_gpus=1,
+        head_extended_resource_requests={'nvidia.com/gpu':1},
+        worker_extended_resource_requests={'nvidia.com/gpu':1},
     )
     ```
 * Ray job:
