@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -76,11 +77,11 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	}
 	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
 	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
-	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name)
+	CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "mnist_hpo_raytune.ipynb"
-	mnist_hpo := ReadFile(test, "resources/mnist_hpo.py")
+	mnist_hpo := readMnistScriptTemplate(test, "resources/mnist_hpo.py")
 
 	if numGpus > 0 {
 		mnist_hpo = bytes.Replace(mnist_hpo, []byte("gpu_value=\"has to be specified\""), []byte("gpu_value=\"1\""), 1)
@@ -103,7 +104,7 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, localQueue.Name, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	createNotebook(test, namespace, userToken, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {
@@ -112,7 +113,7 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	}()
 
 	// Make sure the RayCluster is created and running
-	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
 		Should(
 			And(
 				HaveLen(1),
@@ -128,8 +129,48 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 				ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrueBecause("Workload failed to be admitted"))),
 			),
 		)
+	time.Sleep(30 * time.Second)
+
+	// Fetch created raycluster
+	rayClusterName := "mnisthpotest"
+	rayCluster, err := test.Client().Ray().RayV1().RayClusters(namespace.Name).Get(test.Ctx(), rayClusterName, metav1.GetOptions{})
+	test.Expect(err).ToNot(HaveOccurred())
+
+	// Initialise raycluster client to interact with raycluster to get rayjob details using REST-API
+	dashboardUrl := GetDashboardUrl(test, namespace, rayCluster)
+	rayClusterClientConfig := RayClusterClientConfig{Address: dashboardUrl.String(), Client: nil, InsecureSkipVerify: true}
+	rayClient, err := NewRayClusterClient(rayClusterClientConfig, test.Config().BearerToken)
+	if err != nil {
+		test.T().Errorf("%s", err)
+	}
+
+	jobID := GetTestJobId(test, rayClient, dashboardUrl.Host)
+	test.Expect(jobID).ToNot(Equal(nil))
+
+	// Wait for the job to be succeeded or failed
+	var rayJobStatus string
+	fmt.Printf("Waiting for job to be Succeeded...\n")
+	test.Eventually(func() string {
+		resp, err := rayClient.GetJobDetails(jobID)
+		test.Expect(err).ToNot(HaveOccurred())
+		rayJobStatusVal := resp.Status
+		if rayJobStatusVal == "SUCCEEDED" || rayJobStatusVal == "FAILED" {
+			fmt.Printf("JobStatus : %s\n", rayJobStatusVal)
+			rayJobStatus = rayJobStatusVal
+			return rayJobStatus
+		}
+		if rayJobStatus != rayJobStatusVal && rayJobStatusVal != "SUCCEEDED" {
+			fmt.Printf("JobStatus : %s...\n", rayJobStatusVal)
+			rayJobStatus = rayJobStatusVal
+		}
+		return rayJobStatus
+	}, TestTimeoutDouble, 3*time.Second).Should(Or(Equal("SUCCEEDED"), Equal("FAILED")), "Job did not complete within the expected time")
+	test.Expect(rayJobStatus).To(Equal("SUCCEEDED"), "RayJob failed !")
+
+	// Store job logs in output directory
+	WriteRayJobAPILogs(test, rayClient, jobID)
 
 	// Make sure the RayCluster finishes and is deleted
-	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
 		Should(HaveLen(0))
 }

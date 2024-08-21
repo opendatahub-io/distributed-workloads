@@ -41,16 +41,32 @@ type NotebookProps struct {
 	OpenDataHubNamespace      string
 	RayImage                  string
 	NotebookImage             string
-	LocalQueue                string
 	NotebookConfigMapName     string
 	NotebookConfigMapFileName string
 	NotebookPVC               string
 	NumGpus                   int
+	PipIndexUrl               string
+	PipTrustedHost            string
+	S3BucketName              string
+	S3AccessKeyId             string
+	S3SecretAccessKey         string
+	S3DefaultRegion           string
 }
 
-func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, localQueue, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int) {
+func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int) {
 	// Create PVC for Notebook
 	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", corev1.ReadWriteOnce)
+	s3BucketName, s3BucketNameExists := GetStorageBucketName()
+	s3AccessKeyId, _ := GetStorageBucketAccessKeyId()
+	s3SecretAccessKey, _ := GetStorageBucketSecretKey()
+	s3DefaultRegion, _ := GetStorageBucketDefaultRegion()
+
+	if !s3BucketNameExists {
+		s3BucketName = "''"
+		s3AccessKeyId = "''"
+		s3SecretAccessKey = "''"
+		s3DefaultRegion = "''"
+	}
 
 	// Read the Notebook CR from resources and perform replacements for custom values using go template
 	notebookProps := NotebookProps{
@@ -61,11 +77,16 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, l
 		OpenDataHubNamespace:      GetOpenDataHubNamespace(test),
 		RayImage:                  GetRayImage(),
 		NotebookImage:             GetNotebookImage(test),
-		LocalQueue:                localQueue,
 		NotebookConfigMapName:     jupyterNotebookConfigMapName,
 		NotebookConfigMapFileName: jupyterNotebookConfigMapFileName,
 		NotebookPVC:               notebookPVC.Name,
 		NumGpus:                   numGpus,
+		S3BucketName:              s3BucketName,
+		S3AccessKeyId:             s3AccessKeyId,
+		S3SecretAccessKey:         s3SecretAccessKey,
+		S3DefaultRegion:           s3DefaultRegion,
+		PipIndexUrl:               GetPipIndexURL(),
+		PipTrustedHost:            GetPipTrustedHost(),
 	}
 	notebookTemplate, err := files.ReadFile("resources/custom-nb-small.yaml")
 	test.Expect(err).NotTo(gomega.HaveOccurred())

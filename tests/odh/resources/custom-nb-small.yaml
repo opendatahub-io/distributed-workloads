@@ -50,8 +50,20 @@ spec:
           value: {{.NotebookImage}}
         - name: JUPYTER_NOTEBOOK_PORT
           value: "8888"
+        - name: AWS_ACCESS_KEY_ID
+          value: {{.S3AccessKeyId}}
+        - name: AWS_SECRET_ACCESS_KEY
+          value: {{.S3SecretAccessKey}}
+        - name: AWS_DEFAULT_REGION
+          value: {{.S3DefaultRegion}}
+        - name: AWS_S3_BUCKET
+          value: {{.S3BucketName}}
+        - name: PIP_INDEX_URL
+          value: {{.PipIndexUrl}}
+        - name: PIP_TRUSTED_HOST
+          value: {{.PipTrustedHost}}
         image: {{.NotebookImage}}
-        command: ["/bin/sh", "-c", "pip install papermill && papermill /opt/app-root/notebooks/{{.NotebookConfigMapFileName}} /opt/app-root/src/mcad-out.ipynb -p namespace {{.Namespace}} -p ray_image {{.RayImage}} -p local_queue {{.LocalQueue}} -p openshift_api_url {{.OpenShiftApiUrl}} -p kubernetes_user_bearer_token {{.KubernetesUserBearerToken}} -p num_gpus {{ .NumGpus }} --log-output && sleep infinity"]
+        command: ["/bin/sh", "-c", "pip install papermill && papermill /opt/app-root/notebooks/{{.NotebookConfigMapFileName}} /opt/app-root/src/mcad-out.ipynb -p namespace {{.Namespace}} -p ray_image {{.RayImage}} -p openshift_api_url {{.OpenShiftApiUrl}} -p kubernetes_user_bearer_token {{.KubernetesUserBearerToken}} -p num_gpus {{ .NumGpus }} --log-output && sleep infinity"]
         # args: ["pip install papermill && oc login --token=${OCP_TOKEN} --server=${OCP_SERVER} --insecure-skip-tls-verify=true && papermill /opt/app-root/notebooks/mcad.ipynb /opt/app-root/src/mcad-out.ipynb" ]
         imagePullPolicy: Always
         # livenessProbe:
