@@ -85,14 +85,14 @@ This example has been validated on the following configurations:
     ```python
     ClusterConfiguration(
         num_workers=4,
-        min_cpus=8,
-        max_cpus=16,
+        worker_cpu_requests=8,
+        worker_cpu_limits=16,
         head_cpus=8,
-        min_memory=32,
-        max_memory=64,
+        worker_memory_requests=32,
+        worker_memory_limits=64,
         head_memory=64,
-        head_gpus=1,
-        num_gpus=1,
+        head_extended_resource_requests={'nvidia.com/gpu':1},
+        worker_extended_resource_requests={'nvidia.com/gpu':1},
     )
     ```
 * Ray job:
