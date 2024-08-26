@@ -11,6 +11,10 @@
             "device": "cpu",
             "pin_memory": false
         },
+        "offload_param": {
+            "device": "cpu",
+            "pin_memory": false
+        },
         "overlap_comm": true,
         "contiguous_gradients": true,
         "reduce_bucket_size": "auto",
