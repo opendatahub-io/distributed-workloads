@@ -1,6 +1,6 @@
 # Ray Runtime Container Image
 
-Default base container image for Ray in OpenShift AI.
+CUDA enabled container image for Ray in OpenShift AI.
 
 It includes the following layers:
 * UBI 9
