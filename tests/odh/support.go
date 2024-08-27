@@ -18,7 +18,6 @@ package odh
 
 import (
 	"embed"
-	"net/http"
 	"net/url"
 
 	. "github.com/onsi/gomega"
@@ -41,7 +40,6 @@ func ReadFile(t support.Test, fileName string) []byte {
 
 func GetDashboardUrl(test support.Test, namespace *v1.Namespace, rayCluster *rayv1.RayCluster) *url.URL {
 	dashboardName := "ray-dashboard-" + rayCluster.Name
-	test.T().Logf("Raycluster created : %s\n", rayCluster.Name)
 	route := GetRoute(test, namespace.Name, dashboardName)
 	hostname := route.Status.Ingress[0].Host
 	dashboardUrl, _ := url.Parse("https://" + hostname)
@@ -51,12 +49,6 @@ func GetDashboardUrl(test support.Test, namespace *v1.Namespace, rayCluster *ray
 }
 
 func GetTestJobId(test Test, rayClient RayClusterClient, hostName string) string {
-	listJobsReq, err := http.NewRequest("GET", "https://"+hostName+"/api/jobs/", nil)
-	if err != nil {
-		test.T().Errorf("failed to do get request: %s\n", err)
-	}
-	listJobsReq.Header.Add("Authorization", "Bearer "+test.Config().BearerToken)
-
 	allJobsData, err := rayClient.GetJobs()
 	test.Expect(err).ToNot(HaveOccurred())
 

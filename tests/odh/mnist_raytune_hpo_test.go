@@ -129,10 +129,10 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 				ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrueBecause("Workload failed to be admitted"))),
 			),
 		)
-	time.Sleep(30 * time.Second)
 
 	// Fetch created raycluster
 	rayClusterName := "mnisthpotest"
+	// Wait until raycluster is up and running
 	rayCluster, err := test.Client().Ray().RayV1().RayClusters(namespace.Name).Get(test.Ctx(), rayClusterName, metav1.GetOptions{})
 	test.Expect(err).ToNot(HaveOccurred())
 
@@ -140,37 +140,44 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	dashboardUrl := GetDashboardUrl(test, namespace, rayCluster)
 	rayClusterClientConfig := RayClusterClientConfig{Address: dashboardUrl.String(), Client: nil, InsecureSkipVerify: true}
 	rayClient, err := NewRayClusterClient(rayClusterClientConfig, test.Config().BearerToken)
-	if err != nil {
-		test.T().Errorf("%s", err)
-	}
+	test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to create new raycluster client: %s", err))
 
+	// Wait until the rayjob is created and running
+	test.Eventually(func() []RayJobDetailsResponse {
+		rayJobs, err := rayClient.GetJobs()
+		test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to fetch ray-jobs : %s", err))
+		return *rayJobs
+	}, TestTimeoutMedium, 2*time.Second).Should(HaveLen(1), "Ray job not found")
+
+	// Get rayjob-ID
 	jobID := GetTestJobId(test, rayClient, dashboardUrl.Host)
-	test.Expect(jobID).ToNot(Equal(nil))
+	test.Expect(jobID).ToNot(BeEmpty())
 
-	// Wait for the job to be succeeded or failed
+	// Wait for the job to either succeed or fail
 	var rayJobStatus string
-	fmt.Printf("Waiting for job to be Succeeded...\n")
+	test.T().Logf("Waiting for job to be Succeeded...\n")
 	test.Eventually(func() string {
 		resp, err := rayClient.GetJobDetails(jobID)
-		test.Expect(err).ToNot(HaveOccurred())
+		test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to get job details :%s", err))
 		rayJobStatusVal := resp.Status
 		if rayJobStatusVal == "SUCCEEDED" || rayJobStatusVal == "FAILED" {
-			fmt.Printf("JobStatus : %s\n", rayJobStatusVal)
+			test.T().Logf("JobStatus - %s\n", rayJobStatusVal)
 			rayJobStatus = rayJobStatusVal
 			return rayJobStatus
 		}
 		if rayJobStatus != rayJobStatusVal && rayJobStatusVal != "SUCCEEDED" {
-			fmt.Printf("JobStatus : %s...\n", rayJobStatusVal)
+			test.T().Logf("JobStatus - %s...\n", rayJobStatusVal)
 			rayJobStatus = rayJobStatusVal
 		}
 		return rayJobStatus
 	}, TestTimeoutDouble, 3*time.Second).Should(Or(Equal("SUCCEEDED"), Equal("FAILED")), "Job did not complete within the expected time")
-	test.Expect(rayJobStatus).To(Equal("SUCCEEDED"), "RayJob failed !")
-
 	// Store job logs in output directory
 	WriteRayJobAPILogs(test, rayClient, jobID)
 
+	// Assert ray-job status after job execution
+	test.Expect(rayJobStatus).To(Equal("SUCCEEDED"), "RayJob failed !")
+
 	// Make sure the RayCluster finishes and is deleted
 	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
-		Should(HaveLen(0))
+		Should(BeEmpty())
 }
