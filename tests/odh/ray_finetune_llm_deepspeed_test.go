@@ -30,13 +30,13 @@ import (
 )
 
 func TestRayFinetuneLlmDeepspeedDemoLlama_2_7b(t *testing.T) {
-	rayFinetuneLlmDeepspeed(t, 1, "zero_3_llama_2_7b.json")
+	rayFinetuneLlmDeepspeed(t, 1, "meta-llama/Llama-2-7b-chat-hf", "zero_3_llama_2_7b.json")
 }
 func TestRayFinetuneLlmDeepspeedDemoLlama_31_8b(t *testing.T) {
-	rayFinetuneLlmDeepspeed(t, 1, "zero_3_offload_optim_param.json")
+	rayFinetuneLlmDeepspeed(t, 1, "meta-llama/Meta-Llama-3.1-8B", "zero_3_offload_optim_param.json")
 }
 
-func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelConfigFile string) {
+func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelName string, modelConfigFile string) {
 	test := With(t)
 
 	// Create a namespace
@@ -56,21 +56,22 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelConfigFile string) 
 		"import os":  "import os,time,sys",
 		"import sys": "!cp /opt/app-root/notebooks/* ./\\n\",\n\t\"!ls",
 		"from codeflare_sdk.cluster.auth import TokenAuthentication": "from codeflare_sdk.cluster.auth import TokenAuthentication\\n\",\n\t\"from codeflare_sdk.job import RayJobClient",
-		"token = ''":                             fmt.Sprintf("token = '%s'", userToken),
-		"server = ''":                            fmt.Sprintf("server = '%s'", GetOpenShiftApiUrl(test)),
-		"namespace='ray-finetune-llm-deepspeed'": fmt.Sprintf("namespace='%s'", namespace.Name),
-		"head_cpus=16":                           "head_cpus=2",
-		"head_extended_resource_requests=1":      "head_extended_resource_requests=0",
-		"num_workers=7":                          "num_workers=1",
-		"worker_cpu_requests=16":                 "worker_cpu_requests=4",
-		"worker_cpu_limits=16":                   "worker_cpu_limits=4",
-		"worker_memory_requests=128":             "worker_memory_requests=64",
-		"worker_memory_limits=256":               "worker_memory_limits=128",
-		"head_memory=128":                        "head_memory=48",
-		"client = cluster.job_client":            "ray_dashboard = cluster.cluster_dashboard_uri()\\n\",\n\t\"header = {\\\"Authorization\\\": \\\"Bearer " + userToken + "\\\"}\\n\",\n\t\"client = RayJobClient(address=ray_dashboard, headers=header, verify=False)\\n",
-		"--num-devices=8":                        fmt.Sprintf("--num-devices=%d", numGpus),
-		"--num-epochs=3":                         fmt.Sprintf("--num-epochs=%d", 1),
-		"--ds-config=./deepspeed_configs/zero_3_offload_optim+param.json": fmt.Sprintf("--ds-config=./%s \\\"\\n\",\n\t\"               \\\"--lora-config=./lora.json \\\"\\n\",\n\t\"               \\\"--as-test", modelConfigFile),
+		"token = ''":                                fmt.Sprintf("token = '%s'", userToken),
+		"server = ''":                               fmt.Sprintf("server = '%s'", GetOpenShiftApiUrl(test)),
+		"namespace='ray-finetune-llm-deepspeed'":    fmt.Sprintf("namespace='%s'", namespace.Name),
+		"head_cpus=16":                              "head_cpus=2",
+		"head_extended_resource_requests=1":         "head_extended_resource_requests=0",
+		"num_workers=7":                             "num_workers=1",
+		"worker_cpu_requests=16":                    "worker_cpu_requests=4",
+		"worker_cpu_limits=16":                      "worker_cpu_limits=4",
+		"worker_memory_requests=128":                "worker_memory_requests=64",
+		"worker_memory_limits=256":                  "worker_memory_limits=128",
+		"head_memory=128":                           "head_memory=48",
+		"client = cluster.job_client":               "ray_dashboard = cluster.cluster_dashboard_uri()\\n\",\n\t\"header = {\\\"Authorization\\\": \\\"Bearer " + userToken + "\\\"}\\n\",\n\t\"client = RayJobClient(address=ray_dashboard, headers=header, verify=False)\\n",
+		"--num-devices=8":                           fmt.Sprintf("--num-devices=%d", numGpus),
+		"--num-epochs=3":                            fmt.Sprintf("--num-epochs=%d", 1),
+		"--model-name=meta-llama/Meta-Llama-3.1-8B": fmt.Sprintf("--model-name=%s", modelName),
+		"--ds-config=./deepspeed_configs/zero_3_offload_optim_param.json": fmt.Sprintf("--ds-config=./%s \\\"\\n\",\n\t\"               \\\"--lora-config=./lora.json \\\"\\n\",\n\t\"               \\\"--as-test", modelConfigFile),
 		"--batch-size-per-device=32":                                      "--batch-size-per-device=6",
 		"--eval-batch-size-per-device=32":                                 "--eval-batch-size-per-device=6",
 		"'pip': 'requirements.txt'":                                       "'pip': '/opt/app-root/src/requirements.txt'",
@@ -83,7 +84,6 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelConfigFile string) 
 		updatedNotebookContent = strings.Replace(updatedNotebookContent, oldValue, newValue, -1)
 	}
 	updatedNotebook := []byte(updatedNotebookContent)
-	os.WriteFile("demo.ipynb", updatedNotebook, 0644)
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "ray_finetune_llm_deepspeed.ipynb"
@@ -117,8 +117,6 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelConfigFile string) 
 			),
 		)
 
-	time.Sleep(30 * time.Second)
-
 	// Fetch created raycluster
 	rayClusterName := "ray"
 	rayCluster, err := test.Client().Ray().RayV1().RayClusters(namespace.Name).Get(test.Ctx(), rayClusterName, metav1.GetOptions{})
@@ -128,37 +126,44 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelConfigFile string) 
 	dashboardUrl := GetDashboardUrl(test, namespace, rayCluster)
 	rayClusterClientConfig := RayClusterClientConfig{Address: dashboardUrl.String(), Client: nil, InsecureSkipVerify: true}
 	rayClient, err := NewRayClusterClient(rayClusterClientConfig, test.Config().BearerToken)
-	if err != nil {
-		test.T().Errorf("%s", err)
-	}
+	test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to create new raycluster client: %s", err))
 
+	// wait until rayjob exists
+	test.Eventually(func() []RayJobDetailsResponse {
+		rayJobs, err := rayClient.GetJobs()
+		test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to fetch ray-jobs : %s", err))
+		return *rayJobs
+	}, TestTimeoutMedium, 1*time.Second).Should(HaveLen(1), "Ray job not found")
+
+	// Get test job-id
 	jobID := GetTestJobId(test, rayClient, dashboardUrl.Host)
-	test.Expect(jobID).ToNot(Equal(nil))
+	test.Expect(jobID).ToNot(BeEmpty())
 
 	// Wait for the job to be succeeded or failed
 	var rayJobStatus string
-	fmt.Printf("Waiting for job to be Succeeded...\n")
+	test.T().Logf("Waiting for job to be Succeeded...\n")
 	test.Eventually(func() string {
 		resp, err := rayClient.GetJobDetails(jobID)
-		test.Expect(err).ToNot(HaveOccurred())
+		test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to get job details :%s", err))
 		rayJobStatusVal := resp.Status
 		if rayJobStatusVal == "SUCCEEDED" || rayJobStatusVal == "FAILED" {
-			fmt.Printf("JobStatus : %s\n", rayJobStatusVal)
+			test.T().Logf("JobStatus - %s\n", rayJobStatusVal)
 			rayJobStatus = rayJobStatusVal
-			WriteRayJobAPILogs(test, rayClient, jobID)
 			return rayJobStatus
 		}
 		if rayJobStatus != rayJobStatusVal && rayJobStatusVal != "SUCCEEDED" {
-			fmt.Printf("JobStatus : %s...\n", rayJobStatusVal)
+			test.T().Logf("JobStatus - %s...\n", rayJobStatusVal)
 			rayJobStatus = rayJobStatusVal
 		}
 		return rayJobStatus
-	}, TestTimeoutDouble, 3*time.Second).Should(Or(Equal("SUCCEEDED"), Equal("FAILED")), "Job did not complete within the expected time")
+	}, TestTimeoutDouble, 1*time.Second).Should(Or(Equal("SUCCEEDED"), Equal("FAILED")), "Job did not complete within the expected time")
 	// Store job logs in output directory
 	WriteRayJobAPILogs(test, rayClient, jobID)
+
+	// Assert ray-job status after job execution
 	test.Expect(rayJobStatus).To(Equal("SUCCEEDED"), "RayJob failed !")
 
 	// Make sure the RayCluster finishes and is deleted
-	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutMedium).
-		Should(HaveLen(0))
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
+		Should(BeEmpty())
 }
