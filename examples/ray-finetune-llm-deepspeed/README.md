@@ -99,7 +99,7 @@ This example has been validated on the following configurations:
     ```python
     ray_finetune_llm_deepspeed.py "
         "--model-name=meta-llama/Meta-Llama-3.1-8B "
-        "--ds-config=./deepspeed_configs/zero_3_offload_optim+param.json "
+        "--ds-config=./deepspeed_configs/zero_3_offload_optim_param.json "
         f"--storage-path=s3://{s3_bucket}/ray_finetune_llm_deepspeed/ "
         "--lora "
         "--num-devices=5 "
