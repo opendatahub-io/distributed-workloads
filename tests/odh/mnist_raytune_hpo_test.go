@@ -147,7 +147,7 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 		rayJobs, err := rayClient.GetJobs()
 		test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to fetch ray-jobs : %s", err))
 		return *rayJobs
-	}, TestTimeoutMedium, 2*time.Second).Should(HaveLen(1), "Ray job not found")
+	}, TestTimeoutMedium, 1*time.Second).Should(HaveLen(1), "Ray job not found")
 
 	// Get rayjob-ID
 	jobID := GetTestJobId(test, rayClient, dashboardUrl.Host)
@@ -170,7 +170,7 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 			rayJobStatus = rayJobStatusVal
 		}
 		return rayJobStatus
-	}, TestTimeoutDouble, 3*time.Second).Should(Or(Equal("SUCCEEDED"), Equal("FAILED")), "Job did not complete within the expected time")
+	}, TestTimeoutDouble, 1*time.Second).Should(Or(Equal("SUCCEEDED"), Equal("FAILED")), "Job did not complete within the expected time")
 	// Store job logs in output directory
 	WriteRayJobAPILogs(test, rayClient, jobID)
 
