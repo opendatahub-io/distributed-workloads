@@ -18,14 +18,11 @@ package odh
 
 import (
 	"embed"
-	"net/http"
 	"net/url"
 	"os"
 
-	. "github.com/onsi/gomega"
 	gomega "github.com/onsi/gomega"
 	"github.com/project-codeflare/codeflare-common/support"
-	. "github.com/project-codeflare/codeflare-common/support"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	v1 "k8s.io/api/core/v1"
 )
@@ -49,8 +46,7 @@ func ReadFileExt(t support.Test, fileName string) []byte {
 
 func GetDashboardUrl(test support.Test, namespace *v1.Namespace, rayCluster *rayv1.RayCluster) *url.URL {
 	dashboardName := "ray-dashboard-" + rayCluster.Name
-	test.T().Logf("Raycluster created : %s\n", rayCluster.Name)
-	route := GetRoute(test, namespace.Name, dashboardName)
+	route := support.GetRoute(test, namespace.Name, dashboardName)
 	hostname := route.Status.Ingress[0].Host
 	dashboardUrl, _ := url.Parse("https://" + hostname)
 	test.T().Logf("Ray-dashboard route : %s\n", dashboardUrl.String())
@@ -58,15 +54,9 @@ func GetDashboardUrl(test support.Test, namespace *v1.Namespace, rayCluster *ray
 	return dashboardUrl
 }
 
-func GetTestJobId(test Test, rayClient RayClusterClient, hostName string) string {
-	listJobsReq, err := http.NewRequest("GET", "https://"+hostName+"/api/jobs/", nil)
-	if err != nil {
-		test.T().Errorf("failed to do get request: %s\n", err)
-	}
-	listJobsReq.Header.Add("Authorization", "Bearer "+test.Config().BearerToken)
-
+func GetTestJobId(test support.Test, rayClient support.RayClusterClient, hostName string) string {
 	allJobsData, err := rayClient.GetJobs()
-	test.Expect(err).ToNot(HaveOccurred())
+	test.Expect(err).ToNot(gomega.HaveOccurred())
 
 	jobID := (*allJobsData)[0].SubmissionID
 	if len(*allJobsData) > 0 {

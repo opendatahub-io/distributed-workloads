@@ -129,50 +129,9 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 				ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrueBecause("Workload failed to be admitted"))),
 			),
 		)
-	time.Sleep(30 * time.Second)
 
 	// Fetch created raycluster
 	rayClusterName := "mnisthpotest"
-	rayCluster, err := test.Client().Ray().RayV1().RayClusters(namespace.Name).Get(test.Ctx(), rayClusterName, metav1.GetOptions{})
-	test.Expect(err).ToNot(HaveOccurred())
-
-	// Initialise raycluster client to interact with raycluster to get rayjob details using REST-API
-	dashboardUrl := GetDashboardUrl(test, namespace, rayCluster)
-	rayClusterClientConfig := RayClusterClientConfig{Address: dashboardUrl.String(), Client: nil, InsecureSkipVerify: true}
-	rayClient, err := NewRayClusterClient(rayClusterClientConfig, test.Config().BearerToken)
-	if err != nil {
-		test.T().Errorf("%s", err)
-	}
-
-	jobID := GetTestJobId(test, rayClient, dashboardUrl.Host)
-	test.Expect(jobID).ToNot(Equal(nil))
-
-	// Wait for the job to be succeeded or failed
-	var rayJobStatus string
-	fmt.Printf("Waiting for job to be Succeeded...\n")
-	test.Eventually(func() string {
-		resp, err := rayClient.GetJobDetails(jobID)
-		test.Expect(err).ToNot(HaveOccurred())
-		rayJobStatusVal := resp.Status
-		if rayJobStatusVal == "SUCCEEDED" || rayJobStatusVal == "FAILED" {
-			fmt.Printf("JobStatus : %s\n", rayJobStatusVal)
-			rayJobStatus = rayJobStatusVal
-			return rayJobStatus
-		}
-		if rayJobStatus != rayJobStatusVal && rayJobStatusVal != "SUCCEEDED" {
-			fmt.Printf("JobStatus : %s...\n", rayJobStatusVal)
-			rayJobStatus = rayJobStatusVal
-		}
-		return rayJobStatus
-	}, TestTimeoutDouble, 3*time.Second).Should(Or(Equal("SUCCEEDED"), Equal("FAILED")), "Job did not complete within the expected time")
-	test.Expect(rayJobStatus).To(Equal("SUCCEEDED"), "RayJob failed !")
-
-	// Store job logs in output directory
-	WriteRayJobAPILogs(test, rayClient, jobID)
-
-	// Fetch created raycluster
-	rayClusterName := "mnisthpotest"
-	// Wait until raycluster is up and running
 	rayCluster, err := test.Client().Ray().RayV1().RayClusters(namespace.Name).Get(test.Ctx(), rayClusterName, metav1.GetOptions{})
 	test.Expect(err).ToNot(HaveOccurred())
 
