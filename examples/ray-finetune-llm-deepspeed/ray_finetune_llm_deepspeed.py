@@ -596,7 +596,7 @@ def parse_args():
                         help="Whether to use mixed precision. Choose between fp16 and bf16 (bfloat16). "
                              "Bf16 requires PyTorch >= 1.10 and an Nvidia Ampere GPU.")
 
-    parser.add_argument("--ds-config", type=str, default="./deepspeed_configs/zero_3_offload_optim+param.json",
+    parser.add_argument("--ds-config", type=str, default="./deepspeed_configs/zero_3_offload_optim_param.json",
                         help="Deepspeed config json to use.")
 
     parser.add_argument("--lora", action="store_true", default=False,
