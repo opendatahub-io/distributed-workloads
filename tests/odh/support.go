@@ -18,15 +18,14 @@ package odh
 
 import (
 	"embed"
+	"net/url"
 
-	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
+	gomega "github.com/onsi/gomega"
 	"github.com/project-codeflare/codeflare-common/support"
 	. "github.com/project-codeflare/codeflare-common/support"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
-
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 //go:embed resources/*
@@ -39,17 +38,23 @@ func ReadFile(t support.Test, fileName string) []byte {
 	return file
 }
 
-// TODO: This belongs on codeflare-common/support/ray.go
-func rayClusters(t Test, namespace *corev1.Namespace) func(g Gomega) []*rayv1.RayCluster {
-	return func(g Gomega) []*rayv1.RayCluster {
-		rcs, err := t.Client().Ray().RayV1().RayClusters(namespace.Name).List(t.Ctx(), metav1.ListOptions{})
-		g.Expect(err).NotTo(HaveOccurred())
+func GetDashboardUrl(test support.Test, namespace *v1.Namespace, rayCluster *rayv1.RayCluster) *url.URL {
+	dashboardName := "ray-dashboard-" + rayCluster.Name
+	route := GetRoute(test, namespace.Name, dashboardName)
+	hostname := route.Status.Ingress[0].Host
+	dashboardUrl, _ := url.Parse("https://" + hostname)
+	test.T().Logf("Ray-dashboard route : %s\n", dashboardUrl.String())
 
-		rcsp := []*rayv1.RayCluster{}
-		for _, v := range rcs.Items {
-			rcsp = append(rcsp, &v)
-		}
+	return dashboardUrl
+}
 
-		return rcsp
+func GetTestJobId(test Test, rayClient RayClusterClient, hostName string) string {
+	allJobsData, err := rayClient.GetJobs()
+	test.Expect(err).ToNot(HaveOccurred())
+
+	jobID := (*allJobsData)[0].SubmissionID
+	if len(*allJobsData) > 0 {
+		test.T().Logf("Ray job has been successfully submitted to the raycluster with Submission-ID : %s\n", jobID)
 	}
+	return jobID
 }

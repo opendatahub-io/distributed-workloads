@@ -1,6 +1,6 @@
-# Fine-Tune Llama 2 Models with Ray and DeepSpeed on OpenShift AI
+# Fine-Tune Llama Models with Ray and DeepSpeed on OpenShift AI
 
-This example demonstrates how to fine-tune LLMs with Ray on OpenShift AI, using HF Transformers, Accelerate, PEFT (LoRA), and DeepSpeed, for Llama 2 models.
+This example demonstrates how to fine-tune LLMs with Ray on OpenShift AI, using HF Transformers, Accelerate, PEFT (LoRA), and DeepSpeed, for Llama models.
 It adapts the _Fine-tuning Llama-2 series models with Deepspeed, Accelerate, and Ray Train TorchTrainer_[^1] example from the Ray project, so it runs using the Distributed Workloads stack, on OpenShift AI.
 
 > [!IMPORTANT]
@@ -55,8 +55,6 @@ You can also setup [TensorBoard](https://github.com/tensorflow/tensorboard) to v
     ```console
     kubectl exec `kubectl get pod -l ray.io/node-type=head -o name` -- tensorboard --logdir /tmp/ray --bind_all --port 6006
     ```
-    Note: You may need to install `tb-nightly` instead of `tensorboard` during the interim a version compatible with NumPy 2 is released.
-    See https://github.com/tensorflow/tensorboard/issues/6869.
 * Port-foward the TensorBoard UI endpoint:
     ```console
     kubectl port-forward `kubectl get pod -l ray.io/node-type=head -o name` 6006:6006
@@ -77,6 +75,37 @@ By default, at the end of each epoch, the checkpoints are stored in the configur
 ## Validation
 
 This example has been validated on the following configurations:
+
+### Llama 3 8B - GSM8k - LoRA
+
+* OpenShift cluster:
+  * ROSA-hosted 4.14.20
+  * 5 `g5.8xlarge` (A10 Nvidia GPU) worker nodes
+* Ray cluster:
+    ```python
+    ClusterConfiguration(
+        num_workers=4,
+        worker_cpu_requests=8,
+        worker_cpu_limits=16,
+        head_cpus=8,
+        worker_memory_requests=32,
+        worker_memory_limits=64,
+        head_memory=64,
+        head_extended_resource_requests={'nvidia.com/gpu':1},
+        worker_extended_resource_requests={'nvidia.com/gpu':1},
+    )
+    ```
+* Ray job:
+    ```python
+    ray_finetune_llm_deepspeed.py "
+        "--model-name=meta-llama/Meta-Llama-3.1-8B "
+        "--ds-config=./deepspeed_configs/zero_3_offload_optim_param.json "
+        f"--storage-path=s3://{s3_bucket}/ray_finetune_llm_deepspeed/ "
+        "--lora "
+        "--num-devices=5 "
+        "--batch-size-per-device=6 "
+        "--eval-batch-size-per-device=8 "
+    ```
 
 ### Llama 2 7B - GSM8k - LoRA
 

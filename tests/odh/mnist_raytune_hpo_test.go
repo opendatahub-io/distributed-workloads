@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -76,11 +77,11 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	}
 	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
 	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
-	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name)
+	CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "mnist_hpo_raytune.ipynb"
-	mnist_hpo := ReadFile(test, "resources/mnist_hpo.py")
+	mnist_hpo := readMnistScriptTemplate(test, "resources/mnist_hpo.py")
 
 	if numGpus > 0 {
 		mnist_hpo = bytes.Replace(mnist_hpo, []byte("gpu_value=\"has to be specified\""), []byte("gpu_value=\"1\""), 1)
@@ -103,7 +104,7 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, localQueue.Name, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	createNotebook(test, namespace, userToken, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {
@@ -112,7 +113,7 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	}()
 
 	// Make sure the RayCluster is created and running
-	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
 		Should(
 			And(
 				HaveLen(1),
@@ -129,7 +130,54 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 			),
 		)
 
+	// Fetch created raycluster
+	rayClusterName := "mnisthpotest"
+	// Wait until raycluster is up and running
+	rayCluster, err := test.Client().Ray().RayV1().RayClusters(namespace.Name).Get(test.Ctx(), rayClusterName, metav1.GetOptions{})
+	test.Expect(err).ToNot(HaveOccurred())
+
+	// Initialise raycluster client to interact with raycluster to get rayjob details using REST-API
+	dashboardUrl := GetDashboardUrl(test, namespace, rayCluster)
+	rayClusterClientConfig := RayClusterClientConfig{Address: dashboardUrl.String(), Client: nil, InsecureSkipVerify: true}
+	rayClient, err := NewRayClusterClient(rayClusterClientConfig, test.Config().BearerToken)
+	test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to create new raycluster client: %s", err))
+
+	// Wait until the rayjob is created and running
+	test.Eventually(func() []RayJobDetailsResponse {
+		rayJobs, err := rayClient.GetJobs()
+		test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to fetch ray-jobs : %s", err))
+		return *rayJobs
+	}, TestTimeoutMedium, 1*time.Second).Should(HaveLen(1), "Ray job not found")
+
+	// Get rayjob-ID
+	jobID := GetTestJobId(test, rayClient, dashboardUrl.Host)
+	test.Expect(jobID).ToNot(BeEmpty())
+
+	// Wait for the job to either succeed or fail
+	var rayJobStatus string
+	test.T().Logf("Waiting for job to be Succeeded...\n")
+	test.Eventually(func() string {
+		resp, err := rayClient.GetJobDetails(jobID)
+		test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to get job details :%s", err))
+		rayJobStatusVal := resp.Status
+		if rayJobStatusVal == "SUCCEEDED" || rayJobStatusVal == "FAILED" {
+			test.T().Logf("JobStatus - %s\n", rayJobStatusVal)
+			rayJobStatus = rayJobStatusVal
+			return rayJobStatus
+		}
+		if rayJobStatus != rayJobStatusVal && rayJobStatusVal != "SUCCEEDED" {
+			test.T().Logf("JobStatus - %s...\n", rayJobStatusVal)
+			rayJobStatus = rayJobStatusVal
+		}
+		return rayJobStatus
+	}, TestTimeoutDouble, 1*time.Second).Should(Or(Equal("SUCCEEDED"), Equal("FAILED")), "Job did not complete within the expected time")
+	// Store job logs in output directory
+	WriteRayJobAPILogs(test, rayClient, jobID)
+
+	// Assert ray-job status after job execution
+	test.Expect(rayJobStatus).To(Equal("SUCCEEDED"), "RayJob failed !")
+
 	// Make sure the RayCluster finishes and is deleted
-	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
-		Should(HaveLen(0))
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
+		Should(BeEmpty())
 }

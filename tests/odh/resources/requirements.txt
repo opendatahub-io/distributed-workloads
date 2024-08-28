@@ -1,5 +1,3 @@
-{{.PipIndexUrl}}
-{{.PipTrustedHost}}
 pytorch_lightning==1.9.5
 ray_lightning
 torchmetrics==0.9.1

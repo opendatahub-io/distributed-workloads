@@ -119,7 +119,11 @@ def get_number_of_params(model: nn.Module):
 
 def collate_fn(batch, tokenizer, block_size, device):
     out_batch = tokenizer(
-        list(batch["input"]),
+        list(map(lambda m: tokenizer.apply_chat_template(m,
+                                                         tokenize=False,
+                                                         add_generation_prompt=False,
+                                                         add_special_tokens=False),
+                 batch["messages"])),
         padding="max_length",
         max_length=block_size,
         truncation=True,
@@ -140,13 +144,15 @@ def get_pretrained_path(model_id: str):
     return ckpt_path
 
 
-def get_tokenizer(model_name, special_tokens):
-
+def get_tokenizer(model_name, **kwargs):
     pretrained_path = get_pretrained_path(model_name)
     # Context for legacy=True: https://github.com/huggingface/transformers/issues/25176
     tokenizer = AutoTokenizer.from_pretrained(pretrained_path, legacy=True)
     tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.add_tokens(special_tokens, special_tokens=True)
+    if kwargs.get("special_tokens", None):
+        tokenizer.add_tokens(kwargs.get("special_tokens"), special_tokens=True)
+    if kwargs.get("chat_template", None):
+        tokenizer.chat_template = kwargs.get("chat_template")
 
     return tokenizer
 
@@ -231,6 +237,7 @@ def training_function(kwargs: dict):
 
     config = kwargs["config"]
     args = argparse.Namespace(**kwargs["args"])
+    chat_template = kwargs.get("chat_template", [])
     special_tokens = kwargs.get("special_tokens", [])
     model_id = config["model_name"]
 
@@ -246,7 +253,7 @@ def training_function(kwargs: dict):
             model_id=model_id, bucket_uri=bucket_uri, s3_sync_args=["--no-sign-request"]
         )
 
-    # Sample hyper-parameters for learning rate, batch size, seed and a few other HPs
+    # Sample hyperparameters for learning rate, batch size, seed and a few other HPs
     lr = config["lr"]
     num_epochs = int(config["num_epochs"])
     seed = int(config["seed"])
@@ -273,7 +280,9 @@ def training_function(kwargs: dict):
     train_ds_len = len(list(train_ds.iter_batches(batch_size=1)))
 
     _test_tokenizer(args.model_name)
-    tokenizer = get_tokenizer(model_name=args.model_name, special_tokens=special_tokens)
+    tokenizer = get_tokenizer(model_name=args.model_name,
+                              chat_template=chat_template,
+                              special_tokens=special_tokens)
     collate_partial = functools.partial(
         collate_fn,
         tokenizer=tokenizer,
@@ -569,7 +578,7 @@ def training_function(kwargs: dict):
 def parse_args():
     parser = argparse.ArgumentParser(description="LLM fine-tuning with DeepSpeed")
 
-    parser.add_argument("--model-name", type=str, default="meta-llama/Llama-2-7b-chat-hf")
+    parser.add_argument("--model-name", type=str, default="meta-llama/Meta-Llama-3.1-8B")
 
     parser.add_argument("--train-path", type=str, default="./data/train.jsonl",
                         help="Path to training jsonl file")
@@ -577,8 +586,8 @@ def parse_args():
     parser.add_argument("--test-path", type=str, default="./data/test.jsonl",
                         help="Path to testing jsonl file")
 
-    parser.add_argument("--special-token-path", type=str, default="./data/tokens.json",
-                        help="Path to token json file")
+    parser.add_argument("--dataset-config", type=str, default="./data/config.json",
+                        help="Path to the config file")
 
     parser.add_argument("--num-devices", "-nd", type=int, default=4,
                         help="Number of devices to use.")
@@ -587,7 +596,7 @@ def parse_args():
                         help="Whether to use mixed precision. Choose between fp16 and bf16 (bfloat16). "
                              "Bf16 requires PyTorch >= 1.10 and an Nvidia Ampere GPU.")
 
-    parser.add_argument("--ds-config", type=str, default="./deepspeed_configs/zero_3_llama_2_7b.json",
+    parser.add_argument("--ds-config", type=str, default="./deepspeed_configs/zero_3_offload_optim_param.json",
                         help="Deepspeed config json to use.")
 
     parser.add_argument("--lora", action="store_true", default=False,
@@ -677,9 +686,14 @@ def main():
     else:
         valid_ds = None
 
-    # json file
-    with open(args.special_token_path, "r") as json_file:
-        special_tokens = json.load(json_file)["tokens"]
+    # Config file
+    chat_template = None
+    special_tokens = None
+    if os.path.isfile(args.dataset_config):
+        with open(args.dataset_config, "r") as json_file:
+            dataset_config = json.load(json_file)
+            chat_template = dataset_config.get("chat_template", None)
+            special_tokens = dataset_config.get("special_tokens", None)
 
     trial_name = f"{args.model_name}".split("/")[-1]
     if args.lora:
@@ -690,6 +704,7 @@ def main():
         train_loop_config={
             "config": config,
             "args": vars(args),
+            "chat_template": chat_template,
             "special_tokens": special_tokens,
         },
         run_config=train.RunConfig(

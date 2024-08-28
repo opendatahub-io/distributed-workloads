@@ -79,7 +79,7 @@ func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string) {
 	}
 	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
 	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
-	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name)
+	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Create training PyTorch job
 	tuningJob := createPyTorchJob(test, namespace.Name, localQueue.Name, *config)
@@ -143,7 +143,7 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 	}
 	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
 	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
-	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name)
+	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Create first training PyTorch job
 	tuningJob := createPyTorchJob(test, namespace.Name, localQueue.Name, *config)
