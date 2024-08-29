@@ -103,8 +103,11 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	// Create role binding with Namespace specific admin cluster role
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
+	// Get ray image
+	rayImage := GetRayImage()
+
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	createNotebook(test, namespace, userToken, rayImage, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {
