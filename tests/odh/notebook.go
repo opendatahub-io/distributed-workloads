@@ -29,8 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-const recommendedTagAnnotation = "opendatahub.io/workbench-image-recommended"
-
 var notebookResource = schema.GroupVersionResource{Group: "kubeflow.org", Version: "v1", Resource: "notebooks"}
 
 type NotebookProps struct {

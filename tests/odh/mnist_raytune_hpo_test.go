@@ -132,7 +132,6 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 
 	// Fetch created raycluster
 	rayClusterName := "mnisthpotest"
-	// Wait until raycluster is up and running
 	rayCluster, err := test.Client().Ray().RayV1().RayClusters(namespace.Name).Get(test.Ctx(), rayClusterName, metav1.GetOptions{})
 	test.Expect(err).ToNot(HaveOccurred())
 
