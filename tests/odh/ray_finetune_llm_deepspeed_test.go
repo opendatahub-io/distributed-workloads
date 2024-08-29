@@ -99,8 +99,11 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelName string, modelC
 
 	config := CreateConfigMap(test, namespace.Name, configMap)
 
+	// Get ray image
+	rayImage := GetRayImage()
+
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	createNotebook(test, namespace, userToken, rayImage, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {
