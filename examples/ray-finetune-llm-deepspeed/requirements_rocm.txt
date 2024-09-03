@@ -1,0 +1,5 @@
+accelerate==0.31.0
+awscliv2==2.3.0
+datasets==2.19.2
+peft==0.11.1
+transformers==4.44.0
