@@ -6,4 +6,4 @@ It includes the following layers:
 * UBI 9
 * Python 3.9
 * CUDA 12.1
-* Ray 2.23.0
+* Ray 2.35.0
