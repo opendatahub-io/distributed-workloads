@@ -1,19 +1,25 @@
 approvers:
-  - anishasthana
   - astefanutti
+  - Bobbins228
   - dimakis
-  - jbusche
+  - Fiona-Waters
   - jiripetrlik
   - kpostoffice
-  - MichaelClifford
   - sutaakar
-  - tedhtchang
+  - varshaprasad96
 reviewers:
+  - abhijeet-dhumal
   - astefanutti
+  - Bobbins228
+  - ChughShilpa
   - dimakis
-  - jbusche
+  - Fiona-Waters
   - jiripetrlik
   - kpostoffice
-  - MichaelClifford
   - sutaakar
-  - tedhtchang
+  - varshaprasad96
+emeritus_approvers:
+  - anishasthana # 2024-09-04
+  - jbusche # 2024-09-04
+  - MichaelClifford # 2024-09-04
+  - tedhtchang # 2024-09-04
