@@ -90,7 +90,7 @@ func createSleepPyTorchJob(test Test, namespace string) *kftov1.PyTorchJob {
 							Containers: []corev1.Container{
 								{
 									Name:            "pytorch",
-									Image:           "gcr.io/k8s-staging-perf-tests/sleep:v0.1.0",
+									Image:           kftocore.GetSleepImage(),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									Args:            []string{"24h"},
 								},

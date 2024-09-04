@@ -33,6 +33,8 @@ const (
 	huggingfaceTokenEnvVar = "HF_TOKEN"
 	// The environment variable specifying existing namespace to be used for multiGPU tests
 	multiGpuNamespaceEnvVar = "MULTIGPU_NAMESPACE"
+	// The environment variable referring to image simulating sleep condition in container
+	sleepImageEnvVar = "SLEEP_IMAGE"
 )
 
 func GetFmsHfTuningImage(t Test) string {
@@ -65,6 +67,10 @@ func GetMultiGpuNamespace(t Test) string {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify namespace to be used for multiGPU tests.", multiGpuNamespaceEnvVar)
 	}
 	return image
+}
+
+func GetSleepImage() string {
+	return lookupEnvOrDefault(sleepImageEnvVar, "gcr.io/k8s-staging-perf-tests/sleep@sha256:8d91ddf9f145b66475efda1a1b52269be542292891b5de2a7fad944052bab6ea")
 }
 
 func lookupEnvOrDefault(key, value string) string {
