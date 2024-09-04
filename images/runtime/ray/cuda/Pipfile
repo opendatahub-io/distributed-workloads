@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 numpy = {version = "<2.0.0" }
-"ray[all]" = {version = "~=2.23.0" }
+"ray[all]" = {version = "~=2.35.0" }
 
 [requires]
 python_version = "3.9"
