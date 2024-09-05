@@ -8,7 +8,7 @@ RUN python3 -m pip install torch==2.4.0 --index-url https://download.pytorch.org
 # Install Flash Attention
 RUN python3 -m pip install wheel ninja
 
-run export TMP_DIR=$(mktemp -d) \
+RUN export TMP_DIR=$(mktemp -d) \
     && cd $TMP_DIR \
     && git clone --depth 1 --branch v2.6.3 https://github.com/Dao-AILab/flash-attention.git \
     && cd flash-attention \
