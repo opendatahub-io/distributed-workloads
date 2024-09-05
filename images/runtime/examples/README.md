@@ -10,10 +10,10 @@ You need to have Podman install on your local environment, to build and push the
 
 ## Build
 
-The container images can be built using Podman, e.g., for the `ray-torch` example:
+The container images can be built using Podman, e.g., for the `ray-torch-cuda` example:
 
 ```
-export IMG=ray-torch
+export IMG=ray-torch-cuda
 cd $IMG
 podman build -t ${IMG} -f Dockerfile
 ```
