@@ -103,8 +103,11 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	// Create role binding with Namespace specific admin cluster role
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
+	// Get ray image
+	rayImage := GetRayImage()
+
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	createNotebook(test, namespace, userToken, rayImage, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {
@@ -141,11 +144,13 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	rayClient, err := NewRayClusterClient(rayClusterClientConfig, test.Config().BearerToken)
 	test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to create new raycluster client: %s", err))
 
-	// Wait until the rayjob is created and running
-	test.Eventually(func() []RayJobDetailsResponse {
+	// wait until rayjob exists
+	test.Eventually(func() ([]RayJobDetailsResponse, error) {
 		rayJobs, err := rayClient.GetJobs()
-		test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to fetch ray-jobs : %s", err))
-		return *rayJobs
+		if err != nil {
+			return *rayJobs, err
+		}
+		return *rayJobs, nil
 	}, TestTimeoutMedium, 1*time.Second).Should(HaveLen(1), "Ray job not found")
 
 	// Get rayjob-ID
@@ -155,21 +160,24 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	// Wait for the job to either succeed or fail
 	var rayJobStatus string
 	test.T().Logf("Waiting for job to be Succeeded...\n")
-	test.Eventually(func() string {
+	test.Eventually(func() (string, error) {
 		resp, err := rayClient.GetJobDetails(jobID)
-		test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to get job details :%s", err))
+		if err != nil {
+			return rayJobStatus, err
+		}
 		rayJobStatusVal := resp.Status
 		if rayJobStatusVal == "SUCCEEDED" || rayJobStatusVal == "FAILED" {
 			test.T().Logf("JobStatus - %s\n", rayJobStatusVal)
 			rayJobStatus = rayJobStatusVal
-			return rayJobStatus
+			return rayJobStatus, nil
 		}
 		if rayJobStatus != rayJobStatusVal && rayJobStatusVal != "SUCCEEDED" {
 			test.T().Logf("JobStatus - %s...\n", rayJobStatusVal)
 			rayJobStatus = rayJobStatusVal
 		}
-		return rayJobStatus
+		return rayJobStatus, nil
 	}, TestTimeoutDouble, 1*time.Second).Should(Or(Equal("SUCCEEDED"), Equal("FAILED")), "Job did not complete within the expected time")
+
 	// Store job logs in output directory
 	WriteRayJobAPILogs(test, rayClient, jobID)
 

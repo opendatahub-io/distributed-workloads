@@ -51,7 +51,7 @@ type NotebookProps struct {
 	S3DefaultRegion           string
 }
 
-func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int) {
+func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, rayImage string, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int) {
 	// Create PVC for Notebook
 	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", corev1.ReadWriteOnce)
 	s3BucketName, s3BucketNameExists := GetStorageBucketName()
@@ -73,7 +73,7 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, j
 		KubernetesUserBearerToken: notebookUserToken,
 		Namespace:                 namespace.Name,
 		OpenDataHubNamespace:      GetOpenDataHubNamespace(test),
-		RayImage:                  GetRayImage(),
+		RayImage:                  rayImage,
 		NotebookImage:             GetNotebookImage(test),
 		NotebookConfigMapName:     jupyterNotebookConfigMapName,
 		NotebookConfigMapFileName: jupyterNotebookConfigMapFileName,
