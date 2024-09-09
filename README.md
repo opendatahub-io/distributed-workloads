@@ -22,7 +22,7 @@
 * `CODEFLARE_TEST_TIMEOUT_LONG` - Timeout duration for long tasks
 * `CODEFLARE_TEST_RAY_IMAGE` (Optional) - Ray image used for raycluster configuration 
 
-    NOTE: `quay.io/rhoai/ray:2.23.0-py39-cu121` is the default community image used for creating a raycluster resource. If you have your own custom ray image which suits your purposes, specify it in `CODEFLARE_TEST_RAY_IMAGE` environment variable.
+    NOTE: `quay.io/modh/ray:2.35.0-py39-cu121` is the default image used for creating a RayCluster resource. If you have your own custom ray image which suits your purposes, specify it in `CODEFLARE_TEST_RAY_IMAGE` environment variable.
 
 ### Environment variables for Training operator test suite
 
