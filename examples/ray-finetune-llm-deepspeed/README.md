@@ -12,7 +12,7 @@ It adapts the _Fine-tuning Llama-2 series models with Deepspeed, Accelerate, and
 
 * An OpenShift cluster with OpenShift AI (RHOAI) 2.10+ installed:
   * The `codeflare`, `dashboard`, `ray` and `workbenches` components enabled;
-* Sufficient worker nodes for your configuration(s) with Nvidia GPUs (Ampere-based recommended);
+* Sufficient worker nodes for your configuration(s) with NVIDIA GPUs (Ampere-based recommended) or AMD GPUs (AMD Instinct MI300X);
 * An AWS S3 bucket to store experimentation results.
 
 ## Setup
@@ -35,6 +35,8 @@ It adapts the _Fine-tuning Llama-2 series models with Deepspeed, Accelerate, and
 * Navigate to the `distributed-workloads/examples/ray-finetune-llm-deepspeed` directory and open the `ray-finetune-llm-deepspeed` notebook:
 ![](./docs/07.png)
 * Finally, change the connection parameters for the CodeFlare SDK.
+  Mind the Ray cluster is configured to use NVIDIA GPUs by default.
+  If you use different accelerators, e.g. AMD GPUs, the Ray cluster configuration must be changed accordingly.
 
 ## Experimentation
 
@@ -80,7 +82,7 @@ This example has been validated on the following configurations:
 
 * OpenShift cluster:
   * ROSA-hosted 4.14.20
-  * 5 `g5.8xlarge` (A10 Nvidia GPU) worker nodes
+  * 5 `g5.8xlarge` (NVIDIA A10 GPU) worker nodes
 * Ray cluster:
     ```python
     ClusterConfiguration(
@@ -107,11 +109,43 @@ This example has been validated on the following configurations:
         "--eval-batch-size-per-device=8 "
     ```
 
+### Llama 3 8B - GSM8k - LoRA
+
+* OpenShift cluster:
+  * OCP 4.14.35, 4 AMD MI300X GPUs / single node
+* Ray cluster:
+    ```python
+    ClusterConfiguration(
+        num_workers=3,
+        worker_cpu_requests=8,
+        worker_cpu_limits=16,
+        head_cpus=16,
+        worker_memory_requests=96,
+        worker_memory_limits=96,
+        head_memory=96,
+        head_extended_resource_requests={'amd.com/gpu':1},
+        worker_extended_resource_requests={'amd.com/gpu':1},
+        image="quay.io/rhoai/ray:2.35.0-py39-rocm61-torch24-fa26",
+    )
+    ```
+* Ray job:
+    ```python
+    ray_finetune_llm_deepspeed.py "
+        "--model-name=meta-llama/Meta-Llama-3.1-8B "
+        "--ds-config=./deepspeed_configs/zero_3_offload_optim_param.json "
+        f"--storage-path=s3://{s3_bucket}/ray_finetune_llm_deepspeed/ "
+        "--lora "
+        "--num-devices=4 "
+        "--batch-size-per-device=64 "
+        "--eval-batch-size-per-device=64 "
+        "--ctx-len=1024"
+    ```
+
 ### Llama 2 7B - GSM8k - LoRA
 
 * OpenShift cluster:
   * ROSA-hosted 4.14.20
-  * 6 `g5.8xlarge` (A10 Nvidia GPU) worker nodes
+  * 6 `g5.8xlarge` (NVIDIA A10 GPU) worker nodes
 * Ray cluster:
     ```python
     ClusterConfiguration(
@@ -142,7 +176,7 @@ This example has been validated on the following configurations:
 
 * OpenShift cluster:
   * ROSA-hosted 4.14.20
-  * 6 `g5.8xlarge` (A10 Nvidia GPU) worker nodes
+  * 6 `g5.8xlarge` (NVIDIA A10 GPU) worker nodes
 * Ray cluster:
     ```python
     ClusterConfiguration(
@@ -172,7 +206,7 @@ This example has been validated on the following configurations:
 ### Llama 2 70B - GSM8k - LoRA
 
 * OpenShift cluster:
-  * DGX A100 Server (8x A100 / 40GB HBM)
+  * DGX A100 Server (8x NVIDIA A100 / 40GB HBM)
 * Ray cluster:
     ```python
     ClusterConfiguration(
