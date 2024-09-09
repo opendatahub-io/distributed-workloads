@@ -7,8 +7,10 @@ metadata:
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "pull_request" 
+      && target_branch == "main" 
+      && ( !".tekton/**".pathChanged() || ".tekton/ray-cuda-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
@@ -27,7 +29,9 @@ spec:
   - name: image-expires-after
     value: 5d
   - name: dockerfile
-    value: /images/runtime/ray/cuda/Dockerfile
+    value: Dockerfile
+  - name: path-context
+    value: images/runtime/ray/cuda
   pipelineSpec:
     finally:
     - name: show-sbom
@@ -233,9 +237,9 @@ spec:
       taskRef:
         params:
         - name: name
-          value: buildah
+          value: buildah-8gb
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-buildah:0.2@sha256:a523f60203d90e149f96ec776b47ce85a7acfd6d634ddfc18f4a03f14e08ea0e
+          value: quay.io/konflux-ci/tekton-catalog/task-buildah-8gb:0.2
         - name: kind
           value: task
         resolver: bundles
