@@ -69,7 +69,7 @@ func mnistCustomRayImage(t *testing.T, numGpus int) {
 	namespace := test.NewTestNamespace()
 
 	// Build and Push custom ray image
-	image := "ray-torch"
+	image := "ray-torch-cuda"
 	buildAndPushRayImage(test, namespace.Name, image)
 
 	// Get custom ray image
