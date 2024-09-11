@@ -46,7 +46,7 @@ spec:
           - name: shared-storage
             persistentVolumeClaim:
               claimName: stable-diffusion-shared-storage
-  rayVersion: 2.7.0
+  rayVersion: 2.35.0
   suspend: false
   workerGroupSpecs:
     - groupName: small-group-stable-diffusion
