@@ -127,21 +127,15 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelName string, modelC
 
 	// Initialise raycluster client to interact with raycluster to get rayjob details using REST-API
 	dashboardUrl := GetDashboardUrl(test, namespace, rayCluster)
-	rayClusterClientConfig := RayClusterClientConfig{Address: dashboardUrl.String(), Client: nil, InsecureSkipVerify: true}
-	rayClient, err := NewRayClusterClient(rayClusterClientConfig, test.Config().BearerToken)
-	test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to create new raycluster client: %s", err))
+	rayClient := GetRayClusterClient(test, dashboardUrl, test.Config().BearerToken)
 
 	// wait until rayjob exists
 	test.Eventually(func() ([]RayJobDetailsResponse, error) {
-		rayJobs, err := rayClient.GetJobs()
-		if err != nil {
-			return *rayJobs, err
-		}
-		return *rayJobs, nil
+		return rayClient.ListJobs()
 	}, TestTimeoutMedium, 1*time.Second).Should(HaveLen(1), "Ray job not found")
 
 	// Get test job-id
-	jobID := GetTestJobId(test, rayClient, dashboardUrl.Host)
+	jobID := GetTestJobId(test, rayClient)
 	test.Expect(jobID).ToNot(BeEmpty())
 
 	// Wait for the job to be succeeded or failed
