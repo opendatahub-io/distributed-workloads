@@ -67,12 +67,16 @@ func TestMultiGpuPytorchjobMetaLlama370bInstructLoRa(t *testing.T) {
 	runMultiGpuPytorchjob(t, "config_meta_llama3_70b_instruct_lora.json")
 }
 
+func TestMultiGpuPytorchjobMistral7bv03(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_mistral_7b_v03.json")
+}
+
 func TestMultiGpuPytorchjobMixtral8x7bv01(t *testing.T) {
 	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_v01.json")
 }
 
-func TestMultiGpuPytorchjobMixtral8x7bInstructv01(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_instruct_v01.json")
+func TestMultiGpuPytorchjobMixtral8x7bInstructv01LoRa(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_instruct_v01_lora.json")
 }
 
 func TestMultiGpuPytorchjobMerlinite7b(t *testing.T) {
