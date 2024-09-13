@@ -1,4 +1,4 @@
-FROM quay.io/rhoai/ray:2.35.0-py39-rocm61
+FROM quay.io/modh/ray:2.35.0-py39-rocm61
 
 ENV PYTORCH_ROCM_ARCH=gfx942
 
