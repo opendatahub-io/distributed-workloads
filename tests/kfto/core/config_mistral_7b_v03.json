@@ -1,5 +1,5 @@
 {
-    "model_name_or_path": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    "model_name_or_path": "mistralai/Mistral-7B-v0.3",
     "training_data_path": "/mnt/scratch/dataset/alpaca_data.json",
     "output_dir": "/mnt/output/model",
     "save_model_dir": "/mnt/output/model",
