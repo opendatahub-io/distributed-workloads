@@ -17,6 +17,4 @@ RUN export TMP_DIR=$(mktemp -d) \
     && rm -rf $TMP_DIR
 
 # Install DeepSpeed
-# The installation fails on ROCm with the latest released version of DeepSpeed (0.15.0 as of this writing)
-# This can be updated once https://github.com/microsoft/DeepSpeed/pull/6456 is released
-RUN DS_ACCELERATOR=cuda DS_BUILD_CPU_ADAM=1 DS_BUILD_FUSED_ADAM=1 python3 -m pip install git+https://github.com/microsoft/DeepSpeed.git@a7ffe540fc98a945b9d3d2a9c05653e160d62dcf --global-option="build_ext" --global-option="-j8"
+RUN DS_ACCELERATOR=cuda DS_BUILD_CPU_ADAM=1 DS_BUILD_FUSED_ADAM=1 python3 -m pip install deepspeed==0.15.1 --global-option="build_ext" --global-option="-j8"
