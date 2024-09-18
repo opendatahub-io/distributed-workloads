@@ -1,6 +1,6 @@
 FROM quay.io/modh/ray:2.35.0-py39-rocm61
 
-ENV PYTORCH_ROCM_ARCH=gfx942
+ENV PYTORCH_ROCM_ARCH=gfx90a;gfx941;gfx942
 
 # Install PyTorch
 RUN python3 -m pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/rocm6.1
