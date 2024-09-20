@@ -37,6 +37,9 @@ func TestPytorchjobWithSFTtrainerFinetuning(t *testing.T) {
 func TestPytorchjobWithSFTtrainerLoRa(t *testing.T) {
 	runPytorchjobWithSFTtrainer(t, "config_lora.json")
 }
+func TestPytorchjobWithSFTtrainerQLoRa(t *testing.T) {
+	runPytorchjobWithSFTtrainer(t, "config_qlora.json")
+}
 
 func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string) {
 	test := With(t)
