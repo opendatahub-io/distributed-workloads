@@ -19,8 +19,6 @@ package odh
 import (
 	"bytes"
 	"fmt"
-	"log"
-	"os/exec"
 	"testing"
 	"time"
 
@@ -35,22 +33,22 @@ import (
 )
 
 func TestMnistRayCpu(t *testing.T) {
-	mnistDefaultRayImage(t, 0)
+	mnistRay(t, 0)
 }
 
 func TestMnistRayGpu(t *testing.T) {
-	mnistDefaultRayImage(t, 1)
+	mnistRay(t, 1)
 }
 
 func TestMnistCustomRayImageCpu(t *testing.T) {
-	mnistCustomRayImage(t, 0)
+	mnistRay(t, 0)
 }
 
 func TestMnistCustomRayImageGpu(t *testing.T) {
-	mnistCustomRayImage(t, 1)
+	mnistRay(t, 1)
 }
 
-func mnistDefaultRayImage(t *testing.T, numGpus int) {
+func mnistRay(t *testing.T, numGpus int) {
 	test := With(t)
 
 	// Create a namespace
@@ -59,26 +57,6 @@ func mnistDefaultRayImage(t *testing.T, numGpus int) {
 	// Get ray image
 	rayImage := GetRayImage()
 
-	mnistRay(test, numGpus, namespace, rayImage)
-}
-
-func mnistCustomRayImage(t *testing.T, numGpus int) {
-	test := With(t)
-
-	// Create a namespace
-	namespace := test.NewTestNamespace()
-
-	// Build and Push custom ray image
-	image := "ray-torch-cuda"
-	buildAndPushRayImage(test, namespace.Name, image)
-
-	// Get custom ray image
-	rayImage := getCustomRayImage(test, namespace.Name, image)
-
-	mnistRay(test, numGpus, namespace, rayImage)
-}
-
-func mnistRay(test Test, numGpus int, namespace *corev1.Namespace, rayImage string) {
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
 	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
@@ -247,26 +225,4 @@ func readMnistScriptTemplate(test Test, filePath string) []byte {
 	test.Expect(err).NotTo(HaveOccurred())
 
 	return ParseTemplate(test, template, props)
-}
-
-func buildAndPushRayImage(test Test, namespace string, image string) {
-	cmd := exec.Command("resources/custom_image.sh", namespace, image, "-c", "echo stdout; echo 1>&2 stderr")
-
-	stdoutStderr, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Fatal("Error executing custom_image script :", err)
-	}
-	test.Expect(err).NotTo(HaveOccurred())
-
-	fmt.Printf("Logs of build and custom ray image . . .\n %s", stdoutStderr)
-}
-
-func getCustomRayImage(test Test, namespace string, image string) string {
-	tag := "latest"
-	name := image + ":" + tag
-
-	imageStreamTag := GetImageStreamTag(test, namespace, name)
-	imageReference := imageStreamTag.Image.DockerImageReference
-
-	return imageReference
 }
