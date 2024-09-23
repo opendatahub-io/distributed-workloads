@@ -16,12 +16,9 @@
     "dataset_text_field": "output",
     "use_flash_attn": false,
     "peft_method": "lora",
-    "r": 8,
-    "lora_dropout": 0.05,
-    "lora_alpha": 16,
-    "target_modules": ["all-linear"],
-    "use_4bit": true,
-    "bnb_4bit_compute_dtype": "float16",
-    "bnb_4bit_quant_type": "nf4",
+    "quantized_lora_config": {
+        "auto_gptq": ["triton_v2"]
+    },
+    "torch_dtype": "float16",
     "fp16": true
 }
