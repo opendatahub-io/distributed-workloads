@@ -1,0 +1,7 @@
+--extra-index-url https://download.pytorch.org/whl/rocm6.1
+torch==2.4.0+rocm6.1
+pytorch_lightning==1.9.5
+ray_lightning
+torchmetrics==0.9.1
+torchvision==0.19.0
+minio
