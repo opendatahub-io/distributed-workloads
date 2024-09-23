@@ -15,12 +15,13 @@
     "response_template": "\n### Label:",
     "dataset_text_field": "output",
     "use_flash_attn": false,
-    "peft_method": "qlora",
+    "peft_method": "lora",
+    "r": 8,
+    "lora_dropout": 0.05,
+    "lora_alpha": 16,
     "target_modules": ["all-linear"],
     "use_4bit": true,
     "bnb_4bit_compute_dtype": "float16",
     "bnb_4bit_quant_type": "nf4",
-    "use_nested_quant": false,
-    "fp16": false,
-    "bf16": false
+    "fp16": true
 }
