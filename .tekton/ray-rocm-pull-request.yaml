@@ -42,7 +42,6 @@ spec:
               memory: 10Gi
             limits:
               memory: 10Gi
-
     - pipelineTaskName: prefetch-dependencies
       computeResources:
         requests:
