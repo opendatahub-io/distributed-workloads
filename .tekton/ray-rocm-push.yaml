@@ -6,8 +6,11 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push" 
+      && target_branch == "main" 
+      && ( !".tekton/**".pathChanged() || ".tekton/ray-rocm-push.yaml".pathChanged() )
+      && ( "images/runtime/ray/rocm/**".pathChanged())
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
@@ -22,9 +25,28 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/rhoai-tenant/runtime-ray/ray-rocm:{{revision}}
+    value: quay.io/modh/ray:2.35.0-py39-rocm61
   - name: dockerfile
-    value: /images/runtime/ray/rocm/Dockerfile
+    value: Dockerfile
+  - name: path-context
+    value: images/runtime/ray/rocm
+  taskRunSpecs:
+    - pipelineTaskName: build-container
+      stepSpecs:
+        - name: build
+          computeResources:
+            requests:
+              memory: 10Gi
+            limits:
+              memory: 10Gi
+
+    - pipelineTaskName: prefetch-dependencies
+      computeResources:
+        requests:
+          cpu: '1'
+          memory: 2Gi
+        limits:
+          memory: 2Gi
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
