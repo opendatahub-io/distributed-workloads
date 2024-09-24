@@ -11,7 +11,7 @@ metadata:
       event == "pull_request" 
       && target_branch == "main" 
       && ( !".tekton/**".pathChanged() || ".tekton/ray-rocm-pull-request.yaml".pathChanged() )
-      && ( "images/runtime/ray/rocm/**".pathChanged())
+      && ( !"images/runtime/ray/rocm/**".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
