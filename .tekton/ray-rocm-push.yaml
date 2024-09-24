@@ -10,7 +10,7 @@ metadata:
       event == "push" 
       && target_branch == "main" 
       && ( !".tekton/**".pathChanged() || ".tekton/ray-rocm-push.yaml".pathChanged() )
-      && ( "images/runtime/ray/rocm/**".pathChanged())
+      && ( !"images/runtime/ray/rocm/**".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
