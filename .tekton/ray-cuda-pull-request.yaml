@@ -11,7 +11,7 @@ metadata:
       event == "pull_request" 
       && target_branch == "main" 
       && (!".tekton/**".pathChanged() || ".tekton/ray-cuda-pull-request.yaml".pathChanged() )
-      && ("images/runtime/ray/cuda/**".pathChanged() && !"**".pathChangedExcept("images/runtime/ray/cuda/**"))
+      && ("images/runtime/ray/cuda/**".pathChanged() && !"**".pathChangedExcept("images/runtime/ray/cuda/**") )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
