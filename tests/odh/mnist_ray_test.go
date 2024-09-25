@@ -226,3 +226,4 @@ func readMnistScriptTemplate(test Test, filePath string) []byte {
 
 	return ParseTemplate(test, template, props)
 }
+//test
