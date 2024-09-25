@@ -17,6 +17,7 @@ limitations under the License.
 package core
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -31,14 +32,17 @@ import (
 )
 
 func TestPytorchjobWithSFTtrainerFinetuning(t *testing.T) {
-	runPytorchjobWithSFTtrainer(t, "config.json")
+	runPytorchjobWithSFTtrainer(t, "config.json", 0)
 }
 
 func TestPytorchjobWithSFTtrainerLoRa(t *testing.T) {
-	runPytorchjobWithSFTtrainer(t, "config_lora.json")
+	runPytorchjobWithSFTtrainer(t, "config_lora.json", 0)
+}
+func TestPytorchjobWithSFTtrainerQLoRa(t *testing.T) {
+	runPytorchjobWithSFTtrainer(t, "config_qlora.json", 1)
 }
 
-func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string) {
+func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string, numGpus int) {
 	test := With(t)
 
 	// Create a namespace
@@ -58,7 +62,7 @@ func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string) {
 		NamespaceSelector: &metav1.LabelSelector{},
 		ResourceGroups: []kueuev1beta1.ResourceGroup{
 			{
-				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory")},
+				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory"), corev1.ResourceName("nvidia.com/gpu")},
 				Flavors: []kueuev1beta1.FlavorQuotas{
 					{
 						Name: kueuev1beta1.ResourceFlavorReference(resourceFlavor.Name),
@@ -71,6 +75,10 @@ func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string) {
 								Name:         corev1.ResourceMemory,
 								NominalQuota: resource.MustParse("12Gi"),
 							},
+							{
+								Name:         corev1.ResourceName("nvidia.com/gpu"),
+								NominalQuota: resource.MustParse(fmt.Sprint(numGpus)),
+							},
 						},
 					},
 				},
@@ -82,7 +90,7 @@ func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string) {
 	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Create training PyTorch job
-	tuningJob := createPyTorchJob(test, namespace.Name, localQueue.Name, *config)
+	tuningJob := createPyTorchJob(test, namespace.Name, localQueue.Name, *config, numGpus)
 
 	// Make sure the Kueue Workload is admitted
 	test.Eventually(KueueWorkloads(test, namespace.Name), TestTimeoutLong).
@@ -146,14 +154,14 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Create first training PyTorch job
-	tuningJob := createPyTorchJob(test, namespace.Name, localQueue.Name, *config)
+	tuningJob := createPyTorchJob(test, namespace.Name, localQueue.Name, *config, 0)
 
 	// Make sure the PyTorch job is running
 	test.Eventually(PytorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutLong).
 		Should(WithTransform(PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Create second training PyTorch job
-	secondTuningJob := createPyTorchJob(test, namespace.Name, localQueue.Name, *config)
+	secondTuningJob := createPyTorchJob(test, namespace.Name, localQueue.Name, *config, 0)
 
 	// Make sure the second PyTorch job is suspended, waiting for first job to finish
 	test.Eventually(PytorchJob(test, namespace.Name, secondTuningJob.Name), TestTimeoutShort).
@@ -172,7 +180,7 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 	test.T().Logf("PytorchJob %s/%s ran successfully", secondTuningJob.Namespace, secondTuningJob.Name)
 }
 
-func createPyTorchJob(test Test, namespace, localQueueName string, config corev1.ConfigMap) *kftov1.PyTorchJob {
+func createPyTorchJob(test Test, namespace, localQueueName string, config corev1.ConfigMap, numGpus int) *kftov1.PyTorchJob {
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -191,6 +199,12 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 					RestartPolicy: "OnFailure",
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
+							Tolerations: []corev1.Toleration{
+								{
+									Key:      "nvidia.com/gpu",
+									Operator: corev1.TolerationOpExists,
+								},
+							},
 							InitContainers: []corev1.Container{
 								{
 									Name:            "copy-model",
@@ -235,10 +249,12 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 										Requests: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("2"),
 											corev1.ResourceMemory: resource.MustParse("7Gi"),
+											"nvidia.com/gpu":      resource.MustParse(fmt.Sprint(numGpus)),
 										},
 										Limits: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("2"),
 											corev1.ResourceMemory: resource.MustParse("7Gi"),
+											"nvidia.com/gpu":      resource.MustParse(fmt.Sprint(numGpus)),
 										},
 									},
 									SecurityContext: &corev1.SecurityContext{
