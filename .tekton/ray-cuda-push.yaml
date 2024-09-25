@@ -9,8 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" 
       && target_branch == "main" 
-      && ( !".tekton/**".pathChanged() || ".tekton/ray-cuda-push.yaml".pathChanged() )
-      && ( !"images/runtime/ray/cuda/**".pathChanged() )
+      && ( !".tekton/**".pathChanged() || ".tekton/ray-cuda-push.yaml".pathChanged() || "images/runtime/ray/cuda/**".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
