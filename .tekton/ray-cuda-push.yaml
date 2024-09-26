@@ -9,8 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" 
       && target_branch == "main" 
-      && ( !".tekton/**".pathChanged() || ".tekton/ray-cuda-push.yaml".pathChanged() )
-      && ("images/runtime/ray/cuda/**".pathChanged() && !"**".pathChangedExcept("images/runtime/ray/cuda/**") )
+      && ( "images/runtime/ray/cuda/**".pathChanged() || ".tekton/ray-cuda-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
@@ -26,6 +25,8 @@ spec:
     value: '{{revision}}'
   - name: output-image
     value: quay.io/modh/ray:2.35.0-py39-cu121
+  - name: additional-tag
+    value: 2.35.0-py39-cu121-{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
@@ -67,6 +68,9 @@ spec:
           value: task
         resolver: bundles
     params:
+    - name: additional-tag
+      type: string
+      description: Additional fixed tag for the image
     - description: Source Repository URL
       name: git-url
       type: string
@@ -423,6 +427,9 @@ spec:
       params:
       - name: IMAGE
         value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: ADDITIONAL_TAGS
+        value:
+          - "$(params.additional-tag)"
       runAfter:
       - build-image-index
       taskRef:

@@ -10,7 +10,7 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "pull_request" 
       && target_branch == "main" 
-      && ( !".tekton/**".pathChanged() || ".tekton/ray-rocm-pull-request.yaml".pathChanged() || ("images/runtime/ray/cocm/**".pathChanged() && !"**".pathChangedExcept("images/runtime/ray/rocm/**")) )
+      && ( "images/runtime/ray/rocm/**".pathChanged() || ".tekton/ray-rocm-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
