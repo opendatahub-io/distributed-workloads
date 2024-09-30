@@ -234,6 +234,10 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 											Name:  "HF_HOME",
 											Value: "/tmp/huggingface",
 										},
+										{
+											Name:  "HOME",
+											Value: "/tmp/triton-home",
+										},
 									},
 									VolumeMounts: []corev1.VolumeMount{
 										{
