@@ -33,57 +33,73 @@ import (
 	prometheusmodel "github.com/prometheus/common/model"
 )
 
-var numberOfGpus = 8
+func TestMultiGpuPytorchjobAllamBeta13bChatGptq(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_allam_beta_13b_chat_gptq.json", 2, mountModelVolumeIntoMaster)
+}
+
+func TestMultiGpuPytorchjobGranite8bCodeInstructGptq(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_granite_8b_code_instruct_gptq.json", 2, mountModelVolumeIntoMaster)
+}
 
 func TestMultiGpuPytorchjobGranite20bCodeInstruct(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_granite_20b_code_instruct.json")
+	runMultiGpuPytorchjob(t, "config_granite_20b_code_instruct.json", 4)
+}
+
+func TestMultiGpuPytorchjobGranite34bCodeBaseGptq(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_granite_34b_code_base_gptq.json", 2, mountModelVolumeIntoMaster)
 }
 
 func TestMultiGpuPytorchjobGranite34bCodeInstructLoRa(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_granite_34b_code_instruct_lora.json")
-}
-
-func TestMultiGpuPytorchjobLlama213bChatHf(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_llama2_13b_chat_hf.json")
-}
-
-func TestMultiGpuPytorchjobLlama213bChatHfLoRa(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_llama2_13b_chat_hf_lora.json")
+	runMultiGpuPytorchjob(t, "config_granite_34b_code_instruct_lora.json", 4)
 }
 
 func TestMultiGpuPytorchjobMetaLlama318b(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_meta_llama3_1_8b.json")
+	runMultiGpuPytorchjob(t, "config_meta_llama3_1_8b.json", 2)
 }
 
 func TestMultiGpuPytorchjobMetaLlama38bInstruct(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_meta_llama3_8b_instruct.json")
+	runMultiGpuPytorchjob(t, "config_meta_llama3_8b_instruct.json", 2)
+}
+
+func TestMultiGpuPytorchjobMetaLlama370bInstructGptqBlue(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_meta_llama3_70b_instruct_gptq_blue.json", 2, mountModelVolumeIntoMaster)
+}
+
+func TestMultiGpuPytorchjobMetaLlama31405bGptq(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_meta_llama3_1_405b_gptq.json", 8, mountModelVolumeIntoMaster)
 }
 
 func TestMultiGpuPytorchjobMetaLlama3170bLoRa(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_meta_llama3_1_70b_lora.json")
+	runMultiGpuPytorchjob(t, "config_meta_llama3_1_70b_lora.json", 4)
 }
 
 func TestMultiGpuPytorchjobMetaLlama370bInstructLoRa(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_meta_llama3_70b_instruct_lora.json")
+	runMultiGpuPytorchjob(t, "config_meta_llama3_70b_instruct_lora.json", 4)
 }
 
+func TestMultiGpuPytorchjobMistral7bv03Gptq(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_mistral_7b_v03_gptq.json", 2, mountModelVolumeIntoMaster)
+}
 func TestMultiGpuPytorchjobMistral7bv03(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_mistral_7b_v03.json")
+	runMultiGpuPytorchjob(t, "config_mistral_7b_v03.json", 2)
 }
 
 func TestMultiGpuPytorchjobMixtral8x7bv01(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_v01.json")
+	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_v01.json", 8)
 }
 
+func TestMultiGpuPytorchjobMixtral8x7bInstructv01Gptq(t *testing.T) {
+	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_instruct_v01_gptq.json", 2, mountModelVolumeIntoMaster)
+}
 func TestMultiGpuPytorchjobMixtral8x7bInstructv01LoRa(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_instruct_v01_lora.json")
+	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_instruct_v01_lora.json", 4)
 }
 
 func TestMultiGpuPytorchjobMerlinite7b(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_merlinite_7b.json")
+	runMultiGpuPytorchjob(t, "config_merlinite_7b.json", 2)
 }
 
-func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string) {
+func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus int, options ...Option[*kftov1.PyTorchJob]) {
 	test := With(t)
 
 	namespace := GetMultiGpuNamespace(test)
@@ -96,7 +112,7 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string) {
 	defer test.Client().Core().CoreV1().ConfigMaps(namespace).Delete(test.Ctx(), config.Name, *metav1.NewDeleteOptions(0))
 
 	// Create training PyTorch job
-	tuningJob := createAlpacaPyTorchJob(test, namespace, *config)
+	tuningJob := createAlpacaPyTorchJob(test, namespace, *config, numberOfGpus, options...)
 	defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Delete(test.Ctx(), tuningJob.Name, *metav1.NewDeleteOptions(0))
 
 	// Make sure the PyTorch job is running
@@ -123,7 +139,7 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string) {
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 }
 
-func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap) *kftov1.PyTorchJob {
+func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap, numberOfGpus int, options ...Option[*kftov1.PyTorchJob]) *kftov1.PyTorchJob {
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -173,6 +189,10 @@ func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap
 										{
 											Name:  "HF_HOME",
 											Value: "/mnt/scratch/huggingface-home",
+										},
+										{
+											Name:  "HOME",
+											Value: "/mnt/scratch/triton-home",
 										},
 										{
 											Name:  "HF_TOKEN",
@@ -233,7 +253,7 @@ func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap
 													AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 													Resources: corev1.VolumeResourceRequirements{
 														Requests: corev1.ResourceList{
-															corev1.ResourceStorage: resource.MustParse("500Gi"),
+															corev1.ResourceStorage: resource.MustParse("2000Gi"),
 														},
 													},
 													VolumeMode: Ptr(corev1.PersistentVolumeFilesystem),
@@ -268,6 +288,10 @@ func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap
 		},
 	}
 
+	for _, option := range options {
+		test.Expect(option.ApplyTo(tuningJob)).To(Succeed())
+	}
+
 	tuningJob, err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Create(test.Ctx(), tuningJob, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created PytorchJob %s/%s successfully", tuningJob.Namespace, tuningJob.Name)
@@ -292,3 +316,28 @@ func openShiftPrometheusGpuUtil(test Test, namespace string) func(g Gomega) prom
 		return util
 	}
 }
+
+var mountModelVolumeIntoMaster = ErrorOption[*kftov1.PyTorchJob](func(to *kftov1.PyTorchJob) error {
+	pvcName, err := GetGptqModelPvcName()
+	if err != nil {
+		return err
+	}
+
+	modelVolume := corev1.Volume{
+		Name: "model-volume",
+		VolumeSource: corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: pvcName,
+			},
+		},
+	}
+
+	to.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Volumes = append(to.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Volumes, modelVolume)
+
+	modelVolumeMount := corev1.VolumeMount{
+		Name:      "model-volume",
+		MountPath: "/mnt/model",
+	}
+	to.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].VolumeMounts = append(to.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].VolumeMounts, modelVolumeMount)
+	return nil
+})
