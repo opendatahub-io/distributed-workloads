@@ -1,5 +1,5 @@
 {
-    "model_name_or_path": "/tmp/model/bloom-560m",
+    "model_name_or_path": "TechxGenus/Meta-Llama-3-8B-GPTQ",
     "training_data_path": "/etc/config/twitter_complaints_small.json",
     "output_dir": "/tmp/out",
     "save_model_dir": "/tmp/out",
@@ -14,11 +14,12 @@
     "include_tokens_per_second": true,
     "response_template": "\n### Label:",
     "dataset_text_field": "output",
-    "use_flash_attn": false,
+    "use_flash_attn": true,
     "peft_method": "lora",
-    "quantized_lora_config": {
-        "auto_gptq": ["triton_v2"]
-    },
+    "target_modules": ["all-linear"],
+    "auto_gptq": ["triton_v2"],
     "torch_dtype": "float16",
-    "fp16": true
+    "fp16": true,
+    "fast_kernels": [true, true, true],
+    "fused_lora":  ["auto_gptq", true]
 }
