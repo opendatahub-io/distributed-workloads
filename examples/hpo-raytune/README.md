@@ -29,6 +29,12 @@ This example primarily focuses on optimizing machine learning models using RayTu
 * Add data connection with relevant details of your S3 storage bucket:
 ![](./docs/data-connection-config.png)
 
+* Incase of using model-server to deploy model, add a model-server with the following details:
+![](./docs/model-server.png)
+
+* Deploy a model serving inference using an endpoint with the following details:
+![](./docs/model-serving-inference.png)
+
 ### Setting Up Model Registry
 
 The MR (Model Registry) is used in the MR-gRPC example. The MR is a mlmd store that provides managment for various different metadata types as well as a gRPC API. You can read further about the MR and its uses here: https://github.com/kubeflow/model-registry 
