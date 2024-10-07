@@ -35,6 +35,28 @@ This example primarily focuses on optimizing machine learning models using RayTu
 * Deploy a model serving inference using an endpoint with the following details:
 ![](./docs/model-serving-inference.png)
 
+
+### Setting Up Local S3 Compatible Storage - Minio
+
+If you don't have an S3 storage readily available, you can create a local S3 compatible storage using Minio, Follow these steps:
+
+1. Login to Openshift cluster
+
+2. Run the following command to apply minio deployment yaml file
+
+    ```bash
+    kubectl apply -f ./resources/setup-minio.yaml
+    ```
+
+3. In cluster, search for created API and UI routes.
+    ![](./docs/minio-routes.png) 
+
+4. Open Minio UI console and Create bucket (Default credentials : `minio`/`minio123`)
+    ![](./docs/minio-console.png)
+
+5. Use Minio API route and bucket details while adding data connection for the workbench.
+
+
 ### Setting Up Model Registry
 
 The MR (Model Registry) is used in the MR-gRPC example. The MR is a mlmd store that provides managment for various different metadata types as well as a gRPC API. You can read further about the MR and its uses here: https://github.com/kubeflow/model-registry 
