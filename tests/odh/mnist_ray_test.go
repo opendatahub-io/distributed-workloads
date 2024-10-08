@@ -33,29 +33,30 @@ import (
 )
 
 func TestMnistRayCpu(t *testing.T) {
-	mnistRay(t, 0)
+	rayImage := GetRayImage()
+	mnistRay(t, rayImage, 0)
 }
 
 func TestMnistRayGpu(t *testing.T) {
-	mnistRay(t, 1)
+	rayImage := GetRayImage()
+	mnistRay(t, rayImage, 1)
 }
 
 func TestMnistCustomRayImageCpu(t *testing.T) {
-	mnistRay(t, 0)
+	rayImage := GetRayTorchCudaImage()
+	mnistRay(t, rayImage, 0)
 }
 
 func TestMnistCustomRayImageGpu(t *testing.T) {
-	mnistRay(t, 1)
+	rayImage := GetRayTorchCudaImage()
+	mnistRay(t, rayImage, 1)
 }
 
-func mnistRay(t *testing.T, numGpus int) {
+func mnistRay(t *testing.T, rayImage string, numGpus int) {
 	test := With(t)
 
 	// Create a namespace
 	namespace := test.NewTestNamespace()
-
-	// Get ray image
-	rayImage := GetRayImage()
 
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
