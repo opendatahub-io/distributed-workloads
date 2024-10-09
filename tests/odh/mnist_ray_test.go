@@ -33,29 +33,30 @@ import (
 )
 
 func TestMnistRayCpu(t *testing.T) {
-	mnistRay(t, 0)
+	mnistRay(t, 0, "nvidia.com/gpu", GetRayImage(), "resources/requirements.txt")
 }
 
-func TestMnistRayGpu(t *testing.T) {
-	mnistRay(t, 1)
+func TestMnistRayCudaGpu(t *testing.T) {
+	mnistRay(t, 1, "nvidia.com/gpu", GetRayImage(), "resources/requirements.txt")
+}
+
+func TestMnistRayROCmGpu(t *testing.T) {
+	mnistRay(t, 1, "amd.com/gpu", GetRayROCmImage(), "resources/requirements-rocm.txt")
 }
 
 func TestMnistCustomRayImageCpu(t *testing.T) {
-	mnistRay(t, 0)
+	mnistRay(t, 0, "nvidia.com/gpu", GetRayTorchCudaImage(), "resources/requirements.txt")
 }
 
 func TestMnistCustomRayImageGpu(t *testing.T) {
-	mnistRay(t, 1)
+	mnistRay(t, 1, "nvidia.com/gpu", GetRayTorchCudaImage(), "resources/requirements.txt")
 }
 
-func mnistRay(t *testing.T, numGpus int) {
+func mnistRay(t *testing.T, numGpus int, gpuResourceName string, rayImage string, requirementsFileName string) {
 	test := With(t)
 
 	// Create a namespace
 	namespace := test.NewTestNamespace()
-
-	// Get ray image
-	rayImage := GetRayImage()
 
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
@@ -64,7 +65,7 @@ func mnistRay(t *testing.T, numGpus int) {
 		NamespaceSelector: &metav1.LabelSelector{},
 		ResourceGroups: []v1beta1.ResourceGroup{
 			{
-				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory"), corev1.ResourceName("nvidia.com/gpu")},
+				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory"), corev1.ResourceName(gpuResourceName)},
 				Flavors: []v1beta1.FlavorQuotas{
 					{
 						Name: v1beta1.ResourceFlavorReference(resourceFlavor.Name),
@@ -78,7 +79,7 @@ func mnistRay(t *testing.T, numGpus int) {
 								NominalQuota: resource.MustParse("12Gi"),
 							},
 							{
-								Name:         corev1.ResourceName("nvidia.com/gpu"),
+								Name:         corev1.ResourceName(gpuResourceName),
 								NominalQuota: resource.MustParse(fmt.Sprint(numGpus)),
 							},
 						},
@@ -99,11 +100,13 @@ func mnistRay(t *testing.T, numGpus int) {
 	} else {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"cpu\""), 1)
 	}
+	jupyterNotebook := ReadFile(test, "resources/mnist_ray_mini.ipynb")
+	jupyterNotebook = bytes.ReplaceAll(jupyterNotebook, []byte("nvidia.com/gpu"), []byte(gpuResourceName))
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
 		// MNIST Ray Notebook
-		jupyterNotebookConfigMapFileName: ReadFile(test, "resources/mnist_ray_mini.ipynb"),
+		jupyterNotebookConfigMapFileName: jupyterNotebook,
 		"mnist.py":                       mnist,
-		"requirements.txt":               ReadFile(test, "resources/requirements.txt"),
+		"requirements.txt":               ReadFile(test, requirementsFileName),
 	})
 
 	// Define the regular(non-admin) user
