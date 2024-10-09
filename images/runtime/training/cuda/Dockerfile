@@ -5,18 +5,15 @@ ARG PYTHON_VERSION=3.11
 # use UBI9 latest
 FROM registry.access.redhat.com/ubi9/ubi:${BASE_UBI_IMAGE_TAG} AS base
 
-LABEL name="training-ubi9-py311-cuda121" \
-      summary="CUDA 12.1 Python 3.11 image based on UBI9 for Training" \
-      description="CUDA 12.1 Python 3.11 image based on UBI9 for Training" \
-      io.k8s.display-name="CUDA 12.1 Python 3.11 base image for Training" \
-      io.k8s.description="CUDA 12.1 Python 3.11 image based on UBI9 for Training" \
+LABEL name= "training:py311-cuda121-torch230" \
+      summary="CUDA 12.1 Python 3.11 PyTorch 2.3.0 image based on UBI9 for Training" \
+      description="CUDA 12.1 Python 3.11 PyTorch 2.3.0 image based on UBI9 for Training" \
+      io.k8s.display-name="CUDA 12.1 Python 3.11 PyTorch 2.3.0 base image for Training" \
+      io.k8s.description="CUDA 12.1 Python 3.11 PyTorch 2.3.0 image based on UBI9 for Training" \
       authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
 
 # Set the working directory in the container
 WORKDIR /app
-
-# Copy the requirements.txt file into the container
-COPY requirements.txt /app/requirements.txt
 
 # remove subscription-manager and install python3.11
 RUN dnf remove -y --disableplugin=subscription-manager \
@@ -27,6 +24,9 @@ RUN dnf remove -y --disableplugin=subscription-manager \
     && python -m pip install --upgrade setuptools \
     && dnf update -y \
     && dnf clean all
+
+RUN dnf remove -y python3-requests && \
+    pip install --no-cache-dir requests==2.32.3
 
 ## CUDA Base ###################################################################
 FROM base AS cuda-base
@@ -78,6 +78,8 @@ RUN dnf config-manager \
         libnccl-devel-${NV_LIBNCCL_DEV_PACKAGE_VERSION} \
     && dnf clean all
 
+ENV LIBRARY_PATH="$CUDA_HOME/lib64/stubs"
+
 # Install CUDA devel cudnn8 from:
 # https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.1.1/ubi9/devel/cudnn8/Dockerfile
 ENV NV_CUDNN_VERSION=8.9.0.131-1
@@ -92,5 +94,12 @@ RUN dnf install -y \
     && dnf clean all \
     && rm -rf /var/cache/dnf/*
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python packages
+
+# Install micropipenv to deploy packages from Pipfile.lock
+RUN pip install --no-cache-dir -U "micropipenv[toml]"
+
+# Install Python dependencies from Pipfile.lock file
+COPY Pipfile.lock ./
+
+RUN micropipenv install && rm -f ./Pipfile.lock

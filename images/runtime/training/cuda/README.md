@@ -6,3 +6,4 @@ It includes the following layers:
 * UBI 9
 * Python 3.11
 * CUDA 12.1
+* PyTorch 2.3.0a0
