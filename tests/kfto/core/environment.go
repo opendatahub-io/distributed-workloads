@@ -17,6 +17,7 @@ limitations under the License.
 package core
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -33,6 +34,8 @@ const (
 	huggingfaceTokenEnvVar = "HF_TOKEN"
 	// The environment variable specifying existing namespace to be used for multiGPU tests
 	multiGpuNamespaceEnvVar = "MULTIGPU_NAMESPACE"
+	// The environment variable specifying name of PersistenceVolumeClaim containing GPTQ models
+	gptqModelPvcNameEnvVar = "GPTQ_MODEL_PVC_NAME"
 	// The environment variable referring to image simulating sleep condition in container
 	sleepImageEnvVar = "SLEEP_IMAGE"
 )
@@ -67,6 +70,14 @@ func GetMultiGpuNamespace(t Test) string {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify namespace to be used for multiGPU tests.", multiGpuNamespaceEnvVar)
 	}
 	return image
+}
+
+func GetGptqModelPvcName() (string, error) {
+	image, ok := os.LookupEnv(gptqModelPvcNameEnvVar)
+	if !ok {
+		return "", fmt.Errorf("expected environment variable %s not found, please use this environment variable to specify name of PersistenceVolumeClaim containing GPTQ models", gptqModelPvcNameEnvVar)
+	}
+	return image, nil
 }
 
 func GetSleepImage() string {

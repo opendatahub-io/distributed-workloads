@@ -28,6 +28,12 @@
 
 * `FMS_HF_TUNING_IMAGE` - Image tag used in PyTorchJob CR for model training
 
+### Environment variables for Training operator GPU test suite
+
+* `MULTIGPU_NAMESPACE` - Existing namespace where will the Training operator GPU tests be executed
+* `HF_TOKEN` - HuggingFace token used to pull models which has limited access
+* `GPTQ_MODEL_PVC_NAME` - Name of PersistenceVolumeClaim containing downloaded GPTQ models
+
 ### Environment variables for ODH integration test suite
 
 * `ODH_NAMESPACE` - Namespace where ODH components are installed to
