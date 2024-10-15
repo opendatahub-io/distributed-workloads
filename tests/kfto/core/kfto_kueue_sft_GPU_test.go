@@ -102,7 +102,7 @@ func TestMultiGpuPytorchjobMerlinite7b(t *testing.T) {
 func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus int, options ...Option[*kftov1.PyTorchJob]) {
 	test := With(t)
 
-	namespace := GetMultiGpuNamespace(test)
+	namespace := GetOrCreateTestNamespace(test)
 
 	// Create a ConfigMap with configuration
 	configData := map[string][]byte{
@@ -111,8 +111,12 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 	config := CreateConfigMap(test, namespace, configData)
 	defer test.Client().Core().CoreV1().ConfigMaps(namespace).Delete(test.Ctx(), config.Name, *metav1.NewDeleteOptions(0))
 
+	// Create PVC for trained model
+	outputPvc := CreatePersistentVolumeClaim(test, namespace, "200Gi", corev1.ReadWriteOnce)
+	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
+
 	// Create training PyTorch job
-	tuningJob := createAlpacaPyTorchJob(test, namespace, *config, numberOfGpus, options...)
+	tuningJob := createAlpacaPyTorchJob(test, namespace, *config, numberOfGpus, outputPvc.Name, options...)
 	defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Delete(test.Ctx(), tuningJob.Name, *metav1.NewDeleteOptions(0))
 
 	// Make sure the PyTorch job is running
@@ -137,9 +141,14 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 	// Make sure the PyTorch job succeed
 	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), 60*time.Minute).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
+
+	_, bucketEndpointSet := GetStorageBucketDefaultEndpoint()
+	if bucketEndpointSet {
+		uploadToS3(test, namespace, outputPvc.Name, "model")
+	}
 }
 
-func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap, numberOfGpus int, options ...Option[*kftov1.PyTorchJob]) *kftov1.PyTorchJob {
+func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap, numberOfGpus int, outputPvc string, options ...Option[*kftov1.PyTorchJob]) *kftov1.PyTorchJob {
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -265,18 +274,8 @@ func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap
 								{
 									Name: "output-volume",
 									VolumeSource: corev1.VolumeSource{
-										Ephemeral: &corev1.EphemeralVolumeSource{
-											VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
-												Spec: corev1.PersistentVolumeClaimSpec{
-													AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-													Resources: corev1.VolumeResourceRequirements{
-														Requests: corev1.ResourceList{
-															corev1.ResourceStorage: resource.MustParse("500Gi"),
-														},
-													},
-													VolumeMode: Ptr(corev1.PersistentVolumeFilesystem),
-												},
-											},
+										PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+											ClaimName: outputPvc,
 										},
 									},
 								},
