@@ -17,10 +17,9 @@ limitations under the License.
 package odh
 
 import (
-	"context"
-	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"testing"
 	"time"
 
@@ -47,7 +46,7 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	err := cmd.Run()
 	if err != nil {
 		test.T().Logf(err.Error())
-		return
+		test.Expect(err).ToNot(HaveOccurred())
 	}
 	test.T().Logf("File '%s' downloaded sucessfully", standaloneFilePath)
 
@@ -56,39 +55,25 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	configMap := map[string][]byte{
 		"standalone.py": fileContent,
 	}
-
-	createdConfigMap := CreateConfigMap(test, namespace.Name, configMap)
+	createdCM := CreateConfigMap(test, namespace.Name, configMap)
+	defer test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Delete(test.Ctx(), createdCM.Name, metav1.DeleteOptions{})
 
 	// Create Service account
-	serviceAccount := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-sa-",
-			Namespace:    namespace.Name,
-		},
-	}
-	createdSA, err := test.Client().Core().CoreV1().ServiceAccounts(namespace.Name).Create(context.TODO(), serviceAccount, metav1.CreateOptions{})
-	test.Expect(err).ToNot(HaveOccurred())
-	test.T().Logf("Service account '%s' created successfully\n", createdSA.Name)
+	createdSA := CreateServiceAccount(test, namespace.Name)
+	defer test.Client().Core().CoreV1().ServiceAccounts(namespace.Name).Delete(test.Ctx(), createdSA.Name, metav1.DeleteOptions{})
 
 	// Create cluster role
-	clusterRole := &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-cr-",
-		},
-
-		Rules: []rbacv1.PolicyRule{
-			{
-				APIGroups: []string{""},
-				Resources: []string{"pods", "services", "secrets", "jobs", "persistentvolumes", "persistentvolumeclaims"},
-				Verbs: []string{
-					"get", "list", "create", "watch", "delete", "update", "patch",
-				},
+	policyRules := []rbacv1.PolicyRule{
+		{
+			APIGroups: []string{""},
+			Resources: []string{"pods", "services", "secrets", "jobs", "persistentvolumes", "persistentvolumeclaims"},
+			Verbs: []string{
+				"get", "list", "create", "watch", "delete", "update", "patch",
 			},
 		},
 	}
-	createdCR, err := test.Client().Core().RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, metav1.CreateOptions{})
-	test.Expect(err).ToNot(HaveOccurred())
-	test.T().Logf("Cluster role '%s' created successfully\n", createdCR.Name)
+	createdCR := CreateClusterRole(test, policyRules)
+	defer test.Client().Core().RbacV1().ClusterRoles().Delete(test.Ctx(), createdCR.Name, metav1.DeleteOptions{})
 
 	// Create cluster binding
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
@@ -107,9 +92,10 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 			Name: createdCR.Name,
 		},
 	}
-	createdCRB, err := test.Client().Core().RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, metav1.CreateOptions{})
+	createdCRB, err := test.Client().Core().RbacV1().ClusterRoleBindings().Create(test.Ctx(), clusterRoleBinding, metav1.CreateOptions{})
 	test.Expect(err).ToNot(HaveOccurred())
-	test.T().Logf("Cluster role binding '%s' created successfully\n", createdCRB.Name)
+	test.T().Logf("Created ClusterRoleBinding %s successfully", createdCRB.Name)
+	defer test.Client().Core().RbacV1().ClusterRoleBindings().Delete(test.Ctx(), createdCRB.Name, metav1.DeleteOptions{})
 
 	// Get S3 bucket credentials from environment variables
 	s3BucketName, s3BucketNameExists := GetStorageBucketName()
@@ -144,9 +130,9 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 			"verify_tls": s3BucketVerifyTls,
 		},
 	}
-	createdSecret, err := test.Client().Core().CoreV1().Secrets(namespace.Name).Create(context.TODO(), secret, metav1.CreateOptions{})
+	createdSecret, err := test.Client().Core().CoreV1().Secrets(namespace.Name).Create(test.Ctx(), secret, metav1.CreateOptions{})
 	test.Expect(err).ToNot(HaveOccurred())
-	test.T().Logf("Cluster role binding '%s' created successfully\n", createdSecret.Name)
+	test.T().Logf("Secret '%s' created successfully\n", createdSecret.Name)
 
 	// Create pod resource using workbench image to run standalone script
 	pod := &corev1.Pod{
@@ -161,7 +147,7 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 					Name:  "workbench-container",
 					Image: "quay.io/opendatahub/workbench-images@sha256:7f26f5f2bec4184af15acd95f29b3450526c5c28c386b6cb694fbe82d71d0b41",
 					SecurityContext: &corev1.SecurityContext{
-						AllowPrivilegeEscalation: BoolPtr(false),
+						AllowPrivilegeEscalation: Ptr(false),
 						Capabilities: &corev1.Capabilities{
 							Drop: []corev1.Capability{"ALL"},
 						},
@@ -261,9 +247,10 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 						"--judge-serving-endpoint", "http://serving.kubeflow.svc.cluster.local:8080/v1",
 						"--judge-serving-model-name", "prometheus-eval/prometheus-8x7b-v2.0",
 						"--judge-serving-model-api-key", "dummy-value",
-						"--nproc-per-node", string(numGpus),
-						"--storage-class", "managed-nfs-storage",
+						"--nproc-per-node", strconv.Itoa(numGpus),
+						"--storage-class", "nfs",
 						"--sdg-object-store-secret", createdSecret.Name,
+						"--force-pull",
 					},
 				},
 			},
@@ -272,52 +259,29 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 					Name: "script-volume",
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{Name: createdConfigMap.Name},
+							LocalObjectReference: corev1.LocalObjectReference{Name: createdCM.Name},
 						},
 					},
 				},
 			},
 		},
 	}
-	createdPod, err := test.Client().Core().CoreV1().Pods(namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+	createdPod, err := test.Client().Core().CoreV1().Pods(namespace.Name).Create(test.Ctx(), pod, metav1.CreateOptions{})
 	test.Expect(err).ToNot(HaveOccurred())
 	test.T().Logf("Pod '%s' created successfully\n", createdPod.Name)
 
-	time.Sleep(30) // interrupt test here to inspect pod logs and operations in detail
-
-	// Wait for 30 mins for workbench pod status to be succeeded
+	// Wait until workbench pod status becomes succeeded - timeout in 60mins
 	var workbenchPod *corev1.Pod
 	test.Eventually(func() corev1.PodPhase {
-		workbenchPod, err = test.Client().Core().CoreV1().Pods(namespace.Name).Get(context.TODO(), createdPod.Name, metav1.GetOptions{})
+		workbenchPod, err = test.Client().Core().CoreV1().Pods(namespace.Name).Get(test.Ctx(), createdPod.Name, metav1.GetOptions{})
 		test.Expect(err).To(BeNil())
 		return workbenchPod.Status.Phase
-	}, 30*time.Minute, 2*time.Second).Should(Equal(corev1.PodSucceeded))
-
-	// cleaup all resources created if pod doesn't succeed in given time
-	defer func() {
-		fmt.Println("Pod did not succeed, cleaning up resources..")
-		// Delete created workbench pod
-		err = test.Client().Core().CoreV1().Pods(namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
-		test.Expect(err).To(BeNil())
-		// Delete created cluster role binding
-		err = test.Client().Core().RbacV1().ClusterRoleBindings().Delete(context.TODO(), createdCRB.Name, metav1.DeleteOptions{})
-		test.Expect(err).To(BeNil())
-		// Delete created cluster role
-		err = test.Client().Core().RbacV1().ClusterRoles().Delete(context.TODO(), createdCR.Name, metav1.DeleteOptions{})
-		test.Expect(err).To(BeNil())
-		// Delete created service account
-		err = test.Client().Core().CoreV1().ServiceAccounts(namespace.Name).Delete(context.TODO(), createdSA.Name, metav1.DeleteOptions{})
-		test.Expect(err).To(BeNil())
-	}()
+	}, 60*time.Minute, 2*time.Second).Should(Equal(corev1.PodSucceeded))
 
 	// Clean up downloaded files
 	err = os.Remove("resources/standalone.py")
 	test.Expect(err).ToNot(HaveOccurred())
 
-}
-
-func BoolPtr(b bool) *bool {
-	return &b
 }
 
 func GetStorageBucketDataKey() (string, bool) {
@@ -327,6 +291,5 @@ func GetStorageBucketDataKey() (string, bool) {
 
 func GetStorageBucketVerifyTls() (string, bool) {
 	data_key, exists := os.LookupEnv("SDG_OBJECT_STORE_VERIFY_TLS")
-	fmt.Println(data_key)
 	return data_key, exists
 }
