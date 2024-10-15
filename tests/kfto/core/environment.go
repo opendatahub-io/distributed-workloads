@@ -30,14 +30,18 @@ const (
 	bloomModelImageEnvVar = "BLOOM_MODEL_IMAGE"
 	// The environment variable referring to image containing Stanford Alpaca dataset
 	alpacaDatasetImageEnvVar = "ALPACA_DATASET_IMAGE"
+	// The environment variable referring to image containing minio CLI
+	minioCliImageEnvVar = "MINIO_CLI_IMAGE"
 	// The environment variable for HuggingFace token to download models which require authentication
 	huggingfaceTokenEnvVar = "HF_TOKEN"
-	// The environment variable specifying existing namespace to be used for multiGPU tests
-	multiGpuNamespaceEnvVar = "MULTIGPU_NAMESPACE"
+	// The environment variable specifying existing namespace name to be used for tests
+	testNamespaceEnvVar = "TEST_NAMESPACE_NAME"
 	// The environment variable specifying name of PersistenceVolumeClaim containing GPTQ models
 	gptqModelPvcNameEnvVar = "GPTQ_MODEL_PVC_NAME"
 	// The environment variable referring to image simulating sleep condition in container
 	sleepImageEnvVar = "SLEEP_IMAGE"
+	// The environment variable specifying s3 bucket folder path used to store model
+	storageBucketModelPath = "AWS_STORAGE_BUCKET_MODEL_PATH"
 )
 
 func GetFmsHfTuningImage(t Test) string {
@@ -56,6 +60,10 @@ func GetAlpacaDatasetImage() string {
 	return lookupEnvOrDefault(alpacaDatasetImageEnvVar, "quay.io/ksuta/alpaca-dataset@sha256:2e90f631180c7b2c916f9569b914b336b612e8ae86efad82546adc5c9fcbbb8d")
 }
 
+func GetMinioCliImage() string {
+	return lookupEnvOrDefault(minioCliImageEnvVar, "quay.io/ksuta/mc@sha256:e128ce4caee276bcbfe3bd32ebb01c814f6b2eb2fd52d08ef0d4684f68c1e3d6")
+}
+
 func GetHuggingFaceToken(t Test) string {
 	image, ok := os.LookupEnv(huggingfaceTokenEnvVar)
 	if !ok {
@@ -64,12 +72,8 @@ func GetHuggingFaceToken(t Test) string {
 	return image
 }
 
-func GetMultiGpuNamespace(t Test) string {
-	image, ok := os.LookupEnv(multiGpuNamespaceEnvVar)
-	if !ok {
-		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify namespace to be used for multiGPU tests.", multiGpuNamespaceEnvVar)
-	}
-	return image
+func GetTestNamespaceName() (namespaceName string, exists bool) {
+	return os.LookupEnv(testNamespaceEnvVar)
 }
 
 func GetGptqModelPvcName() (string, error) {
@@ -82,6 +86,11 @@ func GetGptqModelPvcName() (string, error) {
 
 func GetSleepImage() string {
 	return lookupEnvOrDefault(sleepImageEnvVar, "gcr.io/k8s-staging-perf-tests/sleep@sha256:8d91ddf9f145b66475efda1a1b52269be542292891b5de2a7fad944052bab6ea")
+}
+
+func GetStorageBucketModelPath() string {
+	storageBucketModelPath := lookupEnvOrDefault(storageBucketModelPath, "")
+	return storageBucketModelPath
 }
 
 func lookupEnvOrDefault(key, value string) string {

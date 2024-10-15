@@ -1,8 +1,8 @@
 {
     "model_name_or_path": "/tmp/model/bloom-560m",
     "training_data_path": "/etc/config/twitter_complaints_small.json",
-    "output_dir": "/tmp/out",
-    "save_model_dir": "/tmp/out",
+    "output_dir": "/mnt/output/model",
+    "save_model_dir": "/mnt/output/model",
     "num_train_epochs": 1.0,
     "per_device_train_batch_size": 4,
     "per_device_eval_batch_size": 4,
