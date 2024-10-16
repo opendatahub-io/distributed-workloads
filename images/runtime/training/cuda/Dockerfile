@@ -5,11 +5,11 @@ ARG PYTHON_VERSION=3.11
 # use UBI9 latest
 FROM registry.access.redhat.com/ubi9/ubi:${BASE_UBI_IMAGE_TAG} AS base
 
-LABEL name= "training:py311-cuda121-torch230" \
-      summary="CUDA 12.1 Python 3.11 PyTorch 2.3.0 image based on UBI9 for Training" \
-      description="CUDA 12.1 Python 3.11 PyTorch 2.3.0 image based on UBI9 for Training" \
-      io.k8s.display-name="CUDA 12.1 Python 3.11 PyTorch 2.3.0 base image for Training" \
-      io.k8s.description="CUDA 12.1 Python 3.11 PyTorch 2.3.0 image based on UBI9 for Training" \
+LABEL name="training:py311-cuda121-torch241" \
+      summary="CUDA 12.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
+      description="CUDA 12.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
+      io.k8s.display-name="CUDA 12.1 Python 3.11 PyTorch 2.4.1 base image for Training" \
+      io.k8s.description="CUDA 12.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
       authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
 
 # Set the working directory in the container
