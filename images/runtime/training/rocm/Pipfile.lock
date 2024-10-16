@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "47feed9438f71dc20c9e94e1745f159f430659d05236186874a754006f2d0f2d"
+            "sha256": "50ba082067f5686a64accbda72aaea4dc26b5523d00e31ab7133390c99f99f17"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -11,6 +11,11 @@
             {
                 "name": "pypi",
                 "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            },
+            {
+                "name": "pytorch",
+                "url": "https://download.pytorch.org/whl/rocm6.1",
                 "verify_ssl": true
             }
         ]
@@ -1775,7 +1780,6 @@
                 "sha256:f18197f3f7c15cde2115892b64f17c80dbf01ed72b008020e7da339902742cf6",
                 "sha256:fdc4fe11db3eb93c1115d3e973a27ac7c1a8318af8934ffa36b0370efe28e042"
             ],
-            "index": "pypi",
             "markers": "python_full_version >= '3.8.0'",
             "version": "==2.4.1"
         },
