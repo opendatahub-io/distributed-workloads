@@ -20,7 +20,7 @@ spec:
           - env:
             - name: NVIDIA_VISIBLE_DEVICES
               value: "void"
-            image: 'quay.io/project-codeflare/ray:latest-py39-cu118'
+            image: 'quay.io/modh/ray:2.35.0-py311-cu121'
             imagePullPolicy: Always
             lifecycle:
               preStop:
@@ -60,7 +60,7 @@ spec:
       template:        
         spec:
           containers:
-            - image: 'quay.io/project-codeflare/ray:latest-py39-cu118'
+            - image: 'quay.io/modh/ray:2.35.0-py311-cu121'
               lifecycle:
                 preStop:
                   exec:
