@@ -31,7 +31,7 @@ import (
 )
 
 func TestInstructlabTrainingOnRhoai(t *testing.T) {
-	instructlabDistributedTrainingOnRhoai(t, 0)
+	instructlabDistributedTrainingOnRhoai(t, 1)
 }
 
 func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
@@ -66,7 +66,7 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	policyRules := []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{""},
-			Resources: []string{"pods", "services", "secrets", "jobs", "persistentvolumes", "persistentvolumeclaims"},
+			Resources: []string{"pods", "pods/log", "services", "secrets", "jobs", "persistentvolumes", "persistentvolumeclaims"},
 			Verbs: []string{
 				"get", "list", "create", "watch", "delete", "update", "patch",
 			},
@@ -133,6 +133,39 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	createdSecret, err := test.Client().Core().CoreV1().Secrets(namespace.Name).Create(test.Ctx(), secret, metav1.CreateOptions{})
 	test.Expect(err).ToNot(HaveOccurred())
 	test.T().Logf("Secret '%s' created successfully\n", createdSecret.Name)
+
+	// Create KFP-server configmap
+	kfpConfigmap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kfp-model-server",
+			Namespace: namespace.Name,
+		},
+		Data: map[string]string{
+			"endpoint": "https://mistral-7b-instruct-v02-sallyom.apps.ocp-beta-test.nerc.mghpcc.org/v1",
+			"model":    "mistral-7b-instruct-v02",
+		},
+	}
+
+	createdKfpCM, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), kfpConfigmap, metav1.CreateOptions{})
+	test.T().Logf("Created %s configmap successfully", createdKfpCM.Name)
+	test.Expect(err).ToNot(HaveOccurred())
+	defer test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Delete(test.Ctx(), createdKfpCM.Name, metav1.DeleteOptions{})
+
+	// Create KFP-model-server secret
+	kfpSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kfp-model-server",
+			Namespace: namespace.Name,
+		},
+		Type: corev1.SecretTypeOpaque,
+		StringData: map[string]string{
+			"api_key": "ksdadcad",
+		},
+	}
+	_, err = test.Client().Core().CoreV1().Secrets(namespace.Name).Create(test.Ctx(), kfpSecret, metav1.CreateOptions{})
+	test.Expect(err).ToNot(HaveOccurred())
+	test.T().Logf("Created %s secret successfully", kfpSecret.Name)
+	defer test.Client().Core().CoreV1().Secrets(namespace.Name).Delete(test.Ctx(), kfpSecret.Name, metav1.DeleteOptions{})
 
 	// Create pod resource using workbench image to run standalone script
 	pod := &corev1.Pod{
@@ -244,12 +277,14 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 					Command: []string{
 						"python3", "/home/standalone.py", "run",
 						"--namespace", namespace.Name,
-						"--judge-serving-endpoint", "http://serving.kubeflow.svc.cluster.local:8080/v1",
+						"--judge-serving-model-endpoint", "http://serving.kubeflow.svc.cluster.local:8080/v1",
 						"--judge-serving-model-name", "prometheus-eval/prometheus-8x7b-v2.0",
 						"--judge-serving-model-api-key", "dummy-value",
 						"--nproc-per-node", strconv.Itoa(numGpus),
 						"--storage-class", "nfs",
 						"--sdg-object-store-secret", createdSecret.Name,
+						"--training-1-epoch-num", strconv.Itoa(1),
+						"--training-2-epoch-num", strconv.Itoa(1),
 						"--force-pull",
 					},
 				},
