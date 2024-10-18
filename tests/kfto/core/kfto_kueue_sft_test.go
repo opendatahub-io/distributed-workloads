@@ -141,7 +141,7 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 		NamespaceSelector: &metav1.LabelSelector{},
 		ResourceGroups: []kueuev1beta1.ResourceGroup{
 			{
-				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory")},
+				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory"), corev1.ResourceName("nvidia.com/gpu")},
 				Flavors: []kueuev1beta1.FlavorQuotas{
 					{
 						Name: kueuev1beta1.ResourceFlavorReference(resourceFlavor.Name),
@@ -153,6 +153,10 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 							{
 								Name:         corev1.ResourceMemory,
 								NominalQuota: resource.MustParse("8Gi"),
+							},
+							{
+								Name:         corev1.ResourceName("nvidia.com/gpu"),
+								NominalQuota: resource.MustParse("0"),
 							},
 						},
 					},
