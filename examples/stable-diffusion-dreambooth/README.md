@@ -1,6 +1,6 @@
 ## Introduction
 
-This example demostrate how to fine tune Stable Diffusion with DreamBooth and Ray Train using OpenShift AI.  
+This example demonstrate how to fine tune Stable Diffusion with DreamBooth and Ray Train using OpenShift AI.  
 
 ## Credits
 
