@@ -3,6 +3,8 @@
 ## Examples
 
 * Fine-Tune LLMs with Ray and DeepSpeed on OpenShift AI
+* Fine-Tune Stable Diffusion with DreamBooth and Ray Train
+* Hyperparameters Optimization with Ray Tune on OpenShift AI
 
 ## Integration Tests
 
