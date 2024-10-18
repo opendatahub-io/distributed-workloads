@@ -6,8 +6,10 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push" 
+      && target_branch == "main" 
+      && ( "images/runtime/training/cuda/**".pathChanged() || ".tekton/training-cuda-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
@@ -22,11 +24,29 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/rhoai-tenant/training-cuda:{{revision}}
+    value: quay.io/modh/training:py311-cuda121-torch241 
+  - name: additional-tag
+    value: py311-cuda121-torch241-{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
     value: images/runtime/training/cuda
+  taskRunSpecs:
+    - pipelineTaskName: build-container
+      stepSpecs:
+        - name: build
+          computeResources:
+            requests:
+              memory: 10Gi
+            limits:
+              memory: 10Gi
+    - pipelineTaskName: prefetch-dependencies
+      computeResources:
+        requests:
+          cpu: '1'
+          memory: 2Gi
+        limits:
+          memory: 2Gi
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
@@ -48,6 +68,9 @@ spec:
           value: task
         resolver: bundles
     params:
+    - name: additional-tag
+      type: string
+      description: Additional fixed tag for the image
     - description: Source Repository URL
       name: git-url
       type: string
@@ -404,6 +427,9 @@ spec:
       params:
       - name: IMAGE
         value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: ADDITIONAL_TAGS
+        value:
+          - "$(params.additional-tag)"
       runAfter:
       - build-image-index
       taskRef:
