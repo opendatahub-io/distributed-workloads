@@ -1,18 +1,18 @@
 # Fine-Tune Llama Models with Ray and DeepSpeed on OpenShift AI
 
 This example demonstrates how to fine-tune LLMs with Ray on OpenShift AI, using HF Transformers, Accelerate, PEFT (LoRA), and DeepSpeed, for Llama models.
-It adapts the _Fine-tuning Llama-2 series models with Deepspeed, Accelerate, and Ray Train TorchTrainer_[^1] example from the Ray project, so it runs using the Distributed Workloads stack, on OpenShift AI.
+It adapts the _Fine-tuning Llama-2 series models with DeepSpeed, Accelerate, and Ray Train TorchTrainer_[^1] example from the Ray project, so it runs using the Distributed Workloads stack, on OpenShift AI.
 
 > [!IMPORTANT]
 > This example has been tested with the configurations listed in the [validation](#validation) section.
-> Its configuration space is highly dimensional, with application configuration tighly coupled to runtime / hardware configuration.
+> Its configuration space is highly dimensional, with application configuration tightly coupled to runtime / hardware configuration.
 > It is your responsibility to adapt it, and validate it works as expected, with your configuration(s), on your target environment(s).
 
 ## Requirements
 
 * An OpenShift cluster with OpenShift AI (RHOAI) 2.10+ installed:
   * The `codeflare`, `dashboard`, `ray` and `workbenches` components enabled;
-* Sufficient worker nodes for your configuration(s) with NVIDIA GPUs (Ampere-based recommended) or AMD GPUs (AMD Instinct MI300X);
+* Sufficient worker nodes for your configuration(s) with NVIDIA GPUs (Ampere-based or newer recommended) or AMD GPUs (AMD Instinct MI300X);
 * An AWS S3 bucket to store experimentation results.
 
 ## Setup
@@ -89,10 +89,12 @@ This example has been validated on the following configurations:
         num_workers=4,
         worker_cpu_requests=8,
         worker_cpu_limits=16,
-        head_cpus=8,
+        head_cpu_requests=8,
+        head_cpu_limits=8,
         worker_memory_requests=32,
         worker_memory_limits=64,
-        head_memory=64,
+        head_memory_requests=64,
+        head_memory_limits=64,
         head_extended_resource_requests={'nvidia.com/gpu':1},
         worker_extended_resource_requests={'nvidia.com/gpu':1},
     )
@@ -119,10 +121,12 @@ This example has been validated on the following configurations:
         num_workers=3,
         worker_cpu_requests=8,
         worker_cpu_limits=16,
-        head_cpus=16,
+        head_cpu_requests=16,
+        head_cpu_limits=16,
         worker_memory_requests=96,
         worker_memory_limits=96,
-        head_memory=96,
+        head_memory_requests=96,
+        head_memory_limits=96,
         head_extended_resource_requests={'amd.com/gpu':1},
         worker_extended_resource_requests={'amd.com/gpu':1},
         image="quay.io/rhoai/ray:2.35.0-py39-rocm61-torch24-fa26",
@@ -152,10 +156,12 @@ This example has been validated on the following configurations:
         num_workers=5,
         worker_cpu_requests=8,
         worker_cpu_limits=8,
-        head_cpus=16,
+        head_cpu_requests=16,
+        head_cpu_limits=16,
         worker_memory_requests=48,
         worker_memory_limits=48,
-        head_memory=48,
+        head_memory_requests=48,
+        head_memory_limits=48,
         head_extended_resource_requests={'nvidia.com/gpu':1},
         worker_extended_resource_requests={'nvidia.com/gpu':1},
     )
@@ -183,10 +189,12 @@ This example has been validated on the following configurations:
         num_workers=5,
         worker_cpu_requests=8,
         worker_cpu_limits=8,
-        head_cpus=16,
+        head_cpu_requests=16,
+        head_cpu_limits=16,
         worker_memory_requests=48,
         worker_memory_limits=48,
-        head_memory=48,
+        head_memory_requests=48,
+        head_memory_limits=48,
         head_extended_resource_requests={'nvidia.com/gpu':1},
         worker_extended_resource_requests={'nvidia.com/gpu':1},
     )
@@ -213,10 +221,12 @@ This example has been validated on the following configurations:
         num_workers=7,
         worker_cpu_requests=16,
         worker_cpu_limits=16,
-        head_cpus=16,
+        head_cpu_requests=16,
+        head_cpu_limits=16,
         worker_memory_requests=128,
         worker_memory_limits=128,
-        head_memory=128,
+        head_memory_requests=128,
+        head_memory_limits=128,
         head_extended_resource_requests={'nvidia.com/gpu':1},
         worker_extended_resource_requests={'nvidia.com/gpu':1},
     )
