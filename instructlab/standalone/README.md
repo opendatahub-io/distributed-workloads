@@ -9,6 +9,144 @@ of models without relying on centralized orchestration tools like KubeFlow.
 The `standalone.py` tool provides support for fetching generated SDG (Synthetic Data Generation) data from an AWS S3 compatible object store.
 While AWS S3 is supported, alternative object storage solutions such as Ceph, Nooba, and MinIO are also compatible.
 
+## Overall end-to-end workflow
+
+```text
++-------------------------------+
+|       Kubernetes Job          |
+|         "data-download"       |
++-------------------------------+
+|      Init Container           |
+| "download-data-object-store"  |
+|  (Fetches data from object    |
+|        storage)               |
++-------------------------------+
+|        Main Container         |
+|  "sdg-data-preprocess"        |
+| (Processes the downloaded     |
+|         data)                 |
++-------------------------------+
+              |
+              v
++-------------------------------+
+|   "watch for completion"      |
++-------------------------------+
+              |
+              v
++-----------------------------------+
+|   PytorchJob CR training phase 1  |
+|                                   |
+|       +---------------------+     |
+|       |    Master Pod       |     |
+|       | (Trains and         |     |
+|       |  Coordinates the    |     |
+|       |   distributed       |     |
+|       |   training)         |     |
+|       +---------------------+     |
+|                |                  |
+|                v                  |
+|       +---------------------+     |
+|       |    Worker Pod 1     |     |
+|       |  (Handles part of   |     |
+|       |   the training)     |     |
+|       +---------------------+     |
+|                |                  |
+|                v                  |
+|       +---------------------+     |
+|       |    Worker Pod 2     |     |
+|       |  (Handles part of   |     |
+|       |   the training)     |     |
+|       +---------------------+     |
++-----------------------------------+
+              |
+              v
++-------------------------------+
+|   "wait for completion"       |
++-------------------------------+
+              |
+              v
++-----------------------------------+
+|   PytorchJob CR training phase 2  |
+|                                   |
+|       +---------------------+     |
+|       |    Master Pod       |     |
+|       | (Trains and         |     |
+|       |  Coordinates the    |     |
+|       |   distributed       |     |
+|       |   training)         |     |
+|       +---------------------+     |
+|                |                  |
+|                v                  |
+|       +---------------------+     |
+|       |    Worker Pod 1     |     |
+|       |  (Handles part of   |     |
+|       |   the training)     |     |
+|       +---------------------+     |
+|                |                  |
+|                v                  |
+|       +---------------------+     |
+|       |    Worker Pod 2     |     |
+|       |  (Handles part of   |     |
+|       |   the training)     |     |
+|       +---------------------+     |
++-----------------------------------+
+              |
+              v
++-------------------------------+
+|   "wait for completion"       |
++-------------------------------+
+              |
+              v
++-------------------------------+
+|       Kubernetes Job          |
+|         "eval-mt-bench"       |
++-------------------------------+
+|      Init Container           |
+|     "run-eval-mt-bench"       |
+|  (Runs evaluation on MT Bench)|
++-------------------------------+
+|        Main Container         |
+|  "output-eval-mt-bench-scores"|
+| (Outputs evaluation scores)   |
++-------------------------------+
+              |
+              v
++-------------------------------+
+|   "wait for completion"       |
++-------------------------------+
+              |
+              v
++-------------------------------+
+|       Kubernetes Job          |
+|          "eval-final"         |
++-------------------------------+
+|      Init Container           |
+|       "run-eval-final"        |
+|  (Runs final evaluation)      |
++-------------------------------+
+|        Main Container         |
+|  "output-eval-final-scores"   |
+|  (Outputs final evaluation    |
+|          scores)              |
++-------------------------------+
+              |
+              v
++-------------------------------+
+|   "wait for completion"       |
++-------------------------------+
+              |
+              v
++-------------------------------+
+|       Kubernetes Job          |
+|      "trained-model-upload"   |
++-------------------------------+
+|        Main Container         |
+|  "upload-data-object-store"   |
+|  (Uploads the trained model to|
+|     the object storage)       |
++-------------------------------+
+```
+
 ## Requirements
 
 The `standalone.py` script is designed to run within a Kubernetes environment. The following requirements must be met:
