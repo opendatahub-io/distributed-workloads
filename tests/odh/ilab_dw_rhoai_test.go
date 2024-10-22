@@ -37,8 +37,61 @@ func TestInstructlabTrainingOnRhoai(t *testing.T) {
 func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	test := With(t)
 
+	// Pre-requisites :
+
+	rhelaiWorkbenchImage, rhelaiWorkbenchImageExists := GetRhelaiWorkbenchImage()
+	if !rhelaiWorkbenchImageExists {
+		test.T().Skip("Rhelai workbench image is not provided as environment variable..")
+		rhelaiWorkbenchImage = "quay.io/opendatahub/workbench-images:jupyter-datascience-ubi9-python-3.11-20241004-609ffb8"
+	}
+
+	// Get S3 bucket credentials using environment variables
+	s3BucketName, s3BucketNameExists := GetStorageBucketName()
+	s3AccessKeyId, _ := GetStorageBucketAccessKeyId()
+	s3SecretAccessKey, _ := GetStorageBucketSecretKey()
+	s3DefaultRegion, _ := GetStorageBucketDefaultRegion()
+	s3BucketDefaultEndpoint, _ := GetStorageBucketDefaultEndpoint()
+	s3BucketDataKey, s3BucketDataKeyExists := GetStorageBucketDataKey()
+	s3BucketVerifyTls, _ := GetStorageBucketVerifyTls()
+
+	if !s3BucketNameExists {
+		test.T().Skip("Please provide storage bucket name to download SDG data from..")
+	}
+	if !s3BucketDataKeyExists {
+		test.T().Skip("Please provide storage bucket data-key(Name or path of tar archive) to download SDG+model+taxonomy data from..")
+	}
+
+	// Get Judge model server credentials using environment variables
+	judgeServingApiKey, judgeServingApiKeyExists := GetJudgeServingApiKey()
+	judgeServingModelName, judgeServingModelNameExists := GetJudgeServingModelName()
+	judgeServingModelEndpoint, judgeServingModelEndpointExists := GetJudgeServingModelEndpoint()
+
+	if !judgeServingApiKeyExists {
+		test.T().Skip("Please provide judge serving api key..")
+	}
+	if !judgeServingModelNameExists {
+		test.T().Skip("Please provide judge serving model name..")
+	}
+	if !judgeServingModelEndpointExists {
+		test.T().Skip("Please provide judge serving model endpoint..")
+	}
+
 	// Create a namespace
-	namespace := test.NewTestNamespace()
+	test_namespace, test_namespace_exists := GetTestNamespace()
+	var namespace *corev1.Namespace
+	if !test_namespace_exists {
+		namespace = test.NewTestNamespace()
+	} else {
+		_, namespace_exists_err := test.Client().Core().CoreV1().Namespaces().Get(test.Ctx(), test_namespace, metav1.GetOptions{})
+		if namespace_exists_err != nil {
+			test.T().Logf("The namespace provided using environment variable doesn't exists..")
+			namespace = CreateTestNamespaceWithName(test, test_namespace)
+		} else {
+			namespace = GetNamespaceWithName(test, test_namespace)
+			test.T().Logf("Using the namespace name which is provided using environment variable..")
+		}
+	}
+	defer test.Client().Core().CoreV1().Namespaces().Delete(test.Ctx(), namespace.Name, metav1.DeleteOptions{})
 
 	// Download standalone script used for running instructlab distributed training on RHOAI
 	standaloneFilePath := "resources/standalone.py"
@@ -59,19 +112,80 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	defer test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Delete(test.Ctx(), createdCM.Name, metav1.DeleteOptions{})
 
 	// Create Service account
-	createdSA := CreateServiceAccount(test, namespace.Name)
+	test_sa, test_sa_exists := GetTestServiceAccount()
+	var createdSA *corev1.ServiceAccount
+	if !test_sa_exists {
+		test.T().Logf("The service account name is not provided using environment variable..")
+		createdSA = CreateServiceAccount(test, namespace.Name)
+	} else {
+		createdSA, err = test.Client().Core().CoreV1().ServiceAccounts(namespace.Name).Get(test.Ctx(), test_sa, metav1.GetOptions{})
+		if err != nil {
+			test.T().Skip("The service-account name provided using environment variable doesn't exists..")
+			createdSA = CreateServiceAccountWithName(test, namespace.Name, test_sa)
+		}
+	}
 	defer test.Client().Core().CoreV1().ServiceAccounts(namespace.Name).Delete(test.Ctx(), createdSA.Name, metav1.DeleteOptions{})
 
 	// Create cluster role
 	policyRules := []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{""},
-			Resources: []string{"pods", "pods/log", "services", "secrets", "jobs", "persistentvolumes", "persistentvolumeclaims"},
+			Resources: []string{"pods/log"},
 			Verbs: []string{
-				"get", "list", "create", "watch", "delete", "update", "patch",
+				"get", "list",
+			},
+		},
+		{
+			APIGroups: []string{"batch"},
+			Resources: []string{"jobs"},
+			Verbs: []string{
+				"get", "list", "create", "watch",
+			},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"pods"},
+			Verbs: []string{
+				"get", "list", "create", "watch",
+			},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"secrets"},
+			Verbs: []string{
+				"get", "create",
+			},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"configmaps"},
+			Verbs: []string{
+				"get", "create",
+			},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"persistentvolumes", "persistentvolumeclaims"},
+			Verbs: []string{
+				"list", "create",
+			},
+		},
+		{
+			APIGroups: []string{"kubeflow.org"},
+			Resources: []string{"pytorchjobs"},
+			Verbs: []string{
+				"get", "list", "create", "watch",
+			},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"events"},
+			Verbs: []string{
+				"get", "list", "watch",
 			},
 		},
 	}
+
 	createdCR := CreateClusterRole(test, policyRules)
 	defer test.Client().Core().RbacV1().ClusterRoles().Delete(test.Ctx(), createdCR.Name, metav1.DeleteOptions{})
 
@@ -97,22 +211,6 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	test.T().Logf("Created ClusterRoleBinding %s successfully", createdCRB.Name)
 	defer test.Client().Core().RbacV1().ClusterRoleBindings().Delete(test.Ctx(), createdCRB.Name, metav1.DeleteOptions{})
 
-	// Get S3 bucket credentials from environment variables
-	s3BucketName, s3BucketNameExists := GetStorageBucketName()
-	s3AccessKeyId, _ := GetStorageBucketAccessKeyId()
-	s3SecretAccessKey, _ := GetStorageBucketSecretKey()
-	s3DefaultRegion, _ := GetStorageBucketDefaultRegion()
-	s3BucketDefaultEndpoint, _ := GetStorageBucketDefaultEndpoint()
-	s3BucketDataKey, s3BucketDataKeyExists := GetStorageBucketDataKey()
-	s3BucketVerifyTls, _ := GetStorageBucketVerifyTls()
-
-	if !s3BucketNameExists {
-		test.T().Logf("Please provide S3 bucket credentials to download SDG data from..")
-	}
-	if !s3BucketDataKeyExists {
-		test.T().Logf("Please provide S3 bucket credentials to download SDG data from..")
-	}
-
 	// Create secret to store S3 bucket credentials to mount it in workbench pod
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -134,39 +232,6 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	test.Expect(err).ToNot(HaveOccurred())
 	test.T().Logf("Secret '%s' created successfully\n", createdSecret.Name)
 
-	// Create KFP-server configmap
-	kfpConfigmap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kfp-model-server",
-			Namespace: namespace.Name,
-		},
-		Data: map[string]string{
-			"endpoint": "https://mistral-7b-instruct-v02-sallyom.apps.ocp-beta-test.nerc.mghpcc.org/v1",
-			"model":    "mistral-7b-instruct-v02",
-		},
-	}
-
-	createdKfpCM, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), kfpConfigmap, metav1.CreateOptions{})
-	test.T().Logf("Created %s configmap successfully", createdKfpCM.Name)
-	test.Expect(err).ToNot(HaveOccurred())
-	defer test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Delete(test.Ctx(), createdKfpCM.Name, metav1.DeleteOptions{})
-
-	// Create KFP-model-server secret
-	kfpSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kfp-model-server",
-			Namespace: namespace.Name,
-		},
-		Type: corev1.SecretTypeOpaque,
-		StringData: map[string]string{
-			"api_key": "ksdadcad",
-		},
-	}
-	_, err = test.Client().Core().CoreV1().Secrets(namespace.Name).Create(test.Ctx(), kfpSecret, metav1.CreateOptions{})
-	test.Expect(err).ToNot(HaveOccurred())
-	test.T().Logf("Created %s secret successfully", kfpSecret.Name)
-	defer test.Client().Core().CoreV1().Secrets(namespace.Name).Delete(test.Ctx(), kfpSecret.Name, metav1.DeleteOptions{})
-
 	// Create pod resource using workbench image to run standalone script
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -178,7 +243,7 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 			Containers: []corev1.Container{
 				{
 					Name:  "workbench-container",
-					Image: "quay.io/opendatahub/workbench-images@sha256:7f26f5f2bec4184af15acd95f29b3450526c5c28c386b6cb694fbe82d71d0b41",
+					Image: rhelaiWorkbenchImage,
 					SecurityContext: &corev1.SecurityContext{
 						AllowPrivilegeEscalation: Ptr(false),
 						Capabilities: &corev1.Capabilities{
@@ -266,6 +331,10 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 								},
 							},
 						},
+						{
+							Name:  "JUDGE_SERVING_MODEL_API_KEY",
+							Value: judgeServingApiKey,
+						},
 					},
 					VolumeMounts: []corev1.VolumeMount{
 						{
@@ -277,15 +346,15 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 					Command: []string{
 						"python3", "/home/standalone.py", "run",
 						"--namespace", namespace.Name,
-						"--judge-serving-model-endpoint", "http://serving.kubeflow.svc.cluster.local:8080/v1",
-						"--judge-serving-model-name", "prometheus-eval/prometheus-8x7b-v2.0",
-						"--judge-serving-model-api-key", "dummy-value",
+						"--judge-serving-model-endpoint", judgeServingModelEndpoint,
+						"--judge-serving-model-name", judgeServingModelName,
+						"--judge-serving-model-secret", "judge-serving-details",
 						"--nproc-per-node", strconv.Itoa(numGpus),
-						"--storage-class", "nfs",
+						"--storage-class", "nfs-csi",
 						"--sdg-object-store-secret", createdSecret.Name,
-						"--training-1-epoch-num", strconv.Itoa(1),
-						"--training-2-epoch-num", strconv.Itoa(1),
-						"--force-pull",
+						// "--training-1-epoch-num", strconv.Itoa(1),
+						// "--training-2-epoch-num", strconv.Itoa(1),
+						"--force-pull", "--eval-type", "mt-bench",
 					},
 				},
 			},
@@ -305,18 +374,22 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	test.Expect(err).ToNot(HaveOccurred())
 	test.T().Logf("Pod '%s' created successfully\n", createdPod.Name)
 
-	// Wait until workbench pod status becomes succeeded - timeout in 60mins
+	// Wait until workbench pod status becomes succeeded - timeout in 3 hrs
 	var workbenchPod *corev1.Pod
 	test.Eventually(func() corev1.PodPhase {
 		workbenchPod, err = test.Client().Core().CoreV1().Pods(namespace.Name).Get(test.Ctx(), createdPod.Name, metav1.GetOptions{})
 		test.Expect(err).To(BeNil())
 		return workbenchPod.Status.Phase
-	}, 60*time.Minute, 2*time.Second).Should(Equal(corev1.PodSucceeded))
+	}, 180*time.Minute, 2*time.Second).Should(Equal(corev1.PodSucceeded))
 
 	// Clean up downloaded files
 	err = os.Remove("resources/standalone.py")
 	test.Expect(err).ToNot(HaveOccurred())
+}
 
+func GetRhelaiWorkbenchImage() (string, bool) {
+	data_key, exists := os.LookupEnv("RHELAI_WORKBENCH_IMAGE")
+	return data_key, exists
 }
 
 func GetStorageBucketDataKey() (string, bool) {
@@ -327,4 +400,49 @@ func GetStorageBucketDataKey() (string, bool) {
 func GetStorageBucketVerifyTls() (string, bool) {
 	data_key, exists := os.LookupEnv("SDG_OBJECT_STORE_VERIFY_TLS")
 	return data_key, exists
+}
+
+func GetJudgeServingModelEndpoint() (string, bool) {
+	data_key, exists := os.LookupEnv("JUDGE_ENDPOINT")
+	return data_key, exists
+}
+
+func GetJudgeServingModelName() (string, bool) {
+	data_key, exists := os.LookupEnv("JUDGE_NAME")
+	return data_key, exists
+}
+
+func GetJudgeServingApiKey() (string, bool) {
+	data_key, exists := os.LookupEnv("JUDGE_SERVING_MODEL_API_KEY")
+	return data_key, exists
+}
+
+func GetTestNamespace() (string, bool) {
+	data_key, exists := os.LookupEnv("TEST_NAMESPACE")
+	return data_key, exists
+}
+
+func GetTestServiceAccount() (string, bool) {
+	data_key, exists := os.LookupEnv("TEST_SERVICE_ACCOUNT")
+	return data_key, exists
+}
+
+func CreateServiceAccountWithName(t Test, namespace string, name string) *corev1.ServiceAccount {
+	t.T().Helper()
+
+	serviceAccount := &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	serviceAccount, err := t.Client().Core().CoreV1().ServiceAccounts(namespace).Create(t.Ctx(), serviceAccount, metav1.CreateOptions{})
+	t.Expect(err).NotTo(HaveOccurred())
+	t.T().Logf("Created ServiceAccount %s/%s successfully", serviceAccount.Namespace, serviceAccount.Name)
+
+	return serviceAccount
 }
