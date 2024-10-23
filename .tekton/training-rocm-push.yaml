@@ -32,6 +32,14 @@ spec:
   - name: path-context
     value: images/runtime/training/rocm
   taskRunSpecs:
+    - pipelineTaskName: build-container
+      computeResources:
+        requests:
+          cpu: '8'
+          memory: 16Gi
+        limits:
+          cpu: '16'
+          memory: 32Gi
     - pipelineTaskName: ecosystem-cert-preflight-checks
       computeResources:
         requests:
