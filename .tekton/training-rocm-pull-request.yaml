@@ -9,8 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "pull_request" 
-      && target_branch == "main" 
-      && ( "images/runtime/training/rocm/**".pathChanged() || ".tekton/training-rocm-pull-request.yaml".pathChanged() )
+      && target_branch == "null"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
@@ -33,21 +32,22 @@ spec:
   - name: path-context
     value: images/runtime/training/rocm
   taskRunSpecs:
-    - pipelineTaskName: build-container
-      stepSpecs:
-        - name: build
-          computeResources:
-            requests:
-              memory: 10Gi
-            limits:
-              memory: 10Gi
-    - pipelineTaskName: prefetch-dependencies
+    - pipelineTaskName: ecosystem-cert-preflight-checks
       computeResources:
         requests:
-          cpu: '1'
-          memory: 2Gi
+          cpu: '8'
+          memory: 16Gi
         limits:
-          memory: 2Gi
+          cpu: '16'
+          memory: 32Gi
+    - pipelineTaskName: clair-scan
+      computeResources:
+        requests:
+          cpu: '8'
+          memory: 16Gi
+        limits:
+          cpu: '16'
+          memory: 32Gi
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
