@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -43,11 +44,34 @@ func raytuneHpo(t *testing.T, numGpus int) {
 	test.Expect(err).ToNot(HaveOccurred())
 
 	// Start the Model Registry service with PostgreSQL as the backend database
-	cmd := exec.Command("kubectl", "apply", "-n", string(namespace.Name), "-k", fmt.Sprintf("%s/resources/model_registry_config_samples", workingDirectory))
+	model_registry_postgres_deplyment_yamls := []string{
+		"https://raw.githubusercontent.com/opendatahub-io/model-registry-operator/refs/heads/main/config/samples/postgres/kustomization.yaml",
+		"https://raw.githubusercontent.com/opendatahub-io/model-registry-operator/refs/heads/main/config/samples/postgres/modelregistry_v1alpha1_modelregistry.yaml",
+		"https://raw.githubusercontent.com/opendatahub-io/model-registry-operator/refs/heads/main/config/samples/postgres/postgres-db.yaml",
+	}
+
+	outputDir := "resources/model_registry_config_samples/"
+	err = os.MkdirAll(outputDir, os.ModePerm) // Crate directory if it doesn't exists
+	test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Error creating diretcory: %s", err))
+
+	// Loop through each url and dwonload the file using curl
+	for _, url := range model_registry_postgres_deplyment_yamls {
+		fileName := filepath.Base(url) // Extract filename from url
+		outputPath := filepath.Join(outputDir, fileName)
+		cmd := exec.Command("curl", "-L", "-o", outputPath, "--create-dirs", url)
+		if err := cmd.Run(); err != nil {
+			test.T().Logf(fmt.Sprintf("Failed to download %s: %v\n", url, err.Error()))
+			test.T().Skip()
+		}
+		test.T().Logf("File '%s' downloaded sucessfully", fileName)
+	}
+	defer os.RemoveAll(outputDir)
+
+	cmd := exec.Command("kubectl", "apply", "-n", string(namespace.Name), "-k", fmt.Sprintf("%s/%s", workingDirectory, outputDir))
 	stdout, err := cmd.Output()
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		test.T().Logf(err.Error())
+		test.T().Skip()
 	}
 	// Print the cmd output
 	fmt.Println(string(stdout))
@@ -66,16 +90,15 @@ func raytuneHpo(t *testing.T, numGpus int) {
 		"server = 'SERVER'":         fmt.Sprintf("server='%s'", GetOpenShiftApiUrl(test)),
 		"name='terrestial-raytest'": fmt.Sprintf("name='%s',\\n\",\n\t\t\"    namespace='%s'", "terrestial-raytest", namespace.Name),
 		"worker_extended_resource_requests={'nvidia.com/gpu':0}": fmt.Sprintf("worker_extended_resource_requests={'nvidia.com/gpu':%d}", numGpus),
-		"image='quay.io/modh/ray:2.35.0-py39-cu121'":             fmt.Sprintf("image='%s'", GetRayImage()),
-		"print('Model Prediction:', prediction)":                 "print('Model Prediction:', prediction)\\n\",\n\t\"time.sleep(10)",
+		"image='quay.io/modh/ray:2.35.0-py311-cu121'":            fmt.Sprintf("image='%s'", GetRayImage()),
 	}
 
-	// updatedNotebookContent := string(ReadFileExt(test, workingDirectory+"/../../examples/hpo-raytune/notebook/raytune-oai-MR-gRPC-demo.ipynb"))
 	updatedNotebookContent := string(ReadFile(test, "resources/raytune-oai-MR-gRPC-demo.ipynb"))
 	for oldValue, newValue := range requiredChangesInNotebook {
 		updatedNotebookContent = strings.Replace(updatedNotebookContent, oldValue, newValue, -1)
 	}
 	updatedNotebook := []byte(updatedNotebookContent)
+	os.WriteFile("demo.ipynb", updatedNotebook, 0644)
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "raytune-oai-MR-gRPC-demo.ipynb"
@@ -90,6 +113,7 @@ func raytuneHpo(t *testing.T, numGpus int) {
 
 	// Create Notebook CR
 	createNotebook(test, namespace, userToken, rayImage, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	defer deleteNotebook(test, namespace)
 
 	// Gracefully cleanup Notebook
 	defer func() {
@@ -109,4 +133,5 @@ func raytuneHpo(t *testing.T, numGpus int) {
 	// Make sure the RayCluster finishes and is deleted
 	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
 		Should(BeEmpty())
+
 }
