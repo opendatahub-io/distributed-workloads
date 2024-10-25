@@ -201,7 +201,15 @@ func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap
 										},
 										{
 											Name:  "HOME",
+											Value: "/mnt/scratch/home",
+										},
+										{
+											Name:  "TRITON_HOME",
 											Value: "/mnt/scratch/triton-home",
+										},
+										{
+											Name:  "TRITON_CACHE_DIR",
+											Value: "/mnt/scratch/triton-cache",
 										},
 										{
 											Name:  "HF_TOKEN",
