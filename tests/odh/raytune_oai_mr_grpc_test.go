@@ -33,6 +33,10 @@ func TestRaytuneOaiMrGrpcCpu(t *testing.T) {
 	raytuneHpo(t, 0)
 }
 
+func TestRaytuneOaiMrGrpcGpu(t *testing.T) {
+	raytuneHpo(t, 1)
+}
+
 func raytuneHpo(t *testing.T, numGpus int) {
 	test := With(t)
 
@@ -45,14 +49,14 @@ func raytuneHpo(t *testing.T, numGpus int) {
 
 	// Start the Model Registry service with PostgreSQL as the backend database
 	model_registry_postgres_deplyment_yamls := []string{
-		"https://raw.githubusercontent.com/opendatahub-io/model-registry-operator/refs/heads/main/config/samples/postgres/kustomization.yaml",
-		"https://raw.githubusercontent.com/opendatahub-io/model-registry-operator/refs/heads/main/config/samples/postgres/modelregistry_v1alpha1_modelregistry.yaml",
-		"https://raw.githubusercontent.com/opendatahub-io/model-registry-operator/refs/heads/main/config/samples/postgres/postgres-db.yaml",
+		"https://raw.githubusercontent.com/opendatahub-io/model-registry-operator/refs/heads/release/v0.2.9/config/samples/postgres/kustomization.yaml",
+		"https://raw.githubusercontent.com/opendatahub-io/model-registry-operator/refs/heads/release/v0.2.9/config/samples/postgres/modelregistry_v1alpha1_modelregistry.yaml",
+		"https://raw.githubusercontent.com/opendatahub-io/model-registry-operator/refs/heads/release/v0.2.9/config/samples/postgres/postgres-db.yaml",
 	}
 
-	outputDir := "resources/model_registry_config_samples/"
-	err = os.MkdirAll(outputDir, os.ModePerm) // Crate directory if it doesn't exists
-	test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Error creating diretcory: %s", err))
+	outputDir, err := os.MkdirTemp("", "github_downloads_*")
+	test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Error in creating directory: %s", err))
+	test.T().Logf("Temporary directory created : %s", outputDir)
 
 	// Loop through each url and dwonload the file using curl
 	for _, url := range model_registry_postgres_deplyment_yamls {
@@ -61,20 +65,19 @@ func raytuneHpo(t *testing.T, numGpus int) {
 		cmd := exec.Command("curl", "-L", "-o", outputPath, "--create-dirs", url)
 		if err := cmd.Run(); err != nil {
 			test.T().Logf(fmt.Sprintf("Failed to download %s: %v\n", url, err.Error()))
-			test.T().Skip()
+			test.Expect(err).ToNot(HaveOccurred())
 		}
 		test.T().Logf("File '%s' downloaded sucessfully", fileName)
 	}
 	defer os.RemoveAll(outputDir)
 
-	cmd := exec.Command("kubectl", "apply", "-n", string(namespace.Name), "-k", fmt.Sprintf("%s/%s", workingDirectory, outputDir))
-	stdout, err := cmd.Output()
-	if err != nil {
-		test.T().Logf(err.Error())
-		test.T().Skip()
+	cmd := exec.Command("kubectl", "apply", "-n", string(namespace.Name), "-k", fmt.Sprintf("%s/", outputDir))
+	if err := cmd.Run(); err != nil {
+		test.T().Logf("Failed to start the Model Registry service with PostgreSQL: %v\n", err.Error())
+		test.Expect(err).ToNot(HaveOccurred())
+	} else {
+		test.T().Logf(fmt.Sprint("Successfully started the Model Registry service with PostgreSQL"))
 	}
-	// Print the cmd output
-	fmt.Println(string(stdout))
 
 	// Define the regular(non-admin) user
 	userName := GetNotebookUserName(test)
@@ -93,12 +96,11 @@ func raytuneHpo(t *testing.T, numGpus int) {
 		"image='quay.io/modh/ray:2.35.0-py311-cu121'":            fmt.Sprintf("image='%s'", GetRayImage()),
 	}
 
-	updatedNotebookContent := string(ReadFile(test, "resources/raytune-oai-MR-gRPC-demo.ipynb"))
+	updatedNotebookContent := string(ReadFileExt(test, workingDirectory+"/../../examples/hpo-raytune/notebook/raytune-oai-MR-gRPC-demo.ipynb"))
 	for oldValue, newValue := range requiredChangesInNotebook {
 		updatedNotebookContent = strings.Replace(updatedNotebookContent, oldValue, newValue, -1)
 	}
 	updatedNotebook := []byte(updatedNotebookContent)
-	os.WriteFile("demo.ipynb", updatedNotebook, 0644)
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "raytune-oai-MR-gRPC-demo.ipynb"
