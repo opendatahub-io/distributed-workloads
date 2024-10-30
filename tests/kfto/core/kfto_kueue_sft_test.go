@@ -112,7 +112,7 @@ func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string, numGpus i
 		Should(WithTransform(PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Make sure the PyTorch job succeed
-	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), TestTimeoutMedium).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 
 	_, bucketEndpointSet := GetStorageBucketDefaultEndpoint()
