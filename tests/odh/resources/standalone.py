@@ -25,6 +25,7 @@ TODO:
 import base64
 import json
 import logging
+import os
 import time
 import typing
 from ast import literal_eval
@@ -97,6 +98,9 @@ MAX_WORKERS = "auto"
 MERGE_SYSTEM_USER_MESSAGE = False
 FEW_SHOTS = 5
 BATCH_SIZE = 8
+JUDGE_CA_CERT_ENV_VAR_NAME = "JUDGE_CA_CERT_PATH"
+JUDGE_CA_CERT_PATH = "/tmp/cert"
+JUDGE_CA_CERT_CM_KEY = "ca-bundle.crt"
 
 # TEMPLATES
 PYTORCH_TRAINING_JOB = """
@@ -656,6 +660,20 @@ def show(
     envvar="JUDGE_SERVING_MODEL_API_KEY",
 )
 @click.option(
+    "--judge-serving-model-ca-cert",
+    type=str,
+    help=(
+        "Name of the Kubernetes ConfigMap containing the serving model CA cert."
+        "The expected key name is 'ca-bundle.crt'."
+    ),
+)
+@click.option(
+    "--judge-serving-model-ca-cert-cm-key",
+    type=str,
+    help="Name of the Key in the Kubernetes ConfigMap containing the serving model CA cert.",
+    default=JUDGE_CA_CERT_CM_KEY,
+)
+@click.option(
     "--judge-serving-model-secret",
     type=str,
     envvar="JUDGE_SERVING_MODEL_SECRET",
@@ -663,9 +681,10 @@ def show(
         "Name of the Kubernetes Secret containing the judge serving model endpoint. "
         "For evaluation only. "
         "The namespace is inferred from the namespace option. "
-        "The following keys are expected: JUDGE_API_KEY, JUDGE_ENDPOINT, JUDGE_NAME "
+        "The following keys are expected: JUDGE_API_KEY, JUDGE_ENDPOINT, JUDGE_NAME"
+        "Optional keys are: JUDGE_CA_CERT, JUDGE_CA_CERT_CM_KEY"
         " (JUDGE_SERVING_MODEL_SECRET env var)"
-        "If used, the --judge-serving-model-{api-key,endpoint,name} options will be ignored."
+        "If used, --judge-serving-model-{api-key,endpoint,name,ca-cert} will be ignored."
     ),
 )
 @click.option(
@@ -811,6 +830,8 @@ def run(
     judge_serving_model_endpoint: typing.Optional[str] = None,
     judge_serving_model_name: typing.Optional[str] = None,
     judge_serving_model_api_key: typing.Optional[str] = None,
+    judge_serving_model_ca_cert: typing.Optional[str] = None,
+    judge_serving_model_ca_cert_cm_key: typing.Optional[str] = None,
     judge_serving_model_secret: typing.Optional[str] = None,
     nproc_per_node: typing.Optional[int] = 1,
     eval_type: typing.Optional[str] = None,
@@ -846,6 +867,8 @@ def run(
         judge_serving_model_name (str): The serving model name for evaluation. For Evaluation only.
         judge_serving_model_api_key (str): The serving model API key for evaluation. For Evaluation
         only.
+        judge_serving_model_ca_cert (str): The serving model CA cert for evaluation.
+        judge_serving_model_ca_cert_cm_key (str): The name of the Key in the Kubernetes ConfigMap
         judge_serving_model_secret (str): The name of the Kubernetes Secret containing the serving
         model credentials. For Evaluation only.
         nproc_per_node (int): The number of processes per node. For training only.
@@ -882,7 +905,9 @@ def run(
     ctx.obj["judge_serving_model_endpoint"] = judge_serving_model_endpoint
     ctx.obj["judge_serving_model_name"] = judge_serving_model_name
     ctx.obj["judge_serving_model_api_key"] = judge_serving_model_api_key
+    ctx.obj["judge_serving_model_ca_cert"] = judge_serving_model_ca_cert
     ctx.obj["judge_serving_model_secret"] = judge_serving_model_secret
+    ctx.obj["judge_serving_model_ca_cert_cm_key"] = judge_serving_model_ca_cert_cm_key
     ctx.obj["nproc_per_node"] = nproc_per_node
     ctx.obj["eval_type"] = eval_type
     ctx.obj["training_phase"] = training_phase
@@ -1552,6 +1577,8 @@ def create_eval_job(
     eval_type: str,
     judge_serving_model_secret: str,
     nproc_per_node: int = 1,
+    judge_serving_model_ca_cert: str = None,
+    judge_serving_model_ca_cert_cm_key: str = None,
 ) -> kubernetes.client.V1Job:
     """
     Create a Kubernetes Job object.
@@ -1618,6 +1645,26 @@ def run_mt_bench_op(
 
     import torch
     from instructlab.eval.mt_bench import MTBenchEvaluator
+
+    if judge_ca_cert := os.getenv("JUDGE_CA_CERT_PATH"):
+        import httpx
+        import openai
+
+        # Create a custom HTTP client
+        class CustomHttpClient(httpx.Client):
+            def __init__(self, *args, **kwargs):
+                # Use the custom CA certificate
+                kwargs.setdefault("verify", judge_ca_cert)
+                super().__init__(*args, **kwargs)
+
+        # Create a new OpenAI class that uses the custom HTTP client
+        class CustomOpenAI(openai.OpenAI):
+            def __init__(self, *args, **kwargs):
+                custom_client = CustomHttpClient()
+                super().__init__(http_client=custom_client, *args, **kwargs)
+
+        # Monkey patch the OpenAI class in the openai module, so that the eval lib can use it
+        openai.OpenAI = CustomOpenAI
 
     def launch_vllm(
         model_path: str, gpu_count: int, retries: int = 120, delay: int = 10
@@ -1826,6 +1873,26 @@ def run_final_eval_op(
     from instructlab.eval.mmlu import MMLU_TASKS, MMLUBranchEvaluator
     from instructlab.eval.mt_bench import MTBenchBranchEvaluator
     from instructlab.model.evaluate import qa_pairs_to_qna_to_avg_scores, sort_score
+
+    if judge_ca_cert := os.getenv("JUDGE_CA_CERT_PATH"):
+        import httpx
+        import openai
+
+        # Create a custom HTTP client
+        class CustomHttpClient(httpx.Client):
+            def __init__(self, *args, **kwargs):
+                # Use the custom CA certificate
+                kwargs.setdefault("verify", judge_ca_cert)
+                super().__init__(*args, **kwargs)
+
+        # Create a new OpenAI class that uses the custom HTTP client
+        class CustomOpenAI(openai.OpenAI):
+            def __init__(self, *args, **kwargs):
+                custom_client = CustomHttpClient()
+                super().__init__(http_client=custom_client, *args, **kwargs)
+
+        # Monkey patch the OpenAI class in the openai module, so that the eval lib can use it
+        openai.OpenAI = CustomOpenAI
 
     print("Starting Final Eval...")
 
@@ -2260,78 +2327,60 @@ def run_final_eval_op(
 run_final_eval_op(mmlu_branch_output="{MMLU_BRANCH_SCORES_PATH}", mt_bench_branch_output="{MT_BENCH_BRANCH_SCORES_PATH}", candidate_model="{CANDIDATE_MODEL_PATH}", taxonomy="{TAXONOMY_PATH}", tasks="{DATA_PVC_SDG_PATH}", base_branch="", candidate_branch="", device=None, base_model_dir="{DATA_PVC_MODEL_PATH}", max_workers="{MAX_WORKERS}", merge_system_user_message={MERGE_SYSTEM_USER_MESSAGE}, model_dtype="{MODEL_DTYPE}", few_shots={FEW_SHOTS}, batch_size={BATCH_SIZE})
 """
 
-    if eval_type == "mt-bench":
-        init_containers = [
-            kubernetes.client.V1Container(
-                name=f"run-eval-{eval_type}",
-                image=RHELAI_IMAGE,
-                command=["/bin/sh", "-ce"],
-                args=[
-                    PYTHON_EXECUTOR.format(
-                        python_code=exec_run_mt_bench_op_command,
-                        python_main=exec_run_mt_bench_op_args.strip(),
-                    ),
-                ],
-                volume_mounts=get_vol_mount(),
-                security_context=get_security_context(),
-                env_from=[
-                    kubernetes.client.V1EnvFromSource(
-                        secret_ref=kubernetes.client.V1SecretEnvSource(
-                            name=judge_serving_model_secret
-                        )
-                    ),
-                ],
-                resources=kubernetes.client.V1ResourceRequirements(
-                    requests={"cpu": "1", "nvidia.com/gpu": nproc_per_node},
-                    limits={"cpu": "1", "nvidia.com/gpu": nproc_per_node},
-                ),
-            )
-        ]
-        container = kubernetes.client.V1Container(
-            name=f"output-eval-{eval_type}-scores",
-            image=RHELAI_IMAGE,
-            command=["/bin/sh", "-c"],
-            args=[f"cat {MT_BENCH_SCORES_PATH}"],
-            security_context=get_security_context(),
-            volume_mounts=get_vol_mount(),
-        )
-    elif eval_type == EVAL_TYPE_FINAL:
-        init_containers = [
-            kubernetes.client.V1Container(
-                name=f"run-eval-{eval_type}",
-                image=RHELAI_IMAGE,
-                command=["/bin/sh", "-ce"],
-                args=[
-                    PYTHON_EXECUTOR.format(
-                        python_code=exec_run_final_eval_op_command,
-                        python_main=exec_run_final_eval_op_args.strip(),
-                    ),
-                ],
-                volume_mounts=get_vol_mount(),
-                security_context=get_security_context(),
-                env_from=[
-                    kubernetes.client.V1EnvFromSource(
-                        secret_ref=kubernetes.client.V1SecretEnvSource(
-                            name=judge_serving_model_secret
-                        )
-                    ),
-                ],
-                resources=kubernetes.client.V1ResourceRequirements(
-                    requests={"cpu": "1", "nvidia.com/gpu": nproc_per_node},
-                    limits={"cpu": "1", "nvidia.com/gpu": nproc_per_node},
-                ),
-            )
-        ]
-        container = kubernetes.client.V1Container(
-            name=f"output-eval-{eval_type}-scores",
-            image=RHELAI_IMAGE,
-            command=["/bin/sh", "-c"],
-            args=[f"cat {MT_BENCH_BRANCH_SCORES_PATH}"],
-            security_context=get_security_context(),
-            volume_mounts=get_vol_mount(),
-        )
-    else:
-        raise ValueError(f"Unknown evaluation type: {eval_type}")
+    eval_container = kubernetes.client.V1Container(
+        name=f"run-eval-{eval_type}",
+        image=RHELAI_IMAGE,
+        command=["/bin/sh", "-ce"],
+        volume_mounts=get_vol_mount(),
+        security_context=get_security_context(),
+        env_from=[
+            kubernetes.client.V1EnvFromSource(
+                secret_ref=kubernetes.client.V1SecretEnvSource(
+                    name=judge_serving_model_secret
+                )
+            ),
+        ],
+        resources=kubernetes.client.V1ResourceRequirements(
+            requests={"cpu": "1", "nvidia.com/gpu": nproc_per_node},
+            limits={"cpu": "1", "nvidia.com/gpu": nproc_per_node},
+        ),
+    )
+    eval_args = {
+        EVAL_TYPE_MT_BENCH: [
+            PYTHON_EXECUTOR.format(
+                python_code=exec_run_mt_bench_op_command,
+                python_main=exec_run_mt_bench_op_args.strip(),
+            ),
+        ],
+        EVAL_TYPE_FINAL: [
+            PYTHON_EXECUTOR.format(
+                python_code=exec_run_final_eval_op_command,
+                python_main=exec_run_final_eval_op_args.strip(),
+            ),
+        ],
+    }
+    try:
+        eval_container.args = eval_args[eval_type]
+    except KeyError as exc:
+        raise ValueError(f"Unknown evaluation type: {eval_type}") from exc
+
+    init_containers = [eval_container]
+
+    output_container = kubernetes.client.V1Container(
+        name=f"output-eval-{eval_type}-scores",
+        image=RHELAI_IMAGE,
+        command=["/bin/sh", "-c"],
+        security_context=get_security_context(),
+        volume_mounts=get_vol_mount(),
+    )
+    eval_paths = {
+        EVAL_TYPE_MT_BENCH: MT_BENCH_SCORES_PATH,
+        EVAL_TYPE_FINAL: MT_BENCH_BRANCH_SCORES_PATH,
+    }
+    try:
+        output_container.args = [f"cat {eval_paths[eval_type]}"]
+    except KeyError as exc:
+        raise ValueError(f"Unknown evaluation type: {eval_type}") from exc
 
     # Create and configure a spec section
     template = kubernetes.client.V1PodTemplateSpec(
@@ -2339,10 +2388,37 @@ run_final_eval_op(mmlu_branch_output="{MMLU_BRANCH_SCORES_PATH}", mt_bench_branc
         spec=kubernetes.client.V1PodSpec(
             restart_policy="Never",
             init_containers=init_containers,
-            containers=[container],
+            containers=[output_container],
             volumes=get_vol(),
         ),
     )
+
+    if judge_serving_model_ca_cert:
+        # Define the volume that references the ConfigMap
+        cm_volume = kubernetes.client.V1Volume(
+            name="judge-ca-cert-volume",
+            config_map=kubernetes.client.V1ConfigMapVolumeSource(
+                name=judge_serving_model_ca_cert
+            ),
+        )
+        # Define the volume mount to specify where the Secret should be mounted in the container
+        cm_volume_mount = kubernetes.client.V1VolumeMount(
+            name="judge-ca-cert-volume",
+            mount_path=JUDGE_CA_CERT_PATH,  # Path where the Secret will be mounted
+        )
+        # Add an env var to the container to specify the path to the CA cert
+        eval_container.env = [
+            kubernetes.client.V1EnvVar(
+                name=JUDGE_CA_CERT_ENV_VAR_NAME,
+                value=os.path.join(
+                    JUDGE_CA_CERT_PATH, judge_serving_model_ca_cert_cm_key
+                ),
+            )
+        ]
+        # Add the volume to the Pod spec
+        eval_container.volume_mounts.append(cm_volume_mount)
+        # Add the volume mount to the container
+        template.spec.volumes.append(cm_volume)
 
     # Create the specification of deployment
     spec = kubernetes.client.V1JobSpec(
@@ -2650,6 +2726,8 @@ def sdg_data_fetch(
     judge_serving_model_endpoint = ctx.obj["judge_serving_model_endpoint"]
     judge_serving_model_name = ctx.obj["judge_serving_model_name"]
     judge_serving_model_api_key = ctx.obj["judge_serving_model_api_key"]
+    judge_serving_model_ca_cert = ctx.obj["judge_serving_model_ca_cert"]
+    judge_serving_model_ca_cert_cm_key = ctx.obj["judge_serving_model_ca_cert_cm_key"]
     judge_serving_model_secret = ctx.obj["judge_serving_model_secret"]
     sdg_object_store_endpoint = ctx.obj["sdg_object_store_endpoint"]
     sdg_object_store_bucket = ctx.obj["sdg_object_store_bucket"]
@@ -2850,14 +2928,50 @@ def sdg_data_fetch(
                     secret.data.get("JUDGE_ENDPOINT")
                 )
                 validate_url(judge_serving_model_endpoint)
+
+                # Validation of the configmap's existence is done in the next conditional block
+                if secret.data.get("JUDGE_CA_CERT"):
+                    judge_serving_model_ca_cert = decode_base64(
+                        secret.data.get("JUDGE_CA_CERT")
+                    )
+                if secret.data.get("JUDGE_CA_CERT_CM_KEY"):
+                    judge_serving_model_ca_cert_cm_key = decode_base64(
+                        secret.data.get("JUDGE_CA_CERT_CM_KEY")
+                    )
             except kubernetes.client.rest.ApiException as exc:
                 if exc.status == 404:
                     raise ValueError(
                         f"Secret {judge_serving_model_secret} not found in namespace {namespace}."
                     ) from exc
 
+    # If the CA cert is provided, verify the existence of the secret
+    # We don't add the CA Cert Secret name into the Secret that contains the judge details
+    # If provided, the Secret will be mounted as a volume in the evaluation job
+    if judge_serving_model_ca_cert and not dry_run:
+        try:
+            cm = v1.read_namespaced_config_map(
+                name=judge_serving_model_ca_cert, namespace=namespace
+            )
+            # Validate the presence of the key
+            if not cm.data.get(judge_serving_model_ca_cert_cm_key):
+                raise ValueError(
+                    f"Provided ConfigMap {judge_serving_model_ca_cert} does not contain the key:"
+                    f"'{judge_serving_model_ca_cert_cm_key}'."
+                    "Use '--judge-serving-model-ca-cert-cm-key' to specify the key."
+                )
+        except kubernetes.client.rest.ApiException as exc:
+            if exc.status == 404:
+                raise ValueError(
+                    f"ConfigMap {judge_serving_model_ca_cert} not found in namespace {namespace}."
+                ) from exc
+
     # Set the judge secret in the context for the evaluation job
     ctx.obj["judge_serving_model_secret"] = judge_serving_model_secret
+
+    # Set the judge CA cert in the context for the evaluation job, this handles the case where the
+    # secret is not provided via the cli flag but inside the secret
+    ctx.obj["judge_serving_model_ca_cert"] = judge_serving_model_ca_cert
+    ctx.obj["judge_serving_model_ca_cert_cm_key"] = judge_serving_model_ca_cert_cm_key
 
     # list of PVCs to create and their details
     pvcs = [
@@ -3118,6 +3232,8 @@ def evaluation(ctx: click.Context) -> str:
     eval_type = ctx.obj["eval_type"]
     dry_run = ctx.obj["dry_run"]
     judge_serving_model_secret = ctx.obj["judge_serving_model_secret"]
+    judge_serving_model_ca_cert = ctx.obj["judge_serving_model_ca_cert"]
+    judge_serving_model_ca_cert_cm_key = ctx.obj["judge_serving_model_ca_cert_cm_key"]
 
     # This should only happen if the script is called with the "evaluation" subcommand
     if not judge_serving_model_secret:
@@ -3137,6 +3253,8 @@ def evaluation(ctx: click.Context) -> str:
         namespace=namespace,
         eval_type=eval_type,
         judge_serving_model_secret=judge_serving_model_secret,
+        judge_serving_model_ca_cert=judge_serving_model_ca_cert,
+        judge_serving_model_ca_cert_cm_key=judge_serving_model_ca_cert_cm_key,
     )
 
     if dry_run:
