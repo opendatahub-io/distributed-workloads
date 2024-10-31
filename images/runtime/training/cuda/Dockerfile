@@ -12,6 +12,9 @@ LABEL name="training:py311-cuda121-torch241" \
       io.k8s.description="CUDA 12.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
       authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
 
+# Copy license
+COPY LICENSE.md /licenses/cuda-license.md
+
 # Set the working directory in the container
 WORKDIR /app
 
