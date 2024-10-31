@@ -65,6 +65,8 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	judgeServingApiKey, judgeServingApiKeyExists := GetJudgeServingApiKey()
 	judgeServingModelName, judgeServingModelNameExists := GetJudgeServingModelName()
 	judgeServingModelEndpoint, judgeServingModelEndpointExists := GetJudgeServingModelEndpoint()
+	judgeServingCAConfigMapName, judgeServingCAConfigMapNameExists := GetJudeServingCACertConfigMapName()
+	judgeServingCAConfigMapKey, judgeServingCAConfigMapKeyExists := GetJudeServingCACertCMKeyName()
 
 	if !judgeServingApiKeyExists {
 		test.T().Skip("Please provide judge serving api key..")
@@ -74,6 +76,14 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	}
 	if !judgeServingModelEndpointExists {
 		test.T().Skip("Please provide judge serving model endpoint..")
+	}
+
+	if !judgeServingCAConfigMapNameExists {
+		test.T().Logf("ConfigMap contain CA for the judge model is not provided")
+	}
+
+	if !judgeServingCAConfigMapKeyExists {
+		test.T().Logf("ConfigMap Key containing CA for the judge model is not provided")
 	}
 
 	// Create a namespace
@@ -91,11 +101,12 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 			test.T().Logf("Using the namespace name which is provided using environment variable..")
 		}
 	}
+
 	defer test.Client().Core().CoreV1().Namespaces().Delete(test.Ctx(), namespace.Name, metav1.DeleteOptions{})
 
 	// Download standalone script used for running instructlab distributed training on RHOAI
 	standaloneFilePath := "resources/standalone.py"
-	cmd := exec.Command("curl", "-L", "-o", standaloneFilePath, "https://github.com/redhat-et/ilab-on-ocp/raw/refs/heads/main/standalone/standalone.py")
+	cmd := exec.Command("curl", "-L", "-o", standaloneFilePath, "https://raw.githubusercontent.com/redhat-et/ilab-on-ocp/refs/heads/phase-1/standalone/standalone.py")
 	err := cmd.Run()
 	if err != nil {
 		test.T().Logf(err.Error())
@@ -348,13 +359,15 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 						"--namespace", namespace.Name,
 						"--judge-serving-model-endpoint", judgeServingModelEndpoint,
 						"--judge-serving-model-name", judgeServingModelName,
+						"--judge-serving-model-ca-cert", judgeServingCAConfigMapName,
+						"--judge-serving-model-ca-cert-cm-key", judgeServingCAConfigMapKey,
 						"--judge-serving-model-secret", "judge-serving-details",
 						"--nproc-per-node", strconv.Itoa(numGpus),
 						"--storage-class", "nfs-csi",
 						"--sdg-object-store-secret", createdSecret.Name,
 						// "--training-1-epoch-num", strconv.Itoa(1),
 						// "--training-2-epoch-num", strconv.Itoa(1),
-						"--force-pull", "--eval-type", "mt-bench",
+						"--force-pull", "--eval-type", "mt-bench", "evaluation",
 					},
 				},
 			},
@@ -414,6 +427,17 @@ func GetJudgeServingModelName() (string, bool) {
 
 func GetJudgeServingApiKey() (string, bool) {
 	data_key, exists := os.LookupEnv("JUDGE_SERVING_MODEL_API_KEY")
+	return data_key, exists
+}
+
+func GetJudeServingCACertConfigMapName() (string, bool) {
+	data_key, exists := os.LookupEnv("JUDGE_SERVING_CA_CONFIGMAP_NAME")
+	return data_key, exists
+}
+
+// GetJudeServingCACertCMKeyName the key name of the ca bundle inside the configmap
+func GetJudeServingCACertCMKeyName() (string, bool) {
+	data_key, exists := os.LookupEnv("JUDGE_SERVING_CA_CONFIGMAP_KEY")
 	return data_key, exists
 }
 
