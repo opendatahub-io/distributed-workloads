@@ -156,7 +156,11 @@ The `standalone.py` script is designed to run within a Kubernetes environment. T
   * A [StorageClass](https://kubernetes.io/docs/concepts/storage/storage-classes/) that supports dynamic provisioning with [ReadWriteMany](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes) access mode.
 * A Kubernetes configuration that allows access to the Kubernetes cluster.
   * Both cluster and in-cluster configurations are supported.
-* SDG data generated and uploaded to an object store.
+* SDG data [generated](https://docs.instructlab.ai/adding-data-to-model/creating_new_knowledge_or_skills/#generate-a-synthetic-dataset) and uploaded to an object store.
+* Serving endpoint available for the
+  [evaluation](https://docs.instructlab.ai/adding-data-to-model/creating_new_knowledge_or_skills/#evaluate-the-newly-trained-model)
+  phase (judge model). Using
+  [prometheus-8x7b-v2.0](https://huggingface.co/prometheus-eval/prometheus-8x7b-v2.0) as a model is recommended.
 
 > [!NOTE]
 > The script can be run outside of the cluster from the command-line, but it requires that the user is currently logged into a Kubernetes cluster.
@@ -395,6 +399,7 @@ evaluation
 * `--judge-serving-model-name`: The name of the model to use for evaluation. **Optional**
 * `--judge-serving-model-api-key`: The API key for the model to evaluate. `JUDGE_SERVING_MODEL_API_KEY`
   environment variable can be used as well. **Optional**
+* `--judge-serving-model-ca-cert`: Name of the Kubernetes ConfigMap containing the serving model CA cert. **Optional**
 * `--judge-serving-model-secret`: The name of the Kubernetes secret containing the judge serving model
   API key. **Optional** - If not provided, the script will expect the provided CLI options to evaluate the model.
 * `--force-pull`: Force pull the data (sdg data, model and taxonomy) from the object store even if it already
@@ -509,8 +514,16 @@ The list of all mandatory keys:
 * `JUDGE_ENDPOINT`: Serving endpoint for evaluation - **Required**
 * `JUDGE_NAME`: The name of the model to use for evaluation - **Required**
 
+Optional keys:
+
+* `JUDGE_CA_CERT`: The name of ConfigMap containing the custom CA Cert - **Optional**
+* `JUDGE_CA_CERT_CM_KEY`: The key of the CA Cert in the ConfigMap - **Optional**
+
 > [!WARNING]
 > Mind the upper case of the keys, as the script expects them to be in upper case.
+
+> [!WARNING]
+> Make sure the endpoint URL ends with /v1
 
 #### Running the Script Without Kubernetes Secret
 
