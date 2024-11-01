@@ -30,6 +30,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// setting some defaults in case not provided.
+const (
+	ILAB_RHELAI_WORKBENCH_IMAGE = "quay.io/opendatahub/workbench-images:jupyter-datascience-ubi9-python-3.11-20241004-609ffb8"
+	ILAB_RHELAI_STORAGE_CLASS   = "nfs-csi"
+)
+
 func TestInstructlabTrainingOnRhoai(t *testing.T) {
 	instructlabDistributedTrainingOnRhoai(t, 1)
 }
@@ -41,8 +47,9 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 
 	rhelaiWorkbenchImage, rhelaiWorkbenchImageExists := GetRhelaiWorkbenchImage()
 	if !rhelaiWorkbenchImageExists {
-		test.T().Skip("Rhelai workbench image is not provided as environment variable..")
-		rhelaiWorkbenchImage = "quay.io/opendatahub/workbench-images:jupyter-datascience-ubi9-python-3.11-20241004-609ffb8"
+		rhelaiWorkbenchImage = ILAB_RHELAI_WORKBENCH_IMAGE
+
+		test.T().Logf("RHELAI workbench image is not provided as environment variable. Using workbench image: %s", ILAB_RHELAI_WORKBENCH_IMAGE)
 	}
 
 	// Get S3 bucket credentials using environment variables
@@ -55,47 +62,41 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	s3BucketVerifyTls, _ := GetStorageBucketVerifyTls()
 
 	if !s3BucketNameExists {
-		test.T().Skip("Please provide storage bucket name to download SDG data from..")
+		test.T().Skip("AWS_STORAGE_BUCKET Bucket name is required.")
 	}
 	if !s3BucketDataKeyExists {
-		test.T().Skip("Please provide storage bucket data-key(Name or path of tar archive) to download SDG+model+taxonomy data from..")
+		test.T().Skip("SDG_OBJECT_STORE_DATA_KEY is required to download required data to start training.")
 	}
 
-	// Get Judge model server credentials using environment variables
-	judgeServingApiKey, judgeServingApiKeyExists := GetJudgeServingApiKey()
-	judgeServingModelName, judgeServingModelNameExists := GetJudgeServingModelName()
-	judgeServingModelEndpoint, judgeServingModelEndpointExists := GetJudgeServingModelEndpoint()
-	judgeServingCAConfigMapName, judgeServingCAConfigMapNameExists := GetJudeServingCACertConfigMapName()
-	judgeServingCAConfigMapKey, judgeServingCAConfigMapKeyExists := GetJudeServingCACertCMKeyName()
+	// judge model details like endpoint, api-key, model-name, ca certs, ...etc should be provided via k8s secret
+	// we need the secret name so the standalone.py script can fetch the details from that secret.
+	judgeServingModelSecret, judgeServingModelSecretExists := GetJudeServingModelSecret()
+	ilabStorageClassName, ilabStorageClassNameExists := GetStorageClassName()
 
-	if !judgeServingApiKeyExists {
-		test.T().Skip("Please provide judge serving api key..")
-	}
-	if !judgeServingModelNameExists {
-		test.T().Skip("Please provide judge serving model name..")
-	}
-	if !judgeServingModelEndpointExists {
-		test.T().Skip("Please provide judge serving model endpoint..")
+	if !judgeServingModelSecretExists {
+		test.T().Skip("JUDGE_SERVING_MODEL_SECRET judge model details secret is not provided. ")
 	}
 
-	if !judgeServingCAConfigMapNameExists {
-		test.T().Logf("ConfigMap contain CA for the judge model is not provided")
-	}
+	if !ilabStorageClassNameExists {
+		ilabStorageClassName = ILAB_RHELAI_STORAGE_CLASS
 
-	if !judgeServingCAConfigMapKeyExists {
-		test.T().Logf("ConfigMap Key containing CA for the judge model is not provided")
+		test.T().Logf("Storage class is not provided. Using default %s", ilabStorageClassName)
 	}
 
 	// Create a namespace
 	test_namespace, test_namespace_exists := GetTestNamespace()
 	var namespace *corev1.Namespace
+
 	if !test_namespace_exists {
 		namespace = test.NewTestNamespace()
 	} else {
 		_, namespace_exists_err := test.Client().Core().CoreV1().Namespaces().Get(test.Ctx(), test_namespace, metav1.GetOptions{})
+
 		if namespace_exists_err != nil {
-			test.T().Logf("The namespace provided using environment variable doesn't exists..")
+
+			test.T().Logf("%s namespace doesn't exists. Creating ...", test_namespace)
 			namespace = CreateTestNamespaceWithName(test, test_namespace)
+
 		} else {
 			namespace = GetNamespaceWithName(test, test_namespace)
 			test.T().Logf("Using the namespace name which is provided using environment variable..")
@@ -343,8 +344,8 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 							},
 						},
 						{
-							Name:  "JUDGE_SERVING_MODEL_API_KEY",
-							Value: judgeServingApiKey,
+							Name:  "JUDGE_SERVING_MODEL_SECRET",
+							Value: judgeServingModelSecret,
 						},
 					},
 					VolumeMounts: []corev1.VolumeMount{
@@ -357,17 +358,13 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 					Command: []string{
 						"python3", "/home/standalone.py", "run",
 						"--namespace", namespace.Name,
-						"--judge-serving-model-endpoint", judgeServingModelEndpoint,
-						"--judge-serving-model-name", judgeServingModelName,
-						"--judge-serving-model-ca-cert", judgeServingCAConfigMapName,
-						"--judge-serving-model-ca-cert-cm-key", judgeServingCAConfigMapKey,
-						"--judge-serving-model-secret", "judge-serving-details",
+						"--judge-serving-model-secret", judgeServingModelSecret,
 						"--nproc-per-node", strconv.Itoa(numGpus),
-						"--storage-class", "nfs-csi",
+						"--storage-class", ilabStorageClassName,
 						"--sdg-object-store-secret", createdSecret.Name,
 						// "--training-1-epoch-num", strconv.Itoa(1),
 						// "--training-2-epoch-num", strconv.Itoa(1),
-						"--force-pull", "--eval-type", "mt-bench", "evaluation",
+						"--force-pull",
 					},
 				},
 			},
@@ -415,29 +412,15 @@ func GetStorageBucketVerifyTls() (string, bool) {
 	return data_key, exists
 }
 
-func GetJudgeServingModelEndpoint() (string, bool) {
-	data_key, exists := os.LookupEnv("JUDGE_ENDPOINT")
+// GetJudeServingModelSecret secret containing the details of the judge model
+func GetJudeServingModelSecret() (string, bool) {
+	data_key, exists := os.LookupEnv("JUDGE_SERVING_MODEL_SECRET")
 	return data_key, exists
 }
 
-func GetJudgeServingModelName() (string, bool) {
-	data_key, exists := os.LookupEnv("JUDGE_NAME")
-	return data_key, exists
-}
-
-func GetJudgeServingApiKey() (string, bool) {
-	data_key, exists := os.LookupEnv("JUDGE_SERVING_MODEL_API_KEY")
-	return data_key, exists
-}
-
-func GetJudeServingCACertConfigMapName() (string, bool) {
-	data_key, exists := os.LookupEnv("JUDGE_SERVING_CA_CONFIGMAP_NAME")
-	return data_key, exists
-}
-
-// GetJudeServingCACertCMKeyName the key name of the ca bundle inside the configmap
-func GetJudeServingCACertCMKeyName() (string, bool) {
-	data_key, exists := os.LookupEnv("JUDGE_SERVING_CA_CONFIGMAP_KEY")
+// GetStorageClassName name of the storage class to use for testing, default is nfs-csi
+func GetStorageClassName() (string, bool) {
+	data_key, exists := os.LookupEnv("TEST_ILAB_STORAGE_CLASS_NAME")
 	return data_key, exists
 }
 
