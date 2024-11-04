@@ -58,7 +58,7 @@ func raytuneHpo(t *testing.T, numGpus int) {
 	test.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Error in creating directory: %s", err))
 	test.T().Logf("Temporary directory created : %s", outputDir)
 
-	// Loop through each url and dwonload the file using curl
+	// Loop through each url and download the file using curl
 	for _, url := range model_registry_postgres_deplyment_yamls {
 		fileName := filepath.Base(url) // Extract filename from url
 		outputPath := filepath.Join(outputDir, fileName)
@@ -115,7 +115,6 @@ func raytuneHpo(t *testing.T, numGpus int) {
 
 	// Create Notebook CR
 	createNotebook(test, namespace, userToken, rayImage, config.Name, jupyterNotebookConfigMapFileName, numGpus)
-	defer deleteNotebook(test, namespace)
 
 	// Gracefully cleanup Notebook
 	defer func() {
