@@ -17,6 +17,7 @@ limitations under the License.
 package odh
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -68,15 +69,7 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 		test.T().Skip("SDG_OBJECT_STORE_DATA_KEY is required to download required data to start training.")
 	}
 
-	// judge model details like endpoint, api-key, model-name, ca certs, ...etc should be provided via k8s secret
-	// we need the secret name so the standalone.py script can fetch the details from that secret.
-	judgeServingModelSecret, judgeServingModelSecretExists := GetJudeServingModelSecret()
 	ilabStorageClassName, ilabStorageClassNameExists := GetStorageClassName()
-
-	if !judgeServingModelSecretExists {
-		test.T().Skip("JUDGE_SERVING_MODEL_SECRET judge model details secret is not provided. ")
-	}
-
 	if !ilabStorageClassNameExists {
 		ilabStorageClassName = ILAB_RHELAI_STORAGE_CLASS
 
@@ -244,6 +237,8 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	test.Expect(err).ToNot(HaveOccurred())
 	test.T().Logf("Secret '%s' created successfully\n", createdSecret.Name)
 
+	judgeServingModelSecret := CreateJudgeServingModelSecret(test, namespace.Name)
+
 	// Create pod resource using workbench image to run standalone script
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -345,7 +340,7 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 						},
 						{
 							Name:  "JUDGE_SERVING_MODEL_SECRET",
-							Value: judgeServingModelSecret,
+							Value: judgeServingModelSecret.Name,
 						},
 					},
 					VolumeMounts: []corev1.VolumeMount{
@@ -358,7 +353,7 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 					Command: []string{
 						"python3", "/home/standalone.py", "run",
 						"--namespace", namespace.Name,
-						"--judge-serving-model-secret", judgeServingModelSecret,
+						"--judge-serving-model-secret", judgeServingModelSecret.Name,
 						"--nproc-per-node", strconv.Itoa(numGpus),
 						"--storage-class", ilabStorageClassName,
 						"--sdg-object-store-secret", createdSecret.Name,
@@ -397,6 +392,43 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 	test.Expect(err).ToNot(HaveOccurred())
 }
 
+func CreateJudgeServingModelSecret(test Test, namespace string) *corev1.Secret {
+	// judge model details like endpoint, api-key, model-name, ca certs, ...etc should be provided via k8s secret
+	// we need the secret name so the standalone.py script can fetch the details from that secret.
+	// Get Judge model server credentials using environment variables
+	judgeServingModelApiKeyEnvVar := "JUDGE_API_KEY"
+	judgeServingModelNameEnvVar := "JUDGE_NAME"
+	judgeServingModelEndpointEnvVar := "JUDGE_ENDPOINT"
+	judgeServingCaCertEnvVar := "JUDGE_CA_CERT"
+	judgeServingCaCertCmKeyEnvVar := "JUDGE_CA_CERT_CM_KEY"
+	judgeServingCaCertFromOpenShiftEnvVar := "JUDGE_CA_CERT_FROM_OPENSHIFT"
+	judgeServingModelApiKey, judgeServingModelApiKeyExists := os.LookupEnv(judgeServingModelApiKeyEnvVar)
+	judgeServingModelName, judgeServingModelNameExists := os.LookupEnv(judgeServingModelNameEnvVar)
+	judgeServingModelEndpoint, judgeServingModelEndpointExists := os.LookupEnv(judgeServingModelEndpointEnvVar)
+	judgeServingCaCertFromOpenShift, judgeServingCaCertFromOpenShiftExists := os.LookupEnv(judgeServingCaCertFromOpenShiftEnvVar)
+
+	test.Expect(judgeServingModelApiKeyExists).To(BeTrue(), fmt.Sprintf("please provide judge serving model api key using env variable %s", judgeServingModelApiKeyEnvVar))
+	test.Expect(judgeServingModelNameExists).To(BeTrue(), fmt.Sprintf("please provide judge serving model name using env variable %s", judgeServingModelNameEnvVar))
+	test.Expect(judgeServingModelEndpointExists).To(BeTrue(), fmt.Sprintf("please provide judge serving model endpoint using env variable %s", judgeServingModelEndpointEnvVar))
+
+	judgeServingDetails := map[string]string{
+		judgeServingModelApiKeyEnvVar:   judgeServingModelApiKey,
+		judgeServingModelEndpointEnvVar: judgeServingModelEndpoint,
+		judgeServingModelNameEnvVar:     judgeServingModelName,
+	}
+
+	if judgeServingCaCertFromOpenShiftExists && judgeServingCaCertFromOpenShift == "true" {
+		test.T().Logf("Using OpenShift CA as Judge CA certificate")
+		judgeServingDetails[judgeServingCaCertEnvVar] = "kube-root-ca.crt"
+		judgeServingDetails[judgeServingCaCertCmKeyEnvVar] = "ca.crt"
+	} else {
+		test.T().Logf("Env variable '%s' not defined or not set to `true`, Judge CA certificate ConfigMap is not provided", judgeServingCaCertFromOpenShiftEnvVar)
+	}
+
+	judgeServingModelSecret := CreateSecret(test, namespace, judgeServingDetails)
+	return judgeServingModelSecret
+}
+
 func GetRhelaiWorkbenchImage() (string, bool) {
 	data_key, exists := os.LookupEnv("RHELAI_WORKBENCH_IMAGE")
 	return data_key, exists
@@ -409,12 +441,6 @@ func GetStorageBucketDataKey() (string, bool) {
 
 func GetStorageBucketVerifyTls() (string, bool) {
 	data_key, exists := os.LookupEnv("SDG_OBJECT_STORE_VERIFY_TLS")
-	return data_key, exists
-}
-
-// GetJudeServingModelSecret secret containing the details of the judge model
-func GetJudeServingModelSecret() (string, bool) {
-	data_key, exists := os.LookupEnv("JUDGE_SERVING_MODEL_SECRET")
 	return data_key, exists
 }
 
