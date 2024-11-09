@@ -50,8 +50,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # IMAGES
-DS_IMAGE = "quay.io/opendatahub/workbench-images:jupyter-datascience-ubi9-python-3.11-20241004-609ffb8"  # pylint: disable=line-too-long
-RHELAI_IMAGE = "registry.redhat.io/rhelai1/instructlab-nvidia-rhel9:1.2"
+DS_IMAGE = "quay.io/opendatahub/workbench-images@sha256:7f26f5f2bec4184af15acd95f29b3450526c5c28c386b6cb694fbe82d71d0b41"  # pylint: disable=line-too-long
+RHELAI_IMAGE = "registry.redhat.io/rhelai1/instructlab-nvidia-rhel9@sha256:b3dc9af0244aa6b84e6c3ef53e714a316daaefaae67e28de397cd71ee4b2ac7e"  # pylint: disable=line-too-long
 
 # SDG
 DEFAULT_REPO_URL = "https://github.com/instructlab/taxonomy.git"
