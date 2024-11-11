@@ -12,6 +12,10 @@
 
 * Installed Go 1.21
 
+### Sample Judge Model Deployment
+
+* The sample manifest for deploying judge-model can be found here - `tests/ilab/resources/judge_model_deployment.yaml`
+
 ## Required environment variables
 
 ### Environment variables to download SDG and upload trained model
