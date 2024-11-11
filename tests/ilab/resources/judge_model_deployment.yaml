@@ -1,0 +1,118 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: custom-vllm-runtime
+  namespace: test-namespace 						# replace this with your namespace name
+spec:
+  annotations:
+    sidecar.istio.io/inject: "true"
+    sidecar.istio.io/rewriteAppHTTPProbers: "true"
+    serving.knative.openshift.io/enablePassthrough: "true"
+    opendatahub.io/dashboard: "true"
+    openshift.io/display-name: "vLLLM Openai entry point"
+    prometheus.io/port: '8080'
+    prometheus.io/path: "/metrics/"
+  builtInAdapter:
+    modelLoadingTimeoutMillis: 90000
+  containers:
+    - args:
+        - '--port=8080'
+        - '--distributed-executor-backend=mp'
+        - '--model=/mnt/models'
+      image: quay.io/opendatahub/vllm:stable
+      name: kserve-container
+      command:
+        - python3
+        - '-m'
+        - "vllm.entrypoints.openai.api_server"
+      ports:
+        - containerPort: 8080
+          name: http1
+          protocol: TCP
+  multiModel: false
+  supportedModelFormats:
+    - autoSelect: true
+      name: vLLM
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret
+  namespace: test-namespace 						# replace this with your namespace name
+type: Opaque
+stringData:
+  AWS_S3_ENDPOINT: https://s3.us-east-1.amazonaws.com			# replace this with your Storage Bucket endpoint URL
+  AWS_S3_BUCKET: <storage-bucket-name>					# add your storage bucket name
+  AWS_ACCESS_KEY_ID: <access-key-id>					# add your storage bucket Access-Key ID
+  AWS_SECRET_ACCESS_KEY: <secret-access-key>				# add your storage bucket Secret-Access-Key
+  AWS_DEFAULT_REGION: us-east-1						# replace this with your Storage Bucket region
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: storage-config
+  namespace: test-namespace # replace this with your namespace name
+type: Opaque
+stringData:
+  rhelai-s3-data: '{"access_key_id":"<access-key-id>","bucket":"<storage-bucket-name>","default_bucket":"<storage-bucket-name>","endpoint_url":"https://s3.us-east-1.amazonaws.com","region":"us-east-1","secret_access_key":"<secret-access-key>","type":"s3"}'
+# replace above Storage-Config Secret data with the actual S3 bucket credentials
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: test-service-account
+  namespace: test-namespace 						# replace this with your namespace name
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: test-cluster-role-binding
+  namespace: test-namespace 						# replace this with your namespace nametest-namespace
+subjects:
+  - kind: ServiceAccount
+    name: test-service-account
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+
+---
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: mistral
+  namespace: test-namespace 						# replace this with your namespace nametest-namespace
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+    security.opendatahub.io/enable-auth: "true"
+    opendatahub.io/dashboard: 'true'
+spec:
+  predictor:
+    maxReplicas: 1
+    minReplicas: 1
+    serviceAccountName: test-service-account				# replace this with Service account created above
+    model:
+      modelFormat:
+        name: vLLM
+      name: ''
+      runtime: custom-vllm-runtime 					# replace this with custom serving runtime created above
+      resources:
+        limits:
+          cpu: '8'
+          memory: 10Gi
+          nvidia.com/gpu: '1'
+        requests:
+          cpu: '4'
+          memory: 8Gi
+          nvidia.com/gpu: '1'
+      storage:
+        key: test-secret
+        path: mistral/model/
+    tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
