@@ -1,9 +1,9 @@
 ## Global Args ######################################################
-ARG BASE_UBI_IMAGE_TAG=latest
-ARG PYTHON_VERSION=3.11
+ARG IMAGE_TAG=1-77.1729776556
+ARG PYTHON_VERSION=311
 
 # use UBI9 latest
-FROM registry.access.redhat.com/ubi9/ubi:${BASE_UBI_IMAGE_TAG} AS base
+FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG} AS base
 
 LABEL name="training:py311-rocm61-torch241" \
       summary="ROCm 6.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
@@ -16,23 +16,13 @@ LABEL name="training:py311-rocm61-torch241" \
 COPY LICENSE.md /licenses/rocm-license.md
 
 # Set the working directory in the container
+USER 0
 WORKDIR /app
 
-# remove subscription-manager and install python3.11
-RUN dnf remove -y --disableplugin=subscription-manager \
-        subscription-manager \
-    && dnf install -y python${PYTHON_VERSION} procps g++ python${PYTHON_VERSION}-devel \
-    && python -m ensurepip --upgrade \
-    && python -m pip install --upgrade pip \
-    && python -m pip install --upgrade setuptools \
-    && dnf update -y \
-    && dnf clean all
-
-RUN dnf remove -y python3-requests && \
-    pip install --no-cache-dir requests==2.32.3
+# upgrade requests package
+RUN pip install --no-cache-dir --upgrade requests==2.32.3
 
 # Install ROCm
-USER 0
 WORKDIR /opt/app-root/bin
 
 ARG ROCM_VERSION=6.1.2
