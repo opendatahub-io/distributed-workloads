@@ -344,6 +344,7 @@ information about the S3 bucket and `judge-serving-details` secret that includes
 the judge server model. A judge server model is assumed to run external to the script. See [Judge
 Model Details](#judge-model-details) for required information.
 
+If you want to run the `standalone.py` script with Red Hat OpenShift AI you can try out this [experimental install guide](https://github.com/opendatahub-io/distributed-workloads/tree/main/instructlab/standalone/instructlab-rhoai.md).
 
 ### Usage Examples
 
