@@ -129,7 +129,7 @@ This example has been validated on the following configurations:
         head_memory_limits=96,
         head_extended_resource_requests={'amd.com/gpu':1},
         worker_extended_resource_requests={'amd.com/gpu':1},
-        image="quay.io/rhoai/ray:2.35.0-py39-rocm61-torch24-fa26",
+        image="quay.io/rhoai/ray:2.35.0-py311-rocm61-torch24-fa26",
     )
     ```
 * Ray job:
