@@ -105,8 +105,8 @@ func TestSetupPytorchjob(t *testing.T) {
 	tuningJob := createPyTorchJob(test, namespaceName, localQueue.Name, *config)
 
 	// Make sure the PyTorch job is suspended, waiting for ClusterQueue to be enabled
-	test.Eventually(kftocore.PytorchJob(test, tuningJob.Namespace, pyTorchJobName), TestTimeoutShort).
-		Should(WithTransform(kftocore.PytorchJobConditionSuspended, Equal(corev1.ConditionTrue)))
+	test.Eventually(kftocore.PyTorchJob(test, tuningJob.Namespace, pyTorchJobName), TestTimeoutShort).
+		Should(WithTransform(kftocore.PyTorchJobConditionSuspended, Equal(corev1.ConditionTrue)))
 }
 
 func TestRunPytorchjob(t *testing.T) {
@@ -124,12 +124,12 @@ func TestRunPytorchjob(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred())
 
 	// PyTorch job should be started now
-	test.Eventually(kftocore.PytorchJob(test, namespaceName, pyTorchJobName), TestTimeoutLong).
-		Should(WithTransform(kftocore.PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
+	test.Eventually(kftocore.PyTorchJob(test, namespaceName, pyTorchJobName), TestTimeoutLong).
+		Should(WithTransform(kftocore.PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Make sure the PyTorch job succeed
-	test.Eventually(kftocore.PytorchJob(test, namespaceName, pyTorchJobName), TestTimeoutLong).
-		Should(WithTransform(kftocore.PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(kftocore.PyTorchJob(test, namespaceName, pyTorchJobName), TestTimeoutLong).
+		Should(WithTransform(kftocore.PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 }
 
 func createPyTorchJob(test Test, namespace, localQueueName string, config corev1.ConfigMap) *kftov1.PyTorchJob {
