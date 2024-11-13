@@ -120,8 +120,8 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 	defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Delete(test.Ctx(), tuningJob.Name, *metav1.NewDeleteOptions(0))
 
 	// Make sure the PyTorch job is running
-	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).
-		Should(WithTransform(PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).
+		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	if IsOpenShift(test) {
 		// Check that GPUs were utilized recently
@@ -139,7 +139,7 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 	}
 
 	// Make sure the PyTorch job succeed
-	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), 60*time.Minute).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), 60*time.Minute).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 
 	_, bucketEndpointSet := GetStorageBucketDefaultEndpoint()

@@ -73,11 +73,11 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpuLabel string, numGpus int)
 	defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Delete(test.Ctx(), tuningJob.Name, *metav1.NewDeleteOptions(0))
 
 	// Make sure the PyTorch job is running
-	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), TestTimeoutDouble).
-		Should(WithTransform(PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutDouble).
+		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Make sure the PyTorch job succeeded
-	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), TestTimeoutDouble).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutDouble).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 
 }

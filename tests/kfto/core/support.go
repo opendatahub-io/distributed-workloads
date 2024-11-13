@@ -41,7 +41,7 @@ func ReadFile(t Test, fileName string) []byte {
 	return file
 }
 
-func PytorchJob(t Test, namespace, name string) func(g Gomega) *kftov1.PyTorchJob {
+func PyTorchJob(t Test, namespace, name string) func(g Gomega) *kftov1.PyTorchJob {
 	return func(g Gomega) *kftov1.PyTorchJob {
 		job, err := t.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Get(t.Ctx(), name, metav1.GetOptions{})
 		g.Expect(err).NotTo(HaveOccurred())
@@ -49,19 +49,23 @@ func PytorchJob(t Test, namespace, name string) func(g Gomega) *kftov1.PyTorchJo
 	}
 }
 
-func PytorchJobConditionRunning(job *kftov1.PyTorchJob) corev1.ConditionStatus {
-	return PytorchJobCondition(job, kftov1.JobRunning)
+func PyTorchJobConditionRunning(job *kftov1.PyTorchJob) corev1.ConditionStatus {
+	return PyTorchJobCondition(job, kftov1.JobRunning)
 }
 
-func PytorchJobConditionSucceeded(job *kftov1.PyTorchJob) corev1.ConditionStatus {
-	return PytorchJobCondition(job, kftov1.JobSucceeded)
+func PyTorchJobConditionSucceeded(job *kftov1.PyTorchJob) corev1.ConditionStatus {
+	return PyTorchJobCondition(job, kftov1.JobSucceeded)
 }
 
-func PytorchJobConditionSuspended(job *kftov1.PyTorchJob) corev1.ConditionStatus {
-	return PytorchJobCondition(job, kftov1.JobSuspended)
+func PyTorchJobConditionSuspended(job *kftov1.PyTorchJob) corev1.ConditionStatus {
+	return PyTorchJobCondition(job, kftov1.JobSuspended)
 }
 
-func PytorchJobCondition(job *kftov1.PyTorchJob, conditionType kftov1.JobConditionType) corev1.ConditionStatus {
+func PyTorchJobConditionFailed(job *kftov1.PyTorchJob) corev1.ConditionStatus {
+	return PyTorchJobCondition(job, kftov1.JobFailed)
+}
+
+func PyTorchJobCondition(job *kftov1.PyTorchJob, conditionType kftov1.JobConditionType) corev1.ConditionStatus {
 	for _, condition := range job.Status.Conditions {
 		if condition.Type == conditionType {
 			return condition.Status

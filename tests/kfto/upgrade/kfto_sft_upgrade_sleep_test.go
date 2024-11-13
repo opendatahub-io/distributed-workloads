@@ -50,8 +50,8 @@ func TestSetupSleepPytorchjob(t *testing.T) {
 	createSleepPyTorchJob(test, sleepNamespaceName)
 
 	// Make sure the PyTorch job is running, waiting for Training operator upgrade
-	test.Eventually(kftocore.PytorchJob(test, sleepNamespaceName, sleepPyTorchJobName), TestTimeoutShort).
-		Should(WithTransform(kftocore.PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
+	test.Eventually(kftocore.PyTorchJob(test, sleepNamespaceName, sleepPyTorchJobName), TestTimeoutShort).
+		Should(WithTransform(kftocore.PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 }
 
 func TestVerifySleepPytorchjob(t *testing.T) {
@@ -62,8 +62,8 @@ func TestVerifySleepPytorchjob(t *testing.T) {
 	defer DeleteTestNamespace(test, namespace)
 
 	// PyTorch job should be still running
-	test.Expect(kftocore.PytorchJob(test, sleepNamespaceName, sleepPyTorchJobName)(test)).
-		Should(WithTransform(kftocore.PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
+	test.Expect(kftocore.PyTorchJob(test, sleepNamespaceName, sleepPyTorchJobName)(test)).
+		Should(WithTransform(kftocore.PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Pod job should be running without restart
 	test.Expect(GetPods(test, sleepNamespaceName, metav1.ListOptions{})).
