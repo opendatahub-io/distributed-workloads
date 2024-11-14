@@ -2,8 +2,8 @@
 ARG IMAGE_TAG=1-77.1729776556
 ARG PYTHON_VERSION=311
 
-# use UBI9 latest
-FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG} AS base
+# use UBI9
+FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG}
 
 LABEL name="training:py311-cuda121-torch241" \
       summary="CUDA 12.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
@@ -21,9 +21,6 @@ WORKDIR /app
 
 # upgrade requests package
 RUN pip install --no-cache-dir --upgrade requests==2.32.3
-
-## CUDA Base ###################################################################
-FROM base AS cuda-base
 
 # Install CUDA
 WORKDIR /opt/app-root/bin
@@ -52,9 +49,6 @@ ENV CUDA_HOME="/usr/local/cuda" \
  PATH="/usr/local/nvidia/bin:${CUDA_HOME}/bin:${PATH}" \
  LD_LIBRARY_PATH="/usr/local/nvidia/lib:/usr/local/nvidia/lib64:$CUDA_HOME/lib64:$CUDA_HOME/extras/CUPTI/lib64:$LD_LIBRARY_PATH" \
  LD_LIBRARY_PATH="/usr/local/cuda-9.0/lib64:$LD_LIBRARY_PATH"
-
-## CUDA Development ############################################################
-FROM cuda-base AS cuda-devel
 
 # Ref: https://developer.nvidia.com/nccl/nccl-legacy-downloads
 ENV NV_CUDA_CUDART_DEV_VERSION=12.1.55-1 \
