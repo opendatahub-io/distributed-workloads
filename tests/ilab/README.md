@@ -39,6 +39,7 @@
 * `TEST_ILAB_STORAGE_CLASS_NAME` (Optional) - Specify name of StorageClass which supports ReadWriteMany access mode. If not specified then test assumes StorageClass `nfs-csi` to exist.
 * `RHELAI_WORKBENCH_IMAGE` (Optional) - Specify Workbench image to be used to run Standalone tool. If not specified then test uses Workbench image `quay.io/opendatahub/workbench-images:jupyter-datascience-ubi9-python-3.11-20241004-609ffb8`.
 Provided image should contain `click==8.1.7` and `kubernetes==26.1.0` packages.
+* `STANDALONE_SCRIPT_URL` - Specifiy the standalone script URL to be used to run standalone tool.
 
 ## Running Tests
 

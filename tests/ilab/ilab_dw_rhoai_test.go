@@ -53,6 +53,11 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 		test.T().Logf("RHELAI workbench image is not provided as environment variable. Using workbench image: %s", ILAB_RHELAI_WORKBENCH_IMAGE)
 	}
 
+	standaloneScriptURL, standaloneScriptURLExists := GetStandaloneScriptURL()
+	if !standaloneScriptURLExists {
+		test.T().Skip("The standalones script URL is not provided")
+	}
+
 	// Get S3 bucket credentials using environment variables
 	s3BucketName, s3BucketNameExists := GetStorageBucketName()
 	s3AccessKeyId, _ := GetStorageBucketAccessKeyId()
@@ -100,7 +105,7 @@ func instructlabDistributedTrainingOnRhoai(t *testing.T, numGpus int) {
 
 	// Download standalone script used for running instructlab distributed training on RHOAI
 	standaloneFilePath := "resources/standalone.py"
-	cmd := exec.Command("curl", "-L", "-o", standaloneFilePath, "https://raw.githubusercontent.com/redhat-et/ilab-on-ocp/refs/heads/phase-1/standalone/standalone.py")
+	cmd := exec.Command("curl", "-L", "-o", standaloneFilePath, standaloneScriptURL)
 	err := cmd.Run()
 	if err != nil {
 		test.T().Logf(err.Error())
@@ -457,6 +462,11 @@ func GetTestNamespace() (string, bool) {
 
 func GetTestServiceAccount() (string, bool) {
 	data_key, exists := os.LookupEnv("TEST_SERVICE_ACCOUNT")
+	return data_key, exists
+}
+
+func GetStandaloneScriptURL() (string, bool) {
+	data_key, exists := os.LookupEnv("STANDALONE_SCRIPT_URL")
 	return data_key, exists
 }
 
