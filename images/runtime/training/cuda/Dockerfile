@@ -2,8 +2,8 @@
 ARG IMAGE_TAG=1-77.1729776556
 ARG PYTHON_VERSION=311
 
-# use UBI9 latest
-FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG} AS base
+# use UBI9
+FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG}
 
 LABEL name="training:py311-cuda121-torch241" \
       summary="CUDA 12.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
@@ -22,14 +22,12 @@ WORKDIR /app
 # upgrade requests package
 RUN pip install --no-cache-dir --upgrade requests==2.32.3
 
-## CUDA Base ###################################################################
-FROM base AS cuda-base
-
 # Install CUDA
 WORKDIR /opt/app-root/bin
 
 # Ref: https://docs.nvidia.com/cuda/archive/12.1.0/cuda-toolkit-release-notes/
 ENV CUDA_VERSION=12.1.0 \
+    NVIDIA_REQUIRE_CUDA="cuda>=12.1 brand=tesla,driver>=470,driver<471 brand=unknown,driver>=470,driver<471 brand=nvidia,driver>=470,driver<471 brand=nvidiartx,driver>=470,driver<471 brand=geforce,driver>=470,driver<471 brand=geforcertx,driver>=470,driver<471 brand=quadro,driver>=470,driver<471 brand=quadrortx,driver>=470,driver<471 brand=titan,driver>=470,driver<471 brand=titanrtx,driver>=470,driver<471 brand=tesla,driver>=525,driver<526 brand=unknown,driver>=525,driver<526 brand=nvidia,driver>=525,driver<526 brand=nvidiartx,driver>=525,driver<526 brand=geforce,driver>=525,driver<526 brand=geforcertx,driver>=525,driver<526 brand=quadro,driver>=525,driver<526 brand=quadrortx,driver>=525,driver<526 brand=titan,driver>=525,driver<526 brand=titanrtx,driver>=525,driver<526" \
     NV_CUDA_LIB_VERSION=12.1.0-1 \
     NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility \
@@ -51,9 +49,6 @@ ENV CUDA_HOME="/usr/local/cuda" \
  PATH="/usr/local/nvidia/bin:${CUDA_HOME}/bin:${PATH}" \
  LD_LIBRARY_PATH="/usr/local/nvidia/lib:/usr/local/nvidia/lib64:$CUDA_HOME/lib64:$CUDA_HOME/extras/CUPTI/lib64:$LD_LIBRARY_PATH" \
  LD_LIBRARY_PATH="/usr/local/cuda-9.0/lib64:$LD_LIBRARY_PATH"
-
-## CUDA Development ############################################################
-FROM cuda-base AS cuda-devel
 
 # Ref: https://developer.nvidia.com/nccl/nccl-legacy-downloads
 ENV NV_CUDA_CUDART_DEV_VERSION=12.1.55-1 \
