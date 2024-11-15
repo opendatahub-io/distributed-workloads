@@ -67,7 +67,7 @@ func GetCudaTrainingImage(t Test) string {
 func GetROCmTrainingImage(t Test) string {
 	image, ok := os.LookupEnv(rocmTrainingImageEnvVar)
 	if !ok {
-		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify the cuda training image to be tested.", cudaTrainingImageEnvVar)
+		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify the cuda training image to be tested.", rocmTrainingImageEnvVar)
 	}
 	return image
 }
