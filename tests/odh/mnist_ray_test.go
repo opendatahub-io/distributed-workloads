@@ -44,12 +44,20 @@ func TestMnistRayROCmGpu(t *testing.T) {
 	mnistRay(t, 1, "amd.com/gpu", GetRayROCmImage(), "resources/requirements-rocm.txt")
 }
 
-func TestMnistCustomRayImageCpu(t *testing.T) {
+func TestMnistCustomRayCudaCpu(t *testing.T) {
 	mnistRay(t, 0, "nvidia.com/gpu", GetRayTorchCudaImage(), "resources/requirements.txt")
 }
 
-func TestMnistCustomRayImageGpu(t *testing.T) {
+func TestMnistCustomRayCudaGpu(t *testing.T) {
 	mnistRay(t, 1, "nvidia.com/gpu", GetRayTorchCudaImage(), "resources/requirements.txt")
+}
+
+func TestMnistCustomRayRocmCpu(t *testing.T) {
+	mnistRay(t, 0, "amd.com/gpu", GetRayTorchROCmImage(), "resources/requirements-rocm.txt")
+}
+
+func TestMnistCustomRayRocmGpu(t *testing.T) {
+	mnistRay(t, 1, "amd.com/gpu", GetRayTorchROCmImage(), "resources/requirements-rocm.txt")
 }
 
 func mnistRay(t *testing.T, numGpus int, gpuResourceName string, rayImage string, requirementsFileName string) {
