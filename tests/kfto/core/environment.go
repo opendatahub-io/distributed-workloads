@@ -49,6 +49,7 @@ const (
 )
 
 func GetFmsHfTuningImage(t Test) string {
+	t.T().Helper()
 	image, ok := os.LookupEnv(fmsHfTuningImageEnvVar)
 	if !ok {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify fms-hf-tuning image to be tested.", fmsHfTuningImageEnvVar)
@@ -57,6 +58,7 @@ func GetFmsHfTuningImage(t Test) string {
 }
 
 func GetCudaTrainingImage(t Test) string {
+	t.T().Helper()
 	image, ok := os.LookupEnv(cudaTrainingImageEnvVar)
 	if !ok {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify the cuda training image to be tested.", cudaTrainingImageEnvVar)
@@ -65,6 +67,7 @@ func GetCudaTrainingImage(t Test) string {
 }
 
 func GetROCmTrainingImage(t Test) string {
+	t.T().Helper()
 	image, ok := os.LookupEnv(rocmTrainingImageEnvVar)
 	if !ok {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify the cuda training image to be tested.", rocmTrainingImageEnvVar)
@@ -85,6 +88,7 @@ func GetMinioCliImage() string {
 }
 
 func GetHuggingFaceToken(t Test) string {
+	t.T().Helper()
 	image, ok := os.LookupEnv(huggingfaceTokenEnvVar)
 	if !ok {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify HuggingFace token to download models.", huggingfaceTokenEnvVar)
