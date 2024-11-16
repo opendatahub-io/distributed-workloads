@@ -42,12 +42,35 @@ const (
 	sleepImageEnvVar = "SLEEP_IMAGE"
 	// The environment variable specifying s3 bucket folder path used to store model
 	storageBucketModelPath = "AWS_STORAGE_BUCKET_MODEL_PATH"
+	// The environment variable for the CUDA training image
+	cudaTrainingImageEnvVar = "CUDA_TRAINING_IMAGE"
+	// The environment variable for the ROCm training image
+	rocmTrainingImageEnvVar = "ROCM_TRAINING_IMAGE"
 )
 
 func GetFmsHfTuningImage(t Test) string {
+	t.T().Helper()
 	image, ok := os.LookupEnv(fmsHfTuningImageEnvVar)
 	if !ok {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify fms-hf-tuning image to be tested.", fmsHfTuningImageEnvVar)
+	}
+	return image
+}
+
+func GetCudaTrainingImage(t Test) string {
+	t.T().Helper()
+	image, ok := os.LookupEnv(cudaTrainingImageEnvVar)
+	if !ok {
+		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify the cuda training image to be tested.", cudaTrainingImageEnvVar)
+	}
+	return image
+}
+
+func GetROCmTrainingImage(t Test) string {
+	t.T().Helper()
+	image, ok := os.LookupEnv(rocmTrainingImageEnvVar)
+	if !ok {
+		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify the cuda training image to be tested.", rocmTrainingImageEnvVar)
 	}
 	return image
 }
@@ -65,6 +88,7 @@ func GetMinioCliImage() string {
 }
 
 func GetHuggingFaceToken(t Test) string {
+	t.T().Helper()
 	image, ok := os.LookupEnv(huggingfaceTokenEnvVar)
 	if !ok {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify HuggingFace token to download models.", huggingfaceTokenEnvVar)

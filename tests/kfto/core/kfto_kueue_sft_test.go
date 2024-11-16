@@ -108,11 +108,11 @@ func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string, numGpus i
 		)
 
 	// Make sure the PyTorch job is running
-	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).
-		Should(WithTransform(PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).
+		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Make sure the PyTorch job succeed
-	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 
 	_, bucketEndpointSet := GetStorageBucketDefaultEndpoint()
@@ -172,8 +172,8 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 	tuningJob := createPyTorchJob(test, namespace, localQueue.Name, *config, 0, outputPvc.Name)
 
 	// Make sure the PyTorch job is running
-	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).
-		Should(WithTransform(PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).
+		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Create second PVC for trained model
 	secondOutputPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", corev1.ReadWriteOnce)
@@ -183,19 +183,19 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 	secondTuningJob := createPyTorchJob(test, namespace, localQueue.Name, *config, 0, secondOutputPvc.Name)
 
 	// Make sure the second PyTorch job is suspended, waiting for first job to finish
-	test.Eventually(PytorchJob(test, namespace, secondTuningJob.Name), TestTimeoutShort).
-		Should(WithTransform(PytorchJobConditionSuspended, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, secondTuningJob.Name), TestTimeoutShort).
+		Should(WithTransform(PyTorchJobConditionSuspended, Equal(corev1.ConditionTrue)))
 
 	// Make sure the first PyTorch job succeed
-	test.Eventually(PytorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 
 	// Second PyTorch job should be started now
-	test.Eventually(PytorchJob(test, namespace, secondTuningJob.Name), TestTimeoutShort).
-		Should(WithTransform(PytorchJobConditionRunning, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, secondTuningJob.Name), TestTimeoutShort).
+		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Make sure the second PyTorch job succeed
-	test.Eventually(PytorchJob(test, namespace, secondTuningJob.Name), TestTimeoutLong).Should(WithTransform(PytorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, secondTuningJob.Name), TestTimeoutLong).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", secondTuningJob.Namespace, secondTuningJob.Name)
 }
 
