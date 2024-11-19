@@ -150,7 +150,6 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 									Command: []string{
 										"/bin/bash", "-c",
 										`export HF_HOME=/tmp/.cache && \
-										mkdir /tmp/.triton && \
 										export TRITON_CACHE_DIR=/tmp/.triton && \
 										export TOKENIZERS_PARALLELISM=false && \
 										export RANK=0 && \
@@ -202,12 +201,12 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceCPU:            resource.MustParse("2"),
-											corev1.ResourceMemory:         resource.MustParse("8Gi"),
+											corev1.ResourceMemory:         resource.MustParse("16Gi"),
 											corev1.ResourceName(gpuLabel): resource.MustParse(fmt.Sprint(numGpus)),
 										},
 										Limits: corev1.ResourceList{
 											corev1.ResourceCPU:            resource.MustParse("2"),
-											corev1.ResourceMemory:         resource.MustParse("8Gi"),
+											corev1.ResourceMemory:         resource.MustParse("16Gi"),
 											corev1.ResourceName(gpuLabel): resource.MustParse(fmt.Sprint(numGpus)),
 										},
 									},
