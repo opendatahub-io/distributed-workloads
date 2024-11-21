@@ -1,9 +1,10 @@
 package core
 
 import (
+	"testing"
+
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
-	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -13,15 +14,11 @@ import (
 )
 
 func TestPyTorchJobFailureWithCuda(t *testing.T) {
-	test := With(t)
-	cudaBaseImage := GetCudaTrainingImage(test)
-	runFailedPyTorchJobTest(t, cudaBaseImage)
+	runFailedPyTorchJobTest(t, GetCudaTrainingImage())
 }
 
 func TestPyTorchJobFailureWithROCm(t *testing.T) {
-	test := With(t)
-	rocmBaseImage := GetROCmTrainingImage(test)
-	runFailedPyTorchJobTest(t, rocmBaseImage)
+	runFailedPyTorchJobTest(t, GetROCmTrainingImage())
 }
 
 func runFailedPyTorchJobTest(t *testing.T, image string) {
@@ -65,7 +62,7 @@ func createFailedPyTorchJob(test Test, namespace string, config corev1.ConfigMap
 								{
 									Name:            "pytorch",
 									Image:           baseImage,
-									Command: 		 []string{"python", "-c", "raise Exception('Test failure')"},
+									Command:         []string{"python", "-c", "raise Exception('Test failure')"},
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{

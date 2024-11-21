@@ -18,7 +18,6 @@ package core
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -32,17 +31,11 @@ import (
 )
 
 func TestPyTorchJobWithCuda(t *testing.T) {
-	test := With(t)
-	cudaBaseImage := GetCudaTrainingImage(test)
-	gpuLabel := "nvidia.com/gpu"
-	runKFTOPyTorchJob(t, cudaBaseImage, gpuLabel, 1)
+	runKFTOPyTorchJob(t, GetCudaTrainingImage(), "nvidia.com/gpu", 1)
 }
 
 func TestPyTorchJobWithROCm(t *testing.T) {
-	test := With(t)
-	rocmBaseImage := GetROCmTrainingImage(test)
-	gpuLabel := "amd.com/gpu"
-	runKFTOPyTorchJob(t, rocmBaseImage, gpuLabel, 1)
+	runKFTOPyTorchJob(t, GetROCmTrainingImage(), "amd.com/gpu", 1)
 }
 
 func runKFTOPyTorchJob(t *testing.T, image string, gpuLabel string, numGpus int) {
@@ -51,16 +44,9 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpuLabel string, numGpus int)
 	// Create a namespace
 	namespace := GetOrCreateTestNamespace(test)
 
-	// Parse training script
-	trainingScriptPath := "hf_llm_training.py"
-	trainingScript, err := os.ReadFile(trainingScriptPath)
-	if err != nil {
-		test.T().Fatalf("Error reading training script file: %v", err)
-	}
-
 	// Create a ConfigMap with training script
 	configData := map[string][]byte{
-		"hf_llm_training.py": trainingScript,
+		"hf_llm_training.py": ReadFileExt(test, "hf_llm_training.py"),
 	}
 	config := CreateConfigMap(test, namespace, configData)
 
