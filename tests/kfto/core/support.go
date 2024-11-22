@@ -19,8 +19,10 @@ package core
 import (
 	"embed"
 	"fmt"
+	"os"
 	"time"
 
+	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
 
@@ -38,6 +40,13 @@ func ReadFile(t Test, fileName string) []byte {
 	t.T().Helper()
 	file, err := files.ReadFile(fileName)
 	t.Expect(err).NotTo(HaveOccurred())
+	return file
+}
+
+func ReadFileExt(t Test, fileName string) []byte {
+	t.T().Helper()
+	file, err := os.ReadFile(fileName)
+	t.Expect(err).NotTo(gomega.HaveOccurred())
 	return file
 }
 
