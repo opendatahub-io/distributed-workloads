@@ -110,8 +110,8 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									VolumeMounts: []corev1.VolumeMount{
 										{
-											Name:      "data-volume",
-											MountPath: "/tmp/dataset",
+											Name:      "tmp-volume",
+											MountPath: "/tmp",
 										},
 									},
 									Command: []string{
@@ -135,12 +135,7 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									Command: []string{
 										"/bin/bash", "-c",
-										`export HF_HOME=/tmp/.cache && \
-										export TRITON_CACHE_DIR=/tmp/.triton && \
-										export TOKENIZERS_PARALLELISM=false && \
-										export RANK=0 && \
-										export WORLD_SIZE=1 && \
-										python /etc/config/hf_llm_training.py \
+										`python /etc/config/hf_llm_training.py \
 										--model_uri /tmp/model/bloom-560m \
 										--model_dir /tmp/model/bloom-560m \
 										--dataset_dir /tmp/dataset \
@@ -158,12 +153,8 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 											Value: "/tmp/.triton",
 										},
 										{
-											Name:  "RANK",
-											Value: "0",
-										},
-										{
-											Name:  "WORLD_SIZE",
-											Value: "1",
+											Name:  "TOKENIZERS_PARALLELISM",
+											Value: "false",
 										},
 									},
 									VolumeMounts: []corev1.VolumeMount{
@@ -178,10 +169,6 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 										{
 											Name:      "output-volume",
 											MountPath: "/mnt/output",
-										},
-										{
-											Name:      "data-volume",
-											MountPath: "tmp/dataset",
 										},
 									},
 									Resources: corev1.ResourceRequirements{
@@ -217,24 +204,6 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 									Name: "tmp-volume",
 									VolumeSource: corev1.VolumeSource{
 										EmptyDir: &corev1.EmptyDirVolumeSource{},
-									},
-								},
-								{
-									Name: "data-volume",
-									VolumeSource: corev1.VolumeSource{
-										Ephemeral: &corev1.EphemeralVolumeSource{
-											VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
-												Spec: corev1.PersistentVolumeClaimSpec{
-													AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-													Resources: corev1.VolumeResourceRequirements{
-														Requests: corev1.ResourceList{
-															corev1.ResourceStorage: resource.MustParse("2000Gi"),
-														},
-													},
-													VolumeMode: Ptr(corev1.PersistentVolumeFilesystem),
-												},
-											},
-										},
 									},
 								},
 								{
