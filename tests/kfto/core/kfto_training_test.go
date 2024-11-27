@@ -106,7 +106,7 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 								},
 								{
 									Name:            "copy-dataset",
-									Image:           "registry.access.redhat.com/ubi9/python-311:9.5-1730564330",
+									Image:           GetAlpacaDatasetImage(),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									VolumeMounts: []corev1.VolumeMount{
 										{
@@ -114,18 +114,8 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 											MountPath: "/tmp",
 										},
 									},
-									Command: []string{
-										"/bin/sh",
-										"-c",
-										`pip install --target /tmp/.local datasets && \
-									HF_HOME=/tmp/.cache PYTHONPATH=/tmp/.local python -c "from datasets import load_dataset; dataset = load_dataset('tatsu-lab/alpaca', split='train[:100]'); dataset.save_to_disk('/tmp/dataset')"`,
-									},
-									Env: []corev1.EnvVar{
-										{
-											Name:  "HF_HOME",
-											Value: "/tmp/.cache",
-										},
-									},
+									Command: []string{"/bin/sh", "-c"},
+									Args:    []string{"mkdir /tmp/all_datasets; cp -r /dataset/* /tmp/all_datasets;ls /tmp/all_datasets"},
 								},
 							},
 							Containers: []corev1.Container{
@@ -138,7 +128,7 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 										`python /etc/config/hf_llm_training.py \
 										--model_uri /tmp/model/bloom-560m \
 										--model_dir /tmp/model/bloom-560m \
-										--dataset_dir /tmp/dataset \
+										--dataset_file /tmp/all_datasets/alpaca_data_hundredth.json \
 										--transformer_type AutoModelForCausalLM \
 										--training_parameters '{"output_dir": "/mnt/output", "per_device_train_batch_size": 8, "num_train_epochs": 3, "logging_dir": "/logs", "eval_strategy": "epoch"}' \
 										--lora_config '{"r": 4, "lora_alpha": 16, "lora_dropout": 0.1, "bias": "none"}'`,

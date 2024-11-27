@@ -21,7 +21,7 @@ from urllib.parse import urlparse
 import json
 import os
 
-from datasets import load_from_disk, Dataset
+from datasets import load_dataset, Dataset
 from datasets.distributed import split_dataset_by_node
 from peft import LoraConfig, get_peft_model
 import transformers
@@ -71,15 +71,15 @@ def setup_model_and_tokenizer(model_uri, transformer_type, model_dir):
     return model, tokenizer
 
 # This function is a modified version of the original.
-def load_and_preprocess_data(dataset_dir, transformer_type, tokenizer):
+def load_and_preprocess_data(dataset_file, transformer_type, tokenizer):
     # Load and preprocess the dataset
     logger.info("Load and preprocess dataset")
 
-    file_path = os.path.realpath(dataset_dir)
+    file_path = os.path.realpath(dataset_file)
+
+    dataset=load_dataset('json',data_files=file_path)
 
     if transformer_type != AutoModelForImageClassification:
-        dataset = load_from_disk(file_path)
-
         logger.info(f"Dataset specification: {dataset}")
         logger.info("-" * 40)
 
@@ -87,12 +87,10 @@ def load_and_preprocess_data(dataset_dir, transformer_type, tokenizer):
         # TODO (andreyvelich): Discuss how user should set the tokenizer function.
         num_cores = os.cpu_count()
         dataset = dataset.map(
-            lambda x: tokenizer(x["text"], padding=True, truncation=True, max_length=128),
+            lambda x: tokenizer(x["output"], padding=True, truncation=True, max_length=128),
             batched=True,
             num_proc=num_cores
         )
-    else:
-        dataset = load_from_disk(file_path)
 
     # Check if dataset contains `train` key. Otherwise, load full dataset to train_data.
     if "train" in dataset:
@@ -175,7 +173,7 @@ def parse_arguments():
     parser.add_argument("--model_uri", help="model uri")
     parser.add_argument("--transformer_type", help="model transformer type")
     parser.add_argument("--model_dir", help="directory containing model")
-    parser.add_argument("--dataset_dir", help="directory containing dataset")
+    parser.add_argument("--dataset_file", help="dataset file path")
     parser.add_argument("--lora_config", help="lora_config")
     parser.add_argument(
         "--training_parameters", help="hugging face training parameters"
@@ -197,7 +195,7 @@ if __name__ == "__main__":
 
     logger.info("Preprocess dataset")
     train_data, eval_data = load_and_preprocess_data(
-        args.dataset_dir, transformer_type, tokenizer
+        args.dataset_file, transformer_type, tokenizer
     )
 
     logger.info("Setup LoRA config for model")
