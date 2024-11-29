@@ -85,11 +85,10 @@ def load_and_preprocess_data(dataset_file, transformer_type, tokenizer):
 
         logger.info("Tokenize dataset")
         # TODO (andreyvelich): Discuss how user should set the tokenizer function.
-        num_cores = os.cpu_count()
         dataset = dataset.map(
             lambda x: tokenizer(x["output"], padding=True, truncation=True, max_length=128),
             batched=True,
-            num_proc=num_cores
+            keep_in_memory=True
         )
 
     # Check if dataset contains `train` key. Otherwise, load full dataset to train_data.
