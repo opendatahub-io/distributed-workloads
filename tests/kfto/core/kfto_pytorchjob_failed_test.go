@@ -27,22 +27,15 @@ func runFailedPyTorchJobTest(t *testing.T, image string) {
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 
-	// Create a ConfigMap with training dataset and configuration
-	configData := map[string][]byte{
-		"config.json":                   ReadFile(test, "config.json"),
-		"twitter_complaints_small.json": ReadFile(test, "twitter_complaints_small.json"),
-	}
-	config := CreateConfigMap(test, namespace.Name, configData)
-
 	// Create training PyTorch job
-	tuningJob := createFailedPyTorchJob(test, namespace.Name, *config, image)
+	tuningJob := createFailedPyTorchJob(test, namespace.Name, image)
 
 	// Make sure the PyTorch job is failed
-	test.Eventually(PyTorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutLong).
+	test.Eventually(PyTorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutDouble).
 		Should(WithTransform(PyTorchJobConditionFailed, Equal(corev1.ConditionTrue)))
 }
 
-func createFailedPyTorchJob(test Test, namespace string, config corev1.ConfigMap, baseImage string) *kftov1.PyTorchJob {
+func createFailedPyTorchJob(test Test, namespace string, baseImage string) *kftov1.PyTorchJob {
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -77,18 +70,6 @@ func createFailedPyTorchJob(test Test, namespace string, config corev1.ConfigMap
 									SecurityContext: &corev1.SecurityContext{
 										RunAsNonRoot:           Ptr(true),
 										ReadOnlyRootFilesystem: Ptr(true),
-									},
-								},
-							},
-							Volumes: []corev1.Volume{
-								{
-									Name: "config-volume",
-									VolumeSource: corev1.VolumeSource{
-										ConfigMap: &corev1.ConfigMapVolumeSource{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: config.Name,
-											},
-										},
 									},
 								},
 							},
