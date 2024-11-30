@@ -186,6 +186,10 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 											Name:      "tmp-volume",
 											MountPath: "/tmp",
 										},
+										{
+											Name:      "output-volume",
+											MountPath: "/mnt/output",
+										},
 									},
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
@@ -222,6 +226,12 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 								},
 								{
 									Name: "tmp-volume",
+									VolumeSource: corev1.VolumeSource{
+										EmptyDir: &corev1.EmptyDirVolumeSource{},
+									},
+								},
+								{
+									Name: "output-volume",
 									VolumeSource: corev1.VolumeSource{
 										EmptyDir: &corev1.EmptyDirVolumeSource{},
 									},
