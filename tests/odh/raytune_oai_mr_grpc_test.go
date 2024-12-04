@@ -23,6 +23,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
 
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -88,7 +91,6 @@ func raytuneHpo(t *testing.T, numGpus int) {
 
 	// list changes required in llm-deepspeed-finetune-demo.ipynb file and update those
 	requiredChangesInNotebook := map[string]string{
-		"skip_tls=True":             "skip_tls=False",
 		"token = 'TOKEN'":           fmt.Sprintf("token='%s'", userToken),
 		"server = 'SERVER'":         fmt.Sprintf("server='%s'", GetOpenShiftApiUrl(test)),
 		"name='terrestial-raytest'": fmt.Sprintf("name='%s',\\n\",\n\t\t\"    namespace='%s'", "terrestial-raytest", namespace.Name),
@@ -132,7 +134,7 @@ func raytuneHpo(t *testing.T, numGpus int) {
 		)
 
 	// Make sure the RayCluster finishes and is deleted
-	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
-		Should(BeEmpty())
+	test.Eventually(PodLog(test, namespace.Name, NOTEBOOK_POD_NAME, corev1.PodLogOptions{Container: NOTEBOOK_CONTAINER_NAME}), 20*time.Minute).
+		Should(ContainSubstring("Model Prediction:"))
 
 }

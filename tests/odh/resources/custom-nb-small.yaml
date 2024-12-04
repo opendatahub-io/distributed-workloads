@@ -54,6 +54,8 @@ spec:
           value: {{.S3AccessKeyId}}
         - name: AWS_SECRET_ACCESS_KEY
           value: {{.S3SecretAccessKey}}
+        - name: AWS_S3_ENDPOINT
+          value: {{.S3Endpoint}}
         - name: AWS_DEFAULT_REGION
           value: {{.S3DefaultRegion}}
         - name: AWS_S3_BUCKET

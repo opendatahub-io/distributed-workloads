@@ -29,6 +29,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
+const (
+	NOTEBOOK_POD_NAME       = "jupyter-nb-kube-3aadmin-0"
+	NOTEBOOK_CONTAINER_NAME = "jupyter-nb-kube-3aadmin"
+)
+
 var notebookResource = schema.GroupVersionResource{Group: "kubeflow.org", Version: "v1", Resource: "notebooks"}
 
 type NotebookProps struct {
@@ -48,6 +53,7 @@ type NotebookProps struct {
 	S3BucketName              string
 	S3AccessKeyId             string
 	S3SecretAccessKey         string
+	S3Endpoint                string
 	S3DefaultRegion           string
 }
 
@@ -57,12 +63,14 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, r
 	s3BucketName, s3BucketNameExists := GetStorageBucketName()
 	s3AccessKeyId, _ := GetStorageBucketAccessKeyId()
 	s3SecretAccessKey, _ := GetStorageBucketSecretKey()
+	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
 	s3DefaultRegion, _ := GetStorageBucketDefaultRegion()
 
 	if !s3BucketNameExists {
 		s3BucketName = "''"
 		s3AccessKeyId = "''"
 		s3SecretAccessKey = "''"
+		s3Endpoint = "''"
 		s3DefaultRegion = "''"
 	}
 
@@ -82,6 +90,7 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, r
 		S3BucketName:              s3BucketName,
 		S3AccessKeyId:             s3AccessKeyId,
 		S3SecretAccessKey:         s3SecretAccessKey,
+		S3Endpoint:                s3Endpoint,
 		S3DefaultRegion:           s3DefaultRegion,
 		PipIndexUrl:               GetPipIndexURL(),
 		PipTrustedHost:            GetPipTrustedHost(),
