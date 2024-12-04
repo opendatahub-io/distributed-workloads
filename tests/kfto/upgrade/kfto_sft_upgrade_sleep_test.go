@@ -24,6 +24,7 @@ import (
 	. "github.com/project-codeflare/codeflare-common/support"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
@@ -38,13 +39,7 @@ func TestSetupSleepPytorchjob(t *testing.T) {
 	test := With(t)
 
 	// Create a namespace
-	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: sleepNamespaceName,
-		},
-	}
-	_, err := test.Client().Core().CoreV1().Namespaces().Create(test.Ctx(), namespace, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
+	createOrGetUpgradeTestNamespace(test, sleepNamespaceName)
 
 	// Create training PyTorch job
 	createSleepPyTorchJob(test, sleepNamespaceName)
@@ -76,6 +71,17 @@ func TestVerifySleepPytorchjob(t *testing.T) {
 }
 
 func createSleepPyTorchJob(test Test, namespace string) *kftov1.PyTorchJob {
+	// Does PyTorchJob already exist?
+	_, err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Get(test.Ctx(), sleepPyTorchJobName, metav1.GetOptions{})
+	if err == nil {
+		// If yes then delete it and wait until there are no PyTorchJobs in the namespace
+		err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Delete(test.Ctx(), sleepPyTorchJobName, metav1.DeleteOptions{})
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Eventually(kftocore.PytorchJobs(test, namespace), TestTimeoutShort).Should(BeEmpty())
+	} else if !errors.IsNotFound(err) {
+		test.T().Fatalf("Error retrieving PyTorchJob with name `%s`: %v", sleepPyTorchJobName, err)
+	}
+
 	tuningJob := &kftov1.PyTorchJob{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: sleepPyTorchJobName,
@@ -102,7 +108,7 @@ func createSleepPyTorchJob(test Test, namespace string) *kftov1.PyTorchJob {
 		},
 	}
 
-	tuningJob, err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Create(test.Ctx(), tuningJob, metav1.CreateOptions{})
+	tuningJob, err = test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Create(test.Ctx(), tuningJob, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created PytorchJob %s/%s successfully", tuningJob.Namespace, tuningJob.Name)
 

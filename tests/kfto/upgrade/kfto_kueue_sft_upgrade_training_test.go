@@ -26,6 +26,7 @@ import (
 	kueueacv1beta1 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta1"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -42,14 +43,7 @@ var (
 func TestSetupPytorchjob(t *testing.T) {
 	test := With(t)
 
-	// Create a namespace
-	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespaceName,
-		},
-	}
-	_, err := test.Client().Core().CoreV1().Namespaces().Create(test.Ctx(), namespace, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
+	createOrGetUpgradeTestNamespace(test, namespaceName)
 
 	// Create a ConfigMap with training dataset and configuration
 	configData := map[string][]byte{
@@ -59,47 +53,31 @@ func TestSetupPytorchjob(t *testing.T) {
 	config := CreateConfigMap(test, namespaceName, configData)
 
 	// Create Kueue resources
-	resourceFlavor := &kueuev1beta1.ResourceFlavor{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: resourceFlavorName,
-		},
-	}
-	resourceFlavor, err = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Create(test.Ctx(), resourceFlavor, metav1.CreateOptions{})
+	resourceFlavor := kueueacv1beta1.ResourceFlavor(resourceFlavorName)
+	_, err := test.Client().Kueue().KueueV1beta1().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-PyTorchJob", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 
-	clusterQueue := &kueuev1beta1.ClusterQueue{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterQueueName,
-		},
-		Spec: kueuev1beta1.ClusterQueueSpec{
-			NamespaceSelector: &metav1.LabelSelector{},
-			ResourceGroups: []kueuev1beta1.ResourceGroup{
-				{
-					CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory")},
-					Flavors: []kueuev1beta1.FlavorQuotas{
-						{
-							Name: kueuev1beta1.ResourceFlavorReference(resourceFlavor.Name),
-							Resources: []kueuev1beta1.ResourceQuota{
-								{
-									Name:         corev1.ResourceCPU,
-									NominalQuota: resource.MustParse("8"),
-								},
-								{
-									Name:         corev1.ResourceMemory,
-									NominalQuota: resource.MustParse("12Gi"),
-								},
-							},
-						},
-					},
-				},
-			},
-			StopPolicy: Ptr(kueuev1beta1.Hold),
-		},
-	}
-	clusterQueue, err = test.Client().Kueue().KueueV1beta1().ClusterQueues().Create(test.Ctx(), clusterQueue, metav1.CreateOptions{})
+	clusterQueue := kueueacv1beta1.ClusterQueue(clusterQueueName).WithSpec(
+		kueueacv1beta1.ClusterQueueSpec().
+			WithNamespaceSelector(metav1.LabelSelector{}).
+			WithResourceGroups(
+				kueueacv1beta1.ResourceGroup().WithCoveredResources(
+					corev1.ResourceName("cpu"), corev1.ResourceName("memory"),
+				).WithFlavors(
+					kueueacv1beta1.FlavorQuotas().
+						WithName(kueuev1beta1.ResourceFlavorReference(resourceFlavorName)).
+						WithResources(
+							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
+							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("12Gi")),
+						),
+				),
+			).
+			WithStopPolicy(kueuev1beta1.Hold),
+	)
+	_, err = test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-PyTorchJob", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 
-	localQueue := CreateKueueLocalQueue(test, namespaceName, clusterQueue.Name, AsDefaultQueue)
+	localQueue := CreateKueueLocalQueue(test, namespaceName, clusterQueueName, AsDefaultQueue)
 
 	// Create training PyTorch job
 	tuningJob := createPyTorchJob(test, namespaceName, localQueue.Name, *config)
@@ -133,6 +111,17 @@ func TestRunPytorchjob(t *testing.T) {
 }
 
 func createPyTorchJob(test Test, namespace, localQueueName string, config corev1.ConfigMap) *kftov1.PyTorchJob {
+	// Does PyTorchJob already exist?
+	_, err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Get(test.Ctx(), pyTorchJobName, metav1.GetOptions{})
+	if err == nil {
+		// If yes then delete it and wait until there are no PyTorchJobs in the namespace
+		err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Delete(test.Ctx(), pyTorchJobName, metav1.DeleteOptions{})
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Eventually(kftocore.PytorchJobs(test, namespace), TestTimeoutShort).Should(BeEmpty())
+	} else if !errors.IsNotFound(err) {
+		test.T().Fatalf("Error retrieving PyTorchJob with name `%s`: %v", pyTorchJobName, err)
+	}
+
 	tuningJob := &kftov1.PyTorchJob{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: pyTorchJobName,
@@ -186,6 +175,10 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 											Name:      "tmp-volume",
 											MountPath: "/tmp",
 										},
+										{
+											Name:      "output-volume",
+											MountPath: "/mnt/output",
+										},
 									},
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
@@ -226,6 +219,12 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 										EmptyDir: &corev1.EmptyDirVolumeSource{},
 									},
 								},
+								{
+									Name: "output-volume",
+									VolumeSource: corev1.VolumeSource{
+										EmptyDir: &corev1.EmptyDirVolumeSource{},
+									},
+								},
 							},
 						},
 					},
@@ -234,9 +233,23 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 		},
 	}
 
-	tuningJob, err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Create(test.Ctx(), tuningJob, metav1.CreateOptions{})
+	tuningJob, err = test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Create(test.Ctx(), tuningJob, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created PytorchJob %s/%s successfully", tuningJob.Namespace, tuningJob.Name)
 
 	return tuningJob
+}
+
+func createOrGetUpgradeTestNamespace(test Test, name string, options ...Option[*corev1.Namespace]) (namespace *corev1.Namespace) {
+	// Verify that the namespace really exists and return it, create it if doesn't exist yet
+	namespace, err := test.Client().Core().CoreV1().Namespaces().Get(test.Ctx(), name, metav1.GetOptions{})
+	if err == nil {
+		return
+	} else if errors.IsNotFound(err) {
+		test.T().Logf("%s namespace doesn't exists. Creating ...", name)
+		return CreateTestNamespaceWithName(test, name, options...)
+	} else {
+		test.T().Fatalf("Error retrieving namespace with name `%s`: %v", name, err)
+	}
+	return
 }
