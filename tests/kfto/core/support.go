@@ -50,6 +50,14 @@ func PyTorchJob(t Test, namespace, name string) func(g Gomega) *kftov1.PyTorchJo
 	}
 }
 
+func PyTorchJobs(t Test, namespace string) func(g Gomega) []kftov1.PyTorchJob {
+	return func(g Gomega) []kftov1.PyTorchJob {
+		jobs, err := t.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).List(t.Ctx(), metav1.ListOptions{})
+		g.Expect(err).NotTo(HaveOccurred())
+		return jobs.Items
+	}
+}
+
 func PyTorchJobConditionRunning(job *kftov1.PyTorchJob) corev1.ConditionStatus {
 	return PyTorchJobCondition(job, kftov1.JobRunning)
 }
