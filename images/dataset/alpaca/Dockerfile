@@ -11,6 +11,7 @@ RUN python convert_replicate.py alpaca_data_formatted.json alpaca_data_half.json
 RUN python convert_replicate.py alpaca_data_formatted.json alpaca_data_quarter.json 0.25
 RUN python convert_replicate.py alpaca_data_formatted.json alpaca_data_tenth.json 0.1
 RUN python convert_replicate.py alpaca_data_formatted.json alpaca_data_hundredth.json 0.01
+RUN python convert_replicate.py alpaca_data_formatted.json alpaca_data_thousandth.json 0.001
 
 FROM registry.access.redhat.com/ubi9:latest
 WORKDIR /dataset
@@ -22,3 +23,4 @@ COPY --from=builder /dataset/alpaca_data_half.json alpaca_data_half.json
 COPY --from=builder /dataset/alpaca_data_quarter.json alpaca_data_quarter.json
 COPY --from=builder /dataset/alpaca_data_tenth.json alpaca_data_tenth.json
 COPY --from=builder /dataset/alpaca_data_hundredth.json alpaca_data_hundredth.json
+COPY --from=builder /dataset/alpaca_data_thousandth.json alpaca_data_thousandth.json
