@@ -30,15 +30,36 @@ import (
 	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 )
 
-func TestPyTorchJobWithCuda(t *testing.T) {
-	runKFTOPyTorchJob(t, GetCudaTrainingImage(), "nvidia.com/gpu", 1)
+type ResourceList struct {
+	Image       string
+	GpuLabel    string
+	DatasetSize string
+	NumGpus     int
+	NumCpus     int
+	Memory      string
 }
 
-func TestPyTorchJobWithROCm(t *testing.T) {
-	runKFTOPyTorchJob(t, GetROCmTrainingImage(), "amd.com/gpu", 1)
+func TestPyTorchJobWithCudaGpu(t *testing.T) {
+	resources := &ResourceList{Image: GetCudaTrainingImage(), GpuLabel: "nvidia.com/gpu", DatasetSize: "alpaca_data_hundredth.json", NumGpus: 1, NumCpus: 2, Memory: "8Gi"}
+	runKFTOPyTorchJob(t, resources.Image, resources.GpuLabel, resources.DatasetSize, resources.NumGpus, resources.NumCpus, resources.Memory)
 }
 
-func runKFTOPyTorchJob(t *testing.T, image string, gpuLabel string, numGpus int) {
+func TestPyTorchJobWithCudaCpu(t *testing.T) {
+	resources := &ResourceList{Image: GetCudaTrainingImage(), GpuLabel: "nvidia.com/gpu", DatasetSize: "alpaca_data_thousandth.json", NumGpus: 0, NumCpus: 12, Memory: "12Gi"}
+	runKFTOPyTorchJob(t, resources.Image, resources.GpuLabel, resources.DatasetSize, resources.NumGpus, resources.NumCpus, resources.Memory)
+}
+
+func TestPyTorchJobWithROCmGpu(t *testing.T) {
+	resources := &ResourceList{Image: GetROCmTrainingImage(), GpuLabel: "amd.com/gpu", DatasetSize: "alpaca_data_hundredth.json", NumGpus: 1, NumCpus: 2, Memory: "8Gi"}
+	runKFTOPyTorchJob(t, resources.Image, resources.GpuLabel, resources.DatasetSize, resources.NumGpus, resources.NumCpus, resources.Memory)
+}
+
+func TestPyTorchJobWithROCmCpu(t *testing.T) {
+	resources := &ResourceList{Image: GetROCmTrainingImage(), GpuLabel: "amd.com/gpu", DatasetSize: "alpaca_data_thousandth.json", NumGpus: 0, NumCpus: 16, Memory: "12Gi"}
+	runKFTOPyTorchJob(t, resources.Image, resources.GpuLabel, resources.DatasetSize, resources.NumGpus, resources.NumCpus, resources.Memory)
+}
+
+func runKFTOPyTorchJob(t *testing.T, image string, gpuLabel string, datasetSize string, numGpus int, numCpus int, memory string) {
 	test := With(t)
 
 	// Create a namespace
@@ -55,7 +76,7 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpuLabel string, numGpus int)
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
 
 	// Create training PyTorch job
-	tuningJob := createKFTOPyTorchJob(test, namespace, *config, gpuLabel, numGpus, outputPvc.Name, image)
+	tuningJob := createKFTOPyTorchJob(test, namespace, *config, gpuLabel, datasetSize, numGpus, numCpus, memory, outputPvc.Name, image)
 	defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Delete(test.Ctx(), tuningJob.Name, *metav1.NewDeleteOptions(0))
 
 	// Make sure the PyTorch job is running
@@ -68,7 +89,7 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpuLabel string, numGpus int)
 
 }
 
-func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, gpuLabel string, numGpus int, outputPvcName string, baseImage string) *kftov1.PyTorchJob {
+func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, gpuLabel string, datasetSize string, numGpus int, numCpus int, memory string, outputPvcName string, baseImage string) *kftov1.PyTorchJob {
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -115,7 +136,7 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 										},
 									},
 									Command: []string{"/bin/sh", "-c"},
-									Args:    []string{"mkdir /tmp/all_datasets; cp -r /dataset/* /tmp/all_datasets;ls /tmp/all_datasets"},
+									Args:    []string{fmt.Sprintf("mkdir /tmp/all_datasets; cp -r /dataset/%s /tmp/all_datasets/alpaca_data.json", datasetSize)},
 								},
 							},
 							Containers: []corev1.Container{
@@ -128,9 +149,9 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 										`python /etc/config/hf_llm_training.py \
 										--model_uri /tmp/model/bloom-560m \
 										--model_dir /tmp/model/bloom-560m \
-										--dataset_file /tmp/all_datasets/alpaca_data_hundredth.json \
+										--dataset_file /tmp/all_datasets/alpaca_data.json \
 										--transformer_type AutoModelForCausalLM \
-										--training_parameters '{"output_dir": "/mnt/output", "per_device_train_batch_size": 8, "num_train_epochs": 3, "logging_dir": "/logs", "eval_strategy": "epoch"}' \
+										--training_parameters '{"output_dir": "/mnt/output", "per_device_train_batch_size": 8, "num_train_epochs": 1, "logging_dir": "/logs", "eval_strategy": "epoch"}' \
 										--lora_config '{"r": 4, "lora_alpha": 16, "lora_dropout": 0.1, "bias": "none"}'`,
 									},
 									Env: []corev1.EnvVar{
@@ -163,13 +184,13 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 									},
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
-											corev1.ResourceCPU:            resource.MustParse("2"),
-											corev1.ResourceMemory:         resource.MustParse("8Gi"),
+											corev1.ResourceCPU:            resource.MustParse(fmt.Sprint(numCpus)),
+											corev1.ResourceMemory:         resource.MustParse(memory),
 											corev1.ResourceName(gpuLabel): resource.MustParse(fmt.Sprint(numGpus)),
 										},
 										Limits: corev1.ResourceList{
-											corev1.ResourceCPU:            resource.MustParse("2"),
-											corev1.ResourceMemory:         resource.MustParse("8Gi"),
+											corev1.ResourceCPU:            resource.MustParse(fmt.Sprint(numCpus)),
+											corev1.ResourceMemory:         resource.MustParse(memory),
 											corev1.ResourceName(gpuLabel): resource.MustParse(fmt.Sprint(numGpus)),
 										},
 									},
