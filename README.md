@@ -27,11 +27,11 @@
 
     NOTE: `quay.io/modh/ray:2.35.0-py311-cu121` is the default image used for creating a RayCluster resource. If you have your own custom ray image which suits your purposes, specify it in `CODEFLARE_TEST_RAY_IMAGE` environment variable.
 
-### Environment variables for Training operator test suite
+### Environment variables for fms-hf-tuning test suite
 
 * `FMS_HF_TUNING_IMAGE` - Image tag used in PyTorchJob CR for model training
 
-### Environment variables for Training operator GPU test suite
+### Environment variables for fms-hf-tuning GPU test suite
 
 * `TEST_NAMESPACE_NAME` (Optional) - Existing namespace where will the Training operator GPU tests be executed
 * `HF_TOKEN` - HuggingFace token used to pull models which has limited access
