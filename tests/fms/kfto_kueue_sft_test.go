@@ -14,13 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package core
+package fms
 
 import (
 	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 	. "github.com/project-codeflare/codeflare-common/support"
 	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 
@@ -32,26 +33,26 @@ import (
 )
 
 func TestPytorchjobWithSFTtrainerFinetuning(t *testing.T) {
-	runPytorchjobWithSFTtrainer(t, "config.json", 0)
+	runPytorchjobWithSFTtrainer(t, "resources/config.json", 0)
 }
 
 func TestPytorchjobWithSFTtrainerLoRa(t *testing.T) {
-	runPytorchjobWithSFTtrainer(t, "config_lora.json", 0)
+	runPytorchjobWithSFTtrainer(t, "resources/config_lora.json", 0)
 }
 func TestPytorchjobWithSFTtrainerQLoRa(t *testing.T) {
-	runPytorchjobWithSFTtrainer(t, "config_qlora.json", 1)
+	runPytorchjobWithSFTtrainer(t, "resources/config_qlora.json", 1)
 }
 
 func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string, numGpus int) {
 	test := With(t)
 
 	// Create a namespace
-	namespace := GetOrCreateTestNamespace(test)
+	namespace := test.CreateOrGetTestNamespace().Name
 
 	// Create a ConfigMap with training dataset and configuration
 	configData := map[string][]byte{
 		"config.json":                   ReadFile(test, modelConfigFile),
-		"twitter_complaints_small.json": ReadFile(test, "twitter_complaints_small.json"),
+		"twitter_complaints_small.json": ReadFile(test, "resources/twitter_complaints_small.json"),
 	}
 	config := CreateConfigMap(test, namespace, configData)
 
@@ -125,12 +126,12 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 	test := With(t)
 
 	// Create a namespace
-	namespace := GetOrCreateTestNamespace(test)
+	namespace := test.CreateOrGetTestNamespace().Name
 
 	// Create a ConfigMap with training dataset and configuration
 	configData := map[string][]byte{
-		"config.json":                   ReadFile(test, "config.json"),
-		"twitter_complaints_small.json": ReadFile(test, "twitter_complaints_small.json"),
+		"config.json":                   ReadFile(test, "resources/config.json"),
+		"twitter_complaints_small.json": ReadFile(test, "resources/twitter_complaints_small.json"),
 	}
 	config := CreateConfigMap(test, namespace, configData)
 
@@ -231,7 +232,7 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 							InitContainers: []corev1.Container{
 								{
 									Name:            "copy-model",
-									Image:           GetBloomModelImage(),
+									Image:           kfto.GetBloomModelImage(),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									VolumeMounts: []corev1.VolumeMount{
 										{

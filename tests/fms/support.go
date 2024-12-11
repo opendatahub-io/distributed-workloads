@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package core
+package fms
 
 import (
 	"embed"
@@ -27,12 +27,9 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 )
 
-//go:embed *.json
-//go:embed *.py
+//go:embed resources/*
 var files embed.FS
 
 func ReadFile(t Test, fileName string) []byte {
@@ -40,61 +37,6 @@ func ReadFile(t Test, fileName string) []byte {
 	file, err := files.ReadFile(fileName)
 	t.Expect(err).NotTo(HaveOccurred())
 	return file
-}
-
-func PyTorchJob(t Test, namespace, name string) func(g Gomega) *kftov1.PyTorchJob {
-	return func(g Gomega) *kftov1.PyTorchJob {
-		job, err := t.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Get(t.Ctx(), name, metav1.GetOptions{})
-		g.Expect(err).NotTo(HaveOccurred())
-		return job
-	}
-}
-
-func PyTorchJobs(t Test, namespace string) func(g Gomega) []kftov1.PyTorchJob {
-	return func(g Gomega) []kftov1.PyTorchJob {
-		jobs, err := t.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).List(t.Ctx(), metav1.ListOptions{})
-		g.Expect(err).NotTo(HaveOccurred())
-		return jobs.Items
-	}
-}
-
-func PyTorchJobConditionRunning(job *kftov1.PyTorchJob) corev1.ConditionStatus {
-	return PyTorchJobCondition(job, kftov1.JobRunning)
-}
-
-func PyTorchJobConditionSucceeded(job *kftov1.PyTorchJob) corev1.ConditionStatus {
-	return PyTorchJobCondition(job, kftov1.JobSucceeded)
-}
-
-func PyTorchJobConditionSuspended(job *kftov1.PyTorchJob) corev1.ConditionStatus {
-	return PyTorchJobCondition(job, kftov1.JobSuspended)
-}
-
-func PyTorchJobConditionFailed(job *kftov1.PyTorchJob) corev1.ConditionStatus {
-	return PyTorchJobCondition(job, kftov1.JobFailed)
-}
-
-func PyTorchJobCondition(job *kftov1.PyTorchJob, conditionType kftov1.JobConditionType) corev1.ConditionStatus {
-	for _, condition := range job.Status.Conditions {
-		if condition.Type == conditionType {
-			return condition.Status
-		}
-	}
-	return corev1.ConditionUnknown
-}
-
-func GetOrCreateTestNamespace(t Test) string {
-	namespaceName, exists := GetTestNamespaceName()
-	if exists {
-		// Make sure the namespace really exists
-		_, err := t.Client().Core().CoreV1().Namespaces().Get(t.Ctx(), namespaceName, metav1.GetOptions{})
-		t.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Namespace %s declared by env variable but not found", namespaceName))
-	} else {
-		t.T().Logf("Namespace name not specified, creating temporary namespace for test")
-		namespaceName = t.NewTestNamespace().Name
-		t.T().Logf("Created temporary Namespace '%s' successfully", namespaceName)
-	}
-	return namespaceName
 }
 
 func uploadToS3(test Test, namespace string, pvcName string, storedAssetsPath string) {

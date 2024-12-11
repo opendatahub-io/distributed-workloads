@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kfto
+package fms
 
 import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	kftocore "github.com/opendatahub-io/distributed-workloads/tests/kfto/core"
+	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 	. "github.com/project-codeflare/codeflare-common/support"
 	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 	kueueacv1beta1 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta1"
@@ -48,8 +48,8 @@ func TestSetupPytorchjob(t *testing.T) {
 
 	// Create a ConfigMap with training dataset and configuration
 	configData := map[string][]byte{
-		"config.json":                   kftocore.ReadFile(test, "config.json"),
-		"twitter_complaints_small.json": kftocore.ReadFile(test, "twitter_complaints_small.json"),
+		"config.json":                   ReadFile(test, "resources/config.json"),
+		"twitter_complaints_small.json": ReadFile(test, "resources/twitter_complaints_small.json"),
 	}
 	config := CreateConfigMap(test, namespaceName, configData)
 
@@ -90,11 +90,11 @@ func TestSetupPytorchjob(t *testing.T) {
 	test.T().Logf("Applied Kueue LocalQueue %s/%s successfully", appliedLocalQueue.Namespace, appliedLocalQueue.Name)
 
 	// Create training PyTorch job
-	tuningJob := createPyTorchJob(test, namespaceName, appliedLocalQueue.Name, *config)
+	tuningJob := createUpgradePyTorchJob(test, namespaceName, appliedLocalQueue.Name, *config)
 
 	// Make sure the PyTorch job is suspended, waiting for ClusterQueue to be enabled
-	test.Eventually(kftocore.PyTorchJob(test, tuningJob.Namespace, pyTorchJobName), TestTimeoutShort).
-		Should(WithTransform(kftocore.PyTorchJobConditionSuspended, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, tuningJob.Namespace, pyTorchJobName), TestTimeoutShort).
+		Should(WithTransform(PyTorchJobConditionSuspended, Equal(corev1.ConditionTrue)))
 }
 
 func TestRunPytorchjob(t *testing.T) {
@@ -112,22 +112,22 @@ func TestRunPytorchjob(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred())
 
 	// PyTorch job should be started now
-	test.Eventually(kftocore.PyTorchJob(test, namespaceName, pyTorchJobName), TestTimeoutLong).
-		Should(WithTransform(kftocore.PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespaceName, pyTorchJobName), TestTimeoutLong).
+		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Make sure the PyTorch job succeed
-	test.Eventually(kftocore.PyTorchJob(test, namespaceName, pyTorchJobName), TestTimeoutLong).
-		Should(WithTransform(kftocore.PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespaceName, pyTorchJobName), TestTimeoutLong).
+		Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 }
 
-func createPyTorchJob(test Test, namespace, localQueueName string, config corev1.ConfigMap) *kftov1.PyTorchJob {
+func createUpgradePyTorchJob(test Test, namespace, localQueueName string, config corev1.ConfigMap) *kftov1.PyTorchJob {
 	// Does PyTorchJob already exist?
 	_, err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Get(test.Ctx(), pyTorchJobName, metav1.GetOptions{})
 	if err == nil {
 		// If yes then delete it and wait until there are no PyTorchJobs in the namespace
 		err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Delete(test.Ctx(), pyTorchJobName, metav1.DeleteOptions{})
 		test.Expect(err).NotTo(HaveOccurred())
-		test.Eventually(kftocore.PyTorchJobs(test, namespace), TestTimeoutShort).Should(BeEmpty())
+		test.Eventually(PyTorchJobs(test, namespace), TestTimeoutShort).Should(BeEmpty())
 	} else if !errors.IsNotFound(err) {
 		test.T().Fatalf("Error retrieving PyTorchJob with name `%s`: %v", pyTorchJobName, err)
 	}
@@ -149,7 +149,7 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 							InitContainers: []corev1.Container{
 								{
 									Name:            "copy-model",
-									Image:           kftocore.GetBloomModelImage(),
+									Image:           kfto.GetBloomModelImage(),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									VolumeMounts: []corev1.VolumeMount{
 										{
@@ -164,7 +164,7 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 							Containers: []corev1.Container{
 								{
 									Name:            "pytorch",
-									Image:           kftocore.GetFmsHfTuningImage(test),
+									Image:           GetFmsHfTuningImage(test),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									Env: []corev1.EnvVar{
 										{
