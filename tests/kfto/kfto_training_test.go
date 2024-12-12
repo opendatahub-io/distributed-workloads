@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package core
+package kfto
 
 import (
 	"fmt"
@@ -42,11 +42,11 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpuLabel string, numGpus int)
 	test := With(t)
 
 	// Create a namespace
-	namespace := GetOrCreateTestNamespace(test)
+	namespace := test.CreateOrGetTestNamespace().Name
 
 	// Create a ConfigMap with training script
 	configData := map[string][]byte{
-		"hf_llm_training.py": ReadFile(test, "hf_llm_training.py"),
+		"hf_llm_training.py": ReadFile(test, "resources/hf_llm_training.py"),
 	}
 	config := CreateConfigMap(test, namespace, configData)
 

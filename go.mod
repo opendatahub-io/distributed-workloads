@@ -7,7 +7,7 @@ toolchain go1.21.5
 require (
 	github.com/kubeflow/training-operator v1.7.0
 	github.com/onsi/gomega v1.31.1
-	github.com/project-codeflare/codeflare-common v0.0.0-20241203135025-af256802fc2d
+	github.com/project-codeflare/codeflare-common v0.0.0-20241211130338-efe4f3e6f904
 	github.com/prometheus/client_golang v1.20.4
 	github.com/prometheus/common v0.57.0
 	github.com/ray-project/kuberay/ray-operator v1.1.0-alpha.0

@@ -14,13 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kfto
+package fms
 
 import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	kftocore "github.com/opendatahub-io/distributed-workloads/tests/kfto/core"
 	. "github.com/project-codeflare/codeflare-common/support"
 
 	corev1 "k8s.io/api/core/v1"
@@ -45,8 +44,8 @@ func TestSetupSleepPytorchjob(t *testing.T) {
 	createSleepPyTorchJob(test, sleepNamespaceName)
 
 	// Make sure the PyTorch job is running, waiting for Training operator upgrade
-	test.Eventually(kftocore.PyTorchJob(test, sleepNamespaceName, sleepPyTorchJobName), TestTimeoutShort).
-		Should(WithTransform(kftocore.PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, sleepNamespaceName, sleepPyTorchJobName), TestTimeoutShort).
+		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 }
 
 func TestVerifySleepPytorchjob(t *testing.T) {
@@ -57,8 +56,8 @@ func TestVerifySleepPytorchjob(t *testing.T) {
 	defer DeleteTestNamespace(test, namespace)
 
 	// PyTorch job should be still running
-	test.Expect(kftocore.PyTorchJob(test, sleepNamespaceName, sleepPyTorchJobName)(test)).
-		Should(WithTransform(kftocore.PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
+	test.Expect(PyTorchJob(test, sleepNamespaceName, sleepPyTorchJobName)(test)).
+		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Pod job should be running without restart
 	test.Expect(GetPods(test, sleepNamespaceName, metav1.ListOptions{})).
@@ -77,7 +76,7 @@ func createSleepPyTorchJob(test Test, namespace string) *kftov1.PyTorchJob {
 		// If yes then delete it and wait until there are no PyTorchJobs in the namespace
 		err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Delete(test.Ctx(), sleepPyTorchJobName, metav1.DeleteOptions{})
 		test.Expect(err).NotTo(HaveOccurred())
-		test.Eventually(kftocore.PyTorchJobs(test, namespace), TestTimeoutShort).Should(BeEmpty())
+		test.Eventually(PyTorchJobs(test, namespace), TestTimeoutShort).Should(BeEmpty())
 	} else if !errors.IsNotFound(err) {
 		test.T().Fatalf("Error retrieving PyTorchJob with name `%s`: %v", sleepPyTorchJobName, err)
 	}
@@ -96,7 +95,7 @@ func createSleepPyTorchJob(test Test, namespace string) *kftov1.PyTorchJob {
 							Containers: []corev1.Container{
 								{
 									Name:            "pytorch",
-									Image:           kftocore.GetSleepImage(),
+									Image:           GetSleepImage(),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									Args:            []string{"24h"},
 								},

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package core
+package fms
 
 import (
 	"fmt"
@@ -22,6 +22,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 	. "github.com/project-codeflare/codeflare-common/support"
 
 	corev1 "k8s.io/api/core/v1"
@@ -34,75 +35,76 @@ import (
 )
 
 func TestMultiGpuPytorchjobAllamBeta13bChatGptq(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_allam_beta_13b_chat_gptq.json", 2, mountModelVolumeIntoMaster)
+	runMultiGpuPytorchjob(t, "resources/config_allam_beta_13b_chat_gptq.json", 2, mountModelVolumeIntoMaster)
 }
 
 func TestMultiGpuPytorchjobGranite8bCodeInstructGptq(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_granite_8b_code_instruct_gptq.json", 2, mountModelVolumeIntoMaster)
+	runMultiGpuPytorchjob(t, "resources/config_granite_8b_code_instruct_gptq.json", 2, mountModelVolumeIntoMaster)
 }
 
 func TestMultiGpuPytorchjobGranite20bCodeInstruct(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_granite_20b_code_instruct.json", 4)
+	runMultiGpuPytorchjob(t, "resources/config_granite_20b_code_instruct.json", 4)
 }
 
 func TestMultiGpuPytorchjobGranite34bCodeBaseGptq(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_granite_34b_code_base_gptq.json", 2, mountModelVolumeIntoMaster)
+	runMultiGpuPytorchjob(t, "resources/config_granite_34b_code_base_gptq.json", 2, mountModelVolumeIntoMaster)
 }
 
 func TestMultiGpuPytorchjobGranite34bCodeInstructLoRa(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_granite_34b_code_instruct_lora.json", 4)
+	runMultiGpuPytorchjob(t, "resources/config_granite_34b_code_instruct_lora.json", 4)
 }
 
 func TestMultiGpuPytorchjobMetaLlama318b(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_meta_llama3_1_8b.json", 2)
+	runMultiGpuPytorchjob(t, "resources/config_meta_llama3_1_8b.json", 2)
 }
 
 func TestMultiGpuPytorchjobMetaLlama38bInstruct(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_meta_llama3_8b_instruct.json", 2)
+	runMultiGpuPytorchjob(t, "resources/config_meta_llama3_8b_instruct.json", 2)
 }
 
 func TestMultiGpuPytorchjobMetaLlama370bInstructGptqBlue(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_meta_llama3_70b_instruct_gptq_blue.json", 2, mountModelVolumeIntoMaster)
+	runMultiGpuPytorchjob(t, "resources/config_meta_llama3_70b_instruct_gptq_blue.json", 2, mountModelVolumeIntoMaster)
 }
 
 func TestMultiGpuPytorchjobMetaLlama31405bGptq(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_meta_llama3_1_405b_gptq.json", 8, mountModelVolumeIntoMaster)
+	runMultiGpuPytorchjob(t, "resources/config_meta_llama3_1_405b_gptq.json", 8, mountModelVolumeIntoMaster)
 }
 
 func TestMultiGpuPytorchjobMetaLlama3170bLoRa(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_meta_llama3_1_70b_lora.json", 4)
+	runMultiGpuPytorchjob(t, "resources/config_meta_llama3_1_70b_lora.json", 4)
 }
 
 func TestMultiGpuPytorchjobMetaLlama370bInstructLoRa(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_meta_llama3_70b_instruct_lora.json", 4)
+	runMultiGpuPytorchjob(t, "resources/config_meta_llama3_70b_instruct_lora.json", 4)
 }
 
 func TestMultiGpuPytorchjobMistral7bv03Gptq(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_mistral_7b_v03_gptq.json", 2, mountModelVolumeIntoMaster)
+	runMultiGpuPytorchjob(t, "resources/config_mistral_7b_v03_gptq.json", 2, mountModelVolumeIntoMaster)
 }
 func TestMultiGpuPytorchjobMistral7bv03(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_mistral_7b_v03.json", 2)
+	runMultiGpuPytorchjob(t, "resources/config_mistral_7b_v03.json", 2)
 }
 
 func TestMultiGpuPytorchjobMixtral8x7bv01(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_v01.json", 8)
+	runMultiGpuPytorchjob(t, "resources/config_mixtral_8x7b_v01.json", 8)
 }
 
 func TestMultiGpuPytorchjobMixtral8x7bInstructv01Gptq(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_instruct_v01_gptq.json", 2, mountModelVolumeIntoMaster)
+	runMultiGpuPytorchjob(t, "resources/config_mixtral_8x7b_instruct_v01_gptq.json", 2, mountModelVolumeIntoMaster)
 }
+
 func TestMultiGpuPytorchjobMixtral8x7bInstructv01LoRa(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_mixtral_8x7b_instruct_v01_lora.json", 4)
+	runMultiGpuPytorchjob(t, "resources/config_mixtral_8x7b_instruct_v01_lora.json", 4)
 }
 
 func TestMultiGpuPytorchjobMerlinite7b(t *testing.T) {
-	runMultiGpuPytorchjob(t, "config_merlinite_7b.json", 2)
+	runMultiGpuPytorchjob(t, "resources/config_merlinite_7b.json", 2)
 }
 
 func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus int, options ...Option[*kftov1.PyTorchJob]) {
 	test := With(t)
 
-	namespace := GetOrCreateTestNamespace(test)
+	namespace := test.CreateOrGetTestNamespace().Name
 
 	// Create a ConfigMap with configuration
 	configData := map[string][]byte{
@@ -173,7 +175,7 @@ func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap
 							InitContainers: []corev1.Container{
 								{
 									Name:            "copy-dataset",
-									Image:           GetAlpacaDatasetImage(),
+									Image:           kfto.GetAlpacaDatasetImage(),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									VolumeMounts: []corev1.VolumeMount{
 										{
