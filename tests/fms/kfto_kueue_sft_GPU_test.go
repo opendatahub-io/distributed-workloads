@@ -21,17 +21,17 @@ import (
 	"testing"
 	"time"
 
+	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 	. "github.com/onsi/gomega"
-	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 	. "github.com/project-codeflare/codeflare-common/support"
+	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	prometheusmodel "github.com/prometheus/common/model"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
-	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	prometheusmodel "github.com/prometheus/common/model"
+	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 )
 
 func TestMultiGpuPytorchjobAllamBeta13bChatGptq(t *testing.T) {

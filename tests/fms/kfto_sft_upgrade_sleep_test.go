@@ -19,14 +19,13 @@ package fms
 import (
 	"testing"
 
+	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 )
 
 var (

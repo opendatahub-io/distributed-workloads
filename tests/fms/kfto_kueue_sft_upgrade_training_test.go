@@ -19,18 +19,18 @@ package fms
 import (
 	"testing"
 
+	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 	. "github.com/onsi/gomega"
-	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 	. "github.com/project-codeflare/codeflare-common/support"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
-	kueueacv1beta1 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
+	kueueacv1beta1 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta1"
 
-	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
+	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 )
 
 var (

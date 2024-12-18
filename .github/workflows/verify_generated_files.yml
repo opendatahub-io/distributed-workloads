@@ -1,0 +1,27 @@
+name: Verify Generated Files and Import Organization
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - '**.go'
+      - '**go.mod'
+      - '**go.sum'
+    tags-ignore:
+      - 'v*'
+  pull_request:
+    paths:
+      - '**.go'
+      - '**go.mod'
+      - '**go.sum'
+jobs:
+  verify-imports:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: './go.mod'
+    - name: Verify that imports are organized
+      run: make verify-imports
