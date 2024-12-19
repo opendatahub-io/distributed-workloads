@@ -32,7 +32,7 @@ func GetBloomModelImage() string {
 }
 
 func GetAlpacaDatasetImage() string {
-	return lookupEnvOrDefault(alpacaDatasetImageEnvVar, "quay.io/ksuta/alpaca-dataset@sha256:2e90f631180c7b2c916f9569b914b336b612e8ae86efad82546adc5c9fcbbb8d")
+	return lookupEnvOrDefault(alpacaDatasetImageEnvVar, "quay.io/ksuta/alpaca-dataset@sha256:857508acdb44aa852d68622876a0c38c3e22db893ea3a0b09a5832b27e5fa075")
 }
 
 func lookupEnvOrDefault(key, value string) string {
