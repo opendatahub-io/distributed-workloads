@@ -19,7 +19,6 @@ package kfto
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"testing"
 
 	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
@@ -66,13 +65,9 @@ func runKFTOPyTorchMnistJob(t *testing.T, numGpus int, workerReplicas int, gpuLa
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 
-	workingDirectory, err := os.Getwd()
-	test.Expect(err).ToNot(HaveOccurred())
+	mnist := ReadFile(test, "resources/mnist.py")
+	requirementsFileName := ReadFile(test, requirementsFile)
 
-	mnist, err := os.ReadFile(workingDirectory + "/resources/mnist.py")
-	test.Expect(err).ToNot(HaveOccurred())
-
-	requirementsFileName, err := os.ReadFile(workingDirectory + "/" + requirementsFile)
 	if numGpus > 0 {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"gpu\""), 1)
 	} else {
