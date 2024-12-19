@@ -8,8 +8,8 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from tensorboardX import SummaryWriter
 from torch.utils.data import DistributedSampler
+from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, transforms
 
 
@@ -156,6 +156,13 @@ def main():
         default=dist.Backend.GLOO,
     )
 
+    parser.add_argument(
+        "--output-path",
+        type=str,
+        default="./",
+        help="Path to save the trained model",
+    )
+
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     if use_cuda:
@@ -216,8 +223,10 @@ def main():
         train(args, model, device, train_loader, epoch, writer)
         test(model, device, test_loader, writer, epoch)
 
-    if args.save_model:
-        torch.save(model.state_dict(), "mnist_cnn.pt")
+    if args.save_model and dist.get_rank() == 0:
+        model_path = os.path.join(args.output_path, "mnist_cnn.pt")
+        torch.save(model.state_dict(), model_path)
+        print(f"Model saved to {model_path}")
 
 
 if __name__ == "__main__":
