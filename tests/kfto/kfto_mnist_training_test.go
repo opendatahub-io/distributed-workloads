@@ -33,7 +33,6 @@ import (
 func TestPyTorchJobMnistCpu(t *testing.T) {
 	runKFTOPyTorchMnistJob(t, 0, 2, "", GetCudaTrainingImage(), "resources/requirements.txt")
 }
-
 func TestPyTorchJobMnistWithCuda(t *testing.T) {
 	runKFTOPyTorchMnistJob(t, 1, 1, "nvidia.com/gpu", GetCudaTrainingImage(), "resources/requirements.txt")
 }
@@ -133,7 +132,7 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 										"/bin/bash", "-c",
 										fmt.Sprintf(`mkdir -p /tmp/lib && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
 										pip install --no-cache-dir -r /mnt/files/requirements.txt --target=/tmp/lib && \
-										python /mnt/files/mnist.py --epochs 1 --save-model --output-path /mnt/output --backend %s`, backend),
+										python /mnt/files/mnist.py --epochs 3 --save-model --output-path /mnt/output --backend %s`, backend),
 									},
 									VolumeMounts: []corev1.VolumeMount{
 										{
@@ -147,6 +146,12 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 										{
 											Name:      "output-volume",
 											MountPath: "/mnt/output",
+										},
+									},
+									Resources: corev1.ResourceRequirements{
+										Limits: corev1.ResourceList{
+											corev1.ResourceCPU:    resource.MustParse("1"),
+											corev1.ResourceMemory: resource.MustParse("6Gi"),
 										},
 									},
 								},
@@ -214,7 +219,7 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 										"/bin/bash", "-c",
 										fmt.Sprintf(`mkdir -p /tmp/lib && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
 										pip install --no-cache-dir -r /mnt/files/requirements.txt --target=/tmp/lib && \
-										python /mnt/files/mnist.py --epochs 1 --save-model --backend %s`, backend),
+										python /mnt/files/mnist.py --epochs 3 --save-model --backend %s`, backend),
 									},
 									VolumeMounts: []corev1.VolumeMount{
 										{
@@ -224,6 +229,12 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 										{
 											Name:      "tmp-volume",
 											MountPath: "/tmp",
+										},
+									},
+									Resources: corev1.ResourceRequirements{
+										Limits: corev1.ResourceList{
+											corev1.ResourceCPU:    resource.MustParse("1"),
+											corev1.ResourceMemory: resource.MustParse("6Gi"),
 										},
 									},
 								},
@@ -255,19 +266,20 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 	}
 
 	if useGPU {
-		// Update resource lists
-		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Resources = corev1.ResourceRequirements{
-			Limits: corev1.ResourceList{
-				corev1.ResourceCPU:            resource.MustParse("2"),
-				corev1.ResourceMemory:         resource.MustParse("8Gi"),
-				corev1.ResourceName(gpuLabel): resource.MustParse(fmt.Sprint(numGpus)),
+		// Update resource lists for GPU (NVIDIA/ROCm) usecase
+		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Resources.Limits[corev1.ResourceName(gpuLabel)] = resource.MustParse(fmt.Sprint(numGpus))
+		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Containers[0].Resources.Limits[corev1.ResourceName(gpuLabel)] = resource.MustParse(fmt.Sprint(numGpus))
+
+		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Env = []corev1.EnvVar{
+			{
+				Name:  "NCCL_DEBUG",
+				Value: "INFO",
 			},
 		}
-		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Containers[0].Resources = corev1.ResourceRequirements{
-			Limits: corev1.ResourceList{
-				corev1.ResourceCPU:            resource.MustParse("2"),
-				corev1.ResourceMemory:         resource.MustParse("8Gi"),
-				corev1.ResourceName(gpuLabel): resource.MustParse(fmt.Sprint(numGpus)),
+		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Containers[0].Env = []corev1.EnvVar{
+			{
+				Name:  "NCCL_DEBUG",
+				Value: "INFO",
 			},
 		}
 
