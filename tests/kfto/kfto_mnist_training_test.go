@@ -89,6 +89,12 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 		backend = "gloo"
 	}
 
+	storage_bucket_endpoint, storage_bucket_endpoint_exists := GetStorageBucketDefaultEndpoint()
+	storage_bucket_access_key_id, storage_bucket_access_key_id_exists := GetStorageBucketAccessKeyId()
+	storage_bucket_secret_key, storage_bucket_secret_key_exists := GetStorageBucketSecretKey()
+	storage_bucket_name, storage_bucket_name_exists := GetStorageBucketName()
+	storage_bucket_mnist_dir, storage_bucket_mnist_dir_exists := GetStorageBucketMnistDir()
+
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -294,6 +300,53 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 			{
 				Key:      gpuLabel,
 				Operator: corev1.TolerationOpExists,
+			},
+		}
+	}
+
+	if storage_bucket_endpoint_exists && storage_bucket_access_key_id_exists && storage_bucket_secret_key_exists && storage_bucket_name_exists && storage_bucket_mnist_dir_exists {
+		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Env = []corev1.EnvVar{
+			{
+				Name:  "AWS_DEFAULT_ENDPOINT",
+				Value: storage_bucket_endpoint,
+			},
+			{
+				Name:  "AWS_ACCESS_KEY_ID",
+				Value: storage_bucket_access_key_id,
+			},
+			{
+				Name:  "AWS_SECRET_ACCESS_KEY",
+				Value: storage_bucket_secret_key,
+			},
+			{
+				Name:  "AWS_STORAGE_BUCKET",
+				Value: storage_bucket_name,
+			},
+			{
+				Name:  "AWS_STORAGE_BUCKET_MNIST_DIR",
+				Value: storage_bucket_mnist_dir,
+			},
+		}
+		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Containers[0].Env = []corev1.EnvVar{
+			{
+				Name:  "AWS_DEFAULT_ENDPOINT",
+				Value: storage_bucket_endpoint,
+			},
+			{
+				Name:  "AWS_ACCESS_KEY_ID",
+				Value: storage_bucket_access_key_id,
+			},
+			{
+				Name:  "AWS_SECRET_ACCESS_KEY",
+				Value: storage_bucket_secret_key,
+			},
+			{
+				Name:  "AWS_STORAGE_BUCKET",
+				Value: storage_bucket_name,
+			},
+			{
+				Name:  "AWS_STORAGE_BUCKET_MNIST_DIR",
+				Value: storage_bucket_mnist_dir,
 			},
 		}
 	}
