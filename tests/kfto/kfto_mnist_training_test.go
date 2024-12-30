@@ -61,6 +61,7 @@ func runKFTOPyTorchMnistJob(t *testing.T, accelerator Accelerator, image string,
 	namespace := test.NewTestNamespace()
 
 	mnist := ReadFile(test, "resources/mnist.py")
+	download_mnist_dataset := ReadFile(test, "resources/download_mnist_datasets.py")
 	requirementsFileName := ReadFile(test, requirementsFile)
 
 	if accelerator.isGpu() {
@@ -70,8 +71,9 @@ func runKFTOPyTorchMnistJob(t *testing.T, accelerator Accelerator, image string,
 	}
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
 		// MNIST Ray Notebook
-		"mnist.py":         mnist,
-		"requirements.txt": requirementsFileName,
+		"mnist.py":                   mnist,
+		"download_mnist_datasets.py": download_mnist_dataset,
+		"requirements.txt":           requirementsFileName,
 	})
 
 	// Create training PyTorch job
@@ -116,6 +118,12 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 	} else {
 		backend = "gloo"
 	}
+
+	storage_bucket_endpoint, storage_bucket_endpoint_exists := GetStorageBucketDefaultEndpoint()
+	storage_bucket_access_key_id, storage_bucket_access_key_id_exists := GetStorageBucketAccessKeyId()
+	storage_bucket_secret_key, storage_bucket_secret_key_exists := GetStorageBucketSecretKey()
+	storage_bucket_name, storage_bucket_name_exists := GetStorageBucketName()
+	storage_bucket_mnist_dir, storage_bucket_mnist_dir_exists := GetStorageBucketMnistDir()
 
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
@@ -162,8 +170,7 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 										fmt.Sprintf(`mkdir -p /tmp/lib /tmp/datasets/mnist && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
 										pip install --no-cache-dir -r /mnt/files/requirements.txt --target=/tmp/lib && \
 										echo "Downloading MNIST dataset..." && \
-										python3 -c "from torchvision.datasets import MNIST; from torchvision.transforms import Compose, ToTensor; \
-										MNIST('/tmp/datasets/mnist', train=False, download=True, transform=Compose([ToTensor()]))" && \
+										python3 /mnt/files/download_mnist_datasets.py --dataset_path "/tmp/datasets/mnist" && \
 										echo -e "\n\n Dataset downloaded to /tmp/datasets/mnist" && ls -R /tmp/datasets/mnist && \
 										echo -e "\n\n Starting training..." && \
 										torchrun --nproc_per_node=%d /mnt/files/mnist.py --dataset_path "/tmp/datasets/mnist" --epochs 7 --save_every 2 --batch_size 128 --lr 0.001 --snapshot_path "mnist_snapshot.pt" --backend %s`, numProcPerNode, backend),
@@ -247,8 +254,7 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 										fmt.Sprintf(`mkdir -p /tmp/lib /tmp/datasets/mnist && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
 										pip install --no-cache-dir -r /mnt/files/requirements.txt --target=/tmp/lib && \
 										echo "Downloading MNIST dataset..." && \
-										python3 -c "from torchvision.datasets import MNIST; from torchvision.transforms import Compose, ToTensor; \
-										MNIST('/tmp/datasets/mnist', train=False, download=True, transform=Compose([ToTensor()]))" && \
+										python3 /mnt/files/download_mnist_datasets.py --dataset_path "/tmp/datasets/mnist" && \
 										echo -e "\n\n Dataset downloaded to /tmp/datasets/mnist" && ls -R /tmp/datasets/mnist && \
 										echo -e "\n\n Starting training..." && \
 										torchrun --nproc_per_node=%d /mnt/files/mnist.py --dataset_path "/tmp/datasets/mnist" --epochs 7 --save_every 2 --batch_size 128 --lr 0.001 --snapshot_path "mnist_snapshot.pt" --backend %s`, numProcPerNode, backend),
@@ -342,6 +348,34 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 				Operator: corev1.TolerationOpExists,
 			},
 		}
+	}
+
+	if storage_bucket_endpoint_exists && storage_bucket_access_key_id_exists && storage_bucket_secret_key_exists && storage_bucket_name_exists && storage_bucket_mnist_dir_exists {
+		storage_bucket_env_vars := []corev1.EnvVar{
+			{
+				Name:  "AWS_DEFAULT_ENDPOINT",
+				Value: storage_bucket_endpoint,
+			},
+			{
+				Name:  "AWS_ACCESS_KEY_ID",
+				Value: storage_bucket_access_key_id,
+			},
+			{
+				Name:  "AWS_SECRET_ACCESS_KEY",
+				Value: storage_bucket_secret_key,
+			},
+			{
+				Name:  "AWS_STORAGE_BUCKET",
+				Value: storage_bucket_name,
+			},
+			{
+				Name:  "AWS_STORAGE_BUCKET_MNIST_DIR",
+				Value: storage_bucket_mnist_dir,
+			},
+		}
+
+		tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Env = append(tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Env, storage_bucket_env_vars...)
+		tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Env = append(tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Env, storage_bucket_env_vars...)
 	}
 
 	tuningJob, err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Create(test.Ctx(), tuningJob, metav1.CreateOptions{})
