@@ -271,39 +271,6 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 		},
 	}
 
-	if useGPU {
-		// Update resource lists for GPU (NVIDIA/ROCm) usecase
-		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Resources.Limits[corev1.ResourceName(gpuLabel)] = resource.MustParse(fmt.Sprint(numGpus))
-		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Containers[0].Resources.Limits[corev1.ResourceName(gpuLabel)] = resource.MustParse(fmt.Sprint(numGpus))
-
-		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Env = []corev1.EnvVar{
-			{
-				Name:  "NCCL_DEBUG",
-				Value: "INFO",
-			},
-		}
-		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Containers[0].Env = []corev1.EnvVar{
-			{
-				Name:  "NCCL_DEBUG",
-				Value: "INFO",
-			},
-		}
-
-		// Update tolerations
-		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Tolerations = []corev1.Toleration{
-			{
-				Key:      gpuLabel,
-				Operator: corev1.TolerationOpExists,
-			},
-		}
-		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Tolerations = []corev1.Toleration{
-			{
-				Key:      gpuLabel,
-				Operator: corev1.TolerationOpExists,
-			},
-		}
-	}
-
 	if storage_bucket_endpoint_exists && storage_bucket_access_key_id_exists && storage_bucket_secret_key_exists && storage_bucket_name_exists && storage_bucket_mnist_dir_exists {
 		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Env = []corev1.EnvVar{
 			{
@@ -347,6 +314,34 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 			{
 				Name:  "AWS_STORAGE_BUCKET_MNIST_DIR",
 				Value: storage_bucket_mnist_dir,
+			},
+		}
+	}
+
+	if useGPU {
+		// Update resource lists for GPU (NVIDIA/ROCm) usecase
+		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Resources.Limits[corev1.ResourceName(gpuLabel)] = resource.MustParse(fmt.Sprint(numGpus))
+		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Containers[0].Resources.Limits[corev1.ResourceName(gpuLabel)] = resource.MustParse(fmt.Sprint(numGpus))
+
+		// Append env variable to get NCCL related logs
+		ncclEnvVar := corev1.EnvVar{
+			Name:  "NCCL_DEBUG",
+			Value: "INFO",
+		}
+		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Env = append(tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Env, ncclEnvVar)
+		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Containers[0].Env = append(tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Containers[0].Env, ncclEnvVar)
+
+		// Update tolerations
+		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Tolerations = []corev1.Toleration{
+			{
+				Key:      gpuLabel,
+				Operator: corev1.TolerationOpExists,
+			},
+		}
+		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Tolerations = []corev1.Toleration{
+			{
+				Key:      gpuLabel,
+				Operator: corev1.TolerationOpExists,
 			},
 		}
 	}
