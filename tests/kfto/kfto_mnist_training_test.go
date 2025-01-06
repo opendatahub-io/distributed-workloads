@@ -30,15 +30,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestPyTorchJobMnistCpu(t *testing.T) {
+func TestPyTorchJobMnistMultiNodeCpu(t *testing.T) {
 	runKFTOPyTorchMnistJob(t, 0, 2, "", GetCudaTrainingImage(), "resources/requirements.txt")
 }
-func TestPyTorchJobMnistWithCuda(t *testing.T) {
+
+func TestPyTorchJobMnistMultiNodeWithCuda(t *testing.T) {
 	runKFTOPyTorchMnistJob(t, 1, 1, "nvidia.com/gpu", GetCudaTrainingImage(), "resources/requirements.txt")
 }
 
-func TestPyTorchJobMnistWithROCm(t *testing.T) {
+func TestPyTorchJobMnistMultiNodeWithROCm(t *testing.T) {
 	runKFTOPyTorchMnistJob(t, 1, 1, "amd.com/gpu", GetROCmTrainingImage(), "resources/requirements-rocm.txt")
+}
+
+func TestPyTorchJobMnistMultiNodeMultiGpuWithCuda(t *testing.T) {
+	runKFTOPyTorchMnistJob(t, 2, 1, "nvidia.com/gpu", GetCudaTrainingImage(), "resources/requirements.txt")
+}
+
+func TestPyTorchJobMnistMultiNodeMultiGpuWithROCm(t *testing.T) {
+	runKFTOPyTorchMnistJob(t, 2, 1, "amd.com/gpu", GetROCmTrainingImage(), "resources/requirements-rocm.txt")
 }
 
 func runKFTOPyTorchMnistJob(t *testing.T, numGpus int, workerReplicas int, gpuLabel string, image string, requirementsFile string) {
