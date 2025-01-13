@@ -160,8 +160,12 @@ def train_model(model, transformer_type, train_data, eval_data, tokenizer, train
             mlm=False,
         )
 
-    # Train the model.
+    # Train and save the model.
     trainer.train()
+    trainer.save_model()
+    logger.info("parallel_mode: '{0}'".format(trainer.args.parallel_mode))
+    logger.info("is_model_parallel: '{0}'".format(trainer.is_model_parallel))
+    logger.info("model_wrapped: '{0}'".format(trainer.model_wrapped))
 
 
 def parse_arguments():
