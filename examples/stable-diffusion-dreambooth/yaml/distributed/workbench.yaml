@@ -6,7 +6,7 @@ metadata:
     opendatahub.io/image-display-name: Standard Data Science
     openshift.io/description: ''
     openshift.io/display-name: stable-diffusion-nb
-    notebooks.opendatahub.io/last-image-selection: 's2i-generic-data-science-notebook:2024.1'
+    notebooks.opendatahub.io/last-image-selection: 's2i-generic-data-science-notebook:2024.2'
     notebooks.opendatahub.io/last-size-selection: Medium    
   name: stable-diffusion-nb
   namespace: distributed
@@ -57,7 +57,7 @@ spec:
                                   --ServerApp.quit_button=False
                                   --ServerApp.tornado_settings={"user":"admin","hub_host":"https://rhods-dashboard-redhat-ods-applications.apps.cluster-frvw4.frvw4.sandbox1107.opentlc.com","hub_prefix":"/projects/distributed"}
             - name: JUPYTER_IMAGE
-              value: 'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-generic-data-science-notebook:2024.1'
+              value: 'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-generic-data-science-notebook:2024.2'
             - name: PIP_CERT
               value: /etc/pki/tls/custom-certs/ca-bundle.crt
             - name: REQUESTS_CA_BUNDLE
@@ -80,7 +80,7 @@ spec:
               name: trusted-ca
               readOnly: true
               subPath: ca-bundle.crt      
-          image: 'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-generic-data-science-notebook:2024.1'
+          image: 'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-generic-data-science-notebook:2024.2'
           workingDir: /opt/app-root/src
           envFrom:
             - secretRef:
