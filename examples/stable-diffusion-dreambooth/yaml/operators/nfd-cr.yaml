@@ -4,10 +4,6 @@ metadata:
   name: nfd-instance
   namespace: openshift-nfd
 spec:
-  operand:
-    image: >-
-      registry.redhat.io/openshift4/ose-node-feature-discovery@sha256:bc6130cddeec433af572eed4f4558001c0680418dbdd4a52431200a47010d926
-    servicePort: 12000
   workerConfig:
     configData: |
       core:
@@ -116,6 +112,10 @@ spec:
       #            vendor: ["15b3"]
       #            device: ["1014", "1017"]
       #          loadedKMod : ["vendor_kmod1", "vendor_kmod2"]
+  operand:
+    image: 'registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9@sha256:00208889a98c5b767e201bd1427be07edd4388271d82f09bbe393a545e94ac42'
+    imagePullPolicy: IfNotPresent
+    servicePort: 12000
   customConfig:
     configData: |
       #    - name: "more.kernel.features"

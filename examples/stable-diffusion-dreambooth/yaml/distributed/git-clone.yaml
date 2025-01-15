@@ -14,7 +14,7 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            git clone https://github.com/tsailiming/openshift-ai-ray /data/openshift-ai-ray 
+            git clone https://github.com/opendatahub-io/distributed-workloads /data/distributed-workloads
         volumeMounts:        
         - name: data
           mountPath: /data
