@@ -24,6 +24,10 @@ In this example, a workbench will be automatically created with a few notebooks 
 
 ## Prerequisite
 
+* An OpenShift cluster with OpenShift AI (RHOAI) 2.16+ installed:
+  * The `codeflare`, `dashboard`, `ray`, `kueue` and `workbenches` components enabled
+  * OpenShift AI dependencies installed - Red Hat OpenShift Serverless and Red Hat OpenShift Service Mesh
+
 * Ensure there is at least 1 worker node that has a GPU. On AWS, this can be a p3.8xlarge instance, otherwise you can run the makefile target to add a `machineset` for a single replica of p3.8xlarge.
 
 > [!NOTE]  
@@ -40,6 +44,8 @@ In this example, a workbench will be automatically created with a few notebooks 
   ```bash
   oc adm taint nodes <gpu-node> nvidia.com/gpu=Exists:NoSchedule
   ```
+
+Install and setup operators needed for GPU to be available in the cluster (Node Feature Discovery Operator, NVIDIA GPU Operator)
 
 * Ensure there is a RWX available storage class, such as `
 ocs-storagecluster-cephfs`. The `stable-diffusion-shared-storage` pvc uses cephfs otherwise update the PVC resource. 
@@ -63,13 +69,6 @@ ocs-storagecluster-cephfs`. The `stable-diffusion-shared-storage` pvc uses cephf
         operator: Exists
         effect: NoSchedule
   ```
-
-## Setup
-Install OpenShift AI using the OpenShift AI Operator. This install the latest version from the fast channel.
-
-```bash
-make install-openshift-ai
-```
 
 ## Setting Up the Demo
 
