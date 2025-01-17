@@ -5,31 +5,11 @@ JOB_NAME=git-clone-job
 NAMESPACE=distributed
 WORKER_LABEL_KEY=node-role.kubernetes.io/worker
 
-.PHONY: install-openshift-ai add-gpu-operator add-gpu-machineset setup-kueue-premption setup-ray-distributed-training deploy-odf teardown-ray-distributed-training
-
-install-openshift-ai: add-gpu-operator deploy-oai
+.PHONY: add-gpu-machineset setup-kueue-premption setup-ray-distributed-training deploy-odf teardown-ray-distributed-training
 	
 add-gpu-machineset:
 	@mkdir -p $(WORK_DIR)
 	@$(BASE)/scripts/add-gpu.sh $(WORK_DIR)	
-
-add-gpu-operator:
-	oc apply -f $(BASE)/yaml/operators/nfd.yaml
-
-	@until oc get crd nodefeaturediscoveries.nfd.openshift.io >/dev/null 2>&1; do \
-    	echo "Wait until CRD nodefeaturediscoveries.nfd.openshift.io is ready..."; \
-		sleep 10; \
-	done
-
-	oc apply -f $(BASE)/yaml/operators/nfd-cr.yaml
-	oc apply -f $(BASE)/yaml/operators/nvidia.yaml
-
-	@until oc get crd clusterpolicies.nvidia.com>/dev/null 2>&1; do \
-    	echo "Wait until CRD clusterpolicies.nvidia.com is ready..."; \
-		sleep 10; \
-	done
-
-	oc apply -f $(BASE)/yaml/operators/nvidia-cluster-policy.yaml
 
 deploy-odf:
 	@node_count=$$(oc get nodes -l $(WORKER_LABEL_KEY) -o json | jq '[.items[] | select(.spec.taints | not)] | length'); \
@@ -58,35 +38,6 @@ deploy-odf:
 	oc patch console.operator cluster -n openshift-storage --type json -p '[{"op": "add", "path": "/spec/plugins", "value": ["odf-console"]}]'
 
 	@echo "ODF is ready"
-
-deploy-oai:
-	oc apply -f $(BASE)/yaml/operators/serverless.yaml
-	oc apply -f $(BASE)/yaml/operators/servicemesh.yaml
-	
-	@$(BASE)/scripts/install-operator.sh openshift-serverless "Red Hat OpenShift Serverless"
-	@$(BASE)/scripts/install-operator.sh default "Red Hat OpenShift Service Mesh"
-
-	oc apply -f $(BASE)/yaml/operators/oai.yaml	
-	@$(BASE)/scripts/install-operator.sh redhat-ods-operator "Red Hat OpenShift AI"
-
-	@until oc get DSCInitialization default-dsci -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
-		echo "Waiting for OpenShift AI DSCInitialization to be ready..."; \
-		sleep 10; \
-	done
-
-	@until oc get crd datascienceclusters.datasciencecluster.opendatahub.io>/dev/null 2>&1; do \
-    	echo "Wait until CRD datascienceclusters.datasciencecluster.opendatahub.io is ready..."; \
-		sleep 10; \
-	done
-	
-	oc apply -f $(BASE)/yaml/operators/dsc.yaml
-
-	@until oc get datasciencecluster default-dsc -n redhat-ods-applications -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
-		echo "Waiting for OpenShift AI Data Science Cluster to be ready..."; \
-		sleep 60; \
-	done
-
-	@echo "OpenShift AI Data Science Cluster is ready"
 	
 teardown-ray-distributed-training:
 	-oc delete -f $(BASE)/yaml/distributed/git-clone.yaml
