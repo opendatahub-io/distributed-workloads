@@ -98,7 +98,7 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpu Gpu, numGpus, numberOfWor
 					And(
 						HaveLen(numGpus),
 						ContainElement(
-							// Check that at lest some GPU was utilized on more than 50%
+							// Check that at least some GPU was utilized on more than 50%
 							HaveField("Value", BeNumerically(">", 50)),
 						),
 					),

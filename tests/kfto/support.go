@@ -36,6 +36,7 @@ type Gpu struct {
 var (
 	NVIDIA = Gpu{ResourceLabel: "nvidia.com/gpu", PrometheusGpuUtilizationLabel: "DCGM_FI_DEV_GPU_UTIL"}
 	AMD    = Gpu{ResourceLabel: "amd.com/gpu"}
+	CPU    = Gpu{ResourceLabel: "cpu"}
 )
 
 //go:embed resources/*

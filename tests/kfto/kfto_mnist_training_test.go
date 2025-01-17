@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
 	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 	. "github.com/onsi/gomega"
@@ -31,29 +32,29 @@ import (
 )
 
 func TestPyTorchJobMnistMultiNodeSingleCpu(t *testing.T) {
-	runKFTOPyTorchMnistJob(t, 0, 2, 1, "", GetCudaTrainingImage(), "resources/requirements.txt")
+	runKFTOPyTorchMnistJob(t, CPU, GetCudaTrainingImage(), "resources/requirements.txt", 2, 1)
 }
 func TestPyTorchJobMnistMultiNodeMultiCpu(t *testing.T) {
-	runKFTOPyTorchMnistJob(t, 0, 2, 2, "", GetCudaTrainingImage(), "resources/requirements.txt")
+	runKFTOPyTorchMnistJob(t, CPU, GetCudaTrainingImage(), "resources/requirements.txt", 2, 2)
 }
 
 func TestPyTorchJobMnistMultiNodeSingleGpuWithCuda(t *testing.T) {
-	runKFTOPyTorchMnistJob(t, 1, 1, 1, "nvidia.com/gpu", GetCudaTrainingImage(), "resources/requirements.txt")
+	runKFTOPyTorchMnistJob(t, NVIDIA, GetCudaTrainingImage(), "resources/requirements.txt", 1, 1)
 }
 
 func TestPyTorchJobMnistMultiNodeMultiGpuWithCuda(t *testing.T) {
-	runKFTOPyTorchMnistJob(t, 2, 1, 2, "nvidia.com/gpu", GetCudaTrainingImage(), "resources/requirements.txt")
+	runKFTOPyTorchMnistJob(t, NVIDIA, GetCudaTrainingImage(), "resources/requirements.txt", 1, 2)
 }
 
 func TestPyTorchJobMnistMultiNodeSingleGpuWithROCm(t *testing.T) {
-	runKFTOPyTorchMnistJob(t, 1, 1, 1, "amd.com/gpu", GetROCmTrainingImage(), "resources/requirements-rocm.txt")
+	runKFTOPyTorchMnistJob(t, AMD, GetROCmTrainingImage(), "resources/requirements-rocm.txt", 1, 1)
 }
 
 func TestPyTorchJobMnistMultiNodeMultiGpuWithROCm(t *testing.T) {
-	runKFTOPyTorchMnistJob(t, 2, 1, 2, "amd.com/gpu", GetROCmTrainingImage(), "resources/requirements-rocm.txt")
+	runKFTOPyTorchMnistJob(t, AMD, GetROCmTrainingImage(), "resources/requirements-rocm.txt", 1, 2)
 }
 
-func runKFTOPyTorchMnistJob(t *testing.T, totalNumGpus int, workerReplicas int, numProcPerNode int, gpuLabel string, image string, requirementsFile string) {
+func runKFTOPyTorchMnistJob(t *testing.T, gpu Gpu, image string, requirementsFile string, workerReplicas, numProcPerNode int) {
 	test := With(t)
 
 	// Create a namespace
@@ -62,7 +63,7 @@ func runKFTOPyTorchMnistJob(t *testing.T, totalNumGpus int, workerReplicas int, 
 	mnist := ReadFile(test, "resources/mnist.py")
 	requirementsFileName := ReadFile(test, requirementsFile)
 
-	if totalNumGpus > 0 {
+	if workerReplicas*numProcPerNode > 0 && gpu.ResourceLabel != "cpu" {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"gpu\""), 1)
 	} else {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"cpu\""), 1)
@@ -77,12 +78,33 @@ func runKFTOPyTorchMnistJob(t *testing.T, totalNumGpus int, workerReplicas int, 
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace.Name).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
 
 	// Create training PyTorch job
-	tuningJob := createKFTOPyTorchMnistJob(test, namespace.Name, *config, gpuLabel, totalNumGpus, workerReplicas, numProcPerNode, outputPvc.Name, image)
+	tuningJob := createKFTOPyTorchMnistJob(test, namespace.Name, *config, gpu, workerReplicas, numProcPerNode, outputPvc.Name, image)
 	defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace.Name).Delete(test.Ctx(), tuningJob.Name, *metav1.NewDeleteOptions(0))
 
 	// Make sure the PyTorch job is running
 	test.Eventually(PyTorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutDouble).
 		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
+
+	// Verify GPU utilization
+	if IsOpenShift(test) && gpu == NVIDIA {
+		trainingPods := GetPods(test, namespace.Name, metav1.ListOptions{LabelSelector: "training.kubeflow.org/job-name=" + tuningJob.GetName()})
+		test.Expect(trainingPods).To(HaveLen(workerReplicas + 1)) // +1 is a master node
+
+		for _, trainingPod := range trainingPods {
+			// Check that GPUs for training pods were utilized recently
+			test.Eventually(OpenShiftPrometheusGpuUtil(test, trainingPod, gpu), 15*time.Minute).
+				Should(
+					And(
+						HaveLen(numProcPerNode),
+						ContainElement(
+							// Check that at least some GPU was utilized on more than 30%
+							HaveField("Value", BeNumerically(">", 30)),
+						),
+					),
+				)
+		}
+		test.T().Log("All GPUs were successfully utilized")
+	}
 
 	// Make sure the PyTorch job succeeded
 	test.Eventually(PyTorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutDouble).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
@@ -90,11 +112,11 @@ func runKFTOPyTorchMnistJob(t *testing.T, totalNumGpus int, workerReplicas int, 
 
 }
 
-func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.ConfigMap, gpuLabel string, totalNumGpus int, workerReplicas int, numProcPerNode int, outputPvcName string, baseImage string) *kftov1.PyTorchJob {
+func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.ConfigMap, gpu Gpu, workerReplicas int, numProcPerNode int, outputPvcName string, baseImage string) *kftov1.PyTorchJob {
 	var useGPU = false
 	var backend string
 
-	if totalNumGpus > 0 {
+	if gpu.ResourceLabel != "cpu" {
 		useGPU = true
 		backend = "nccl"
 	} else {
@@ -143,9 +165,14 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									Command: []string{
 										"/bin/bash", "-c",
-										fmt.Sprintf(`mkdir -p /tmp/lib && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
+										fmt.Sprintf(`mkdir -p /tmp/lib /tmp/datasets/mnist && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
 										pip install --no-cache-dir -r /mnt/files/requirements.txt --target=/tmp/lib && \
-										torchrun --nproc_per_node=%d /mnt/files/mnist.py --epochs 7 --save_every 2 --batch_size 64 --lr 0.0005 --snapshot_path "mnist_snapshot.pt" --backend %s`, numProcPerNode, backend),
+										echo "Downloading MNIST dataset..." && \
+										python3 -c "from torchvision.datasets import MNIST; from torchvision.transforms import Compose, ToTensor; \
+										MNIST('/tmp/datasets/mnist', train=False, download=True, transform=Compose([ToTensor()]))" && \
+										echo -e "\n\n Dataset downloaded to /tmp/datasets/mnist" && ls -R /tmp/datasets/mnist && \
+										echo -e "\n\n Starting training..." && \
+										torchrun --nproc_per_node=%d /mnt/files/mnist.py --dataset_path "/tmp/datasets/mnist" --epochs 7 --save_every 2 --batch_size 64 --lr 0.0005 --snapshot_path "mnist_snapshot.pt" --backend %s`, numProcPerNode, backend),
 									},
 									VolumeMounts: []corev1.VolumeMount{
 										{
@@ -156,12 +183,12 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 											Name:      "tmp-volume",
 											MountPath: "/tmp",
 										},
-										{
-											Name:      "output-volume",
-											MountPath: "/mnt/output",
-										},
 									},
 									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", numProcPerNode)),
+											corev1.ResourceMemory: resource.MustParse("6Gi"),
+										},
 										Limits: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", numProcPerNode)),
 											corev1.ResourceMemory: resource.MustParse("6Gi"),
@@ -184,14 +211,6 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 									Name: "tmp-volume",
 									VolumeSource: corev1.VolumeSource{
 										EmptyDir: &corev1.EmptyDirVolumeSource{},
-									},
-								},
-								{
-									Name: "output-volume",
-									VolumeSource: corev1.VolumeSource{
-										PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-											ClaimName: outputPvcName,
-										},
 									},
 								},
 							},
@@ -231,9 +250,14 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									Command: []string{
 										"/bin/bash", "-c",
-										fmt.Sprintf(`mkdir -p /tmp/lib && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
+										fmt.Sprintf(`mkdir -p /tmp/lib /tmp/datasets/mnist && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
 										pip install --no-cache-dir -r /mnt/files/requirements.txt --target=/tmp/lib && \
-										torchrun --nproc_per_node=%d /mnt/files/mnist.py --epochs 7 --save_every 2 --batch_size 64 --lr 0.0005 --snapshot_path "mnist_snapshot.pt" --backend %s`, numProcPerNode, backend),
+										echo "Downloading MNIST dataset..." && \
+										python3 -c "from torchvision.datasets import MNIST; from torchvision.transforms import Compose, ToTensor; \
+										MNIST('/tmp/datasets/mnist', train=False, download=True, transform=Compose([ToTensor()]))" && \
+										echo -e "\n\n Dataset downloaded to /tmp/datasets/mnist" && ls -R /tmp/datasets/mnist && \
+										echo -e "\n\n Starting training..." && \
+										torchrun --nproc_per_node=%d /mnt/files/mnist.py --dataset_path "/tmp/datasets/mnist" --epochs 7 --save_every 2 --batch_size 64 --lr 0.0005 --snapshot_path "mnist_snapshot.pt" --backend %s`, numProcPerNode, backend),
 									},
 									VolumeMounts: []corev1.VolumeMount{
 										{
@@ -246,6 +270,10 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 										},
 									},
 									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", numProcPerNode)),
+											corev1.ResourceMemory: resource.MustParse("6Gi"),
+										},
 										Limits: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", numProcPerNode)),
 											corev1.ResourceMemory: resource.MustParse("6Gi"),
@@ -281,21 +309,10 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 
 	if useGPU {
 		// Update resource lists for GPU (NVIDIA/ROCm) usecase
-		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Resources.Limits[corev1.ResourceName(gpuLabel)] = resource.MustParse(fmt.Sprint(totalNumGpus))
-		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Containers[0].Resources.Limits[corev1.ResourceName(gpuLabel)] = resource.MustParse(fmt.Sprint(totalNumGpus))
-
-		tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Command = []string{
-			"/bin/bash", "-c",
-			fmt.Sprintf(`mkdir -p /tmp/lib && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
-			pip install --no-cache-dir -r /mnt/files/requirements.txt --target=/tmp/lib && \
-			torchrun --nproc_per_node=%d /mnt/files/mnist.py --epochs 7 --save_every 2 --batch_size 128 --lr 0.001 --snapshot_path "mnist_snapshot.pt" --backend %s`, numProcPerNode, backend),
-		}
-		tuningJob.Spec.PyTorchReplicaSpecs[kftov1.MPIJobReplicaTypeWorker].Template.Spec.Containers[0].Command = []string{
-			"/bin/bash", "-c",
-			fmt.Sprintf(`mkdir -p /tmp/lib && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
-			pip install --no-cache-dir -r /mnt/files/requirements.txt --target=/tmp/lib && \
-			torchrun --nproc_per_node=%d /mnt/files/mnist.py --epochs 7 --save_every 2 --batch_size 128 --lr 0.001 --snapshot_path "mnist_snapshot.pt" --backend %s`, numProcPerNode, backend),
-		}
+		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Resources.Requests[corev1.ResourceName(gpu.ResourceLabel)] = resource.MustParse(fmt.Sprint(numProcPerNode))
+		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Resources.Limits[corev1.ResourceName(gpu.ResourceLabel)] = resource.MustParse(fmt.Sprint(numProcPerNode))
+		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Containers[0].Resources.Requests[corev1.ResourceName(gpu.ResourceLabel)] = resource.MustParse(fmt.Sprint(numProcPerNode))
+		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Containers[0].Resources.Limits[corev1.ResourceName(gpu.ResourceLabel)] = resource.MustParse(fmt.Sprint(numProcPerNode))
 
 		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Containers[0].Env = []corev1.EnvVar{
 			{
@@ -321,13 +338,13 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 		// Update tolerations
 		tuningJob.Spec.PyTorchReplicaSpecs["Master"].Template.Spec.Tolerations = []corev1.Toleration{
 			{
-				Key:      gpuLabel,
+				Key:      gpu.ResourceLabel,
 				Operator: corev1.TolerationOpExists,
 			},
 		}
 		tuningJob.Spec.PyTorchReplicaSpecs["Worker"].Template.Spec.Tolerations = []corev1.Toleration{
 			{
-				Key:      gpuLabel,
+				Key:      gpu.ResourceLabel,
 				Operator: corev1.TolerationOpExists,
 			},
 		}
