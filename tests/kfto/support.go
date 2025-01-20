@@ -28,16 +28,21 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-type Gpu struct {
+type Accelerator struct {
 	ResourceLabel                 string
 	PrometheusGpuUtilizationLabel string
 }
 
 var (
-	NVIDIA = Gpu{ResourceLabel: "nvidia.com/gpu", PrometheusGpuUtilizationLabel: "DCGM_FI_DEV_GPU_UTIL"}
-	AMD    = Gpu{ResourceLabel: "amd.com/gpu"}
-	CPU    = Gpu{ResourceLabel: "cpu"}
+	NVIDIA = Accelerator{ResourceLabel: "nvidia.com/gpu", PrometheusGpuUtilizationLabel: "DCGM_FI_DEV_GPU_UTIL"}
+	AMD    = Accelerator{ResourceLabel: "amd.com/gpu"}
+	CPU    = Accelerator{}
 )
+
+// Method to check if the accelerator is a GPU
+func (a Accelerator) isGpu() bool {
+	return a != CPU
+}
 
 //go:embed resources/*
 var files embed.FS
@@ -49,7 +54,7 @@ func ReadFile(t Test, fileName string) []byte {
 	return file
 }
 
-func OpenShiftPrometheusGpuUtil(test Test, pod corev1.Pod, gpu Gpu) func(g Gomega) prometheusmodel.Vector {
+func OpenShiftPrometheusGpuUtil(test Test, pod corev1.Pod, gpu Accelerator) func(g Gomega) prometheusmodel.Vector {
 	return func(g Gomega) prometheusmodel.Vector {
 		prometheusApiClient := GetOpenShiftPrometheusApiClient(test)
 		result, warnings, err := prometheusApiClient.Query(test.Ctx(), gpu.PrometheusGpuUtilizationLabel, time.Now(), prometheusapiv1.WithTimeout(5*time.Second))
