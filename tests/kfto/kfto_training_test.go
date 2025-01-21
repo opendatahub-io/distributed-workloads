@@ -62,7 +62,7 @@ func TestPyTorchJobMultiNodeMultiGpuWithROCm(t *testing.T) {
 	runKFTOPyTorchJob(t, GetROCmTrainingImage(), AMD, 2, 1)
 }
 
-func runKFTOPyTorchJob(t *testing.T, image string, gpu Gpu, numGpus, numberOfWorkerNodes int) {
+func runKFTOPyTorchJob(t *testing.T, image string, gpu Accelerator, numGpus, numberOfWorkerNodes int) {
 	test := With(t)
 
 	// Create a namespace
@@ -98,7 +98,7 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpu Gpu, numGpus, numberOfWor
 					And(
 						HaveLen(numGpus),
 						ContainElement(
-							// Check that at lest some GPU was utilized on more than 50%
+							// Check that at least some GPU was utilized on more than 50%
 							HaveField("Value", BeNumerically(">", 50)),
 						),
 					),
@@ -112,7 +112,7 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpu Gpu, numGpus, numberOfWor
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 }
 
-func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, gpu Gpu, numGpus, numberOfWorkerNodes int, outputPvcName string, baseImage string) *kftov1.PyTorchJob {
+func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, gpu Accelerator, numGpus, numberOfWorkerNodes int, outputPvcName string, baseImage string) *kftov1.PyTorchJob {
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
