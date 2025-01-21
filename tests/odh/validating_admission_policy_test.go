@@ -168,17 +168,19 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 		vapb.Spec.PolicyName = "none"
 		_, err = test.Client().Core().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Update(test.Ctx(), vapb, metav1.UpdateOptions{})
 		test.Expect(err).ToNot(HaveOccurred())
-		time.Sleep(2 * time.Second) // Wait for the ValidatingAdmissionPolicyBinding to be updated
 		defer revertVAPB(test, vapbCopy)
 
-		t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-			rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), ns.Name).Queue(lq.Name).Obj()
-			_, err = test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
-			test.Expect(err).ToNot(HaveOccurred())
-			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
-		})
 		t.Run("RayCluster should be admitted without the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
 			rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), ns.Name).Obj()
+			// Eventually is used here to allow time for the ValidatingAdmissionPolicyBinding updates to be propagated.
+			test.Eventually(func() error {
+				_, err := test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
+				return err
+			}).WithTimeout(5 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+		})
+		t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
+			rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), ns.Name).Queue(lq.Name).Obj()
 			_, err = test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
 			test.Expect(err).ToNot(HaveOccurred())
 			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
@@ -212,28 +214,33 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 		}
 		ns.Labels["kueue-managed"] = "true"
 		_, err = test.Client().Core().CoreV1().Namespaces().Update(test.Ctx(), ns, metav1.UpdateOptions{})
+		test.Eventually(func() bool {
+			ns, _ = test.Client().Core().CoreV1().Namespaces().Get(test.Ctx(), ns.Name, metav1.GetOptions{})
+			return ns.Labels["kueue-managed"] == "true"
+		}).WithTimeout(5 * time.Second).WithPolling(500 * time.Millisecond).Should(BeTrue())
 		test.Expect(err).ToNot(HaveOccurred())
 
 		// Apply the ValidatingAdmissionPolicyBinding targetting namespaces with the label 'kueue-managed'
-		vapb, err := test.Client().Core().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Get(test.Ctx(), vapb.Name, metav1.GetOptions{})
+		vapb, err = test.Client().Core().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Get(test.Ctx(), vapb.Name, metav1.GetOptions{})
 		test.Expect(err).ToNot(HaveOccurred())
 
 		vapb.Spec.MatchResources.NamespaceSelector.MatchLabels = map[string]string{"kueue-managed": "true"}
 		_, err = test.Client().Core().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Update(test.Ctx(), vapb, metav1.UpdateOptions{})
 		test.Expect(err).ToNot(HaveOccurred())
-		time.Sleep(2 * time.Second) // Wait for the ValidatingAdmissionPolicyBinding to be updated
 		defer revertVAPB(test, vapbCopy)
 
+		t.Run("RayCluster should not be admitted without the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
+			rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), ns.Name).Obj()
+			test.Eventually(func() error {
+				_, err := test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
+				return err
+			}).WithTimeout(5 * time.Second).WithPolling(500 * time.Millisecond).ShouldNot(Succeed())
+			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+		})
 		t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
 			rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), ns.Name).Queue(lq.Name).Obj()
 			_, err = test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
 			test.Expect(err).ToNot(HaveOccurred())
-			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
-		})
-		t.Run("RayCluster should not be admitted without the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
-			rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), ns.Name).Obj()
-			_, err = test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
-			test.Expect(err).ToNot(BeNil())
 			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
 		})
 		t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label in any other namespace", func(t *testing.T) {
