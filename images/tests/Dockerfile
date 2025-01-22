@@ -1,6 +1,8 @@
 # Use the official Go image as a base image
 FROM golang:1.21
 
+ENV KUBECONFIG=/distributed-workloads/tests/.kube/config
+
 # Set the working directory inside the container
 WORKDIR /distributed-workloads
 
