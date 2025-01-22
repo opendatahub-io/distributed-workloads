@@ -125,3 +125,20 @@ func GetNotebookImage(t Test) string {
 	}
 	return notebook_image
 }
+
+func deleteNotebook(test Test, namespace *corev1.Namespace) {
+	err := test.Client().Dynamic().Resource(notebookResource).Namespace(namespace.Name).Delete(test.Ctx(), "jupyter-nb-kube-3aadmin", metav1.DeleteOptions{})
+	test.Expect(err).NotTo(gomega.HaveOccurred())
+}
+
+func listNotebooks(test Test, namespace *corev1.Namespace) []*unstructured.Unstructured {
+	ntbs, err := test.Client().Dynamic().Resource(notebookResource).Namespace(namespace.Name).List(test.Ctx(), metav1.ListOptions{})
+	test.Expect(err).NotTo(gomega.HaveOccurred())
+
+	ntbsp := []*unstructured.Unstructured{}
+	for _, v := range ntbs.Items {
+		ntbsp = append(ntbsp, &v)
+	}
+
+	return ntbsp
+}
