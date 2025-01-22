@@ -17,11 +17,14 @@ limitations under the License.
 package kfto
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
+
+	v1 "k8s.io/api/core/v1"
 )
 
 func TestMnistSDK(t *testing.T) {
@@ -29,25 +32,50 @@ func TestMnistSDK(t *testing.T) {
 
 	// Create a namespace
 	namespace := test.NewTestNamespace()
-
-	jupyterNotebookConfigMapFileName := "mnist_kfto.ipynb"
-	mnist := readMnistScriptTemplate(test, "resources/mnist.py")
-
-	jupyterNotebook := ReadFile(test, "resources/mnist_kfto.ipynb")
-	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
-		jupyterNotebookConfigMapFileName: jupyterNotebook,
-		"mnist.py":                       mnist,
-	})
-
-	// Define the regular(non-admin) user
 	userName := GetNotebookUserName(test)
 	userToken := GetNotebookUserToken(test)
+	jupyterNotebookConfigMapFileName := "mnist_kfto.ipynb"
+	mnist := readMnistScriptTemplate(test, "resources/kfto_sdk_train.py")
 
 	// Create role binding with Namespace specific admin cluster role
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
+	requiredChangesInNotebook := map[string]string{
+		"${api_url}":        GetOpenShiftApiUrl(test),
+		"${train_function}": "train_func_2",
+		"${password}":       userToken,
+		"${num_gpus}":       "2",
+		"${namespace}":      namespace.Name,
+	}
+
+	jupyterNotebook := string(ReadFile(test, "resources/mnist_kfto.ipynb"))
+	for oldValue, newValue := range requiredChangesInNotebook {
+		jupyterNotebook = strings.Replace(string(jupyterNotebook), oldValue, newValue, -1)
+	}
+
+	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
+		jupyterNotebookConfigMapFileName: []byte(jupyterNotebook),
+		"kfto_sdk_mnist.py":              mnist,
+	})
+
 	// Create Notebook CR
 	createNotebook(test, namespace, userToken, config.Name, jupyterNotebookConfigMapFileName, 0)
+
+	// Gracefully cleanup Notebook
+	defer func() {
+		deleteNotebook(test, namespace)
+		test.Eventually(listNotebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
+	}()
+
+	// Make sure pytorch job is created
+	Eventually(PyTorchJob(test, namespace.Name, "pytorch-ddp")).
+		Should(WithTransform(PyTorchJobConditionRunning, Equal(v1.ConditionTrue)))
+
+	// Make sure that the job eventually succeeds
+	Eventually(PyTorchJob(test, namespace.Name, "pytorch-ddp")).
+		Should(WithTransform(PyTorchJobConditionSucceeded, Equal(v1.ConditionTrue)))
+
+	// TODO: write torch job logs?
 	time.Sleep(60 * time.Second)
 }
 
