@@ -19,7 +19,6 @@ package kfto
 import (
 	"strings"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -29,26 +28,25 @@ import (
 
 func TestMnistSDK(t *testing.T) {
 	test := With(t)
-
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 	userName := GetNotebookUserName(test)
 	userToken := GetNotebookUserToken(test)
 	jupyterNotebookConfigMapFileName := "mnist_kfto.ipynb"
-	mnist := readMnistScriptTemplate(test, "resources/kfto_sdk_train.py")
+	mnist := readMnistScriptTemplate(test, "resources/kfto_sdk_mnist.py")
 
 	// Create role binding with Namespace specific admin cluster role
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
 	requiredChangesInNotebook := map[string]string{
-		"${api_url}":        GetOpenShiftApiUrl(test),
-		"${train_function}": "train_func_2",
-		"${password}":       userToken,
-		"${num_gpus}":       "2",
-		"${namespace}":      namespace.Name,
+		"${api_url}":   GetOpenShiftApiUrl(test),
+		"${password}":  userToken,
+		"${num_gpus}":  "0",
+		"${namespace}": namespace.Name,
 	}
 
 	jupyterNotebook := string(ReadFile(test, "resources/mnist_kfto.ipynb"))
+	requirements := ReadFile(test, "resources/requirements.txt")
 	for oldValue, newValue := range requiredChangesInNotebook {
 		jupyterNotebook = strings.Replace(string(jupyterNotebook), oldValue, newValue, -1)
 	}
@@ -56,6 +54,7 @@ func TestMnistSDK(t *testing.T) {
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
 		jupyterNotebookConfigMapFileName: []byte(jupyterNotebook),
 		"kfto_sdk_mnist.py":              mnist,
+		"requirements.txt":               requirements,
 	})
 
 	// Create Notebook CR
@@ -68,15 +67,15 @@ func TestMnistSDK(t *testing.T) {
 	}()
 
 	// Make sure pytorch job is created
-	Eventually(PyTorchJob(test, namespace.Name, "pytorch-ddp")).
+	test.Eventually(PyTorchJob(test, namespace.Name, "pytorch-ddp")).
 		Should(WithTransform(PyTorchJobConditionRunning, Equal(v1.ConditionTrue)))
 
 	// Make sure that the job eventually succeeds
-	Eventually(PyTorchJob(test, namespace.Name, "pytorch-ddp")).
+	test.Eventually(PyTorchJob(test, namespace.Name, "pytorch-ddp")).
 		Should(WithTransform(PyTorchJobConditionSucceeded, Equal(v1.ConditionTrue)))
 
 	// TODO: write torch job logs?
-	time.Sleep(60 * time.Second)
+	// time.Sleep(60 * time.Second)
 }
 
 func readMnistScriptTemplate(test Test, filePath string) []byte {
