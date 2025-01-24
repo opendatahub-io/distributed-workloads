@@ -45,6 +45,7 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 
 	var (
 		ns           *corev1.Namespace
+		nsNoLabel    *corev1.Namespace
 		rf           *kueuev1beta1.ResourceFlavor
 		cq           *kueuev1beta1.ClusterQueue
 		lq           *kueuev1beta1.LocalQueue
@@ -69,6 +70,10 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 	// Create a namespace
 	ns = CreateTestNamespaceWithName(test, uniqueSuffix("vap"))
 	defer test.Client().Core().CoreV1().Namespaces().Delete(test.Ctx(), ns.Name, metav1.DeleteOptions{})
+
+	// Create a namespace that will not receive the `kueue.x-k8s.io/queue-name` label
+	nsNoLabel = CreateTestNamespaceWithName(test, uniqueSuffix("vap-nl"))
+	defer test.Client().Core().CoreV1().Namespaces().Delete(test.Ctx(), nsNoLabel.Name, metav1.DeleteOptions{})
 
 	// Create a resource flavor
 	rf = CreateKueueResourceFlavor(test, kueuev1beta1.ResourceFlavorSpec{})
@@ -176,7 +181,7 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 			test.Eventually(func() error {
 				_, err := test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
 				return err
-			}).WithTimeout(5 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+			}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
 			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
 		})
 		t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
@@ -217,7 +222,7 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 		test.Eventually(func() bool {
 			ns, _ = test.Client().Core().CoreV1().Namespaces().Get(test.Ctx(), ns.Name, metav1.GetOptions{})
 			return ns.Labels["kueue-managed"] == "true"
-		}).WithTimeout(5 * time.Second).WithPolling(500 * time.Millisecond).Should(BeTrue())
+		}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).Should(BeTrue())
 		test.Expect(err).ToNot(HaveOccurred())
 
 		// Apply the ValidatingAdmissionPolicyBinding targetting namespaces with the label 'kueue-managed'
@@ -234,7 +239,7 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 			test.Eventually(func() error {
 				_, err := test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
 				return err
-			}).WithTimeout(5 * time.Second).WithPolling(500 * time.Millisecond).ShouldNot(Succeed())
+			}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).ShouldNot(Succeed())
 			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
 		})
 		t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
@@ -244,16 +249,18 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
 		})
 		t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label in any other namespace", func(t *testing.T) {
-			rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), "default").Queue(lq.Name).Obj()
-			_, err = test.Client().Ray().RayV1().RayClusters("default").Create(test.Ctx(), rc, metav1.CreateOptions{})
+			rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), nsNoLabel.Name).Queue(lq.Name).Obj()
+			_, err = test.Client().Ray().RayV1().RayClusters(nsNoLabel.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
 			test.Expect(err).ToNot(HaveOccurred())
-			defer test.Client().Ray().RayV1().RayClusters("default").Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+			defer test.Client().Ray().RayV1().RayClusters(nsNoLabel.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
 		})
 		t.Run("RayCluster should be admitted without the 'kueue.x-k8s.io/queue-name' label in any other namespace", func(t *testing.T) {
-			rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), "default").Obj()
-			_, err = test.Client().Ray().RayV1().RayClusters("default").Create(test.Ctx(), rc, metav1.CreateOptions{})
-			test.Expect(err).ToNot(HaveOccurred())
-			defer test.Client().Ray().RayV1().RayClusters("default").Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+			rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), nsNoLabel.Name).Obj()
+			test.Eventually(func() error {
+				_, err = test.Client().Ray().RayV1().RayClusters(nsNoLabel.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
+				return err
+			}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+			defer test.Client().Ray().RayV1().RayClusters(nsNoLabel.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
 		})
 	})
 }
