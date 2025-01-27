@@ -1,9 +1,9 @@
 ARG PYTHON_VERSION=311
-ARG IMAGE_TAG=1-77.1726664316
+ARG IMAGE_TAG=9.5-1737537151
 
 FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG}
 
-LABEL name="ray-ubi9-py311-rocm61" \
+LABEL name="ray-ubi9-py311-rocm62" \
       summary="ROCm Python 3.11 image based on UBI9 for Ray" \
       description="ROCm Python 3.11 image based on UBI9 for Ray" \
       io.k8s.display-name="ROCm Python 3.11 base image for Ray" \
@@ -14,8 +14,8 @@ LABEL name="ray-ubi9-py311-rocm61" \
 USER 0
 WORKDIR /opt/app-root/bin
 
-ARG ROCM_VERSION=6.1.2
-ARG AMDGPU_VERSION=6.1.2
+ARG ROCM_VERSION=6.2.4
+ARG AMDGPU_VERSION=6.2.4
 
 RUN <<EOF
 cat <<EOD > /etc/yum.repos.d/rocm.repo
@@ -37,7 +37,7 @@ gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
 EOD
 EOF
 
-RUN yum -y install rocm && yum clean all && rm -rf /var/cache/yum
+RUN yum install -y rocm-developer-tools rocm-ml-sdk rocm-opencl-sdk rocm-openmp-sdk rocm-utils && yum clean all && rm -rf /var/cache/yum
 
 # Install Python packages
 
