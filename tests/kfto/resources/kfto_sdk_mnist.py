@@ -6,6 +6,10 @@ def train_func():
     from torchvision import datasets, transforms
     import torch.distributed as dist
     from pathlib import Path
+    from minio import Minio
+    import shutil
+    import gzip
+
 
     # [1] Setup PyTorch DDP. Distributed environment will be set automatically by Training Operator.
     dist.init_process_group(backend="nccl" if torch.cuda.is_available() else "gloo")
@@ -45,13 +49,63 @@ def train_func():
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
     # [4] Setup FashionMNIST dataloader and distribute data across PyTorchJob workers.
-    Path(f"./data{local_rank}").mkdir(exist_ok=True)
-    dataset = datasets.FashionMNIST(
-        f"./data{local_rank}",
-        download=True,
-        train=True,
-        transform=transforms.Compose([transforms.ToTensor()]),
-    )
+    dataset_path = "./data"
+    dataset_dir = os.path.join(dataset_path, "MNIST/raw")
+    with_aws = "{{.StorageBucketNameExists}}"
+    endpoint = "{{.StorageBucketDefaultEndpoint}}"
+    access_key = "{{.StorageBucketAccessKeyId}}"
+    secret_key = "{{.StorageBucketSecretKey}}"
+    bucket_name = "{{.StorageBucketName}}"
+    prefix = "{{.StorageBucketMnistDir}}"
+    if with_aws != "true":
+        client = Minio(
+            endpoint,
+            access_key=access_key,
+            secret_key=secret_key,
+            cert_check=False,
+            secure=False,  #TODO
+        )
+
+        if not os.path.exists(dataset_dir):
+            os.makedirs(dataset_dir)
+
+        for item in client.list_objects(
+            bucket_name, prefix=prefix, recursive=True
+        ):  
+            file_name=item.object_name[len(prefix)+1:]
+            dataset_file_path = os.path.join(dataset_dir, file_name)
+            print(f"Downloading dataset file {file_name} to {dataset_file_path}..")
+            if not os.path.exists(dataset_file_path):
+                client.fget_object(
+                    bucket_name, item.object_name, dataset_file_path
+                )
+                # Unzip files -- 
+                ## Sample zipfilepath : ../data/MNIST/raw/t10k-images-idx3-ubyte.gz
+                with gzip.open(dataset_file_path, "rb") as f_in:
+                    filename=file_name.split(".")[0]    #-> t10k-images-idx3-ubyte
+                    file_path=("/".join(dataset_file_path.split("/")[:-1]))     #->../data/MNIST/raw
+                    full_file_path=os.path.join(file_path,filename)     #->../data/MNIST/raw/t10k-images-idx3-ubyte
+                    print(f"Extracting {dataset_file_path} to {file_path}..")
+
+                    with open(full_file_path, "wb") as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+                    print(f"Dataset file downloaded : {full_file_path}\n")
+                # delete zip file
+                os.remove(dataset_file_path)
+
+        dataset = datasets.MNIST(
+            dataset_path,
+            train=True,
+            download=False,
+            transform=transforms.Compose([transforms.ToTensor()]),
+        )
+    else:
+        dataset = datasets.MNIST(
+            dataset_path,
+            train=True,
+            download=True,
+            transform=transforms.Compose([transforms.ToTensor()]),
+        )
     train_loader = torch.utils.data.DataLoader(
         dataset=dataset,
         batch_size=128,
