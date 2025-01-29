@@ -68,6 +68,7 @@ def main(dataset_path):
         download_datasets = False
     else:
         print("Using default MNIST mirror references to download datasets ...")
+        print("Skipped usage of S3 storage bucket, because required environment variables aren't provided!\nRequired environment variables : AWS_DEFAULT_ENDPOINT, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET, AWS_STORAGE_BUCKET_MNIST_DIR")
         download_datasets = True
 
     datasets.MNIST(

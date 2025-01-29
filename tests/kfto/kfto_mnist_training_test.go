@@ -70,7 +70,6 @@ func runKFTOPyTorchMnistJob(t *testing.T, accelerator Accelerator, image string,
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"cpu\""), 1)
 	}
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
-		// MNIST Ray Notebook
 		"mnist.py":                   mnist,
 		"download_mnist_datasets.py": download_mnist_dataset,
 		"requirements.txt":           requirementsFileName,
@@ -350,6 +349,7 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 		}
 	}
 
+	// Use storage bucket to download the MNIST datasets if required environment variables are provided, else use default MNIST mirror references as the fallback
 	if storage_bucket_endpoint_exists && storage_bucket_access_key_id_exists && storage_bucket_secret_key_exists && storage_bucket_name_exists && storage_bucket_mnist_dir_exists {
 		storage_bucket_env_vars := []corev1.EnvVar{
 			{
@@ -374,8 +374,13 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 			},
 		}
 
-		tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Env = append(tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Env, storage_bucket_env_vars...)
-		tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Env = append(tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Env, storage_bucket_env_vars...)
+		// Append the list of environment variables for the worker container
+		for _, envVar := range storage_bucket_env_vars {
+			tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Env = upsert(tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Env, envVar, withEnvVarName(envVar.Name))
+		}
+
+	} else {
+		test.T().Logf("Skipped usage of S3 storage bucket, because required environment variables aren't provided!\nRequired environment variables : AWS_DEFAULT_ENDPOINT, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET, AWS_STORAGE_BUCKET_MNIST_DIR")
 	}
 
 	tuningJob, err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Create(test.Ctx(), tuningJob, metav1.CreateOptions{})
