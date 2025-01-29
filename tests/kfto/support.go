@@ -71,3 +71,21 @@ func OpenShiftPrometheusGpuUtil(test Test, pod corev1.Pod, gpu Accelerator) func
 		return util
 	}
 }
+
+type compare[T any] func(T, T) bool
+
+func upsert[T any](items []T, item T, predicate compare[T]) []T {
+	for i, t := range items {
+		if predicate(t, item) {
+			items[i] = item
+			return items
+		}
+	}
+	return append(items, item)
+}
+
+func withEnvVarName(name string) compare[corev1.EnvVar] {
+	return func(e1, e2 corev1.EnvVar) bool {
+		return e1.Name == name
+	}
+}
