@@ -1,15 +1,15 @@
 ## Global Args ######################################################
-ARG IMAGE_TAG=1-77.1729776556
+ARG IMAGE_TAG=9.5-1737537151
 ARG PYTHON_VERSION=311
 
 # use UBI9 latest
 FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG} AS base
 
-LABEL name="training:py311-rocm61-torch241" \
-      summary="ROCm 6.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
-      description="ROCm 6.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
-      io.k8s.display-name="ROCm 6.1 Python 3.11 PyTorch 2.4.1 base image for Training" \
-      io.k8s.description="ROCm 6.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
+LABEL name="training:py311-rocm62-torch241" \
+      summary="ROCm 6.2 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
+      description="ROCm 6.2 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
+      io.k8s.display-name="ROCm 6.2 Python 3.11 PyTorch 2.4.1 base image for Training" \
+      io.k8s.description="ROCm 6.2 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
       authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
 
 # Copy license
@@ -25,8 +25,8 @@ RUN pip install --no-cache-dir --upgrade requests==2.32.3
 # Install ROCm
 WORKDIR /opt/app-root/bin
 
-ARG ROCM_VERSION=6.1.2
-ARG AMDGPU_VERSION=6.1.2
+ARG ROCM_VERSION=6.2.4
+ARG AMDGPU_VERSION=6.2.4
 
 RUN <<EOF
 cat <<EOD > /etc/yum.repos.d/rocm.repo
@@ -48,7 +48,7 @@ gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
 EOD
 EOF
 
-RUN dnf -y install rocm && dnf clean all && rm -rf /var/cache/dnf
+RUN dnf install -y rocm-developer-tools rocm-ml-sdk rocm-opencl-sdk rocm-openmp-sdk rocm-utils && dnf clean all && rm -rf /var/cache/dnf
 
 # Install Python packages
 

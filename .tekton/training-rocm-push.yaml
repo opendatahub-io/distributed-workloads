@@ -24,9 +24,9 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/training:py311-rocm61-torch241
+    value: quay.io/modh/training:py311-rocm62-torch241
   - name: additional-tag
-    value: py311-rocm61-torch241-{{revision}}
+    value: py311-rocm62-torch241-{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
