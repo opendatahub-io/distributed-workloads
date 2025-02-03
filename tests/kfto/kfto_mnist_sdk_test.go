@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/project-codeflare/codeflare-common/support"
 
 	v1 "k8s.io/api/core/v1"
@@ -33,7 +34,7 @@ func TestMnistSDK(t *testing.T) {
 	userName := GetNotebookUserName(test)
 	userToken := GetNotebookUserToken(test)
 	jupyterNotebookConfigMapFileName := "mnist_kfto.ipynb"
-	mnist := readMnistScriptTemplate(test, "resources/kfto_sdk_mnist.py")
+	mnist := ParseAWSArgs(test, readFile(test, "resources/kfto_sdk_mnist.py"))
 
 	// Create role binding with Namespace specific admin cluster role
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
@@ -45,8 +46,8 @@ func TestMnistSDK(t *testing.T) {
 		"${namespace}": namespace.Name,
 	}
 
-	jupyterNotebook := string(ReadFile(test, "resources/mnist_kfto.ipynb"))
-	requirements := ReadFile(test, "resources/requirements.txt")
+	jupyterNotebook := string(readFile(test, "resources/mnist_kfto.ipynb"))
+	requirements := readFile(test, "resources/requirements.txt")
 	for oldValue, newValue := range requiredChangesInNotebook {
 		jupyterNotebook = strings.Replace(string(jupyterNotebook), oldValue, newValue, -1)
 	}
@@ -57,13 +58,21 @@ func TestMnistSDK(t *testing.T) {
 		"requirements.txt":               requirements,
 	})
 
+	notebookCommand := []string{
+		"bin/sh",
+		"-c",
+		"pip install papermill && papermill /opt/app-root/notebooks/{{.NotebookConfigMapFileName}}" +
+			" /opt/app-root/src/mcad-out.ipynb -p namespace {{.Namespace}} -p openshift_api_url {{.OpenShiftApiUrl}}" +
+			" -p kubernetes_user_bearer_token {{.KubernetesUserBearerToken}}" +
+			" -p num_gpus {{ .NumGpus }} --log-output && sleep infinity",
+	}
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, config.Name, jupyterNotebookConfigMapFileName, 0)
+	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, 0)
 
 	// Gracefully cleanup Notebook
 	defer func() {
-		deleteNotebook(test, namespace)
-		test.Eventually(listNotebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		DeleteNotebook(test, namespace)
+		test.Eventually(ListNotebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
 	}()
 
 	// Make sure pytorch job is created
@@ -76,41 +85,4 @@ func TestMnistSDK(t *testing.T) {
 
 	// TODO: write torch job logs?
 	// time.Sleep(60 * time.Second)
-}
-
-func readMnistScriptTemplate(test Test, filePath string) []byte {
-	// Read the mnist.py from resources and perform replacements for custom values using go template
-	storage_bucket_endpoint, storage_bucket_endpoint_exists := GetStorageBucketDefaultEndpoint()
-	storage_bucket_access_key_id, storage_bucket_access_key_id_exists := GetStorageBucketAccessKeyId()
-	storage_bucket_secret_key, storage_bucket_secret_key_exists := GetStorageBucketSecretKey()
-	storage_bucket_name, storage_bucket_name_exists := GetStorageBucketName()
-	storage_bucket_mnist_dir, storage_bucket_mnist_dir_exists := GetStorageBucketMnistDir()
-
-	props := struct {
-		StorageBucketDefaultEndpoint       string
-		StorageBucketDefaultEndpointExists bool
-		StorageBucketAccessKeyId           string
-		StorageBucketAccessKeyIdExists     bool
-		StorageBucketSecretKey             string
-		StorageBucketSecretKeyExists       bool
-		StorageBucketName                  string
-		StorageBucketNameExists            bool
-		StorageBucketMnistDir              string
-		StorageBucketMnistDirExists        bool
-	}{
-		StorageBucketDefaultEndpoint:       storage_bucket_endpoint,
-		StorageBucketDefaultEndpointExists: storage_bucket_endpoint_exists,
-		StorageBucketAccessKeyId:           storage_bucket_access_key_id,
-		StorageBucketAccessKeyIdExists:     storage_bucket_access_key_id_exists,
-		StorageBucketSecretKey:             storage_bucket_secret_key,
-		StorageBucketSecretKeyExists:       storage_bucket_secret_key_exists,
-		StorageBucketName:                  storage_bucket_name,
-		StorageBucketNameExists:            storage_bucket_name_exists,
-		StorageBucketMnistDir:              storage_bucket_mnist_dir,
-		StorageBucketMnistDirExists:        storage_bucket_mnist_dir_exists,
-	}
-	template, err := files.ReadFile(filePath)
-	test.Expect(err).NotTo(HaveOccurred())
-
-	return ParseTemplate(test, template, props)
 }

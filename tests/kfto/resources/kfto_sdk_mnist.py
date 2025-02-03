@@ -135,4 +135,4 @@ def train_func():
                     )
                 )
 
-    dist.destroy_process_group()
+    dist.barrier()

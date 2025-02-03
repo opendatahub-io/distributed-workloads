@@ -70,7 +70,7 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpu Accelerator, numGpus, num
 
 	// Create a ConfigMap with training script
 	configData := map[string][]byte{
-		"hf_llm_training.py": ReadFile(test, "resources/hf_llm_training.py"),
+		"hf_llm_training.py": readFile(test, "resources/hf_llm_training.py"),
 	}
 	config := CreateConfigMap(test, namespace, configData)
 

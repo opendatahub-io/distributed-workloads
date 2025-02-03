@@ -60,9 +60,9 @@ func runKFTOPyTorchMnistJob(t *testing.T, accelerator Accelerator, image string,
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 
-	mnist := ReadFile(test, "resources/mnist.py")
-	download_mnist_dataset := ReadFile(test, "resources/download_mnist_datasets.py")
-	requirementsFileName := ReadFile(test, requirementsFile)
+	mnist := readFile(test, "resources/mnist.py")
+	download_mnist_dataset := readFile(test, "resources/download_mnist_datasets.py")
+	requirementsFileName := readFile(test, requirementsFile)
 
 	if accelerator.isGpu() {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"gpu\""), 1)
