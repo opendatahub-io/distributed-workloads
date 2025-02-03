@@ -35,7 +35,7 @@ import (
 //go:embed resources/*
 var files embed.FS
 
-func ReadFile(t support.Test, fileName string) []byte {
+func readFile(t support.Test, fileName string) []byte {
 	t.T().Helper()
 	file, err := files.ReadFile(fileName)
 	t.Expect(err).NotTo(gomega.HaveOccurred())
@@ -47,6 +47,17 @@ func ReadFileExt(t support.Test, fileName string) []byte {
 	file, err := os.ReadFile(fileName)
 	t.Expect(err).NotTo(gomega.HaveOccurred())
 	return file
+}
+
+func getNotebookCommand(rayImage string) []string {
+	return []string{
+		"/bin/sh",
+		"-c",
+		"pip install papermill && papermill /opt/app-root/notebooks/{{.NotebookConfigMapFileName}}" +
+			" /opt/app-root/src/mcad-out.ipynb -p namespace {{.Namespace}} -p ray_image " + rayImage + " " +
+			" -p openshift_api_url {{.OpenShiftApiUrl}} -p kubernetes_user_bearer_token {{.KubernetesUserBearerToken}}" +
+			" -p num_gpus {{ .NumGpus }} --log-output && sleep infinity",
+	}
 }
 
 func GetDashboardUrl(test support.Test, namespace *v1.Namespace, rayCluster *rayv1.RayCluster) string {

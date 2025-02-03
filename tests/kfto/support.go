@@ -20,7 +20,9 @@ import (
 	"embed"
 	"time"
 
+	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
+	"github.com/project-codeflare/codeflare-common/support"
 	. "github.com/project-codeflare/codeflare-common/support"
 	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prometheusmodel "github.com/prometheus/common/model"
@@ -47,10 +49,10 @@ func (a Accelerator) isGpu() bool {
 //go:embed resources/*
 var files embed.FS
 
-func ReadFile(t Test, fileName string) []byte {
+func readFile(t support.Test, fileName string) []byte {
 	t.T().Helper()
 	file, err := files.ReadFile(fileName)
-	t.Expect(err).NotTo(HaveOccurred())
+	t.Expect(err).NotTo(gomega.HaveOccurred())
 	return file
 }
 
