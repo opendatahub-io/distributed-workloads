@@ -21,10 +21,11 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/project-codeflare/codeflare-common/support"
 
 	v1 "k8s.io/api/core/v1"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 )
 
 func TestMnistSDK(t *testing.T) {

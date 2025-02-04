@@ -23,7 +23,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/project-codeflare/codeflare-common/support"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
@@ -31,6 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 )
 
 func TestMnistRayCpu(t *testing.T) {
