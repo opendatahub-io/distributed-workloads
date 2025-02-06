@@ -19,6 +19,7 @@ package common
 import (
 	"bytes"
 	"embed"
+	"strings"
 
 	gomega "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -53,7 +54,7 @@ type NotebookProps struct {
 	KubernetesUserBearerToken string
 	Namespace                 string
 	OpenDataHubNamespace      string
-	Command                   []string
+	Command                   string
 	NotebookImage             string
 	NotebookConfigMapName     string
 	NotebookConfigMapFileName string
@@ -76,6 +77,7 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 	s3SecretAccessKey, _ := GetStorageBucketSecretKey()
 	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
 	s3DefaultRegion, _ := GetStorageBucketDefaultRegion()
+	strCommand := "[\"" + strings.Join(command, "\",\"") + "\"]"
 
 	if !s3BucketNameExists {
 		s3BucketName = "''"
@@ -92,7 +94,7 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 		KubernetesUserBearerToken: notebookUserToken,
 		Namespace:                 namespace.Name,
 		OpenDataHubNamespace:      GetOpenDataHubNamespace(test),
-		Command:                   command,
+		Command:                   strCommand,
 		NotebookImage:             GetNotebookImage(test),
 		NotebookConfigMapName:     jupyterNotebookConfigMapName,
 		NotebookConfigMapFileName: jupyterNotebookConfigMapFileName,
@@ -109,6 +111,7 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 	notebookTemplate, err := files.ReadFile("resources/custom-nb-small.yaml")
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 
+	notebookTemplate = ParseTemplate(test, notebookTemplate, notebookProps)
 	parsedNotebookTemplate := ParseTemplate(test, notebookTemplate, notebookProps)
 
 	// Create Notebook CR
