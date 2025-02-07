@@ -108,7 +108,7 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpu Accelerator, numGpus, num
 	}
 
 	// Make sure the PyTorch job succeeded
-	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutDouble).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutGpuProvisioning).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 }
 
