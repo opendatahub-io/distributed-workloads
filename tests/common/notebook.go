@@ -14,10 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package odh
+package common
 
 import (
 	"bytes"
+	"embed"
+	"strings"
 
 	gomega "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -34,6 +36,16 @@ const (
 	NOTEBOOK_CONTAINER_NAME = "jupyter-nb-kube-3aadmin"
 )
 
+//go:embed resources/*
+var files embed.FS
+
+func readFile(t Test, fileName string) []byte {
+	t.T().Helper()
+	file, err := files.ReadFile(fileName)
+	t.Expect(err).NotTo(gomega.HaveOccurred())
+	return file
+}
+
 var notebookResource = schema.GroupVersionResource{Group: "kubeflow.org", Version: "v1", Resource: "notebooks"}
 
 type NotebookProps struct {
@@ -42,7 +54,7 @@ type NotebookProps struct {
 	KubernetesUserBearerToken string
 	Namespace                 string
 	OpenDataHubNamespace      string
-	RayImage                  string
+	Command                   string
 	NotebookImage             string
 	NotebookConfigMapName     string
 	NotebookConfigMapFileName string
@@ -57,7 +69,7 @@ type NotebookProps struct {
 	S3DefaultRegion           string
 }
 
-func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, rayImage string, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int) {
+func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken string, command []string, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int) {
 	// Create PVC for Notebook
 	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", corev1.ReadWriteOnce)
 	s3BucketName, s3BucketNameExists := GetStorageBucketName()
@@ -65,6 +77,7 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, r
 	s3SecretAccessKey, _ := GetStorageBucketSecretKey()
 	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
 	s3DefaultRegion, _ := GetStorageBucketDefaultRegion()
+	strCommand := "[\"" + strings.Join(command, "\",\"") + "\"]"
 
 	if !s3BucketNameExists {
 		s3BucketName = "''"
@@ -81,7 +94,7 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, r
 		KubernetesUserBearerToken: notebookUserToken,
 		Namespace:                 namespace.Name,
 		OpenDataHubNamespace:      GetOpenDataHubNamespace(test),
-		RayImage:                  rayImage,
+		Command:                   strCommand,
 		NotebookImage:             GetNotebookImage(test),
 		NotebookConfigMapName:     jupyterNotebookConfigMapName,
 		NotebookConfigMapFileName: jupyterNotebookConfigMapFileName,
@@ -98,6 +111,7 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, r
 	notebookTemplate, err := files.ReadFile("resources/custom-nb-small.yaml")
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 
+	notebookTemplate = ParseTemplate(test, notebookTemplate, notebookProps)
 	parsedNotebookTemplate := ParseTemplate(test, notebookTemplate, notebookProps)
 
 	// Create Notebook CR
@@ -108,12 +122,12 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookUserToken, r
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
-func deleteNotebook(test Test, namespace *corev1.Namespace) {
+func DeleteNotebook(test Test, namespace *corev1.Namespace) {
 	err := test.Client().Dynamic().Resource(notebookResource).Namespace(namespace.Name).Delete(test.Ctx(), "jupyter-nb-kube-3aadmin", metav1.DeleteOptions{})
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
-func listNotebooks(test Test, namespace *corev1.Namespace) []*unstructured.Unstructured {
+func ListNotebooks(test Test, namespace *corev1.Namespace) []*unstructured.Unstructured {
 	ntbs, err := test.Client().Dynamic().Resource(notebookResource).Namespace(namespace.Name).List(test.Ctx(), metav1.ListOptions{})
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 

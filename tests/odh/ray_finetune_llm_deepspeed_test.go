@@ -28,6 +28,8 @@ import (
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 )
 
 func TestRayFinetuneLlmDeepspeedDemoLlama_2_7b(t *testing.T) {
@@ -104,14 +106,14 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelName string, modelC
 
 	// Get ray image
 	rayImage := GetRayImage()
-
+	notebookCommand := getNotebookCommand(rayImage)
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, rayImage, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {
-		deleteNotebook(test, namespace)
-		test.Eventually(listNotebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		DeleteNotebook(test, namespace)
+		test.Eventually(ListNotebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
 	}()
 
 	// Make sure the RayCluster is created and running

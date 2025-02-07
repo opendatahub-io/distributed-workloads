@@ -30,6 +30,8 @@ import (
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 )
 
 func TestRaytuneOaiMrGrpcCpu(t *testing.T) {
@@ -115,13 +117,14 @@ func raytuneHpo(t *testing.T, numGpus int) {
 	// Get ray image
 	rayImage := GetRayImage()
 
+	notebookCommand := getNotebookCommand(rayImage)
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, rayImage, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {
-		deleteNotebook(test, namespace)
-		test.Eventually(listNotebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		DeleteNotebook(test, namespace)
+		test.Eventually(ListNotebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
 	}()
 
 	// Make sure the RayCluster is created and running

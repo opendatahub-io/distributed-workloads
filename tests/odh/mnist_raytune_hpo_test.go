@@ -30,6 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 )
 
 func TestMnistRayTuneHpoCpu(t *testing.T) {
@@ -82,7 +84,7 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "mnist_hpo_raytune.ipynb"
-	mnist_hpo := readMnistScriptTemplate(test, "resources/mnist_hpo.py")
+	mnist_hpo := ParseAWSArgs(test, readFile(test, "resources/mnist_hpo.py"))
 
 	if numGpus > 0 {
 		mnist_hpo = bytes.Replace(mnist_hpo, []byte("gpu_value=\"has to be specified\""), []byte("gpu_value=\"1\""), 1)
@@ -92,9 +94,9 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
 		// MNIST Raytune HPO Notebook
-		jupyterNotebookConfigMapFileName: ReadFile(test, "resources/mnist_hpo_raytune.ipynb"),
+		jupyterNotebookConfigMapFileName: readFile(test, "resources/mnist_hpo_raytune.ipynb"),
 		"mnist_hpo.py":                   mnist_hpo,
-		"hpo_raytune_requirements.txt":   ReadFile(test, "resources/hpo_raytune_requirements.txt"),
+		"hpo_raytune_requirements.txt":   readFile(test, "resources/hpo_raytune_requirements.txt"),
 	})
 
 	// Define the regular(non-admin) user
@@ -106,14 +108,15 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 
 	// Get ray image
 	rayImage := GetRayImage()
+	notebookCommand := getNotebookCommand(rayImage)
 
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, rayImage, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {
-		deleteNotebook(test, namespace)
-		test.Eventually(listNotebooks(test, namespace), TestTimeoutMedium).Should(HaveLen(0))
+		DeleteNotebook(test, namespace)
+		test.Eventually(ListNotebooks(test, namespace), TestTimeoutMedium).Should(HaveLen(0))
 	}()
 
 	// Make sure the RayCluster is created and running

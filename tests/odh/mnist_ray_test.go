@@ -30,6 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 )
 
 func TestMnistRayCpu(t *testing.T) {
@@ -102,19 +104,19 @@ func mnistRay(t *testing.T, numGpus int, gpuResourceName string, rayImage string
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "mnist_ray_mini.ipynb"
-	mnist := readMnistScriptTemplate(test, "resources/mnist.py")
+	mnist := ParseAWSArgs(test, readFile(test, "resources/mnist.py"))
 	if numGpus > 0 {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"gpu\""), 1)
 	} else {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"cpu\""), 1)
 	}
-	jupyterNotebook := ReadFile(test, "resources/mnist_ray_mini.ipynb")
+	jupyterNotebook := readFile(test, "resources/mnist_ray_mini.ipynb")
 	jupyterNotebook = bytes.ReplaceAll(jupyterNotebook, []byte("nvidia.com/gpu"), []byte(gpuResourceName))
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
 		// MNIST Ray Notebook
 		jupyterNotebookConfigMapFileName: jupyterNotebook,
 		"mnist.py":                       mnist,
-		"requirements.txt":               ReadFile(test, requirementsFileName),
+		"requirements.txt":               readFile(test, requirementsFileName),
 	})
 
 	// Define the regular(non-admin) user
@@ -124,13 +126,14 @@ func mnistRay(t *testing.T, numGpus int, gpuResourceName string, rayImage string
 	// Create role binding with Namespace specific admin cluster role
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
+	notebookCommand := getNotebookCommand(rayImage)
 	// Create Notebook CR
-	createNotebook(test, namespace, userToken, rayImage, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, numGpus)
 
 	// Gracefully cleanup Notebook
 	defer func() {
-		deleteNotebook(test, namespace)
-		test.Eventually(listNotebooks(test, namespace), TestTimeoutMedium).Should(HaveLen(0))
+		DeleteNotebook(test, namespace)
+		test.Eventually(ListNotebooks(test, namespace), TestTimeoutMedium).Should(HaveLen(0))
 	}()
 
 	// Make sure the RayCluster is created and running
@@ -199,41 +202,4 @@ func mnistRay(t *testing.T, numGpus int, gpuResourceName string, rayImage string
 	// Make sure the RayCluster finishes and is deleted
 	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
 		Should(BeEmpty())
-}
-
-func readMnistScriptTemplate(test Test, filePath string) []byte {
-	// Read the mnist.py from resources and perform replacements for custom values using go template
-	storage_bucket_endpoint, storage_bucket_endpoint_exists := GetStorageBucketDefaultEndpoint()
-	storage_bucket_access_key_id, storage_bucket_access_key_id_exists := GetStorageBucketAccessKeyId()
-	storage_bucket_secret_key, storage_bucket_secret_key_exists := GetStorageBucketSecretKey()
-	storage_bucket_name, storage_bucket_name_exists := GetStorageBucketName()
-	storage_bucket_mnist_dir, storage_bucket_mnist_dir_exists := GetStorageBucketMnistDir()
-
-	props := struct {
-		StorageBucketDefaultEndpoint       string
-		StorageBucketDefaultEndpointExists bool
-		StorageBucketAccessKeyId           string
-		StorageBucketAccessKeyIdExists     bool
-		StorageBucketSecretKey             string
-		StorageBucketSecretKeyExists       bool
-		StorageBucketName                  string
-		StorageBucketNameExists            bool
-		StorageBucketMnistDir              string
-		StorageBucketMnistDirExists        bool
-	}{
-		StorageBucketDefaultEndpoint:       storage_bucket_endpoint,
-		StorageBucketDefaultEndpointExists: storage_bucket_endpoint_exists,
-		StorageBucketAccessKeyId:           storage_bucket_access_key_id,
-		StorageBucketAccessKeyIdExists:     storage_bucket_access_key_id_exists,
-		StorageBucketSecretKey:             storage_bucket_secret_key,
-		StorageBucketSecretKeyExists:       storage_bucket_secret_key_exists,
-		StorageBucketName:                  storage_bucket_name,
-		StorageBucketNameExists:            storage_bucket_name_exists,
-		StorageBucketMnistDir:              storage_bucket_mnist_dir,
-		StorageBucketMnistDirExists:        storage_bucket_mnist_dir_exists,
-	}
-	template, err := files.ReadFile(filePath)
-	test.Expect(err).NotTo(HaveOccurred())
-
-	return ParseTemplate(test, template, props)
 }
