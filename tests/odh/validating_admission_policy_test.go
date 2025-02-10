@@ -125,42 +125,48 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 	/**************************************************************************
 	Testing the default behavior with the ValidatingAdmissionPolicyBinding enforcement enabled.
 	**************************************************************************/
-	t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-		rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), ns.Name).Queue(lq.Name).Obj()
-		_, err = test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
-		test.Expect(err).ToNot(HaveOccurred())
-		defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
-	})
-	t.Run("RayCluster should not be admitted without the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-		rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), ns.Name).Obj()
-		_, err = test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
-		test.Expect(err).ToNot(BeNil())
-		defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
-	})
-	t.Run("AppWrapper should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-		awName := uniqueSuffix(awWithLQName)
-		rcName := uniqueSuffix(rcNoLQName)
+	t.Run("Default ValidatingAdmissionPolicyBinding", func(t *testing.T) {
+		t.Run("RayCluster Tests", func(t *testing.T) {
+			t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
+				rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), ns.Name).Queue(lq.Name).Obj()
+				_, err = test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
+				test.Expect(err).ToNot(HaveOccurred())
+				defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+			})
+			t.Run("RayCluster should not be admitted without the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
+				rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), ns.Name).Obj()
+				_, err = test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
+				test.Expect(err).ToNot(BeNil())
+				defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+			})
+		})
+		t.Run("AppWrapper Tests", func(t *testing.T) {
+			t.Run("AppWrapper should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
+				awName := uniqueSuffix(awWithLQName)
+				rcName := uniqueSuffix(rcNoLQName)
 
-		aw = newAppWrapperWithRayCluster(awName, rcName, ns.Name)
-		if aw.Labels == nil {
-			aw.Labels = make(map[string]string)
-		}
-		aw.Labels["kueue.x-k8s.io/queue-name"] = lq.Name
+				aw = newAppWrapperWithRayCluster(awName, rcName, ns.Name)
+				if aw.Labels == nil {
+					aw.Labels = make(map[string]string)
+				}
+				aw.Labels["kueue.x-k8s.io/queue-name"] = lq.Name
 
-		// Create the AppWrapper with the 'kueue.x-k8s.io/queue-name' label set
-		awMap, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(aw)
-		_, err = test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Create(test.Ctx(), &unstructured.Unstructured{Object: awMap}, metav1.CreateOptions{})
-		test.Expect(err).ToNot(HaveOccurred())
-		defer test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Delete(test.Ctx(), awName, metav1.DeleteOptions{})
-	})
-	t.Run("AppWrapper should be admitted without the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-		aw = newAppWrapperWithRayCluster(uniqueSuffix(awNoLQName), uniqueSuffix(rcNoLQName), ns.Name)
+				// Create the AppWrapper with the 'kueue.x-k8s.io/queue-name' label set
+				awMap, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(aw)
+				_, err = test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Create(test.Ctx(), &unstructured.Unstructured{Object: awMap}, metav1.CreateOptions{})
+				test.Expect(err).ToNot(HaveOccurred())
+				defer test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Delete(test.Ctx(), awName, metav1.DeleteOptions{})
+			})
+			t.Run("AppWrapper should be admitted without the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
+				aw = newAppWrapperWithRayCluster(uniqueSuffix(awNoLQName), uniqueSuffix(rcNoLQName), ns.Name)
 
-		// Create the AppWrapper without the 'kueue.x-k8s.io/queue-name' label set
-		awMap, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(aw)
-		_, err = test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Create(test.Ctx(), &unstructured.Unstructured{Object: awMap}, metav1.CreateOptions{})
-		test.Expect(err).ToNot(HaveOccurred())
-		defer test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Delete(test.Ctx(), aw.Name, metav1.DeleteOptions{})
+				// Create the AppWrapper without the 'kueue.x-k8s.io/queue-name' label set
+				awMap, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(aw)
+				_, err = test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Create(test.Ctx(), &unstructured.Unstructured{Object: awMap}, metav1.CreateOptions{})
+				test.Expect(err).ToNot(HaveOccurred())
+				defer test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Delete(test.Ctx(), aw.Name, metav1.DeleteOptions{})
+			})
+		})
 	})
 
 	/**************************************************************************
@@ -174,37 +180,40 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 		_, err = test.Client().Core().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Update(test.Ctx(), vapb, metav1.UpdateOptions{})
 		test.Expect(err).ToNot(HaveOccurred())
 		defer revertVAPB(test, vapbCopy)
-
-		t.Run("RayCluster should be admitted without the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-			rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), ns.Name).Obj()
-			// Eventually is used here to allow time for the ValidatingAdmissionPolicyBinding updates to be propagated.
-			test.Eventually(func() error {
-				_, err := test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
-				return err
-			}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
-			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+		t.Run("RayCluster Tests", func(t *testing.T) {
+			t.Run("RayCluster should be admitted without the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
+				rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), ns.Name).Obj()
+				// Eventually is used here to allow time for the ValidatingAdmissionPolicyBinding updates to be propagated.
+				test.Eventually(func() error {
+					_, err := test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
+					return err
+				}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+				defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+			})
+			t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
+				rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), ns.Name).Queue(lq.Name).Obj()
+				_, err = test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
+				test.Expect(err).ToNot(HaveOccurred())
+				defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+			})
 		})
-		t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-			rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), ns.Name).Queue(lq.Name).Obj()
-			_, err = test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
-			test.Expect(err).ToNot(HaveOccurred())
-			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
-		})
-		t.Run("AppWrapper should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-			awName := uniqueSuffix(awWithLQName)
-			rcName := uniqueSuffix(rcNoLQName)
+		t.Run("AppWrapper Tests", func(t *testing.T) {
+			t.Run("AppWrapper should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
+				awName := uniqueSuffix(awWithLQName)
+				rcName := uniqueSuffix(rcNoLQName)
 
-			aw = newAppWrapperWithRayCluster(awName, rcName, ns.Name)
-			if aw.Labels == nil {
-				aw.Labels = make(map[string]string)
-			}
-			aw.Labels["kueue.x-k8s.io/queue-name"] = lq.Name
+				aw = newAppWrapperWithRayCluster(awName, rcName, ns.Name)
+				if aw.Labels == nil {
+					aw.Labels = make(map[string]string)
+				}
+				aw.Labels["kueue.x-k8s.io/queue-name"] = lq.Name
 
-			// Create the AppWrapper with the 'kueue.x-k8s.io/queue-name' label set
-			awMap, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(aw)
-			_, err = test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Create(test.Ctx(), &unstructured.Unstructured{Object: awMap}, metav1.CreateOptions{})
-			test.Expect(err).ToNot(HaveOccurred())
-			defer test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Delete(test.Ctx(), awName, metav1.DeleteOptions{})
+				// Create the AppWrapper with the 'kueue.x-k8s.io/queue-name' label set
+				awMap, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(aw)
+				_, err = test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Create(test.Ctx(), &unstructured.Unstructured{Object: awMap}, metav1.CreateOptions{})
+				test.Expect(err).ToNot(HaveOccurred())
+				defer test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Delete(test.Ctx(), awName, metav1.DeleteOptions{})
+			})
 		})
 	})
 
@@ -233,34 +242,35 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 		_, err = test.Client().Core().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Update(test.Ctx(), vapb, metav1.UpdateOptions{})
 		test.Expect(err).ToNot(HaveOccurred())
 		defer revertVAPB(test, vapbCopy)
-
-		t.Run("RayCluster should not be admitted without the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
-			rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), ns.Name).Obj()
-			test.Eventually(func() error {
-				_, err := test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
-				return err
-			}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).ShouldNot(Succeed())
-			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
-		})
-		t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
-			rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), ns.Name).Queue(lq.Name).Obj()
-			_, err = test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
-			test.Expect(err).ToNot(HaveOccurred())
-			defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
-		})
-		t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label in any other namespace", func(t *testing.T) {
-			rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), nsNoLabel.Name).Queue(lq.Name).Obj()
-			_, err = test.Client().Ray().RayV1().RayClusters(nsNoLabel.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
-			test.Expect(err).ToNot(HaveOccurred())
-			defer test.Client().Ray().RayV1().RayClusters(nsNoLabel.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
-		})
-		t.Run("RayCluster should be admitted without the 'kueue.x-k8s.io/queue-name' label in any other namespace", func(t *testing.T) {
-			rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), nsNoLabel.Name).Obj()
-			test.Eventually(func() error {
+		t.Run("RayCluster Tests", func(t *testing.T) {
+			t.Run("RayCluster should not be admitted without the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
+				rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), ns.Name).Obj()
+				test.Eventually(func() error {
+					_, err := test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
+					return err
+				}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).ShouldNot(Succeed())
+				defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+			})
+			t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
+				rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), ns.Name).Queue(lq.Name).Obj()
+				_, err = test.Client().Ray().RayV1().RayClusters(ns.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
+				test.Expect(err).ToNot(HaveOccurred())
+				defer test.Client().Ray().RayV1().RayClusters(ns.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+			})
+			t.Run("RayCluster should be admitted with the 'kueue.x-k8s.io/queue-name' label in any other namespace", func(t *testing.T) {
+				rc = testingraycluster.MakeCluster(uniqueSuffix(rcWithLQName), nsNoLabel.Name).Queue(lq.Name).Obj()
 				_, err = test.Client().Ray().RayV1().RayClusters(nsNoLabel.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
-				return err
-			}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
-			defer test.Client().Ray().RayV1().RayClusters(nsNoLabel.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+				test.Expect(err).ToNot(HaveOccurred())
+				defer test.Client().Ray().RayV1().RayClusters(nsNoLabel.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+			})
+			t.Run("RayCluster should be admitted without the 'kueue.x-k8s.io/queue-name' label in any other namespace", func(t *testing.T) {
+				rc = testingraycluster.MakeCluster(uniqueSuffix(rcNoLQName), nsNoLabel.Name).Obj()
+				test.Eventually(func() error {
+					_, err = test.Client().Ray().RayV1().RayClusters(nsNoLabel.Name).Create(test.Ctx(), rc, metav1.CreateOptions{})
+					return err
+				}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+				defer test.Client().Ray().RayV1().RayClusters(nsNoLabel.Name).Delete(test.Ctx(), rc.Name, metav1.DeleteOptions{})
+			})
 		})
 	})
 }
