@@ -69,8 +69,6 @@ func ParseTemplate(t support.Test, inputTemplate []byte, props interface{}) []by
 	buffer := new(bytes.Buffer)
 	err = parsedTemplate.Execute(buffer, props)
 	t.Expect(err).NotTo(gomega.HaveOccurred())
-	err = parsedTemplate.Execute(buffer, props) // NOTE: not sure if template package handles recursive case
-	t.Expect(err).NotTo(gomega.HaveOccurred())
 
 	return buffer.Bytes()
 }
