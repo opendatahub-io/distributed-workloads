@@ -1,0 +1,113 @@
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: nfs-server-root
+  namespace: nfs
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1000Gi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nfs-server-sa
+  namespace: nfs
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nfs-server-sa-anyuid
+  namespace: nfs
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:anyuid
+subjects:
+  - kind: ServiceAccount
+    namespace: nfs
+    name: nfs-server-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nfs-server-sa-privileged
+  namespace: nfs
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:privileged
+subjects:
+  - kind: ServiceAccount
+    namespace: nfs
+    name: nfs-server-sa
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: nfs-server
+  namespace: nfs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-server
+  template:
+    metadata:
+      name: nfs-server
+      labels:
+        app: nfs-server
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+      serviceAccountName: nfs-server-sa
+      terminationGracePeriodSeconds: 30
+      containers:
+        - resources: {}
+          terminationMessagePath: /dev/termination-log
+          name: nfs-server
+          env:
+            - name: SHARED_DIRECTORY
+              value: /exports
+          securityContext:
+            privileged: true
+          ports:
+            - name: tcp-2049
+              containerPort: 2049
+              protocol: TCP
+            - name: udp-111
+              containerPort: 111
+              protocol: UDP
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: nfs-server-root
+              mountPath: /exports
+          terminationMessagePolicy: File
+          image: 'quay.io/astefanu/nfs-server-alpine:latest'
+      volumes:
+        - name: nfs-server-root
+          persistentVolumeClaim:
+            claimName: nfs-server-root
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: nfs-server
+  namespace: nfs
+  labels:
+    app: nfs-server
+spec:
+  type: ClusterIP
+  selector:
+    app: nfs-server
+  ports:
+    - name: tcp-2049
+      port: 2049
+      protocol: TCP
+    - name: udp-111
+      port: 111
+      protocol: UDP
