@@ -1,0 +1,28 @@
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: team2
+spec:
+  cohort: "organization"
+  namespaceSelector: {}
+  preemption:
+    borrowWithinCohort:
+      policy: Never
+    reclaimWithinCohort: Any
+    withinClusterQueue: LowerOrNewerEqualPriority
+  queueingStrategy: BestEffortFIFO
+  resourceGroups:
+    - coveredResources:
+        - cpu
+        - memory
+        - nvidia.com/gpu
+      flavors:
+        - name: nvidia-a100
+          resources:
+            - name: cpu
+              nominalQuota: '256'
+            - name: memory
+              nominalQuota: 2000Gi
+            - name: nvidia.com/gpu
+              nominalQuota: '8'
+  stopPolicy: None
