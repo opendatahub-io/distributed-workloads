@@ -135,14 +135,50 @@
 
 * Install TensorBoard in the Ray head node:
     ```console
-    oc exec `kubectl get pod -l ray.io/node-type=head -o name` -- pip install tensorboard
+    oc exec `oc get pod -l ray.io/node-type=head -o name` -- pip install tensorboard
     ```
 * Start TensorBoard server:
     ```console
-    oc exec `kubectl get pod -l ray.io/node-type=head -o name` -- tensorboard --logdir /tmp/ray --bind_all --port 6006
+    oc exec `oc get pod -l ray.io/node-type=head -o name` -- tensorboard --logdir /tmp/ray --bind_all --port 6006
     ```
 * Port-foward the TensorBoard UI endpoint:
     ```console
-    oc port-forward `kubectl get pod -l ray.io/node-type=head -o name` 6006:6006
+    oc port-forward `oc get pod -l ray.io/node-type=head -o name` 6006:6006
+    ```
+* Access TensorBoard at http://localhost:6006
+
+## Fine-Tune LLama 3.1 with Kubeflow Training
+
+### Enable the training operator
+
+* In the OpenShift Web console, navigate to
+* DataScienceCluster resource
+
+### Configure the fine-tuning job
+
+* Review / edit the `kfto/config.yaml` configuration file
+* Create the fine-tuning job ConfigMap by running:
+    ```console
+    oc create configmap llm-training --from-file=config.yaml=kfto/config.yaml --from-file=sft.py=kfto/sft.py
+    ```
+
+### Create the fine-tuning job
+
+* Review / edit the `kfto/job.yaml` file
+* Set the value of the `HF_TOKEN` environment variable if needed
+* Create the fine-tuning PyTorchJob by running:
+    ```
+    oc apply -f kfto/job.yaml
+    ```
+
+### Monitor training with TensorBoard
+
+* Start TensorBoard server:
+    ```console
+    oc exec `oc get pod -l training.kubeflow.org/job-role=master -o name` -- tensorboard --logdir /mnt/runs --bind_all --port 6006
+    ```
+* Port-foward the TensorBoard UI endpoint:
+    ```console
+    oc port-forward `oc get pod -l training.kubeflow.org/job-role=master -o name` 6006:6006
     ```
 * Access TensorBoard at http://localhost:6006
