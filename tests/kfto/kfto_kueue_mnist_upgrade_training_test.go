@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fms
+package kfto
 
 import (
 	"testing"
@@ -29,8 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 	kueueacv1beta1 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta1"
-
-	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 )
 
 var (
@@ -47,10 +45,16 @@ func TestSetupPytorchjob(t *testing.T) {
 	createOrGetUpgradeTestNamespace(test, namespaceName)
 
 	// Create a ConfigMap with training dataset and configuration
+	mnist := readFile(test, "resources/mnist.py")
+	download_mnist_dataset := readFile(test, "resources/download_mnist_datasets.py")
+	requirementsFileName := readFile(test, "resources/requirements.txt")
+
 	configData := map[string][]byte{
-		"config.json":                   ReadFile(test, "resources/config.json"),
-		"twitter_complaints_small.json": ReadFile(test, "resources/twitter_complaints_small.json"),
+		"mnist.py":                   mnist,
+		"download_mnist_datasets.py": download_mnist_dataset,
+		"requirements.txt":           requirementsFileName,
 	}
+
 	config := CreateConfigMap(test, namespaceName, configData)
 
 	// Create Kueue resources
@@ -70,7 +74,7 @@ func TestSetupPytorchjob(t *testing.T) {
 						WithName(kueuev1beta1.ResourceFlavorReference(resourceFlavorName)).
 						WithResources(
 							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("12Gi")),
+							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
 						),
 				),
 			).
@@ -133,6 +137,10 @@ func createUpgradePyTorchJob(test Test, namespace, localQueueName string, config
 	}
 
 	tuningJob := &kftov1.PyTorchJob{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "PyTorchJob",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: pyTorchJobName,
 			Labels: map[string]string{
@@ -141,84 +149,75 @@ func createUpgradePyTorchJob(test Test, namespace, localQueueName string, config
 		},
 		Spec: kftov1.PyTorchJobSpec{
 			PyTorchReplicaSpecs: map[kftov1.ReplicaType]*kftov1.ReplicaSpec{
-				"Master": {
+				kftov1.PyTorchJobReplicaTypeMaster: {
 					Replicas:      Ptr(int32(1)),
-					RestartPolicy: "OnFailure",
+					RestartPolicy: kftov1.RestartPolicyOnFailure,
 					Template: corev1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								"app":  "kfto-mnist",
+								"role": "master",
+							},
+						},
 						Spec: corev1.PodSpec{
-							InitContainers: []corev1.Container{
-								{
-									Name:            "copy-model",
-									Image:           kfto.GetBloomModelImage(),
-									ImagePullPolicy: corev1.PullIfNotPresent,
-									VolumeMounts: []corev1.VolumeMount{
+							Affinity: &corev1.Affinity{
+								PodAntiAffinity: &corev1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 										{
-											Name:      "tmp-volume",
-											MountPath: "/tmp",
+											LabelSelector: &metav1.LabelSelector{
+												MatchLabels: map[string]string{
+													"app": "kfto-mnist",
+												},
+											},
+											TopologyKey: "kubernetes.io/hostname",
 										},
 									},
-									Command: []string{"/bin/sh", "-c"},
-									Args:    []string{"mkdir /tmp/model; cp -r /models/bloom-560m /tmp/model"},
 								},
 							},
 							Containers: []corev1.Container{
 								{
 									Name:            "pytorch",
-									Image:           GetFmsHfTuningImage(test),
+									Image:           GetCudaTrainingImage(),
 									ImagePullPolicy: corev1.PullIfNotPresent,
-									Env: []corev1.EnvVar{
-										{
-											Name:  "SFT_TRAINER_CONFIG_JSON_PATH",
-											Value: "/etc/config/config.json",
-										},
-										{
-											Name:  "HF_HOME",
-											Value: "/tmp/huggingface",
-										},
+									Command: []string{
+										"/bin/bash", "-c",
+										(`mkdir -p /tmp/lib /tmp/datasets/mnist && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
+										pip install --no-cache-dir -r /mnt/files/requirements.txt --target=/tmp/lib --verbose &&  \
+										echo "Downloading MNIST dataset..." && \
+										python3 /mnt/files/download_mnist_datasets.py --dataset_path "/tmp/datasets/mnist" && \
+										echo -e "\n\n Dataset downloaded to /tmp/datasets/mnist" && ls -R /tmp/datasets/mnist && \
+										echo -e "\n\n Starting training..." && \
+										torchrun --nproc_per_node 2 /mnt/files/mnist.py --dataset_path "/tmp/datasets/mnist" --epochs 7 --save_every 2 --batch_size 128 --lr 0.001 --snapshot_path "mnist_snapshot.pt" --backend "gloo"`),
 									},
 									VolumeMounts: []corev1.VolumeMount{
 										{
-											Name:      "config-volume",
-											MountPath: "/etc/config",
+											Name:      config.Name,
+											MountPath: "/mnt/files",
 										},
 										{
 											Name:      "tmp-volume",
 											MountPath: "/tmp",
 										},
-										{
-											Name:      "output-volume",
-											MountPath: "/mnt/output",
-										},
 									},
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("2"),
-											corev1.ResourceMemory: resource.MustParse("7Gi"),
+											corev1.ResourceMemory: resource.MustParse("6Gi"),
 										},
 										Limits: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("2"),
-											corev1.ResourceMemory: resource.MustParse("7Gi"),
+											corev1.ResourceMemory: resource.MustParse("6Gi"),
 										},
 									},
 								},
 							},
 							Volumes: []corev1.Volume{
 								{
-									Name: "config-volume",
+									Name: config.Name,
 									VolumeSource: corev1.VolumeSource{
 										ConfigMap: &corev1.ConfigMapVolumeSource{
 											LocalObjectReference: corev1.LocalObjectReference{
 												Name: config.Name,
-											},
-											Items: []corev1.KeyToPath{
-												{
-													Key:  "config.json",
-													Path: "config.json",
-												},
-												{
-													Key:  "twitter_complaints_small.json",
-													Path: "twitter_complaints_small.json",
-												},
 											},
 										},
 									},
@@ -229,13 +228,92 @@ func createUpgradePyTorchJob(test Test, namespace, localQueueName string, config
 										EmptyDir: &corev1.EmptyDirVolumeSource{},
 									},
 								},
+							},
+							RestartPolicy: corev1.RestartPolicyOnFailure,
+						},
+					},
+				},
+				kftov1.PyTorchJobReplicaTypeWorker: {
+					Replicas:      Ptr(int32(2)),
+					RestartPolicy: kftov1.RestartPolicyOnFailure,
+					Template: corev1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								"app":  "kfto-mnist",
+								"role": "worker",
+							},
+						},
+						Spec: corev1.PodSpec{
+							Affinity: &corev1.Affinity{
+								PodAntiAffinity: &corev1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+										{
+											LabelSelector: &metav1.LabelSelector{
+												MatchLabels: map[string]string{
+													"app": "kfto-mnist",
+												},
+											},
+											TopologyKey: "kubernetes.io/hostname",
+										},
+									},
+								},
+							},
+							Containers: []corev1.Container{
 								{
-									Name: "output-volume",
+									Name:            "pytorch",
+									Image:           GetCudaTrainingImage(),
+									ImagePullPolicy: corev1.PullIfNotPresent,
+									Command: []string{
+										"/bin/bash", "-c",
+										(`mkdir -p /tmp/lib /tmp/datasets/mnist && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
+										pip install --no-cache-dir -r /mnt/files/requirements.txt --target=/tmp/lib --verbose && \
+										echo "Downloading MNIST dataset..." && \
+										python3 /mnt/files/download_mnist_datasets.py --dataset_path "/tmp/datasets/mnist" && \
+										echo -e "\n\n Dataset downloaded to /tmp/datasets/mnist" && ls -R /tmp/datasets/mnist && \
+										echo -e "\n\n Starting training..." && \
+										torchrun --nproc_per_node 2 /mnt/files/mnist.py --dataset_path "/tmp/datasets/mnist" --epochs 7 --save_every 2 --batch_size 128 --lr 0.001 --snapshot_path "mnist_snapshot.pt" --backend "gloo"`),
+									},
+									VolumeMounts: []corev1.VolumeMount{
+										{
+											Name:      config.Name,
+											MountPath: "/mnt/files",
+										},
+										{
+											Name:      "tmp-volume",
+											MountPath: "/tmp",
+										},
+									},
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceCPU:    resource.MustParse("2"),
+											corev1.ResourceMemory: resource.MustParse("6Gi"),
+										},
+										Limits: corev1.ResourceList{
+											corev1.ResourceCPU:    resource.MustParse("2"),
+											corev1.ResourceMemory: resource.MustParse("6Gi"),
+										},
+									},
+								},
+							},
+							Volumes: []corev1.Volume{
+								{
+									Name: config.Name,
+									VolumeSource: corev1.VolumeSource{
+										ConfigMap: &corev1.ConfigMapVolumeSource{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: config.Name,
+											},
+										},
+									},
+								},
+								{
+									Name: "tmp-volume",
 									VolumeSource: corev1.VolumeSource{
 										EmptyDir: &corev1.EmptyDirVolumeSource{},
 									},
 								},
 							},
+							RestartPolicy: corev1.RestartPolicyOnFailure,
 						},
 					},
 				},
