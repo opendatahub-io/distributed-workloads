@@ -32,8 +32,6 @@ const (
 	huggingfaceTokenEnvVar = "HF_TOKEN"
 	// The environment variable specifying name of PersistenceVolumeClaim containing GPTQ models
 	gptqModelPvcNameEnvVar = "GPTQ_MODEL_PVC_NAME"
-	// The environment variable referring to image simulating sleep condition in container
-	sleepImageEnvVar = "SLEEP_IMAGE"
 	// The environment variable specifying s3 bucket folder path used to store model
 	storageBucketModelPath = "AWS_STORAGE_BUCKET_MODEL_PATH"
 )
@@ -66,10 +64,6 @@ func GetGptqModelPvcName() (string, error) {
 		return "", fmt.Errorf("expected environment variable %s not found, please use this environment variable to specify name of PersistenceVolumeClaim containing GPTQ models", gptqModelPvcNameEnvVar)
 	}
 	return image, nil
-}
-
-func GetSleepImage() string {
-	return lookupEnvOrDefault(sleepImageEnvVar, "gcr.io/k8s-staging-perf-tests/sleep@sha256:8d91ddf9f145b66475efda1a1b52269be542292891b5de2a7fad944052bab6ea")
 }
 
 func GetStorageBucketModelPath() string {
