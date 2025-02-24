@@ -1,5 +1,5 @@
 {
-    "model_name_or_path": "/mnt/model/model/mixtral-8x7b-instruct-v0.1-gptq/mixtral-8x7b-instruct-v0.1-gptq-20241001T175603",
+    "model_name_or_path": "/mnt/model/model/mixtral-8x7b-instruct-v0.1-gptq-20241001T175603",
     "training_data_path": "/mnt/scratch/dataset/alpaca_data.json",
     "output_dir": "/mnt/output/model",
     "save_model_dir": "/mnt/output/model",

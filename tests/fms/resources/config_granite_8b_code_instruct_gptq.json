@@ -1,5 +1,5 @@
 {
-    "model_name_or_path": "/mnt/model/model/granite-8b-code-instruct-gptq/granite-8b-code-instruct-gptq-20241001T153432",
+    "model_name_or_path": "/mnt/model/model/granite-8b-code-instruct-gptq-20241001T153432",
     "training_data_path": "/mnt/scratch/dataset/alpaca_data.json",
     "output_dir": "/mnt/output/model",
     "save_model_dir": "/mnt/output/model",
