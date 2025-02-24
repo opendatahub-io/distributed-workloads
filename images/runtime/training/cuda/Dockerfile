@@ -94,8 +94,13 @@ RUN pip install --no-cache-dir -U "micropipenv[toml]"
 # Install Python dependencies from Pipfile.lock file
 COPY Pipfile.lock ./
 
-RUN micropipenv install && rm -f ./Pipfile.lock
+RUN micropipenv install && \
+    rm -f ./Pipfile.lock && \
+    # Fix permissions to support pip in OpenShift environments \
+    chmod -R g+w /opt/app-root/lib/python3.11/site-packages && \
+    fix-permissions /opt/app-root -P
 
 # Restore user workspace
 USER 1001
+
 WORKDIR /opt/app-root/src
