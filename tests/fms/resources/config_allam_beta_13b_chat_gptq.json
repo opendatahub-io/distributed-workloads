@@ -1,5 +1,5 @@
 {
-    "model_name_or_path": "/mnt/model/model/allam-beta-13b-chat-gptq/allam-beta-13b-chat-gptq-20241001T185023",
+    "model_name_or_path": "/mnt/model/model/allam-beta-13b-chat-gptq-20241001T185023",
     "training_data_path": "/mnt/scratch/dataset/alpaca_data.json",
     "output_dir": "/mnt/output/model",
     "save_model_dir": "/mnt/output/model",

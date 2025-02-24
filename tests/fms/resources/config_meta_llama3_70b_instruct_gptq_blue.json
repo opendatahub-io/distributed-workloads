@@ -1,5 +1,5 @@
 {
-    "model_name_or_path": "/mnt/model/model/llama3-70b-instruct-gptq-blue/llama3-70b-instruct-gptq-blue-20240620223000",
+    "model_name_or_path": "/mnt/model/model/llama3-70b-instruct-gptq-blue-20240620223000",
     "training_data_path": "/mnt/scratch/dataset/alpaca_data.json",
     "output_dir": "/mnt/output/model",
     "save_model_dir": "/mnt/output/model",

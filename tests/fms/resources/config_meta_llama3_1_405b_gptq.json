@@ -1,5 +1,5 @@
 {
-    "model_name_or_path": "/mnt/model/model/llama-3.1-405b-gptq/llama-3.1-405b-gptq-20241001T160356",
+    "model_name_or_path": "/mnt/model/model/llama-3.1-405b-gptq-20241001T160356",
     "training_data_path": "/mnt/scratch/dataset/alpaca_data.json",
     "output_dir": "/mnt/output/model",
     "save_model_dir": "/mnt/output/model",
