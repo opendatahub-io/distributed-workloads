@@ -136,6 +136,12 @@ func createUpgradePyTorchJob(test Test, namespace, localQueueName string, config
 		test.T().Fatalf("Error retrieving PyTorchJob with name `%s`: %v", pyTorchJobName, err)
 	}
 
+	storage_bucket_endpoint, storage_bucket_endpoint_exists := GetStorageBucketDefaultEndpoint()
+	storage_bucket_access_key_id, storage_bucket_access_key_id_exists := GetStorageBucketAccessKeyId()
+	storage_bucket_secret_key, storage_bucket_secret_key_exists := GetStorageBucketSecretKey()
+	storage_bucket_name, storage_bucket_name_exists := GetStorageBucketName()
+	storage_bucket_mnist_dir, storage_bucket_mnist_dir_exists := GetStorageBucketMnistDir()
+
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -319,6 +325,62 @@ func createUpgradePyTorchJob(test Test, namespace, localQueueName string, config
 				},
 			},
 		},
+	}
+
+	// Add PIP Index to download python packages, use provided custom PYPI mirror index url in case of disconnected environemnt
+	tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Env = []corev1.EnvVar{
+		{
+			Name:  "PIP_INDEX_URL",
+			Value: GetPipIndexURL(),
+		},
+		{
+			Name:  "PIP_TRUSTED_HOST",
+			Value: GetPipTrustedHost(),
+		},
+	}
+	tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Env = []corev1.EnvVar{
+		{
+			Name:  "PIP_INDEX_URL",
+			Value: GetPipIndexURL(),
+		},
+		{
+			Name:  "PIP_TRUSTED_HOST",
+			Value: GetPipTrustedHost(),
+		},
+	}
+
+	// Use storage bucket to download the MNIST datasets if required environment variables are provided, else use default MNIST mirror references as the fallback
+	if storage_bucket_endpoint_exists && storage_bucket_access_key_id_exists && storage_bucket_secret_key_exists && storage_bucket_name_exists && storage_bucket_mnist_dir_exists {
+		storage_bucket_env_vars := []corev1.EnvVar{
+			{
+				Name:  "AWS_DEFAULT_ENDPOINT",
+				Value: storage_bucket_endpoint,
+			},
+			{
+				Name:  "AWS_ACCESS_KEY_ID",
+				Value: storage_bucket_access_key_id,
+			},
+			{
+				Name:  "AWS_SECRET_ACCESS_KEY",
+				Value: storage_bucket_secret_key,
+			},
+			{
+				Name:  "AWS_STORAGE_BUCKET",
+				Value: storage_bucket_name,
+			},
+			{
+				Name:  "AWS_STORAGE_BUCKET_MNIST_DIR",
+				Value: storage_bucket_mnist_dir,
+			},
+		}
+
+		// Append the list of environment variables for the worker container
+		for _, envVar := range storage_bucket_env_vars {
+			tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Env = upsert(tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Env, envVar, withEnvVarName(envVar.Name))
+			tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Env = upsert(tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Env, envVar, withEnvVarName(envVar.Name))
+		}
+	} else {
+		test.T().Logf("Skipped usage of S3 storage bucket, because required environment variables aren't provided!\nRequired environment variables : AWS_DEFAULT_ENDPOINT, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET, AWS_STORAGE_BUCKET_MNIST_DIR")
 	}
 
 	tuningJob, err = test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Create(test.Ctx(), tuningJob, metav1.CreateOptions{})
