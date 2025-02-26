@@ -100,6 +100,10 @@ RUN micropipenv install && \
     chmod -R g+w /opt/app-root/lib/python3.11/site-packages && \
     fix-permissions /opt/app-root -P
 
+# Install Flash Attention
+RUN pip install wheel
+RUN pip install flash-attn==2.7.4.post1 --no-build-isolation
+
 # Restore user workspace
 USER 1001
 

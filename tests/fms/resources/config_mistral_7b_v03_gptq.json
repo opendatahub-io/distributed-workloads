@@ -1,5 +1,5 @@
 {
-    "model_name_or_path": "/mnt/model/model/mistral-7b-v0.3-gptq/mistral-7b-v0.3-gptq-20241001T174851",
+    "model_name_or_path": "/mnt/model/model/mistral-7b-v0.3-gptq-20241001T174851",
     "training_data_path": "/mnt/scratch/dataset/alpaca_data.json",
     "output_dir": "/mnt/output/model",
     "save_model_dir": "/mnt/output/model",
