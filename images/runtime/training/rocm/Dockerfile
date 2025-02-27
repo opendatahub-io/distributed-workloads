@@ -64,6 +64,19 @@ RUN micropipenv install && \
     chmod -R g+w /opt/app-root/lib/python3.11/site-packages && \
     fix-permissions /opt/app-root -P
 
+# Install Flash Attention
+ENV GPU_ARCHS=gfx90a;gfx941;gfx942
+
+RUN pip install wheel ninja
+
+RUN export TMP_DIR=$(mktemp -d) \
+    && cd $TMP_DIR \
+    && git clone --depth 1 --branch v2.7.4 https://github.com/Dao-AILab/flash-attention.git \
+    && cd flash-attention \
+    && git submodule update --init
+    && MAX_JOBS="16" python3 setup.py install --verbose \
+    && rm -rf $TMP_DIR
+
 # Restore user workspace
 USER 1001
 
