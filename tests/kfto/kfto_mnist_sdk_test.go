@@ -19,6 +19,7 @@ package kfto
 import (
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -41,10 +42,11 @@ func TestMnistSDK(t *testing.T) {
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
 	requiredChangesInNotebook := map[string]string{
-		"${api_url}":   GetOpenShiftApiUrl(test),
-		"${password}":  userToken,
-		"${num_gpus}":  "0",
-		"${namespace}": namespace.Name,
+		"${api_url}":        GetOpenShiftApiUrl(test),
+		"${password}":       userToken,
+		"${num_gpus}":       "0",
+		"${namespace}":      namespace.Name,
+		"${training_image}": GetCudaTrainingImage(),
 	}
 
 	jupyterNotebook := string(readFile(test, "resources/mnist_kfto.ipynb"))
@@ -81,7 +83,7 @@ func TestMnistSDK(t *testing.T) {
 		Should(WithTransform(PyTorchJobConditionRunning, Equal(v1.ConditionTrue)))
 
 	// Make sure that the job eventually succeeds
-	test.Eventually(PyTorchJob(test, namespace.Name, "pytorch-ddp")).
+	test.Eventually(PyTorchJob(test, namespace.Name, "pytorch-ddp"), TestTimeoutLong, 1*time.Second).
 		Should(WithTransform(PyTorchJobConditionSucceeded, Equal(v1.ConditionTrue)))
 
 	// TODO: write torch job logs?
