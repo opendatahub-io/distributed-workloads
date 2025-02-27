@@ -144,8 +144,8 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), 60*time.Minute).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 
-	_, bucketEndpointSet := GetStorageBucketDefaultEndpoint()
-	if bucketEndpointSet {
+	_, bucketUploadSet := GetStorageBucketUploadName()
+	if bucketUploadSet {
 		uploadToS3(test, namespace, outputPvc.Name, "model")
 	}
 }
