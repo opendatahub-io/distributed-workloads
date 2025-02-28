@@ -73,7 +73,7 @@ RUN export TMP_DIR=$(mktemp -d) \
     && cd $TMP_DIR \
     && git clone --depth 1 --branch v2.7.4 https://github.com/Dao-AILab/flash-attention.git \
     && cd flash-attention \
-    && git submodule update --init
+    && git submodule update --init \
     && MAX_JOBS="16" python3 setup.py install --verbose \
     && rm -rf $TMP_DIR
 
