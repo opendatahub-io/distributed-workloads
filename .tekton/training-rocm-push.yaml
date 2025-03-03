@@ -19,7 +19,7 @@ metadata:
   namespace: rhoai-tenant
 spec:
   timeouts:
-    pipeline: 4h
+    pipeline: 8h
   params:
   - name: git-url
     value: '{{source_url}}'
@@ -225,7 +225,7 @@ spec:
       - name: netrc
         workspace: netrc
     - name: build-container
-      timeout: 4h
+      timeout: 6h
       params:
       - name: IMAGE
         value: $(params.output-image)
