@@ -225,6 +225,7 @@ spec:
       - name: netrc
         workspace: netrc
     - name: build-container
+      timeout: 4h
       params:
       - name: IMAGE
         value: $(params.output-image)
