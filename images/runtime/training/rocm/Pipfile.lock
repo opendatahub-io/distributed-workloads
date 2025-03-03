@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "4fe548c2fcd06a2a8cd286bd2a6026b13e2c199c9ecc3b73f66c7979b1cb6e43"
+            "sha256": "a5abe112bc05177b7dde70737cfa6897e431b28a071b621187bcf242553adf6f"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -542,6 +542,14 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==3.1.5"
+        },
+        "liger-kernel": {
+            "hashes": [
+                "sha256:06af08e67d053c45ab0e85eff63aa229c4a342b984a8691e4374837f335224e1",
+                "sha256:0f4c56496f694af30de197d308982781863b0a64d7024d4ea57139f4425ef3b2"
+            ],
+            "index": "pypi",
+            "version": "==0.5.4"
         },
         "llvmlite": {
             "hashes": [
@@ -1722,6 +1730,16 @@
             "index": "pypi",
             "markers": "python_full_version >= '3.9.0'",
             "version": "==4.49.0"
+        },
+        "triton": {
+            "hashes": [
+                "sha256:30ceed0eff2c4a73b14eb63e052992f44bbdf175f3fad21e1ac8097a772de7ee",
+                "sha256:8009a1fb093ee8546495e96731336a33fb8856a38e45bb4ab6affd6dbc3ba220",
+                "sha256:8d9b215efc1c26fa7eefb9a157915c92d52e000d2bf83e5f69704047e63f125c",
+                "sha256:b3e54983cd51875855da7c68ec05c05cf8bb08df361b1d5b69e05e40b0c9bd62",
+                "sha256:e5dfa23ba84541d7c0a531dfce76d8bcd19159d50a4a8b14ad01e91734a5c1b0"
+            ],
+            "version": "==3.2.0"
         },
         "trl": {
             "hashes": [
