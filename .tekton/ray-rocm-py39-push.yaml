@@ -33,6 +33,8 @@ spec:
     value: Dockerfile
   - name: path-context
     value: images/runtime/ray/rocm
+  - name: build-args
+    value: ["PYTHON_VERSION=39", "IMAGE_TAG=9.5-1739799514"]
   taskRunSpecs:
     - pipelineTaskName: build-container
       stepSpecs:
