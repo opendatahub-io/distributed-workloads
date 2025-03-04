@@ -46,7 +46,7 @@ func uploadToS3(test Test, namespace string, pvcName string, storedAssetsPath st
 	test.Expect(found).To(BeTrue(), "Storage bucket access key id needs to be specified for S3 upload")
 	secretKey, found := GetStorageBucketSecretKey()
 	test.Expect(found).To(BeTrue(), "Storage bucket secret key needs to be specified for S3 upload")
-	bucketName, found := GetStorageBucketName()
+	bucketName, found := GetStorageBucketUploadName()
 	test.Expect(found).To(BeTrue(), "Storage bucket name needs to be specified for S3 upload")
 	bucketPath := GetStorageBucketUploadModelPath()
 
@@ -124,7 +124,7 @@ func downloadFromS3(test Test, namespace string, pvcName string, storedAssetsPat
 	test.Expect(found).To(BeTrue(), "Storage bucket access key id needs to be specified for download from S3")
 	secretKey, found := GetStorageBucketSecretKey()
 	test.Expect(found).To(BeTrue(), "Storage bucket secret key needs to be specified for download from S3")
-	bucketName, found := GetStorageBucketName()
+	bucketName, found := GetStorageBucketDownloadName()
 	test.Expect(found).To(BeTrue(), "Storage bucket name needs to be specified for download from S3")
 	bucketPath := GetStorageBucketDownloadModelPath()
 
