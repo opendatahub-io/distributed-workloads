@@ -58,6 +58,9 @@ spec:
           value: task
         resolver: bundles
     params:
+    - name: additional-tag
+      type: string
+      description: Additional fixed tag for the image
     - description: Source Repository URL
       name: git-url
       type: string
@@ -541,6 +544,9 @@ spec:
       params:
       - name: IMAGE
         value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: ADDITIONAL_TAGS
+        value:
+          - "$(params.additional-tag)"
       runAfter:
       - build-image-index
       taskRef:
