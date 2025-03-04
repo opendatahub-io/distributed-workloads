@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a62c00294b76aacf5a72689a6c048a1371d17460c8e4f52240f91b207ea67e98"
+            "sha256": "c9c2c571fa0e718a871e0002fb9da29de61bedf4b673caf05443fd3e3ec9c8ea"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -537,6 +537,14 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==3.1.5"
+        },
+        "liger-kernel": {
+            "hashes": [
+                "sha256:06af08e67d053c45ab0e85eff63aa229c4a342b984a8691e4374837f335224e1",
+                "sha256:0f4c56496f694af30de197d308982781863b0a64d7024d4ea57139f4425ef3b2"
+            ],
+            "index": "pypi",
+            "version": "==0.5.4"
         },
         "llvmlite": {
             "hashes": [
@@ -1828,7 +1836,6 @@
                 "sha256:bcbf3b1c48af6a28011a5c40a5b3b9b5330530c3827716b5fbf6d7adcc1e53e9",
                 "sha256:e1efef76935b2febc365bfadf74bcb65a6f959a9872e5bddf44cc9e0adce1e1a"
             ],
-            "markers": "platform_system == 'Linux' and platform_machine == 'x86_64' and python_version < '3.13'",
             "version": "==3.0.0"
         },
         "trl": {

@@ -17,8 +17,9 @@ limitations under the License.
 package fms
 
 import (
-	"fmt"
+	"bytes"
 	"testing"
+	"time"
 
 	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 	. "github.com/onsi/gomega"
@@ -33,28 +34,22 @@ import (
 )
 
 func TestPytorchjobWithSFTtrainerFinetuning(t *testing.T) {
-	runPytorchjobWithSFTtrainer(t, "resources/config.json", 0)
+	runPytorchjobWithSFTtrainer(t, "resources/config.json")
 }
 
 func TestPytorchjobWithSFTtrainerLoRa(t *testing.T) {
-	runPytorchjobWithSFTtrainer(t, "resources/config_lora.json", 0)
-}
-func TestPytorchjobWithSFTtrainerQLoRa(t *testing.T) {
-	runPytorchjobWithSFTtrainer(t, "resources/config_qlora.json", 1)
+	runPytorchjobWithSFTtrainer(t, "resources/config_lora.json")
 }
 
-func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string, numGpus int) {
+func TestPytorchjobWithSFTtrainerQLoRa(t *testing.T) {
+	runPytorchjobWithSFTtrainer(t, "resources/config_qlora.json")
+}
+
+func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string) {
 	test := With(t)
 
 	// Create a namespace
 	namespace := test.CreateOrGetTestNamespace().Name
-
-	// Create a ConfigMap with training dataset and configuration
-	configData := map[string][]byte{
-		"config.json":                   ReadFile(test, modelConfigFile),
-		"twitter_complaints_small.json": ReadFile(test, "resources/twitter_complaints_small.json"),
-	}
-	config := CreateConfigMap(test, namespace, configData)
 
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, kueuev1beta1.ResourceFlavorSpec{})
@@ -78,7 +73,7 @@ func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string, numGpus i
 							},
 							{
 								Name:         corev1.ResourceName("nvidia.com/gpu"),
-								NominalQuota: resource.MustParse(fmt.Sprint(numGpus)),
+								NominalQuota: resource.MustParse("1"),
 							},
 						},
 					},
@@ -91,12 +86,37 @@ func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string, numGpus i
 	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name, AsDefaultQueue)
 	defer test.Client().Kueue().KueueV1beta1().LocalQueues(namespace).Delete(test.Ctx(), localQueue.Name, metav1.DeleteOptions{})
 
+	// Create PVC for base model
+	baseModelPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", corev1.ReadWriteOnce)
+	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), baseModelPvc.Name, metav1.DeleteOptions{})
+
 	// Create PVC for trained model
 	outputPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", corev1.ReadWriteOnce)
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
 
+	// Load training job config file
+	configContent := ReadFile(test, modelConfigFile)
+
+	_, bucketDownloadSet := GetStorageBucketDownloadName()
+	if bucketDownloadSet {
+		// Download base model to PVC
+		downloadFromS3(test, namespace, baseModelPvc.Name, "model")
+
+		// Replace model placeholder with mounted model folder
+		configContent = bytes.Replace(configContent, []byte("<MODEL_PATH_PLACEHOLDER>"), []byte("/mnt/model/model/granite-3b-code-base-2k"), 1)
+	} else {
+		// Replace model placeholder with model reference
+		configContent = bytes.Replace(configContent, []byte("<MODEL_PATH_PLACEHOLDER>"), []byte("ibm-granite/granite-3b-code-base-2k"), 1)
+	}
+
+	// Create a ConfigMap with configuration
+	configData := map[string][]byte{
+		"config.json": configContent,
+	}
+	config := CreateConfigMap(test, namespace, configData)
+
 	// Create training PyTorch job
-	tuningJob := createPyTorchJob(test, namespace, localQueue.Name, *config, numGpus, outputPvc.Name)
+	tuningJob := createPyTorchJob(test, namespace, localQueue.Name, *config, baseModelPvc.Name, outputPvc.Name)
 	defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Delete(test.Ctx(), tuningJob.Name, *metav1.NewDeleteOptions(0))
 
 	// Make sure the Kueue Workload is admitted
@@ -113,11 +133,11 @@ func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string, numGpus i
 		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Make sure the PyTorch job succeed
-	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), 30*time.Minute).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 
-	_, bucketEndpointSet := GetStorageBucketDefaultEndpoint()
-	if bucketEndpointSet {
+	_, bucketUploadSet := GetStorageBucketUploadName()
+	if bucketUploadSet {
 		uploadToS3(test, namespace, outputPvc.Name, "model")
 	}
 }
@@ -127,13 +147,6 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 
 	// Create a namespace
 	namespace := test.CreateOrGetTestNamespace().Name
-
-	// Create a ConfigMap with training dataset and configuration
-	configData := map[string][]byte{
-		"config.json":                   ReadFile(test, "resources/config.json"),
-		"twitter_complaints_small.json": ReadFile(test, "resources/twitter_complaints_small.json"),
-	}
-	config := CreateConfigMap(test, namespace, configData)
 
 	// Create limited Kueue resources to run just one Pytorchjob at a time
 	resourceFlavor := CreateKueueResourceFlavor(test, kueuev1beta1.ResourceFlavorSpec{})
@@ -157,7 +170,7 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 							},
 							{
 								Name:         corev1.ResourceName("nvidia.com/gpu"),
-								NominalQuota: resource.MustParse("0"),
+								NominalQuota: resource.MustParse("1"),
 							},
 						},
 					},
@@ -169,12 +182,37 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name, AsDefaultQueue)
 
+	// Create PVC for base model
+	baseModelPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", corev1.ReadWriteOnce)
+	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), baseModelPvc.Name, metav1.DeleteOptions{})
+
+	// Load training job config file
+	configContent := ReadFile(test, "resources/config.json")
+
+	_, bucketDownloadSet := GetStorageBucketDownloadName()
+	if bucketDownloadSet {
+		// Download base model to PVC
+		downloadFromS3(test, namespace, baseModelPvc.Name, "model")
+
+		// Replace model placeholder with mounted model folder
+		configContent = bytes.Replace(configContent, []byte("<MODEL_PATH_PLACEHOLDER>"), []byte("/mnt/model/model/granite-3b-code-base-2k"), 1)
+	} else {
+		// Replace model placeholder with model reference
+		configContent = bytes.Replace(configContent, []byte("<MODEL_PATH_PLACEHOLDER>"), []byte("ibm-granite/granite-3b-code-base-2k"), 1)
+	}
+
+	// Create a ConfigMap with configuration
+	configData := map[string][]byte{
+		"config.json": configContent,
+	}
+	config := CreateConfigMap(test, namespace, configData)
+
 	// Create first PVC for trained model
 	outputPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", corev1.ReadWriteOnce)
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
 
 	// Create first training PyTorch job
-	tuningJob := createPyTorchJob(test, namespace, localQueue.Name, *config, 0, outputPvc.Name)
+	tuningJob := createPyTorchJob(test, namespace, localQueue.Name, *config, baseModelPvc.Name, outputPvc.Name)
 
 	// Make sure the PyTorch job is running
 	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).
@@ -185,14 +223,14 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
 
 	// Create second training PyTorch job
-	secondTuningJob := createPyTorchJob(test, namespace, localQueue.Name, *config, 0, secondOutputPvc.Name)
+	secondTuningJob := createPyTorchJob(test, namespace, localQueue.Name, *config, baseModelPvc.Name, secondOutputPvc.Name)
 
 	// Make sure the second PyTorch job is suspended, waiting for first job to finish
 	test.Eventually(PyTorchJob(test, namespace, secondTuningJob.Name), TestTimeoutShort).
 		Should(WithTransform(PyTorchJobConditionSuspended, Equal(corev1.ConditionTrue)))
 
 	// Make sure the first PyTorch job succeed
-	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), 30*time.Minute).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 
 	// Second PyTorch job should be started now
@@ -200,11 +238,11 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Make sure the second PyTorch job succeed
-	test.Eventually(PyTorchJob(test, namespace, secondTuningJob.Name), TestTimeoutLong).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, secondTuningJob.Name), 30*time.Minute).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", secondTuningJob.Namespace, secondTuningJob.Name)
 }
 
-func createPyTorchJob(test Test, namespace, localQueueName string, config corev1.ConfigMap, numGpus int, outputPvcName string) *kftov1.PyTorchJob {
+func createPyTorchJob(test Test, namespace, localQueueName string, config corev1.ConfigMap, baseModelPvcName, outputPvcName string) *kftov1.PyTorchJob {
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -231,8 +269,8 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 							},
 							InitContainers: []corev1.Container{
 								{
-									Name:            "copy-model",
-									Image:           kfto.GetBloomModelImage(),
+									Name:            "copy-dataset",
+									Image:           kfto.GetAlpacaDatasetImage(),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									VolumeMounts: []corev1.VolumeMount{
 										{
@@ -241,7 +279,7 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 										},
 									},
 									Command: []string{"/bin/sh", "-c"},
-									Args:    []string{"mkdir /tmp/model; cp -r /models/bloom-560m /tmp/model"},
+									Args:    []string{"mkdir /tmp/dataset; cp /dataset/alpaca_data_hundredth.json /tmp/dataset/alpaca_data.json"},
 								},
 							},
 							Containers: []corev1.Container{
@@ -272,6 +310,11 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 											Name:      "tmp-volume",
 											MountPath: "/tmp",
 										},
+
+										{
+											Name:      "base-model-volume",
+											MountPath: "/mnt/model",
+										},
 										{
 											Name:      "output-volume",
 											MountPath: "/mnt/output",
@@ -280,13 +323,13 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("2"),
-											corev1.ResourceMemory: resource.MustParse("7Gi"),
-											"nvidia.com/gpu":      resource.MustParse(fmt.Sprint(numGpus)),
+											corev1.ResourceMemory: resource.MustParse("8Gi"),
+											"nvidia.com/gpu":      resource.MustParse("1"),
 										},
 										Limits: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("2"),
-											corev1.ResourceMemory: resource.MustParse("7Gi"),
-											"nvidia.com/gpu":      resource.MustParse(fmt.Sprint(numGpus)),
+											corev1.ResourceMemory: resource.MustParse("8Gi"),
+											"nvidia.com/gpu":      resource.MustParse("1"),
 										},
 									},
 									SecurityContext: &corev1.SecurityContext{
@@ -310,6 +353,14 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 									Name: "tmp-volume",
 									VolumeSource: corev1.VolumeSource{
 										EmptyDir: &corev1.EmptyDirVolumeSource{},
+									},
+								},
+								{
+									Name: "base-model-volume",
+									VolumeSource: corev1.VolumeSource{
+										PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+											ClaimName: baseModelPvcName,
+										},
 									},
 								},
 								{

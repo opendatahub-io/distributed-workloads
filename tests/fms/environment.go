@@ -32,8 +32,14 @@ const (
 	huggingfaceTokenEnvVar = "HF_TOKEN"
 	// The environment variable specifying name of PersistenceVolumeClaim containing GPTQ models
 	gptqModelPvcNameEnvVar = "GPTQ_MODEL_PVC_NAME"
+	// The environment variable specifying s3 bucket name used to download files
+	storageBucketDownloadName = "AWS_STORAGE_BUCKET_DOWNLOAD"
+	// The environment variable specifying s3 bucket name used to upload files
+	storageBucketUploadName = "AWS_STORAGE_BUCKET_UPLOAD"
+	// The environment variable specifying s3 bucket folder path used to download model from
+	storageBucketDownloadModelPath = "AWS_STORAGE_BUCKET_DOWNLOAD_MODEL_PATH"
 	// The environment variable specifying s3 bucket folder path used to store model
-	storageBucketModelPath = "AWS_STORAGE_BUCKET_MODEL_PATH"
+	storageBucketUploadModelPath = "AWS_STORAGE_BUCKET_UPLOAD_MODEL_PATH"
 )
 
 func GetFmsHfTuningImage(t Test) string {
@@ -66,9 +72,24 @@ func GetGptqModelPvcName() (string, error) {
 	return image, nil
 }
 
-func GetStorageBucketModelPath() string {
-	storageBucketModelPath := lookupEnvOrDefault(storageBucketModelPath, "")
-	return storageBucketModelPath
+func GetStorageBucketDownloadModelPath() string {
+	storageBucketDownloadModelPath := lookupEnvOrDefault(storageBucketDownloadModelPath, "")
+	return storageBucketDownloadModelPath
+}
+
+func GetStorageBucketUploadModelPath() string {
+	storageBucketUploadModelPath := lookupEnvOrDefault(storageBucketUploadModelPath, "")
+	return storageBucketUploadModelPath
+}
+
+func GetStorageBucketDownloadName() (string, bool) {
+	storageBucketDownloadName, exists := os.LookupEnv(storageBucketDownloadName)
+	return storageBucketDownloadName, exists
+}
+
+func GetStorageBucketUploadName() (string, bool) {
+	storageBucketUploadName, exists := os.LookupEnv(storageBucketUploadName)
+	return storageBucketUploadName, exists
 }
 
 func lookupEnvOrDefault(key, value string) string {
