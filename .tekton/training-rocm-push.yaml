@@ -20,7 +20,7 @@ metadata:
   namespace: rhoai-tenant
 spec:
   timeouts:
-    pipeline: 8h
+    pipeline: 10h
   params:
   - name: git-url
     value: '{{source_url}}'
@@ -210,6 +210,7 @@ spec:
       - name: netrc
         workspace: netrc
     - name: build-images
+      timeout: 5h
       matrix:
         params:
         - name: PLATFORM
@@ -359,6 +360,7 @@ spec:
         values:
         - "false"
     - name: ecosystem-cert-preflight-checks
+      timeout: 2h
       params:
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
@@ -405,6 +407,7 @@ spec:
         values:
         - "false"
     - name: clamav-scan
+      timeout: 2h
       params:
       - name: image-digest
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
