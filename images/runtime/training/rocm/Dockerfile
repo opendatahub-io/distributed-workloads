@@ -48,7 +48,7 @@ gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
 EOD
 EOF
 
-RUN dnf install -y rocm-developer-tools rocm-ml-sdk rocm-opencl-sdk rocm-openmp-sdk rocm-utils && dnf clean all && rm -rf /var/cache/dnf
+RUN dnf install -y cmake rocm-developer-tools rocm-ml-sdk rocm-opencl-sdk rocm-openmp-sdk rocm-utils && dnf clean all && rm -rf /var/cache/dnf
 
 # Install Python packages
 
@@ -76,6 +76,21 @@ RUN export TMP_DIR=$(mktemp -d) \
     && git submodule update --init \
     && MAX_JOBS="16" python3 setup.py install --verbose \
     && rm -rf $TMP_DIR
+
+# Install BitsAndBytes
+RUN export TMP_DIR=$(mktemp -d) \
+    && cd $TMP_DIR \
+    && git clone --depth 1 --branch rocm_enabled_multi_backend https://github.com/ROCm/bitsandbytes.git \
+    && cd bitsandbytes \
+    && cmake -S . \
+    && make \
+    && cmake -DCOMPUTE_BACKEND=hip -DBNB_ROCM_ARCH=$GPU_ARCHS -S . \
+    && make \
+    && cp bitsandbytes/libbitsandbytes_rocm62.so bitsandbytes/libbitsandbytes_rocm61.so \
+    && pip install --no-deps . \
+    && rm -rf $TMP_DIR
+# Install a compatible version of pytorch-triton-rocm
+RUN pip install --force-reinstall pytorch-triton-rocm==3.1.0 --index-url https://download.pytorch.org/whl/nightly/rocm6.2
 
 # Restore user workspace
 USER 1001
