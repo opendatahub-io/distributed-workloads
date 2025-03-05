@@ -61,6 +61,7 @@ This example has been validated with the following configurations:
     model_revision: main
     torch_dtype: bfloat16
     attn_implementation: flash_attention_2
+    use_liger: false
 
     # PEFT / LoRA
     use_peft: true
@@ -128,6 +129,7 @@ This example has been validated with the following configurations:
     model_revision: main
     torch_dtype: bfloat16
     attn_implementation: flash_attention_2
+    use_liger: true
 
     # PEFT / LoRA
     use_peft: true
@@ -148,7 +150,6 @@ This example has been validated with the following configurations:
     # SFT
     max_seq_length: 1024
     packing: false
-    use_liger: true
 
     # Training
     per_device_train_batch_size: 64
@@ -197,6 +198,7 @@ This example has been validated with the following configurations:
     model_revision: main
     torch_dtype: bfloat16
     attn_implementation: flash_attention_2
+    use_liger: true
 
     # PEFT / LoRA
     use_peft: true
@@ -217,7 +219,6 @@ This example has been validated with the following configurations:
     # SFT
     max_seq_length: 4096
     packing: false
-    use_liger: true
 
     # Training
     per_device_train_batch_size: 128
