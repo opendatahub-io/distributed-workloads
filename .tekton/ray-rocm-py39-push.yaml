@@ -10,7 +10,7 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" 
       && target_branch == "main" 
-      && ( "images/runtime/ray/rocm/**".pathChanged() || ".tekton/ray-rocm-py39-push".pathChanged() )
+      && ( "images/runtime/ray/rocm/**".pathChanged() || ".tekton/ray-rocm-py39-push.yaml".pathChanged() )
       == "main"
   creationTimestamp: null
   labels:
