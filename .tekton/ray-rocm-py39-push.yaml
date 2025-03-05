@@ -48,9 +48,9 @@ spec:
       computeResources:
         requests:
           cpu: '1'
-          memory: 2Gi
+          memory: 4Gi
         limits:
-          memory: 2Gi
+          memory: 4Gi
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
