@@ -239,106 +239,12 @@ func createUpgradePyTorchJob(test Test, namespace, localQueueName string, config
 						},
 					},
 				},
-				kftov1.PyTorchJobReplicaTypeWorker: {
-					Replicas:      Ptr(int32(2)),
-					RestartPolicy: kftov1.RestartPolicyOnFailure,
-					Template: corev1.PodTemplateSpec{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: map[string]string{
-								"app":  "kfto-mnist",
-								"role": "worker",
-							},
-						},
-						Spec: corev1.PodSpec{
-							Affinity: &corev1.Affinity{
-								PodAntiAffinity: &corev1.PodAntiAffinity{
-									RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-										{
-											LabelSelector: &metav1.LabelSelector{
-												MatchLabels: map[string]string{
-													"app": "kfto-mnist",
-												},
-											},
-											TopologyKey: "kubernetes.io/hostname",
-										},
-									},
-								},
-							},
-							Containers: []corev1.Container{
-								{
-									Name:            "pytorch",
-									Image:           GetCudaTrainingImage(),
-									ImagePullPolicy: corev1.PullIfNotPresent,
-									Command: []string{
-										"/bin/bash", "-c",
-										(`mkdir -p /tmp/lib /tmp/datasets/mnist && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
-										pip install --no-cache-dir -r /mnt/files/requirements.txt --target=/tmp/lib --verbose && \
-										echo "Downloading MNIST dataset..." && \
-										python3 /mnt/files/download_mnist_datasets.py --dataset_path "/tmp/datasets/mnist" && \
-										echo -e "\n\n Dataset downloaded to /tmp/datasets/mnist" && ls -R /tmp/datasets/mnist && \
-										echo -e "\n\n Starting training..." && \
-										torchrun --nproc_per_node 2 /mnt/files/mnist.py --dataset_path "/tmp/datasets/mnist" --epochs 7 --save_every 2 --batch_size 128 --lr 0.001 --snapshot_path "mnist_snapshot.pt" --backend "gloo"`),
-									},
-									VolumeMounts: []corev1.VolumeMount{
-										{
-											Name:      config.Name,
-											MountPath: "/mnt/files",
-										},
-										{
-											Name:      "tmp-volume",
-											MountPath: "/tmp",
-										},
-									},
-									Resources: corev1.ResourceRequirements{
-										Requests: corev1.ResourceList{
-											corev1.ResourceCPU:    resource.MustParse("2"),
-											corev1.ResourceMemory: resource.MustParse("6Gi"),
-										},
-										Limits: corev1.ResourceList{
-											corev1.ResourceCPU:    resource.MustParse("2"),
-											corev1.ResourceMemory: resource.MustParse("6Gi"),
-										},
-									},
-								},
-							},
-							Volumes: []corev1.Volume{
-								{
-									Name: config.Name,
-									VolumeSource: corev1.VolumeSource{
-										ConfigMap: &corev1.ConfigMapVolumeSource{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: config.Name,
-											},
-										},
-									},
-								},
-								{
-									Name: "tmp-volume",
-									VolumeSource: corev1.VolumeSource{
-										EmptyDir: &corev1.EmptyDirVolumeSource{},
-									},
-								},
-							},
-							RestartPolicy: corev1.RestartPolicyOnFailure,
-						},
-					},
-				},
 			},
 		},
 	}
 
 	// Add PIP Index to download python packages, use provided custom PYPI mirror index url in case of disconnected environemnt
 	tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Env = []corev1.EnvVar{
-		{
-			Name:  "PIP_INDEX_URL",
-			Value: GetPipIndexURL(),
-		},
-		{
-			Name:  "PIP_TRUSTED_HOST",
-			Value: GetPipTrustedHost(),
-		},
-	}
-	tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Env = []corev1.EnvVar{
 		{
 			Name:  "PIP_INDEX_URL",
 			Value: GetPipIndexURL(),
@@ -377,7 +283,6 @@ func createUpgradePyTorchJob(test Test, namespace, localQueueName string, config
 		// Append the list of environment variables for the worker container
 		for _, envVar := range storage_bucket_env_vars {
 			tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Env = upsert(tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Env, envVar, withEnvVarName(envVar.Name))
-			tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Env = upsert(tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Env, envVar, withEnvVarName(envVar.Name))
 		}
 	} else {
 		test.T().Logf("Skipped usage of S3 storage bucket, because required environment variables aren't provided!\nRequired environment variables : AWS_DEFAULT_ENDPOINT, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET, AWS_STORAGE_BUCKET_MNIST_DIR")
