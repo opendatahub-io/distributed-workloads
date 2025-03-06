@@ -73,7 +73,7 @@ func uploadToS3(test Test, namespace string, pvcName string, storedAssetsPath st
 							Name:    "s3",
 							Image:   GetMinioCliImage(),
 							Command: []string{"/bin/sh", "-c"},
-							Args:    []string{fmt.Sprintf("mc alias set mys3 $S3ENDPOINT $ACCESSKEYID $SECRETKEY; mc cp --recursive /mnt/%s mys3/%s/%s", storedAssetsPath, bucketName, bucketPath)},
+							Args:    []string{fmt.Sprintf("mc alias set --insecure mys3 $S3ENDPOINT $ACCESSKEYID $SECRETKEY; mc cp --recursive --insecure /mnt/%s mys3/%s/%s", storedAssetsPath, bucketName, bucketPath)},
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									SecretRef: &corev1.SecretEnvSource{
@@ -151,7 +151,7 @@ func downloadFromS3(test Test, namespace string, pvcName string, storedAssetsPat
 							Name:    "s3",
 							Image:   GetMinioCliImage(),
 							Command: []string{"/bin/sh", "-c"},
-							Args:    []string{fmt.Sprintf("mc alias set mys3 $S3ENDPOINT $ACCESSKEYID $SECRETKEY; mc cp --recursive mys3/%s/%s /mnt/%s", bucketName, bucketPath, storedAssetsPath)},
+							Args:    []string{fmt.Sprintf("mc alias set --insecure mys3 $S3ENDPOINT $ACCESSKEYID $SECRETKEY; mc cp --recursive --insecure mys3/%s/%s /mnt/%s", bucketName, bucketPath, storedAssetsPath)},
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									SecretRef: &corev1.SecretEnvSource{
