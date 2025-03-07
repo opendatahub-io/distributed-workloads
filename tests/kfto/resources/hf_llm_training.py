@@ -20,8 +20,6 @@ import logging
 from urllib.parse import urlparse
 import json
 import os
-import time
-from datetime import datetime
 
 from datasets import load_dataset, Dataset
 from datasets.distributed import split_dataset_by_node
@@ -34,95 +32,8 @@ from transformers import (
     TrainingArguments,
     DataCollatorForLanguageModeling,
     Trainer,
-    TrainerCallback,
 )
-import torch
-from torch.utils.tensorboard import SummaryWriter
-import torch.distributed as dist
 
-
-class CustomTensorBoardCallback(TrainerCallback):
-    def __init__(self, log_dir=None, exclude_metrics=None):
-        self.exclude_metrics = exclude_metrics or []
-        self.writer = None
-        self.log_dir = log_dir
-        self.epoch_start_time = None
-        self.total_forward_time = 0
-        self.total_backward_time = 0
-        self.total_batches = 0
-    
-    def on_train_begin(self, args, state, control, **kwargs):
-        # Initialize TensorBoard writer at the start of training, only for the main process.
-        if dist.get_rank() == 0:
-            if self.log_dir is None:
-                self.log_dir = args.logging_dir
-            self.writer = SummaryWriter(log_dir=self.log_dir)
-
-    def on_log(self, args, state, control, logs=None, **kwargs):
-        # Aggregate metrics across all ranks and log only from rank 0.
-        if logs is None:
-            return
-
-        aggregated_logs = {}
-        
-        for key, value in logs.items():
-            if key not in self.exclude_metrics:  # Remove unwanted metrics
-                tensor_value = torch.tensor(value, dtype=torch.float32, device="cuda" if torch.cuda.is_available() else "cpu")
-
-                # Aggregate across all ranks
-                dist.all_reduce(tensor_value, op=dist.ReduceOp.SUM)  
-                tensor_value /= dist.get_world_size()  
-
-                aggregated_logs[key] = tensor_value.item()  
-
-        if dist.get_rank() == 0:
-            for key, value in aggregated_logs.items():
-                self.writer.add_scalar(f"kfto-pytorch/{key}", value, state.global_step)
-
-            self.writer.flush() 
-
-    def on_epoch_begin(self, args, state, control, **kwargs):
-        self.epoch_start_time = time.time()
-        print(f"Epoch {state.epoch +1} starting...")
-        if dist.get_rank() == 0:
-            self.writer.add_scalar("kfto-pytorch/epoch", state.epoch +1, state.global_step)
-    
-    def on_step_begin(self, args, state, control, **kwargs):
-        self.start_forward_time = time.time()
-
-    def on_step_end(self, args, state, control, **kwargs):
-        forward_time = time.time() - self.start_forward_time
-        self.total_forward_time += forward_time
-
-        start_backward_time = time.time()
-        torch.cuda.synchronize() # Wait for GPU operations to finish before timing
-
-        backward_time = time.time() - start_backward_time
-        self.total_backward_time += backward_time
-
-        self.total_batches += 1
-        avg_forward_time = self.total_forward_time / self.total_batches
-        avg_backward_time = self.total_backward_time / self.total_batches
-
-        gpu_memory_peak = torch.cuda.max_memory_allocated() / (1024 ** 2) # convert to mb
-
-        if dist.get_rank() == 0:
-            self.writer.add_scalar("kfto-pytorch/forward_time", avg_forward_time, state.global_step)
-            self.writer.add_scalar("kfto-pytorch/backward_time", avg_backward_time, state.global_step)
-            self.writer.add_scalar("kfto-pytorch/gpu_memory_peak_mb", gpu_memory_peak, state.global_step)
-
-    def on_epoch_end(self, args, state, control, **kwargs):
-        epoch_end_time = time.time()
-        epoch_duration = epoch_end_time - self.epoch_start_time
-
-        if dist.get_rank() == 0:
-            self.writer.add_scalar("kfto-pytorch/epoch_duration", epoch_duration, state.global_step)
-
-    def on_evaluate(self, args, state, control, metrics, **kwargs):
-        for key, value in metrics.items():
-             if key not in self.exclude_metrics and dist.get_rank() == 0:
-                self.writer.add_scalar(f"kfto-pytorch/{key}", value, state.global_step)
-                self.writer.flush()
 
 # Configure logger.
 log_formatter = logging.Formatter(
@@ -156,9 +67,6 @@ def setup_model_and_tokenizer(model_uri, transformer_type, model_dir):
     # Freeze model parameters
     for param in model.parameters():
         param.requires_grad = False
-        # If running in a distributed setting, synchronize model parameters across workers.
-        if dist.is_initialized():
-            dist.broadcast(param.data, src=0)
 
     return model, tokenizer
 
@@ -234,17 +142,12 @@ def setup_peft_model(model, lora_config):
 
 
 def train_model(model, transformer_type, train_data, eval_data, tokenizer, train_args):
-    # Allow for each run to be saved in a new directory to allow multiple runs to show on tensorboard
-    log_dir = f"/mnt/logs/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}" 
-    # Exclude unwanted default metrics
-    exclude_metrics = ['grad_norm', 'total_flos', 'train_runtime', 'train_samples_per_second', 'train_steps_per_second']
     # Setup the Trainer.
     trainer = Trainer(
         model=model,
         train_dataset=train_data,
         eval_dataset=eval_data,
         args=train_args,
-        callbacks=[CustomTensorBoardCallback(log_dir=log_dir, exclude_metrics=exclude_metrics)]
     )
 
     # TODO (andreyvelich): Currently, data collator is supported only for casual LM Transformer.
@@ -259,11 +162,6 @@ def train_model(model, transformer_type, train_data, eval_data, tokenizer, train
 
     # Train and save the model.
     trainer.train()
-
-    # Using trainer.evaluate() for default eval metrics 
-    if eval_data is not None:
-        eval_results = trainer.evaluate(eval_dataset=eval_data)
-
     trainer.save_model()
     logger.info("parallel_mode: '{0}'".format(trainer.args.parallel_mode))
     logger.info("is_model_parallel: '{0}'".format(trainer.is_model_parallel))
@@ -283,7 +181,6 @@ def parse_arguments():
     parser.add_argument(
         "--training_parameters", help="hugging face training parameters"
     )
-    parser.add_argument("--log_dir", type=str, default="/mnt/logs", help="TensorBoard log directory")
 
     return parser.parse_args()
 
