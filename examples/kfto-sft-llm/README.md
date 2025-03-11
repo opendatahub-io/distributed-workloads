@@ -99,20 +99,20 @@ This example has been validated with the following configurations:
     # FSDP
     fsdp: "full_shard auto_wrap offload"
     fsdp_config:
-    activation_checkpointing: true
+      activation_checkpointing: true
     ```
 * Job:
     ```yaml
     num_workers: 8
     num_procs_per_worker: 1
     resources_per_worker:
-        "nvidia.com/gpu": 1
-        "memory": 96Gi
-        "cpu": 4
+      "nvidia.com/gpu": 1
+      "memory": 96Gi
+      "cpu": 4
     base_image: quay.io/modh/training:py311-cuda121-torch241
     env_vars:
-        "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"
-        "NCCL_DEBUG": "INFO"
+      "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"
+      "NCCL_DEBUG": "INFO"
     ```
 * Metrics:
     ![](./docs/run01.png)
@@ -133,11 +133,11 @@ This example has been validated with the following configurations:
 
     # PEFT / LoRA
     use_peft: true
-    lora_target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
-    lora_modules_to_save: []
     lora_r: 16
     lora_alpha: 8
     lora_dropout: 0.05
+    lora_target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    lora_modules_to_save: []
 
     # QLoRA (BitsAndBytes)
     load_in_4bit: false
@@ -168,20 +168,20 @@ This example has been validated with the following configurations:
     # FSDP
     fsdp: "full_shard auto_wrap"
     fsdp_config:
-    activation_checkpointing: true
+      activation_checkpointing: true
     ```
 * Job:
     ```yaml
     num_workers: 16
     num_procs_per_worker: 1
     resources_per_worker:
-        "amd.com/gpu": 1
-        "memory": 192Gi
-        "cpu": 4
+      "amd.com/gpu": 1
+      "memory": 192Gi
+      "cpu": 4
     base_image: quay.io/modh/training:py311-cuda121-torch241
     env_vars:
-        "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"
-        "NCCL_DEBUG": "INFO"
+      "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"
+      "NCCL_DEBUG": "INFO"
     ```
 * Metrics:
     ![](./docs/run02.png)
@@ -202,11 +202,11 @@ This example has been validated with the following configurations:
 
     # PEFT / LoRA
     use_peft: true
-    lora_target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
-    lora_modules_to_save: []
     lora_r: 16
     lora_alpha: 8
     lora_dropout: 0.05
+    lora_target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    lora_modules_to_save: []
 
     # QLoRA (BitsAndBytes)
     load_in_4bit: false
@@ -237,23 +237,92 @@ This example has been validated with the following configurations:
     # FSDP
     fsdp: "full_shard auto_wrap"
     fsdp_config:
-    activation_checkpointing: true
+      activation_checkpointing: true
     ```
 * Job:
     ```yaml
     num_workers: 8
     num_procs_per_worker: 1
     resources_per_worker:
-        "amd.com/gpu": 1
-        "memory": 96Gi
-        "cpu": 4
+      "amd.com/gpu": 1
+      "memory": 96Gi
+      "cpu": 4
     base_image: quay.io/modh/training:py311-rocm62-torch241
     env_vars:
-        "PYTORCH_HIP_ALLOC_CONF": "expandable_segments:True"
-        "NCCL_DEBUG": "INFO"
+      "PYTORCH_HIP_ALLOC_CONF": "expandable_segments:True"
+      "NCCL_DEBUG": "INFO"
     ```
 * Metrics:
     ![](./docs/run03.png)
     Blue: with Liger kernels
 
     Orange: without Liger kernels
+
+### Llama 3.3 70B Instruct - GSM8k Dataset - LoRA - 8x NVIDIA A100/80G
+
+* Infrastructure:
+  * OpenShift AI 2.17
+  * 8x NVIDIA-A100-SXM4-80GB
+* Configuration:
+    ```yaml
+    # Model
+    model_name_or_path: meta-llama/Llama-3.3-70B-Instruct
+    model_revision: main
+    torch_dtype: bfloat16
+    attn_implementation: flash_attention_2
+    use_liger: true
+
+    # PEFT / LoRA
+    use_peft: true
+    lora_r: 16
+    lora_alpha: 8
+    lora_dropout: 0.05
+    lora_target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    lora_modules_to_save: []
+
+    # QLoRA (BitsAndBytes)
+    load_in_4bit: false
+    load_in_8bit: false
+
+    # Dataset
+    dataset_name: gsm8k
+    dataset_config: main
+
+    # SFT
+    max_seq_length: 2048
+    packing: false
+
+    # Training
+    per_device_train_batch_size: 32
+    per_device_eval_batch_size: 32
+
+    bf16: true
+    tf32: false
+
+    learning_rate: 2.0e-4
+    warmup_steps: 10
+    lr_scheduler_type: inverse_sqrt
+
+    optim: adamw_torch_fused
+    max_grad_norm: 1.0
+
+    # FSDP
+    fsdp: "full_shard auto_wrap"
+    fsdp_config:
+      activation_checkpointing: true
+    ```
+* Job:
+    ```yaml
+    num_workers: 8
+    num_procs_per_worker: 1
+    resources_per_worker:
+      "nvidia.com/gpu": 1
+      "memory": 256Gi
+      "cpu": 4
+    base_image: quay.io/modh/training:py311-cuda121-torch241
+    env_vars:
+      "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"
+      "NCCL_DEBUG": "INFO"
+    ```
+* Metrics:
+    ![](./docs/run04.png)
