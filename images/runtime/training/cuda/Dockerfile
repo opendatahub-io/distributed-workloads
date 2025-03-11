@@ -86,6 +86,18 @@ RUN dnf install -y \
     && dnf clean all \
     && rm -rf /var/cache/dnf/*
 
+# Install InfiniBand and RDMA packages
+RUN dnf config-manager \
+        --add-repo https://linux.mellanox.com/public/repo/mlnx_ofed/latest/rhel9.5/mellanox_mlnx_ofed.repo \
+    && dnf install -y \
+        libibverbs-utils \
+        infiniband-diags \
+        libibumad \
+        librdmacm \
+        rdma-core \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf/*
+
 # Install Python packages
 
 # Install micropipenv to deploy packages from Pipfile.lock
