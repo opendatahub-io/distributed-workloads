@@ -193,7 +193,7 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 										--model_dir /tmp/model/bloom-560m \
 										--dataset_file /tmp/all_datasets/alpaca_data_tenth.json \
 										--transformer_type AutoModelForCausalLM \
-										--training_parameters '{"output_dir": "/mnt/output", "per_device_train_batch_size": 8, "num_train_epochs": 3, "logging_dir": "/logs", "eval_strategy": "epoch", "save_strategy": "no"}' \
+										--training_parameters '{"output_dir": "/mnt/output", "per_device_train_batch_size": 8, "num_train_epochs": 3, "logging_dir": "/tmp/logs", "eval_strategy": "epoch", "save_strategy": "no"}' \
 										--lora_config '{"r": 4, "lora_alpha": 16, "lora_dropout": 0.1, "bias": "none"}'`,
 									},
 									Env: []corev1.EnvVar{

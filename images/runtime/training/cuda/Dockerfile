@@ -32,57 +32,34 @@ ENV CUDA_VERSION=12.1.0 \
     NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility \
     NV_CUDA_CUDART_VERSION=12.1.55-1 \
-    NV_CUDA_COMPAT_VERSION=530.30.02-1
+    NV_CUDA_COMPAT_VERSION=530.30.02-1 \
+    NV_CUDA_NVCC_VERSION=12.1.66-1
 
+# Ref: https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.1.1/ubi9/base/Dockerfile
+# nvcc is required for Flash Attention
 RUN dnf config-manager \
     --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo \
  && dnf install -y \
      cuda-cudart-12-1-${NV_CUDA_CUDART_VERSION} \
      cuda-compat-12-1-${NV_CUDA_COMPAT_VERSION} \
+     cuda-nvcc-12-1-${NV_CUDA_NVCC_VERSION} \
  && echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf \
  && echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf \
  && dnf clean all
 
-RUN dnf -y install --allowerasing cudnn9-cuda-12
-
 ENV CUDA_HOME="/usr/local/cuda" \
  PATH="/usr/local/nvidia/bin:${CUDA_HOME}/bin:${PATH}" \
- LD_LIBRARY_PATH="/usr/local/nvidia/lib:/usr/local/nvidia/lib64:$CUDA_HOME/lib64:$CUDA_HOME/extras/CUPTI/lib64:$LD_LIBRARY_PATH" \
- LD_LIBRARY_PATH="/usr/local/cuda-9.0/lib64:$LD_LIBRARY_PATH"
+ LD_LIBRARY_PATH="/usr/local/nvidia/lib:/usr/local/nvidia/lib64:$CUDA_HOME/lib64:$CUDA_HOME/extras/CUPTI/lib64:$LD_LIBRARY_PATH"
 
-# Ref: https://developer.nvidia.com/nccl/nccl-legacy-downloads
-ENV NV_CUDA_CUDART_DEV_VERSION=12.1.55-1 \
-    NV_NVML_DEV_VERSION=12.1.55-1 \
-    NV_LIBCUBLAS_DEV_VERSION=12.1.0.26-1 \
-    NV_LIBNPP_DEV_VERSION=12.0.2.50-1 \
-    NV_LIBNCCL_DEV_PACKAGE_VERSION=2.18.3-1+cuda12.1
-
+# Install InfiniBand and RDMA packages
 RUN dnf config-manager \
-       --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo \
+        --add-repo https://linux.mellanox.com/public/repo/mlnx_ofed/latest/rhel9.5/mellanox_mlnx_ofed.repo \
     && dnf install -y \
-        cuda-command-line-tools-12-1-${NV_CUDA_LIB_VERSION} \
-        cuda-libraries-devel-12-1-${NV_CUDA_LIB_VERSION} \
-        cuda-minimal-build-12-1-${NV_CUDA_LIB_VERSION} \
-        cuda-cudart-devel-12-1-${NV_CUDA_CUDART_DEV_VERSION} \
-        cuda-nvml-devel-12-1-${NV_NVML_DEV_VERSION} \
-        libcublas-devel-12-1-${NV_LIBCUBLAS_DEV_VERSION} \
-        libnpp-devel-12-1-${NV_LIBNPP_DEV_VERSION} \
-        libnccl-devel-${NV_LIBNCCL_DEV_PACKAGE_VERSION} \
-    && dnf clean all
-
-ENV LIBRARY_PATH="$CUDA_HOME/lib64/stubs"
-
-# Install CUDA devel cudnn8 from:
-# https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.1.1/ubi9/devel/cudnn8/Dockerfile
-ENV NV_CUDNN_VERSION=8.9.0.131-1
-ENV NV_CUDNN_PACKAGE=libcudnn8-${NV_CUDNN_VERSION}.cuda12.1
-ENV NV_CUDNN_PACKAGE_DEV=libcudnn8-devel-${NV_CUDNN_VERSION}.cuda12.1
-
-LABEL com.nvidia.cudnn.version="${NV_CUDNN_VERSION}"
-
-RUN dnf install -y \
-    ${NV_CUDNN_PACKAGE} \
-    ${NV_CUDNN_PACKAGE_DEV} \
+        libibverbs-utils \
+        infiniband-diags \
+        libibumad \
+        librdmacm \
+        rdma-core \
     && dnf clean all \
     && rm -rf /var/cache/dnf/*
 
@@ -94,7 +71,7 @@ RUN pip install --no-cache-dir -U "micropipenv[toml]"
 # Install Python dependencies from Pipfile.lock file
 COPY Pipfile.lock ./
 
-RUN micropipenv install && \
+RUN micropipenv install -- --no-cache-dir && \
     rm -f ./Pipfile.lock && \
     # Fix permissions to support pip in OpenShift environments \
     chmod -R g+w /opt/app-root/lib/python3.11/site-packages && \
@@ -102,7 +79,7 @@ RUN micropipenv install && \
 
 # Install Flash Attention
 RUN pip install wheel
-RUN pip install flash-attn==2.7.4.post1 --no-build-isolation
+RUN pip install --no-cache-dir flash-attn==2.7.4.post1 --no-build-isolation
 
 # Restore user workspace
 USER 1001
