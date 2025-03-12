@@ -57,9 +57,11 @@ RUN dnf config-manager \
     && dnf install -y \
         libibverbs-utils \
         infiniband-diags \
-        libibumad \
+        libibumad3 \
         librdmacm \
+        librdmacm-utils \
         rdma-core \
+        mlnx-tools \
     && dnf clean all \
     && rm -rf /var/cache/dnf/*
 
