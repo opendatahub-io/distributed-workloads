@@ -1,5 +1,5 @@
 ## Global Args ######################################################
-ARG IMAGE_TAG=1-77.1729776556
+ARG IMAGE_TAG=9.5-1741671866
 ARG PYTHON_VERSION=311
 
 # use UBI9
@@ -57,9 +57,11 @@ RUN dnf config-manager \
     && dnf install -y \
         libibverbs-utils \
         infiniband-diags \
-        libibumad \
+        libibumad3 \
         librdmacm \
+        librdmacm-utils \
         rdma-core \
+        mlnx-tools \
     && dnf clean all \
     && rm -rf /var/cache/dnf/*
 
