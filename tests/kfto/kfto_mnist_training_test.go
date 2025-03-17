@@ -63,7 +63,7 @@ func runKFTOPyTorchMnistJob(t *testing.T, accelerator Accelerator, image string,
 	download_mnist_dataset := readFile(test, "resources/download_mnist_datasets.py")
 	requirementsFileName := readFile(test, requirementsFile)
 
-	if accelerator.isGpu() {
+	if accelerator.IsGpu() {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"gpu\""), 1)
 	} else {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"cpu\""), 1)
@@ -90,7 +90,7 @@ func runKFTOPyTorchMnistJob(t *testing.T, accelerator Accelerator, image string,
 
 func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.ConfigMap, accelerator Accelerator, workerReplicas int, numProcPerNode int, baseImage string) *kftov1.PyTorchJob {
 	var backend string
-	if accelerator.isGpu() {
+	if accelerator.IsGpu() {
 		backend = "nccl"
 	} else {
 		backend = "gloo"
@@ -306,7 +306,7 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 		},
 	}
 
-	if accelerator.isGpu() {
+	if accelerator.IsGpu() {
 		// Update resource lists for GPU (NVIDIA/ROCm) usecase
 		tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Resources.Requests[corev1.ResourceName(accelerator.ResourceLabel)] = resource.MustParse(fmt.Sprint(numProcPerNode))
 		tuningJob.Spec.PyTorchReplicaSpecs[kftov1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Resources.Limits[corev1.ResourceName(accelerator.ResourceLabel)] = resource.MustParse(fmt.Sprint(numProcPerNode))
