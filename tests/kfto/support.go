@@ -30,22 +30,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-type Accelerator struct {
-	ResourceLabel                 string
-	PrometheusGpuUtilizationLabel string
-}
-
-var (
-	NVIDIA = Accelerator{ResourceLabel: "nvidia.com/gpu", PrometheusGpuUtilizationLabel: "DCGM_FI_DEV_GPU_UTIL"}
-	AMD    = Accelerator{ResourceLabel: "amd.com/gpu"}
-	CPU    = Accelerator{}
-)
-
-// Method to check if the accelerator is a GPU
-func (a Accelerator) isGpu() bool {
-	return a != CPU
-}
-
 //go:embed resources/*
 var files embed.FS
 
