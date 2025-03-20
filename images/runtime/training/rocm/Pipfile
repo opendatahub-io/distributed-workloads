@@ -15,7 +15,7 @@ liger-kernel = "==0.5.4"
 transformers = ">=4.49.0"
 numpy = "<2.0.0,>=1.23.5"
 accelerate = ">=1.4.0"
-torch = {version = "==2.4.1+rocm6.1", index = "pytorch"}
+torch = {version = "==2.5.1+rocm6.2", index = "pytorch"}
 pytorch-triton-rocm = {version = "*", index = "pytorch"}
 sentencepiece = "<0.3,>=0.1.99"
 tokenizers = "<1.0,>=0.13.3"
