@@ -9,13 +9,13 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" 
       && target_branch == "main" 
-      && ( "images/runtime/training/cuda/**".pathChanged() || ".tekton/training-cuda-push.yaml".pathChanged() )
+      && ( "images/runtime/training/py311-rocm62-torch251/**".pathChanged() || ".tekton/training-push-py311-rocm62-torch251.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-training
-    appstudio.openshift.io/component: training-cuda
+    appstudio.openshift.io/component: training-rocm
     pipelines.appstudio.openshift.io/type: build
-  name: training-cuda-on-push
+  name: training-push-py311-rocm62-torch251
   namespace: rhoai-tenant
 spec:
   params:
@@ -24,29 +24,38 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/training:py311-cuda121-torch241
+    value: quay.io/modh/training:py311-rocm62-torch251
   - name: additional-tag
-    value: py311-cuda121-torch241-{{revision}}
+    value: py311-rocm62-torch251-{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
-    value: images/runtime/training/cuda
+    value: images/runtime/training/py311-rocm62-torch251
   taskRunSpecs:
     - pipelineTaskName: build-container
-      stepSpecs:
-        - name: build
-          computeResources:
-            requests:
-              memory: 10Gi
-            limits:
-              memory: 10Gi
-    - pipelineTaskName: prefetch-dependencies
       computeResources:
         requests:
-          cpu: '1'
-          memory: 2Gi
+          cpu: '8'
+          memory: 16Gi
         limits:
-          memory: 2Gi
+          cpu: '16'
+          memory: 32Gi
+    - pipelineTaskName: ecosystem-cert-preflight-checks
+      computeResources:
+        requests:
+          cpu: '8'
+          memory: 16Gi
+        limits:
+          cpu: '16'
+          memory: 32Gi
+    - pipelineTaskName: clair-scan
+      computeResources:
+        requests:
+          cpu: '8'
+          memory: 16Gi
+        limits:
+          cpu: '16'
+          memory: 32Gi
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
@@ -497,4 +506,3 @@ spec:
     secret:
       secretName: '{{ git_auth_secret }}'
 status: {}
-#restart

@@ -1,0 +1,42 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[[source]]
+url = "https://download.pytorch.org/whl/"
+verify_ssl = true
+name = "pytorch"
+
+[packages]
+peft = ">=0.14.0"
+datasets = ">=2.15.0"
+liger-kernel = "==0.5.4"
+transformers = ">=4.49.0"
+numpy = "<2.0.0,>=1.23.5"
+accelerate = ">=1.4.0"
+torch = {version = "==2.4.1+rocm6.1", index = "pytorch"}
+pytorch-triton-rocm = {version = "*", index = "pytorch"}
+sentencepiece = "<0.3,>=0.1.99"
+tokenizers = "<1.0,>=0.13.3"
+tqdm = "<5.0,>=4.66.2"
+trl = ">=0.15.2"
+protobuf = "<6.0.0,>=5.28.0"
+simpleeval = "<1.0,>=0.9.13"
+safetensors = "*"
+packaging = ">=20.9"
+pyyaml = "*"
+py-cpuinfo = "*"
+numba = "*"
+rich = "*"
+instructlab-dolomite = ">=0.1.1"
+pydantic = ">=2.7.0"
+deepspeed = ">=0.14.3"
+aiofiles = ">=23.2.1"
+async-timeout = "==4.0.3"
+tensorboard = "2.19.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
