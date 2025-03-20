@@ -5,11 +5,11 @@ ARG PYTHON_VERSION=311
 # use UBI9
 FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG}
 
-LABEL name="training:py311-cuda121-torch241" \
-      summary="CUDA 12.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
-      description="CUDA 12.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
-      io.k8s.display-name="CUDA 12.1 Python 3.11 PyTorch 2.4.1 base image for Training" \
-      io.k8s.description="CUDA 12.1 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
+LABEL name="training:py311-cuda121-torch251" \
+      summary="CUDA 12.1 Python 3.11 PyTorch 2.5.1 image based on UBI9 for Training" \
+      description="CUDA 12.1 Python 3.11 PyTorch 2.5.1 image based on UBI9 for Training" \
+      io.k8s.display-name="CUDA 12.1 Python 3.11 PyTorch 2.5.1 base image for Training" \
+      io.k8s.description="CUDA 12.1 Python 3.11 PyTorch 2.5.1 image based on UBI9 for Training" \
       authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
 
 # Copy license
