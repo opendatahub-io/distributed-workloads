@@ -8,7 +8,6 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" 
-      && target_branch == "main" 
       && ( "images/runtime/training/cuda/**".pathChanged() || ".tekton/training-cuda-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
@@ -24,9 +23,9 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/training:py311-cuda121-torch241
+    value: quay.io/modh/training:py311-cuda125-torch251
   - name: additional-tag
-    value: py311-cuda121-torch241-{{revision}}
+    value: py311-cuda125-torch251-{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
