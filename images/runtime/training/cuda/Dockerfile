@@ -84,7 +84,8 @@ RUN pip install wheel
 RUN pip install --no-cache-dir flash-attn==2.7.4.post1 --no-build-isolation
 
 # Upgrade NCCL to a more recent version until we upgrade torch
-RUN pip install nvidia-nccl-cu12==2.26.2
+RUN pip install nvidia-nccl-cu12==2.26.2 && \
+    fix-permissions /opt/app-root -P
 
 # Restore user workspace
 USER 1001
