@@ -18,6 +18,7 @@ package common
 
 import (
 	"os"
+	"slices"
 
 	. "github.com/project-codeflare/codeflare-common/support"
 )
@@ -31,7 +32,23 @@ const (
 	notebookUserToken = "NOTEBOOK_USER_TOKEN"
 	// Image of the Notebook
 	notebookImage = "NOTEBOOK_IMAGE"
+	// Test tier to be invoked
+	testTierEnvVar = "TEST_TIER"
 )
+
+const (
+	tierSmoke   = "Smoke"
+	tierSanity  = "Sanity"
+	tier1       = "Tier1"
+	tier2       = "Tier2"
+	tier3       = "Tier3"
+	preUpgrade  = "Pre-Upgrade"
+	postUpgrade = "Post-Upgrade"
+	kftoCuda    = "KFTO-CUDA"
+	kftoRocm    = "KFTO-ROCm"
+)
+
+var testTiers = []string{tierSmoke, tierSanity, tier1, tier2, tier3, preUpgrade, postUpgrade, kftoCuda, kftoRocm}
 
 func GetOpenDataHubNamespace(t Test) string {
 	ns, ok := os.LookupEnv(odhNamespaceEnvVar)
@@ -63,4 +80,15 @@ func GetNotebookImage(t Test) string {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify image of the Notebook.", notebookImage)
 	}
 	return notebook_image
+}
+
+func GetTestTier(t Test) (string, bool) {
+	tt, ok := os.LookupEnv(testTierEnvVar)
+	if ok {
+		if slices.Contains(testTiers, tt) {
+			return tt, true
+		}
+		t.T().Fatalf("Environment variable %s is defined and contains invalid value: '%s'. Valid values are: %v", testTierEnvVar, tt, testTiers)
+	}
+	return "", false
 }

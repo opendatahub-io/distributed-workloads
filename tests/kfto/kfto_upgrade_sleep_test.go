@@ -26,6 +26,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 )
 
 var (
@@ -34,6 +36,7 @@ var (
 )
 
 func TestSetupSleepPytorchjob(t *testing.T) {
+	Tags(t, PreUpgrade)
 	test := With(t)
 
 	// Create a namespace
@@ -48,6 +51,7 @@ func TestSetupSleepPytorchjob(t *testing.T) {
 }
 
 func TestVerifySleepPytorchjob(t *testing.T) {
+	Tags(t, PostUpgrade)
 	test := With(t)
 	namespace := GetNamespaceWithName(test, sleepNamespaceName)
 
