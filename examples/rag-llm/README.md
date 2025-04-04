@@ -1,8 +1,8 @@
 # Retrieval-Augmented Generation on OpenShift AI
 
-These examples shows how user can run Retrieval-Augmented Generation using Jupyter Notebooks provided by OpenShift AI.
+These examples show how a user can run Retrieval-Augmented Generation using Jupyter Notebooks provided by OpenShift AI.
 
-Simple example is based on HuggingFace blog - https://huggingface.co/blog/ngxson/make-your-own-rag
+The huggingface_rag example is based on this HuggingFace blog post - https://huggingface.co/blog/ngxson/make-your-own-rag
 
 
 ## Requirements
