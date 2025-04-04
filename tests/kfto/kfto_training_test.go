@@ -28,37 +28,47 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 )
 
 func TestPyTorchJobSingleNodeSingleGpuWithCuda(t *testing.T) {
+	Tags(t, Tier1, Gpu(NVIDIA))
 	runKFTOPyTorchJob(t, GetCudaTrainingImage(), NVIDIA, 1, 0)
 }
 
 func TestPyTorchJobSingleNodeMultiGpuWithCuda(t *testing.T) {
+	Tags(t, KftoCuda)
 	runKFTOPyTorchJob(t, GetCudaTrainingImage(), NVIDIA, 2, 0)
 }
 
 func TestPyTorchJobMultiNodeSingleGpuWithCuda(t *testing.T) {
+	Tags(t, KftoCuda)
 	runKFTOPyTorchJob(t, GetCudaTrainingImage(), NVIDIA, 1, 1)
 }
 
 func TestPyTorchJobMultiNodeMultiGpuWithCuda(t *testing.T) {
+	Tags(t, KftoCuda)
 	runKFTOPyTorchJob(t, GetCudaTrainingImage(), NVIDIA, 2, 1)
 }
 
 func TestPyTorchJobSingleNodeSingleGpuWithROCm(t *testing.T) {
+	Tags(t, Tier1, Gpu(AMD))
 	runKFTOPyTorchJob(t, GetROCmTrainingImage(), AMD, 1, 0)
 }
 
 func TestPyTorchJobSingleNodeMultiGpuWithROCm(t *testing.T) {
+	Tags(t, KftoRocm)
 	runKFTOPyTorchJob(t, GetROCmTrainingImage(), AMD, 2, 0)
 }
 
 func TestPyTorchJobMultiNodeSingleGpuWithROCm(t *testing.T) {
+	Tags(t, KftoRocm)
 	runKFTOPyTorchJob(t, GetROCmTrainingImage(), AMD, 1, 1)
 }
 
 func TestPyTorchJobMultiNodeMultiGpuWithROCm(t *testing.T) {
+	Tags(t, KftoRocm)
 	runKFTOPyTorchJob(t, GetROCmTrainingImage(), AMD, 2, 1)
 }
 

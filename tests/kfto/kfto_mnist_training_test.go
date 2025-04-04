@@ -28,28 +28,36 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 )
 
 func TestPyTorchJobMnistMultiNodeSingleCpu(t *testing.T) {
+	Tags(t, Sanity, MultiNode(3))
 	runKFTOPyTorchMnistJob(t, CPU, GetCudaTrainingImage(), "resources/requirements.txt", 2, 1)
 }
 func TestPyTorchJobMnistMultiNodeMultiCpu(t *testing.T) {
+	Tags(t, Tier1, MultiNode(3))
 	runKFTOPyTorchMnistJob(t, CPU, GetCudaTrainingImage(), "resources/requirements.txt", 2, 2)
 }
 
 func TestPyTorchJobMnistMultiNodeSingleGpuWithCuda(t *testing.T) {
+	Tags(t, KftoCuda)
 	runKFTOPyTorchMnistJob(t, NVIDIA, GetCudaTrainingImage(), "resources/requirements.txt", 1, 1)
 }
 
 func TestPyTorchJobMnistMultiNodeMultiGpuWithCuda(t *testing.T) {
+	Tags(t, KftoCuda)
 	runKFTOPyTorchMnistJob(t, NVIDIA, GetCudaTrainingImage(), "resources/requirements.txt", 1, 2)
 }
 
 func TestPyTorchJobMnistMultiNodeSingleGpuWithROCm(t *testing.T) {
+	Tags(t, KftoRocm)
 	runKFTOPyTorchMnistJob(t, AMD, GetROCmTrainingImage(), "resources/requirements-rocm.txt", 1, 1)
 }
 
 func TestPyTorchJobMnistMultiNodeMultiGpuWithROCm(t *testing.T) {
+	Tags(t, KftoRocm)
 	runKFTOPyTorchMnistJob(t, AMD, GetROCmTrainingImage(), "resources/requirements-rocm.txt", 1, 2)
 }
 

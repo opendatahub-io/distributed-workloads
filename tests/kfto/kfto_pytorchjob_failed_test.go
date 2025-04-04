@@ -10,13 +10,17 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 )
 
 func TestPyTorchJobFailureWithCuda(t *testing.T) {
+	Tags(t, Tier1)
 	runFailedPyTorchJobTest(t, GetCudaTrainingImage())
 }
 
 func TestPyTorchJobFailureWithROCm(t *testing.T) {
+	Tags(t, Tier1)
 	runFailedPyTorchJobTest(t, GetROCmTrainingImage())
 }
 

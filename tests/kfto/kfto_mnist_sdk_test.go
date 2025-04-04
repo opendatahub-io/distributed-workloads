@@ -30,6 +30,7 @@ import (
 )
 
 func TestMnistSDK(t *testing.T) {
+	Tags(t, Tier1)
 	test := With(t)
 	// Create a namespace
 	namespace := test.NewTestNamespace()
