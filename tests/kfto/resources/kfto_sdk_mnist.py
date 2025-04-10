@@ -9,7 +9,7 @@ def train_func():
     from minio import Minio
     import shutil
     import gzip
-
+    from urllib.parse import urlparse
 
     # [1] Setup PyTorch DDP. Distributed environment will be set automatically by Training Operator.
     dist.init_process_group(backend="nccl" if torch.cuda.is_available() else "gloo")
@@ -57,13 +57,20 @@ def train_func():
     secret_key = "{{.StorageBucketSecretKey}}"
     bucket_name = "{{.StorageBucketName}}"
     prefix = "{{.StorageBucketMnistDir}}"
-    if with_aws != "true":
+
+    # Sanitize endpoint to remove any scheme or path.
+    parsed = urlparse(endpoint)
+    # If the endpoint URL contains a scheme, netloc contains the host and optional port.
+    endpoint = parsed.netloc if parsed.netloc else parsed.path
+    secure = parsed.scheme == "https"
+
+    if with_aws == "true":
         client = Minio(
             endpoint,
             access_key=access_key,
             secret_key=secret_key,
             cert_check=False,
-            secure=False,  #TODO
+            secure=secure,
         )
 
         if not os.path.exists(dataset_dir):
