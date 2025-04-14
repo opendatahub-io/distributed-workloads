@@ -9,7 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "pull_request" 
-      && target_branch == "main" 
+      && target_branch == "torch-v2.4.1" 
       && ( "images/runtime/training/cuda/**".pathChanged() || ".tekton/training-cuda-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
