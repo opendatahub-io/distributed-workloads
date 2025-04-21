@@ -5,11 +5,11 @@ ARG PYTHON_VERSION=311
 # use UBI9 latest
 FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG} AS base
 
-LABEL name="training:py311-rocm62-torch241" \
-      summary="ROCm 6.2 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
-      description="ROCm 6.2 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
-      io.k8s.display-name="ROCm 6.2 Python 3.11 PyTorch 2.4.1 base image for Training" \
-      io.k8s.description="ROCm 6.2 Python 3.11 PyTorch 2.4.1 image based on UBI9 for Training" \
+LABEL name="training:py311-rocm62-torch251" \
+      summary="ROCm 6.2 Python 3.11 PyTorch 2.5.1 image based on UBI9 for Training" \
+      description="ROCm 6.2 Python 3.11 PyTorch 2.5.1 image based on UBI9 for Training" \
+      io.k8s.display-name="ROCm 6.2 Python 3.11 PyTorch 2.5.1 base image for Training" \
+      io.k8s.description="ROCm 6.2 Python 3.11 PyTorch 2.5.1 image based on UBI9 for Training" \
       authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
 
 # Copy license
@@ -86,7 +86,6 @@ RUN export TMP_DIR=$(mktemp -d) \
     && make \
     && cmake -DCOMPUTE_BACKEND=hip -DBNB_ROCM_ARCH=$GPU_ARCHS -S . \
     && make \
-    && cp bitsandbytes/libbitsandbytes_rocm62.so bitsandbytes/libbitsandbytes_rocm61.so \
     && pip install --no-deps . \
     && rm -rf $TMP_DIR
 # Install a compatible version of pytorch-triton-rocm
