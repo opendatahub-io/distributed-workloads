@@ -5,7 +5,6 @@ metadata:
     build.appstudio.openshift.io/repo: https://github.com/red-hat-data-services/distributed-workloads?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" 
@@ -19,8 +18,6 @@ metadata:
   name: training-py311-cuda124-torch251-on-push
   namespace: rhoai-tenant
 spec:
-  timeouts:
-    pipeline: 10h
   params:
   - name: git-url
     value: '{{source_url}}'
@@ -30,19 +27,32 @@ spec:
     value: quay.io/modh/training:py311-cuda124-torch251
   - name: additional-tag
     value: py311-cuda124-torch251-{{revision}}
-  - name: build-platforms
-    value:
-    - linux-extra-fast/amd64
   - name: dockerfile
     value: Dockerfile
   - name: path-context
     value: images/runtime/training/py311-cuda124-torch251
+  taskRunSpecs:
+    - pipelineTaskName: build-container
+      stepSpecs:
+        - name: build
+          computeResources:
+            requests:
+              memory: 10Gi
+            limits:
+              memory: 10Gi
+    - pipelineTaskName: prefetch-dependencies
+      computeResources:
+        requests:
+          cpu: '1'
+          memory: 2Gi
+        limits:
+          memory: 2Gi
   pipelineSpec:
     description: |
-      This pipeline is ideal for building multi-arch container images from a Containerfile while maintaining trust after pipeline customization.
+      This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
 
-      _Uses `buildah` to create a multi-platform container image leveraging [trusted artifacts](https://konflux-ci.dev/architecture/ADR/0036-trusted-artifacts.html). It also optionally creates a source image and runs some build-time tests. This pipeline requires that the [multi platform controller](https://github.com/konflux-ci/multi-platform-controller) is deployed and configured on your Konflux instance. Information is shared between tasks using OCI artifacts instead of PVCs. EC will pass the [`trusted_task.trusted`](https://enterprisecontract.dev/docs/ec-policies/release_policy.html#trusted_task__trusted) policy as long as all data used to build the artifact is generated from trusted tasks.
-      This pipeline is pushed as a Tekton bundle to [quay.io](https://quay.io/repository/konflux-ci/tekton-catalog/pipeline-docker-build-multi-platform-oci-ta?tab=tags)_
+      _Uses `buildah` to create a container image leveraging [trusted artifacts](https://konflux-ci.dev/architecture/ADR/0036-trusted-artifacts.html). It also optionally creates a source image and runs some build-time tests. Information is shared between tasks using OCI artifacts instead of PVCs. EC will pass the [`trusted_task.trusted`](https://enterprisecontract.dev/docs/ec-policies/release_policy.html#trusted_task__trusted) policy as long as all data used to build the artifact is generated from trusted tasks.
+      This pipeline is pushed as a Tekton bundle to [quay.io](https://quay.io/repository/konflux-ci/tekton-catalog/pipeline-docker-build-oci-ta?tab=tags)_
     finally:
     - name: show-sbom
       params:
@@ -117,12 +127,11 @@ spec:
       description: Path to a file with build arguments for buildah, see https://www.mankier.com/1/buildah-build#--build-arg-file
       name: build-args-file
       type: string
-    - default:
-      - linux/x86_64
-      description: List of platforms to build the container images on. The available
-        set of values is determined by the configuration of the multi-platform-controller.
-      name: build-platforms
-      type: array
+    - default: "false"
+      description: Whether to enable privileged mode, should be used only with remote
+        VMs
+      name: privileged-nested
+      type: string
     results:
     - description: ""
       name: IMAGE_URL
@@ -209,13 +218,7 @@ spec:
         workspace: git-auth
       - name: netrc
         workspace: netrc
-    - name: build-images
-      timeout: 5h
-      matrix:
-        params:
-        - name: PLATFORM
-          value:
-          - $(params.build-platforms)
+    - name: build-container
       params:
       - name: IMAGE
         value: $(params.output-image)
@@ -242,14 +245,12 @@ spec:
         value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
       - name: CACHI2_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
-      - name: IMAGE_APPEND_PLATFORM
-        value: "false"
       runAfter:
       - prefetch-dependencies
       taskRef:
         params:
         - name: name
-          value: buildah-remote-oci-ta
+          value: buildah-oci-ta
         - name: bundle
           value: quay.io/konflux-ci/tekton-catalog/task-buildah-oci-ta:0.4@sha256:2466d6f8787363825fea838598e91ece2c80e063796613a5c13b28ab690dfbb2
         - name: kind
@@ -362,7 +363,6 @@ spec:
         values:
         - "false"
     - name: ecosystem-cert-preflight-checks
-      timeout: 2h
       params:
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
@@ -409,7 +409,6 @@ spec:
         values:
         - "false"
     - name: clamav-scan
-      timeout: 2h
       params:
       - name: image-digest
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
