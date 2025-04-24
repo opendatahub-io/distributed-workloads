@@ -247,7 +247,7 @@ spec:
       taskRef:
         params:
         - name: name
-          value: buildah-oci-ta
+          value: buildah-remote-oci-ta
         - name: bundle
           value: quay.io/konflux-ci/tekton-catalog/task-buildah-oci-ta:0.4@sha256:2466d6f8787363825fea838598e91ece2c80e063796613a5c13b28ab690dfbb2
         - name: kind
@@ -270,9 +270,9 @@ spec:
         value: $(params.build-image-index)
       - name: IMAGES
         value:
-        - $(tasks.build-container.results.IMAGE_URL)@$(tasks.build-container.results.IMAGE_DIGEST)
+        - $(tasks.build-images.results.IMAGE_REF[*])
       runAfter:
-      - build-container
+      - build-images
       taskRef:
         params:
         - name: name
