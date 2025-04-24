@@ -5,10 +5,12 @@ metadata:
     build.appstudio.openshift.io/repo: https://github.com/red-hat-data-services/distributed-workloads?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push" 
+      && target_branch == "main" 
+      && ( "images/runtime/training/py311-rocm62-torch241/**".pathChanged() || ".tekton/training-py311-rocm62-torch241-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-training
@@ -17,16 +19,20 @@ metadata:
   name: training-py311-rocm62-torch241-on-push
   namespace: rhoai-tenant
 spec:
+  timeouts:
+    pipeline: 10h
   params:
   - name: git-url
     value: '{{source_url}}'
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/rhoai-tenant/training-py311-rocm62-torch241:{{revision}}
+    value: quay.io/modh/training:py311-rocm62-torch241
+  - name: additional-tag
+    value: py311-rocm62-torch241-{{revision}}
   - name: build-platforms
     value:
-    - linux/x86_64
+    - linux-extra-fast/amd64
   - name: dockerfile
     value: Dockerfile
   - name: path-context
@@ -52,6 +58,9 @@ spec:
           value: task
         resolver: bundles
     params:
+    - name: additional-tag
+      type: string
+      description: Additional fixed tag for the image
     - description: Source Repository URL
       name: git-url
       type: string
@@ -96,7 +105,7 @@ spec:
       description: Build a source image.
       name: build-source-image
       type: string
-    - default: "true"
+    - default: "false"
       description: Add built image into an OCI image index
       name: build-image-index
       type: string
@@ -205,7 +214,9 @@ spec:
         workspace: git-auth
       - name: netrc
         workspace: netrc
-    - matrix:
+    - name: build-images
+      timeout: 5h
+      matrix:
         params:
         - name: PLATFORM
           value:
@@ -238,7 +249,7 @@ spec:
       - name: CACHI2_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
       - name: IMAGE_APPEND_PLATFORM
-        value: "true"
+        value: "false"
       runAfter:
       - prefetch-dependencies
       taskRef:
@@ -357,6 +368,7 @@ spec:
         values:
         - "false"
     - name: ecosystem-cert-preflight-checks
+      timeout: 2h
       params:
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
@@ -403,6 +415,7 @@ spec:
         values:
         - "false"
     - name: clamav-scan
+      timeout: 2h
       params:
       - name: image-digest
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
@@ -546,6 +559,9 @@ spec:
       params:
       - name: IMAGE
         value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: ADDITIONAL_TAGS
+        value:
+          - "$(params.additional-tag)"
       runAfter:
       - build-image-index
       taskRef:
