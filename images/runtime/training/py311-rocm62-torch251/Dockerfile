@@ -74,7 +74,7 @@ RUN export TMP_DIR=$(mktemp -d) \
     && git clone --depth 1 --branch v2.7.4 https://github.com/Dao-AILab/flash-attention.git \
     && cd flash-attention \
     && git submodule update --init \
-    && MAX_JOBS="16" python3 setup.py install --verbose \
+    && MAX_JOBS="16" pip install --no-build-isolation . \
     && rm -rf $TMP_DIR
 
 # Install BitsAndBytes
