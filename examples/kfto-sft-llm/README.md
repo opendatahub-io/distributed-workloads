@@ -52,7 +52,7 @@ This example has been validated with the following configurations:
 ### Llama 3.1 8B Instruct - GSM8k Dataset - LoRA - 8x NVIDIA A100/80G
 
 * Infrastructure:
-  * OpenShift AI 2.17
+  * OpenShift AI 2.19
   * 8x NVIDIA-A100-SXM4-80GB
 * Configuration:
     ```yaml
@@ -61,7 +61,7 @@ This example has been validated with the following configurations:
     model_revision: main
     torch_dtype: bfloat16
     attn_implementation: flash_attention_2
-    use_liger: false
+    use_liger_kernel: true
 
     # PEFT / LoRA
     use_peft: true
@@ -79,12 +79,13 @@ This example has been validated with the following configurations:
     dataset_config: main
 
     # SFT
-    max_seq_length: 1024
+    max_length: 4096
     packing: false
+    padding_free: true
 
     # Training
-    per_device_train_batch_size: 64
-    per_device_eval_batch_size: 64
+    per_device_train_batch_size: 128
+    per_device_eval_batch_size: 128
 
     bf16: true
     tf32: false
@@ -108,8 +109,8 @@ This example has been validated with the following configurations:
     resources_per_worker:
       "nvidia.com/gpu": 1
       "memory": 96Gi
-      "cpu": 4
-    base_image: quay.io/modh/training:py311-cuda121-torch241
+      "cpu": 8
+    base_image: quay.io/modh/training:py311-cuda124-torch251
     env_vars:
       "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"
       "NCCL_DEBUG": "INFO"
@@ -189,7 +190,7 @@ This example has been validated with the following configurations:
 ### Llama 3.1 8B Instruct - GSM8k Dataset - LoRA - 8x AMD Instinct MI300X
 
 * Infrastructure:
-  * OpenShift AI 2.17
+  * OpenShift AI 2.19
   * 8x AMD Instinct MI300X
 * Configuration:
     ```yaml
@@ -198,7 +199,7 @@ This example has been validated with the following configurations:
     model_revision: main
     torch_dtype: bfloat16
     attn_implementation: flash_attention_2
-    use_liger: true
+    use_liger_kernel: true
 
     # PEFT / LoRA
     use_peft: true
@@ -206,7 +207,6 @@ This example has been validated with the following configurations:
     lora_alpha: 8
     lora_dropout: 0.05
     lora_target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
-    lora_modules_to_save: []
 
     # QLoRA (BitsAndBytes)
     load_in_4bit: false
@@ -217,12 +217,13 @@ This example has been validated with the following configurations:
     dataset_config: main
 
     # SFT
-    max_seq_length: 4096
+    max_length: 8192
     packing: false
+    padding_free: true
 
     # Training
-    per_device_train_batch_size: 128
-    per_device_eval_batch_size: 128
+    per_device_train_batch_size: 512
+    per_device_eval_batch_size: 512
 
     bf16: true
     tf32: false
@@ -245,18 +246,15 @@ This example has been validated with the following configurations:
     num_procs_per_worker: 1
     resources_per_worker:
       "amd.com/gpu": 1
-      "memory": 96Gi
+      "memory": 128Gi
       "cpu": 4
-    base_image: quay.io/modh/training:py311-rocm62-torch241
+    base_image: quay.io/modh/training:py311-rocm62-torch251
     env_vars:
       "PYTORCH_HIP_ALLOC_CONF": "expandable_segments:True"
       "NCCL_DEBUG": "INFO"
     ```
 * Metrics:
     ![](./docs/run03.png)
-    Blue: with Liger kernels
-
-    Orange: without Liger kernels
 
 ### Llama 3.3 70B Instruct - GSM8k Dataset - LoRA - 8x NVIDIA A100/80G
 
