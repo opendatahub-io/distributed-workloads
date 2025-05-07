@@ -29,6 +29,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 	kueueacv1beta1 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta1"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 )
 
 var (
@@ -40,6 +42,7 @@ var (
 )
 
 func TestSetupPytorchjob(t *testing.T) {
+	Tags(t, PreUpgrade)
 	test := With(t)
 
 	createOrGetUpgradeTestNamespace(test, namespaceName)
@@ -102,6 +105,7 @@ func TestSetupPytorchjob(t *testing.T) {
 }
 
 func TestRunPytorchjob(t *testing.T) {
+	Tags(t, PostUpgrade)
 	test := With(t)
 	namespace := GetNamespaceWithName(test, namespaceName)
 
