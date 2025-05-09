@@ -370,8 +370,12 @@ func createAppWrapper(test Test, namespaceName string, localQueue bool) error {
 func createPyTorchJob(test Test, namespaceName string, localQueue bool) error {
 	if localQueue {
 		pyt = testingpytorchjob.MakePyTorchJob(uniqueSuffix(pytWithLQName), namespaceName).Queue(lq.Name).Obj()
+		pyt.Spec.PyTorchReplicaSpecs[kftrainingv1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Name = "pytorch"
+		pyt.Spec.PyTorchReplicaSpecs[kftrainingv1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Name = "pytorch"
 	} else {
 		pyt = testingpytorchjob.MakePyTorchJob(uniqueSuffix(pytNoLQName), namespaceName).Obj()
+		pyt.Spec.PyTorchReplicaSpecs[kftrainingv1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Name = "pytorch"
+		pyt.Spec.PyTorchReplicaSpecs[kftrainingv1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Name = "pytorch"
 	}
 	_, err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespaceName).Create(test.Ctx(), pyt, metav1.CreateOptions{})
 	return err
