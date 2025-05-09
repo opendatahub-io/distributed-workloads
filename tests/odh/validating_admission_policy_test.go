@@ -228,27 +228,27 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 	})
 
 	/**************************************************************************
-	Testing the 2nd alternative behavior which targets specific namespaces that have the 'kueue-managed' label
+	Testing the 2nd alternative behavior which targets specific namespaces that have the 'kueue.openshift.io/managed' label
 	**************************************************************************/
 	t.Run("Custom ValidatingAdmissionPolicyBinding", func(t *testing.T) {
-		// Update the test namespace with the new 'kueue-managed' label
+		// Update the test namespace with the new 'kueue.openshift.io/managed' label
 		ns, err = test.Client().Core().CoreV1().Namespaces().Get(test.Ctx(), ns.Name, metav1.GetOptions{})
 		if ns.Labels == nil {
 			ns.Labels = map[string]string{}
 		}
-		ns.Labels["kueue-managed"] = "true"
+		ns.Labels["kueue.openshift.io/managed"] = "true"
 		_, err = test.Client().Core().CoreV1().Namespaces().Update(test.Ctx(), ns, metav1.UpdateOptions{})
 		test.Eventually(func() bool {
 			ns, _ = test.Client().Core().CoreV1().Namespaces().Get(test.Ctx(), ns.Name, metav1.GetOptions{})
-			return ns.Labels["kueue-managed"] == "true"
+			return ns.Labels["kueue.openshift.io/managed"] == "true"
 		}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).Should(BeTrue())
 		test.Expect(err).ToNot(HaveOccurred())
 
-		// Apply the ValidatingAdmissionPolicyBinding targetting namespaces with the label 'kueue-managed'
+		// Apply the ValidatingAdmissionPolicyBinding targetting namespaces with the label 'kueue.openshift.io/managed'
 		vapb, err = test.Client().Core().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Get(test.Ctx(), vapb.Name, metav1.GetOptions{})
 		test.Expect(err).ToNot(HaveOccurred())
 
-		vapb.Spec.MatchResources.NamespaceSelector.MatchLabels = map[string]string{"kueue-managed": "true"}
+		vapb.Spec.MatchResources.NamespaceSelector.MatchLabels = map[string]string{"kueue.openshift.io/managed": "true"}
 		_, err = test.Client().Core().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Update(test.Ctx(), vapb, metav1.UpdateOptions{})
 		test.Expect(err).ToNot(HaveOccurred())
 		defer revertVAPB(test, vapbCopy)
