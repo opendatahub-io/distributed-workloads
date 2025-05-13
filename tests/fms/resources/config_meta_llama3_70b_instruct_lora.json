@@ -7,6 +7,7 @@
     "per_device_train_batch_size": 1,
     "per_device_eval_batch_size": 4,
     "gradient_accumulation_steps": 4,
+    "gradient_checkpointing": true,
     "save_strategy": "no",
     "learning_rate": 1e-5,
     "weight_decay": 0.0,
@@ -14,6 +15,7 @@
     "include_tokens_per_second": true,
     "response_template": "\n### Response:",
     "dataset_text_field": "output",
-    "use_flash_attn": false,
+    "use_flash_attn": true,
+    "fast_kernels": [true, true, true],
     "peft_method": "lora"
 }
