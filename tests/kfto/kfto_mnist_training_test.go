@@ -169,6 +169,10 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 											Name:      "tmp-volume",
 											MountPath: "/tmp",
 										},
+										{
+											Name:      "shm-volume",
+											MountPath: "/dev/shm",
+										},
 									},
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
@@ -197,6 +201,14 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 									Name: "tmp-volume",
 									VolumeSource: corev1.VolumeSource{
 										EmptyDir: &corev1.EmptyDirVolumeSource{},
+									},
+								},
+								{
+									Name: "shm-volume",
+									VolumeSource: corev1.VolumeSource{
+										EmptyDir: &corev1.EmptyDirVolumeSource{
+											Medium: corev1.StorageMediumMemory,
+										},
 									},
 								},
 							},
@@ -253,6 +265,10 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 											Name:      "tmp-volume",
 											MountPath: "/tmp",
 										},
+										{
+											Name:      "shm-volume",
+											MountPath: "/dev/shm",
+										},
 									},
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
@@ -281,6 +297,14 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 									Name: "tmp-volume",
 									VolumeSource: corev1.VolumeSource{
 										EmptyDir: &corev1.EmptyDirVolumeSource{},
+									},
+								},
+								{
+									Name: "shm-volume",
+									VolumeSource: corev1.VolumeSource{
+										EmptyDir: &corev1.EmptyDirVolumeSource{
+											Medium: corev1.StorageMediumMemory,
+										},
 									},
 								},
 							},
