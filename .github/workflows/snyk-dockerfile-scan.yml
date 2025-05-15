@@ -1,0 +1,34 @@
+# Snyk scan for training‑runtime Dockerfiles
+# push to main, nightly 03:00 UTC, fork PRs after label `run‑snyk`
+# Fails on High/Critical CVEs
+name: Snyk Dockerfile Scan
+on:
+  push:
+    branches: [ main ]
+  pull_request_target:
+    types: [ labeled ]        
+  schedule:
+    - cron: '0 3 * * *'
+jobs:
+  snyk-scan:
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request_target' &&
+       contains(github.event.pull_request.labels.*.name, 'run-snyk'))
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        # for pull_request_target scan the PR head commit
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+    - uses: snyk/actions/setup@master
+      with:
+        token: ${{ secrets.SNYK_TOKEN }}
+    - name: Scan Dockerfiles
+      shell: bash
+      run: |
+        set -euo pipefail
+        find images/runtime/training -name Dockerfile | while read f; do
+          snyk iac test "$f" --severity-threshold=high
+        done

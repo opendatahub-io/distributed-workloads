@@ -237,6 +237,10 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 											Name:      "output-volume",
 											MountPath: "/mnt/output",
 										},
+										{
+											Name:      "shm-volume",
+											MountPath: "/dev/shm",
+										},
 									},
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
@@ -278,6 +282,14 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 									VolumeSource: corev1.VolumeSource{
 										PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 											ClaimName: outputPvcName,
+										},
+									},
+								},
+								{
+									Name: "shm-volume",
+									VolumeSource: corev1.VolumeSource{
+										EmptyDir: &corev1.EmptyDirVolumeSource{
+											Medium: corev1.StorageMediumMemory,
 										},
 									},
 								},
@@ -390,6 +402,10 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 									Name:      "tmp-volume",
 									MountPath: "/tmp",
 								},
+								{
+									Name:      "shm-volume",
+									MountPath: "/dev/shm",
+								},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
@@ -424,6 +440,14 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 							Name: "tmp-volume",
 							VolumeSource: corev1.VolumeSource{
 								EmptyDir: &corev1.EmptyDirVolumeSource{},
+							},
+						},
+						{
+							Name: "shm-volume",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{
+									Medium: corev1.StorageMediumMemory,
+								},
 							},
 						},
 					},
