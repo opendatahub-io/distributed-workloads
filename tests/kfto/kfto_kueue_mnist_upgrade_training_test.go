@@ -21,7 +21,6 @@ import (
 
 	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 	. "github.com/onsi/gomega"
-	. "github.com/project-codeflare/codeflare-common/support"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -31,6 +30,7 @@ import (
 	kueueacv1beta1 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta1"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
+	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
 var (

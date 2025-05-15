@@ -22,11 +22,11 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	. "github.com/project-codeflare/codeflare-common/support"
 
 	v1 "k8s.io/api/core/v1"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
+	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
 func TestMnistSDK(t *testing.T) {

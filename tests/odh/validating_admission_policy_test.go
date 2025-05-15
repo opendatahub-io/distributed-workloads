@@ -24,7 +24,6 @@ import (
 	kftrainingv1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 	. "github.com/onsi/gomega"
 	awv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
-	. "github.com/project-codeflare/codeflare-common/support"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	vapv1 "k8s.io/api/admissionregistration/v1"
@@ -38,6 +37,8 @@ import (
 	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 	testingpytorchjob "sigs.k8s.io/kueue/pkg/util/testingjobs/pytorchjob"
 	testingraycluster "sigs.k8s.io/kueue/pkg/util/testingjobs/raycluster"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
 // Note: This test must run on an OCP v4.17 or later cluster.

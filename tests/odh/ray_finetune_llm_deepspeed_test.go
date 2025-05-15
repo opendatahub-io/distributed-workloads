@@ -24,12 +24,12 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	. "github.com/project-codeflare/codeflare-common/support"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
+	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
 func TestRayFinetuneLlmDeepspeedDemoLlama_2_7b(t *testing.T) {
