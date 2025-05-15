@@ -21,7 +21,8 @@ import (
 	"text/template"
 
 	"github.com/onsi/gomega"
-	"github.com/project-codeflare/codeflare-common/support"
+
+	"github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
 func ParseAWSArgs(t support.Test, inputTemplate []byte) []byte {

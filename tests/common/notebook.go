@@ -22,13 +22,14 @@ import (
 	"strings"
 
 	gomega "github.com/onsi/gomega"
-	. "github.com/project-codeflare/codeflare-common/support"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/yaml"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
 const (

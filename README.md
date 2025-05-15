@@ -18,15 +18,15 @@
 
 ### Common environment variables
 
-* `CODEFLARE_TEST_OUTPUT_DIR` - Output directory for test logs
-* `CODEFLARE_TEST_TIMEOUT_SHORT` - Timeout duration for short tasks
-* `CODEFLARE_TEST_TIMEOUT_MEDIUM` - Timeout duration for medium tasks
-* `CODEFLARE_TEST_TIMEOUT_LONG` - Timeout duration for long tasks
-* `CODEFLARE_TEST_RAY_IMAGE` (Optional) - Ray image used for raycluster configuration 
+* `TEST_OUTPUT_DIR` - Output directory for test logs
+* `TEST_TIMEOUT_SHORT` - Timeout duration for short tasks
+* `TEST_TIMEOUT_MEDIUM` - Timeout duration for medium tasks
+* `TEST_TIMEOUT_LONG` - Timeout duration for long tasks
+* `TEST_RAY_IMAGE` (Optional) - Ray image used for raycluster configuration
 * `MINIO_CLI_IMAGE` (Optional) - Minio CLI image used for uploading/downloading data from/into s3 bucket
 * `TEST_TIER` (Optional) - Specifies test tier to run, skipping tests which don't belong to specified test tier. Supported test tiers: Smoke, Sanity, Tier1, Tier2, Tier3, Pre-Upgrade and Post-Upgrade.
 
-    NOTE: `quay.io/modh/ray:2.35.0-py311-cu121` is the default image used for creating a RayCluster resource. If you have your own custom ray image which suits your purposes, specify it in `CODEFLARE_TEST_RAY_IMAGE` environment variable.
+    NOTE: `quay.io/modh/ray:2.35.0-py311-cu121` is the default image used for creating a RayCluster resource. If you have your own custom ray image which suits your purposes, specify it in `TEST_RAY_IMAGE` environment variable.
 
 ### Environment variables for fms-hf-tuning test suite
 

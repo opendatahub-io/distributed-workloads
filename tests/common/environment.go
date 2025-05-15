@@ -20,7 +20,7 @@ import (
 	"os"
 	"slices"
 
-	. "github.com/project-codeflare/codeflare-common/support"
+	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
 const (
