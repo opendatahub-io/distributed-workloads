@@ -48,9 +48,9 @@ func TestSetupPytorchjob(t *testing.T) {
 	createOrGetUpgradeTestNamespace(test, namespaceName)
 
 	// Create a ConfigMap with training dataset and configuration
-	mnist := readFile(test, "resources/mnist.py")
-	download_mnist_dataset := readFile(test, "resources/download_mnist_datasets.py")
-	requirementsFileName := readFile(test, "resources/requirements.txt")
+	mnist := ReadFile(test, "resources/mnist.py")
+	download_mnist_dataset := ReadFile(test, "resources/download_mnist_datasets.py")
+	requirementsFileName := ReadFile(test, "resources/requirements.txt")
 
 	configData := map[string][]byte{
 		"mnist.py":                   mnist,

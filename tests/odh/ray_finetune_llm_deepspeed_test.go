@@ -84,7 +84,7 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelName string, modelC
 		"client.stop_job(submission_id)":                                  "finished = False\\n\",\n\t\"while not finished:\\n\",\n\t\"    time.sleep(1)\\n\",\n\t\"    status = client.get_job_status(submission_id)\\n\",\n\t\"    finished = (status == \\\"SUCCEEDED\\\")\\n\",\n\t\"if finished:\\n\",\n\t\"    print(\\\"Job completed Successfully !\\\")\\n\",\n\t\"else:\\n\",\n\t\"    print(\\\"Job failed !\\\")\\n\",\n\t\"time.sleep(10)\\n",
 	}
 
-	updatedNotebookContent := string(ReadFileExt(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/ray_finetune_llm_deepspeed.ipynb"))
+	updatedNotebookContent := string(ReadFile(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/ray_finetune_llm_deepspeed.ipynb"))
 	for oldValue, newValue := range requiredChangesInNotebook {
 		updatedNotebookContent = strings.Replace(updatedNotebookContent, oldValue, newValue, -1)
 	}
@@ -94,12 +94,12 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelName string, modelC
 	jupyterNotebookConfigMapFileName := "ray_finetune_llm_deepspeed.ipynb"
 	configMap := map[string][]byte{
 		jupyterNotebookConfigMapFileName: updatedNotebook,
-		"ray_finetune_llm_deepspeed.py":  ReadFileExt(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/ray_finetune_llm_deepspeed.py"),
-		"requirements.txt":               ReadFileExt(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/requirements.txt"),
-		"create_dataset.py":              ReadFileExt(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/create_dataset.py"),
-		"lora.json":                      ReadFileExt(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/lora_configs/lora.json"),
-		modelConfigFile:                  ReadFileExt(test, fmt.Sprintf(workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/deepspeed_configs/%s", modelConfigFile)),
-		"utils.py":                       ReadFileExt(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/utils.py"),
+		"ray_finetune_llm_deepspeed.py":  ReadFile(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/ray_finetune_llm_deepspeed.py"),
+		"requirements.txt":               ReadFile(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/requirements.txt"),
+		"create_dataset.py":              ReadFile(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/create_dataset.py"),
+		"lora.json":                      ReadFile(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/lora_configs/lora.json"),
+		modelConfigFile:                  ReadFile(test, fmt.Sprintf(workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/deepspeed_configs/%s", modelConfigFile)),
+		"utils.py":                       ReadFile(test, workingDirectory+"/../../examples/ray-finetune-llm-deepspeed/utils.py"),
 	}
 
 	config := CreateConfigMap(test, namespace.Name, configMap)

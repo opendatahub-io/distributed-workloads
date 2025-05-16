@@ -17,9 +17,7 @@ limitations under the License.
 package odh
 
 import (
-	"embed"
 	"net/url"
-	"os"
 
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	gomega "github.com/onsi/gomega"
@@ -32,23 +30,6 @@ import (
 
 	"github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
-
-//go:embed resources/*
-var files embed.FS
-
-func readFile(t support.Test, fileName string) []byte {
-	t.T().Helper()
-	file, err := files.ReadFile(fileName)
-	t.Expect(err).NotTo(gomega.HaveOccurred())
-	return file
-}
-
-func ReadFileExt(t support.Test, fileName string) []byte {
-	t.T().Helper()
-	file, err := os.ReadFile(fileName)
-	t.Expect(err).NotTo(gomega.HaveOccurred())
-	return file
-}
 
 func getNotebookCommand(rayImage string) []string {
 	return []string{

@@ -100,7 +100,7 @@ func raytuneHpo(t *testing.T, numGpus int) {
 		"image='quay.io/modh/ray:2.35.0-py311-cu121'":            fmt.Sprintf("image='%s'", GetRayImage()),
 	}
 
-	updatedNotebookContent := string(ReadFileExt(test, workingDirectory+"/../../examples/hpo-raytune/notebook/raytune-oai-MR-gRPC-demo.ipynb"))
+	updatedNotebookContent := string(ReadFile(test, workingDirectory+"/../../examples/hpo-raytune/notebook/raytune-oai-MR-gRPC-demo.ipynb"))
 	for oldValue, newValue := range requiredChangesInNotebook {
 		updatedNotebookContent = strings.Replace(updatedNotebookContent, oldValue, newValue, -1)
 	}
