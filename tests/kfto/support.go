@@ -22,12 +22,12 @@ import (
 
 	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
-	"github.com/project-codeflare/codeflare-common/support"
-	. "github.com/project-codeflare/codeflare-common/support"
 	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prometheusmodel "github.com/prometheus/common/model"
 
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
 //go:embed resources/*
@@ -40,9 +40,9 @@ func readFile(t support.Test, fileName string) []byte {
 	return file
 }
 
-func OpenShiftPrometheusGpuUtil(test Test, pod corev1.Pod, gpu Accelerator) func(g Gomega) prometheusmodel.Vector {
+func OpenShiftPrometheusGpuUtil(test support.Test, pod corev1.Pod, gpu support.Accelerator) func(g Gomega) prometheusmodel.Vector {
 	return func(g Gomega) prometheusmodel.Vector {
-		prometheusApiClient := GetOpenShiftPrometheusApiClient(test)
+		prometheusApiClient := support.GetOpenShiftPrometheusApiClient(test)
 		result, warnings, err := prometheusApiClient.Query(test.Ctx(), gpu.PrometheusGpuUtilizationLabel, time.Now(), prometheusapiv1.WithTimeout(5*time.Second))
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(warnings).Should(HaveLen(0))

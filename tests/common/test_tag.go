@@ -21,11 +21,12 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	. "github.com/project-codeflare/codeflare-common/support"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
 func Tags(t *testing.T, tags ...func(test Test) (runTest bool, skipReason string)) {
