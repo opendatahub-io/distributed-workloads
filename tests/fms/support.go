@@ -17,7 +17,6 @@ limitations under the License.
 package fms
 
 import (
-	"embed"
 	"fmt"
 	"time"
 
@@ -29,16 +28,6 @@ import (
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
-
-//go:embed resources/*
-var files embed.FS
-
-func ReadFile(t Test, fileName string) []byte {
-	t.T().Helper()
-	file, err := files.ReadFile(fileName)
-	t.Expect(err).NotTo(HaveOccurred())
-	return file
-}
 
 func uploadToS3(test Test, namespace string, pvcName string, storedAssetsPath string) {
 	defaultEndpoint, found := GetStorageBucketDefaultEndpoint()

@@ -84,7 +84,7 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "mnist_hpo_raytune.ipynb"
-	mnist_hpo := ParseAWSArgs(test, readFile(test, "resources/mnist_hpo.py"))
+	mnist_hpo := ParseAWSArgs(test, ReadFile(test, "resources/mnist_hpo.py"))
 
 	if numGpus > 0 {
 		mnist_hpo = bytes.Replace(mnist_hpo, []byte("gpu_value=\"has to be specified\""), []byte("gpu_value=\"1\""), 1)
@@ -94,9 +94,9 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
 		// MNIST Raytune HPO Notebook
-		jupyterNotebookConfigMapFileName: readFile(test, "resources/mnist_hpo_raytune.ipynb"),
+		jupyterNotebookConfigMapFileName: ReadFile(test, "resources/mnist_hpo_raytune.ipynb"),
 		"mnist_hpo.py":                   mnist_hpo,
-		"hpo_raytune_requirements.txt":   readFile(test, "resources/hpo_raytune_requirements.txt"),
+		"hpo_raytune_requirements.txt":   ReadFile(test, "resources/hpo_raytune_requirements.txt"),
 	})
 
 	// Define the regular(non-admin) user

@@ -17,10 +17,8 @@ limitations under the License.
 package kfto
 
 import (
-	"embed"
 	"time"
 
-	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
 	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prometheusmodel "github.com/prometheus/common/model"
@@ -29,16 +27,6 @@ import (
 
 	"github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
-
-//go:embed resources/*
-var files embed.FS
-
-func readFile(t support.Test, fileName string) []byte {
-	t.T().Helper()
-	file, err := files.ReadFile(fileName)
-	t.Expect(err).NotTo(gomega.HaveOccurred())
-	return file
-}
 
 func OpenShiftPrometheusGpuUtil(test support.Test, pod corev1.Pod, gpu support.Accelerator) func(g Gomega) prometheusmodel.Vector {
 	return func(g Gomega) prometheusmodel.Vector {

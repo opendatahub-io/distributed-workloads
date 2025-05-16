@@ -104,19 +104,19 @@ func mnistRay(t *testing.T, numGpus int, gpuResourceName string, rayImage string
 
 	// Test configuration
 	jupyterNotebookConfigMapFileName := "mnist_ray_mini.ipynb"
-	mnist := ParseAWSArgs(test, readFile(test, "resources/mnist.py"))
+	mnist := ParseAWSArgs(test, ReadFile(test, "resources/mnist.py"))
 	if numGpus > 0 {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"gpu\""), 1)
 	} else {
 		mnist = bytes.Replace(mnist, []byte("accelerator=\"has to be specified\""), []byte("accelerator=\"cpu\""), 1)
 	}
-	jupyterNotebook := readFile(test, "resources/mnist_ray_mini.ipynb")
+	jupyterNotebook := ReadFile(test, "resources/mnist_ray_mini.ipynb")
 	jupyterNotebook = bytes.ReplaceAll(jupyterNotebook, []byte("nvidia.com/gpu"), []byte(gpuResourceName))
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
 		// MNIST Ray Notebook
 		jupyterNotebookConfigMapFileName: jupyterNotebook,
 		"mnist.py":                       mnist,
-		"requirements.txt":               readFile(test, requirementsFileName),
+		"requirements.txt":               ReadFile(test, requirementsFileName),
 	})
 
 	// Define the regular(non-admin) user

@@ -37,7 +37,7 @@ func TestMnistSDK(t *testing.T) {
 	userName := GetNotebookUserName(test)
 	userToken := GetNotebookUserToken(test)
 	jupyterNotebookConfigMapFileName := "mnist_kfto.ipynb"
-	mnist := ParseAWSArgs(test, readFile(test, "resources/kfto_sdk_mnist.py"))
+	mnist := ParseAWSArgs(test, ReadFile(test, "resources/kfto_sdk_mnist.py"))
 
 	// Create role binding with Namespace specific admin cluster role
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
@@ -50,8 +50,8 @@ func TestMnistSDK(t *testing.T) {
 		"${training_image}": GetCudaTrainingImage(),
 	}
 
-	jupyterNotebook := string(readFile(test, "resources/mnist_kfto.ipynb"))
-	requirements := readFile(test, "resources/requirements.txt")
+	jupyterNotebook := string(ReadFile(test, "resources/mnist_kfto.ipynb"))
+	requirements := ReadFile(test, "resources/requirements.txt")
 	for oldValue, newValue := range requiredChangesInNotebook {
 		jupyterNotebook = strings.Replace(string(jupyterNotebook), oldValue, newValue, -1)
 	}
