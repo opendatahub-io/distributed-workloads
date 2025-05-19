@@ -1,0 +1,33 @@
+# This workflow build and push test images to https://quay.io/repository/opendatahub/distributed-workloads-tests
+
+name: Build and Push test images
+on:
+  push:
+      branches:
+        - 'main'
+      paths:
+        - 'go.mod'
+        - 'go.sum'
+        - 'tests/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-push-test-images:
+    runs-on:  ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Login to Quay.io
+      id: podman-login-quay
+      run:  podman login --username ${{ secrets.QUAY_ODH_DW_TESTS_USERNAME }} --password ${{ secrets.QUAY_ODH_DW_TESTS_TOKEN }} quay.io
+
+    - name: Build test image
+      run:  make build-test-image
+
+    - name: Push test image
+      run:  make push-test-image
+
+    - name: Logout from Quay.io
+      if: always() && steps.podman-login-quay.outcome == 'success'
+      run:  podman logout quay.io
