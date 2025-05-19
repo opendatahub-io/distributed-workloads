@@ -37,6 +37,8 @@ const (
 	notebookImage = "NOTEBOOK_IMAGE"
 	// Test tier to be invoked
 	testTierEnvVar = "TEST_TIER"
+	// The environment variable for HuggingFace token to download models which require authentication
+	huggingfaceTokenEnvVar = "HF_TOKEN"
 )
 
 const (
@@ -104,6 +106,15 @@ func GetTestTier(t Test) (string, bool) {
 		t.T().Fatalf("Environment variable %s is defined and contains invalid value: '%s'. Valid values are: %v", testTierEnvVar, tt, testTiers)
 	}
 	return "", false
+}
+
+func GetHuggingFaceToken(t Test) string {
+	t.T().Helper()
+	token, ok := os.LookupEnv(huggingfaceTokenEnvVar)
+	if !ok {
+		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify HuggingFace token to download models.", huggingfaceTokenEnvVar)
+	}
+	return token
 }
 
 func init() {

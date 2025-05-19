@@ -108,10 +108,13 @@ func runMnistSDK(t *testing.T, trainingImage string) {
 		fmt.Sprintf("pip install papermill && papermill /opt/app-root/notebooks/%s"+
 			" /opt/app-root/src/mnist-kfto-out.ipynb -p namespace %s -p openshift_api_url %s"+
 			" -p token %s -p num_gpus %d -p training_image %s --log-output && sleep infinity",
-			jupyterNotebookConfigMapFileName, namespace.Name, GetOpenShiftApiUrl(test), userToken, 0, trainingImage),
-	}
+			jupyterNotebookConfigMapFileName, namespace.Name, GetOpenShiftApiUrl(test), userToken, 0, trainingImage)}
+
+	// Create PVC for Notebook
+	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", corev1.ReadWriteOnce)
+
 	// Create Notebook CR
-	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, 0)
+	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, 0, notebookPVC)
 
 	// Gracefully cleanup Notebook
 	defer func() {
