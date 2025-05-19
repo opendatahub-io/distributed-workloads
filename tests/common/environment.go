@@ -17,6 +17,7 @@ limitations under the License.
 package common
 
 import (
+	"flag"
 	"os"
 	"slices"
 
@@ -49,6 +50,8 @@ const (
 )
 
 var testTiers = []string{tierSmoke, tierSanity, tier1, tier2, tier3, preUpgrade, postUpgrade, kftoCuda, kftoRocm}
+
+var testTierParam string
 
 func GetOpenDataHubNamespace(t Test) string {
 	ns, ok := os.LookupEnv(odhNamespaceEnvVar)
@@ -83,12 +86,23 @@ func GetNotebookImage(t Test) string {
 }
 
 func GetTestTier(t Test) (string, bool) {
-	tt, ok := os.LookupEnv(testTierEnvVar)
-	if ok {
+	tt := lookupEnvOrDefault(testTierEnvVar, testTierParam)
+	if tt != "" {
 		if slices.Contains(testTiers, tt) {
 			return tt, true
 		}
 		t.T().Fatalf("Environment variable %s is defined and contains invalid value: '%s'. Valid values are: %v", testTierEnvVar, tt, testTiers)
 	}
 	return "", false
+}
+
+func init() {
+	flag.StringVar(&testTierParam, "testTier", "", "Test tier")
+}
+
+func lookupEnvOrDefault(key, value string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
+	}
+	return value
 }
