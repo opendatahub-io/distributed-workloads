@@ -41,3 +41,7 @@ verify-imports: openshift-goimports ## Run import verifications.
 .PHONY: build-test-image
 build-test-image:
 	podman build -f images/tests/Dockerfile -t ${E2E_TEST_IMAGE} .
+
+.PHONY: push-test-image
+push-test-image:
+	podman push ${E2E_TEST_IMAGE}
