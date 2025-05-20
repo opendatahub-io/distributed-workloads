@@ -88,8 +88,13 @@ RUN export TMP_DIR=$(mktemp -d) \
     && make \
     && pip install --no-deps . \
     && rm -rf $TMP_DIR
+    
 # Install a compatible version of pytorch-triton-rocm
 RUN pip install --force-reinstall pytorch-triton-rocm==3.1.0 --index-url https://download.pytorch.org/whl/nightly/rocm6.2
+
+# Reapply write permissions on site‑packages
+RUN chmod -R g+w /opt/app-root/lib/python3.11/site-packages && \
+    fix-permissions /opt/app-root -P
 
 # Restore user workspace
 USER 1001
