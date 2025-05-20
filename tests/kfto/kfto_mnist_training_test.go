@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -82,9 +83,64 @@ func runKFTOPyTorchMnistJob(t *testing.T, accelerator Accelerator, image string,
 		"requirements.txt":           requirementsFileName,
 	})
 
+	// Create Kueue resources
+	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
+	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+	cqSpec := v1beta1.ClusterQueueSpec{
+		NamespaceSelector: &metav1.LabelSelector{},
+		ResourceGroups: []v1beta1.ResourceGroup{
+			{
+				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory")},
+				Flavors: []v1beta1.FlavorQuotas{
+					{
+						Name: v1beta1.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []v1beta1.ResourceQuota{
+							{
+								Name:         corev1.ResourceCPU,
+								NominalQuota: resource.MustParse("8"),
+							},
+							{
+								Name:         corev1.ResourceMemory,
+								NominalQuota: resource.MustParse("18Gi"),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if accelerator.IsGpu() {
+		numGpus := (workerReplicas + 1) * numProcPerNode
+		cqSpec.ResourceGroups[0].CoveredResources = append(
+			cqSpec.ResourceGroups[0].CoveredResources,
+			corev1.ResourceName(accelerator.ResourceLabel),
+		)
+		cqSpec.ResourceGroups[0].Flavors[0].Resources = append(
+			cqSpec.ResourceGroups[0].Flavors[0].Resources,
+			v1beta1.ResourceQuota{
+				Name:         corev1.ResourceName(accelerator.ResourceLabel),
+				NominalQuota: resource.MustParse(fmt.Sprint(numGpus)),
+			},
+		)
+	}
+
+	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
+	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
+
 	// Create training PyTorch job
-	tuningJob := createKFTOPyTorchMnistJob(test, namespace.Name, *config, accelerator, workerReplicas, numProcPerNode, image)
+	tuningJob := createKFTOPyTorchMnistJob(test, namespace.Name, *config, accelerator, workerReplicas, numProcPerNode, image, localQueue)
 	defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace.Name).Delete(test.Ctx(), tuningJob.Name, *metav1.NewDeleteOptions(0))
+
+	// Make sure the Workload is created and running
+	test.Eventually(GetKueueWorkloads(test, namespace.Name), TestTimeoutMedium).
+		Should(
+			And(
+				HaveLen(1),
+				ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrueBecause("Workload failed to be admitted"))),
+			),
+		)
 
 	// Make sure the PyTorch job is running
 	test.Eventually(PyTorchJob(test, namespace.Name, tuningJob.Name), TestTimeoutDouble).
@@ -96,7 +152,7 @@ func runKFTOPyTorchMnistJob(t *testing.T, accelerator Accelerator, image string,
 
 }
 
-func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.ConfigMap, accelerator Accelerator, workerReplicas int, numProcPerNode int, baseImage string) *kftov1.PyTorchJob {
+func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.ConfigMap, accelerator Accelerator, workerReplicas int, numProcPerNode int, baseImage string, localQueue *v1beta1.LocalQueue) *kftov1.PyTorchJob {
 	var backend string
 	if accelerator.IsGpu() {
 		backend = "nccl"
@@ -117,6 +173,9 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "kfto-mnist-",
+			Labels: map[string]string{
+				"kueue.x-k8s.io/queue-name": localQueue.Name,
+			},
 		},
 		Spec: kftov1.PyTorchJobSpec{
 			PyTorchReplicaSpecs: map[kftov1.ReplicaType]*kftov1.ReplicaSpec{
@@ -177,11 +236,11 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", numProcPerNode)),
-											corev1.ResourceMemory: resource.MustParse("6Gi"),
+											corev1.ResourceMemory: resource.MustParse("4Gi"),
 										},
 										Limits: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", numProcPerNode)),
-											corev1.ResourceMemory: resource.MustParse("6Gi"),
+											corev1.ResourceMemory: resource.MustParse("4Gi"),
 										},
 									},
 								},
@@ -273,11 +332,11 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", numProcPerNode)),
-											corev1.ResourceMemory: resource.MustParse("6Gi"),
+											corev1.ResourceMemory: resource.MustParse("4Gi"),
 										},
 										Limits: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", numProcPerNode)),
-											corev1.ResourceMemory: resource.MustParse("6Gi"),
+											corev1.ResourceMemory: resource.MustParse("4Gi"),
 										},
 									},
 								},
