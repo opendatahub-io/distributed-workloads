@@ -1,0 +1,46 @@
+# This workflow build and push test images to https://quay.io/repository/opendatahub/distributed-workloads-tests for rhoai release branches
+
+
+name: Build and Push test images for rhoai releases
+on:
+  push:
+      branches:
+        - 'rhoai-*'
+      paths:
+        - 'go.mod'
+        - 'go.sum'
+        - 'tests/**'
+  workflow_dispatch:
+    inputs:
+      image-tag:
+        description:  'Image tag to use for the rhoai release which targets the corresponding release branch (E.g: 2.17)'
+        required: true
+
+jobs:
+  build-and-push-test-images-for-releases:
+    runs-on:  ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set IMAGE_TAG
+      run: |
+        if [ -n "${{ github.event.inputs.image-tag }}" ]; then
+          echo "IMAGE_TAG=${{ github.event.inputs.image-tag }}" >> $GITHUB_ENV
+        else
+          echo "IMAGE_TAG=$(echo ${GITHUB_REF##*/} | sed -E 's/rhoai-([0-9]+\.[0-9]+)/\1/')" >> $GITHUB_ENV
+        fi
+
+    - name: Login to Quay.io
+      id: podman-login-quay
+      run:  podman login --username ${{ secrets.QUAY_ODH_DW_TESTS_USERNAME }} --password ${{ secrets.QUAY_ODH_DW_TESTS_TOKEN }} quay.io
+
+    - name: Build test image
+      run:  make build-test-image E2E_TEST_IMAGE_VERSION=$IMAGE_TAG
+
+    - name: Push test image
+      run:  make push-test-image E2E_TEST_IMAGE_VERSION=$IMAGE_TAG
+
+    - name: Logout from Quay.io
+      if: always() && steps.podman-login-quay.outcome == 'success'
+      run:  podman logout quay.io
