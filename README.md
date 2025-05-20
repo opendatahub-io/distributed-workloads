@@ -24,7 +24,7 @@
 * `TEST_TIMEOUT_LONG` - Timeout duration for long tasks
 * `TEST_RAY_IMAGE` (Optional) - Ray image used for raycluster configuration
 * `MINIO_CLI_IMAGE` (Optional) - Minio CLI image used for uploading/downloading data from/into s3 bucket
-* `TEST_TIER` (Optional) - Specifies test tier to run, skipping tests which don't belong to specified test tier. Supported test tiers: Smoke, Sanity, Tier1, Tier2, Tier3, Pre-Upgrade and Post-Upgrade.
+* `TEST_TIER` (Optional) - Specifies test tier to run, skipping tests which don't belong to specified test tier. Supported test tiers: Smoke, Sanity, Tier1, Tier2, Tier3, Pre-Upgrade and Post-Upgrade. Test tier can also be provided using test parameter `testTier`.
 
     NOTE: `quay.io/modh/ray:2.35.0-py311-cu121` is the default image used for creating a RayCluster resource. If you have your own custom ray image which suits your purposes, specify it in `TEST_RAY_IMAGE` environment variable.
 
