@@ -17,11 +17,13 @@ limitations under the License.
 package support
 
 const (
-	RayVersion        = "2.35.0"
-	RayImage          = "quay.io/modh/ray:2.35.0-py311-cu121"
-	RayROCmImage      = "quay.io/modh/ray:2.35.0-py311-rocm62"
-	RayTorchCudaImage = "quay.io/rhoai/ray:2.35.0-py311-cu121-torch24-fa26"
-	RayTorchROCmImage = "quay.io/rhoai/ray:2.35.0-py311-rocm61-torch24-fa26"
-	TrainingCudaImage = "quay.io/modh/training:py311-cuda124-torch251"
-	TrainingROCmImage = "quay.io/modh/training:py311-rocm62-torch251"
+	RayVersion                  = "2.35.0"
+	RayImage                    = "quay.io/modh/ray:2.35.0-py311-cu121"
+	RayROCmImage                = "quay.io/modh/ray:2.35.0-py311-rocm62"
+	RayTorchCudaImage           = "quay.io/rhoai/ray:2.35.0-py311-cu121-torch24-fa26"
+	RayTorchROCmImage           = "quay.io/rhoai/ray:2.35.0-py311-rocm61-torch24-fa26"
+	TrainingCudaPyTorch241Image = "quay.io/modh/training:py311-cuda121-torch241"
+	TrainingCudaPyTorch251Image = "quay.io/modh/training:py311-cuda124-torch251"
+	TrainingRocmPyTorch241Image = "quay.io/modh/training:py311-rocm62-torch241"
+	TrainingRocmPyTorch251Image = "quay.io/modh/training:py311-rocm62-torch251"
 )

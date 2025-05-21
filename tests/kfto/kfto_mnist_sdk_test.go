@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
@@ -34,8 +33,17 @@ import (
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
-func TestMnistSDK(t *testing.T) {
+func TestMnistSDKPyTorch241(t *testing.T) {
 	Tags(t, Tier1)
+	runMnistSDK(t, GetTrainingCudaPyTorch241Image())
+}
+
+func TestMnistSDKPyTorch251(t *testing.T) {
+	Tags(t, Tier1)
+	runMnistSDK(t, GetTrainingCudaPyTorch251Image())
+}
+
+func runMnistSDK(t *testing.T, trainingImage string) {
 	test := With(t)
 	// Create a namespace
 	namespace := test.NewTestNamespace()
@@ -87,7 +95,7 @@ func TestMnistSDK(t *testing.T) {
 		"${password}":       userToken,
 		"${num_gpus}":       "0",
 		"${namespace}":      namespace.Name,
-		"${training_image}": GetCudaTrainingImage(),
+		"${training_image}": trainingImage,
 	}
 
 	jupyterNotebook := string(readFile(test, "resources/mnist_kfto.ipynb"))
@@ -121,11 +129,11 @@ func TestMnistSDK(t *testing.T) {
 
 	// Make sure pytorch job is created
 	test.Eventually(PyTorchJob(test, namespace.Name, "pytorch-ddp"), TestTimeoutDouble).
-		Should(WithTransform(PyTorchJobConditionRunning, Equal(v1.ConditionTrue)))
+		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Make sure that the job eventually succeeds
 	test.Eventually(PyTorchJob(test, namespace.Name, "pytorch-ddp"), TestTimeoutLong, 1*time.Second).
-		Should(WithTransform(PyTorchJobConditionSucceeded, Equal(v1.ConditionTrue)))
+		Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 
 	// TODO: write torch job logs?
 	// time.Sleep(60 * time.Second)
