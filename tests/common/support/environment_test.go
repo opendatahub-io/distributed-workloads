@@ -27,7 +27,7 @@ func TestGetRayVersion(t *testing.T) {
 
 	g := gomega.NewGomegaWithT(t)
 	// Set the environment variable.
-	os.Setenv(CodeFlareTestRayVersion, "1.4.5")
+	os.Setenv(TestRayVersion, "1.4.5")
 
 	// Get the version.
 	version := GetRayVersion()
@@ -42,7 +42,7 @@ func TestGetRayImage(t *testing.T) {
 
 	g := gomega.NewGomegaWithT(t)
 	// Set the environment variable.
-	os.Setenv(CodeFlareTestRayImage, "ray/ray:latest")
+	os.Setenv(TestRayImage, "ray/ray:latest")
 
 	// Get the image.
 	image := GetRayImage()
@@ -57,11 +57,10 @@ func TestGetTrainingImage(t *testing.T) {
 
 	g := gomega.NewGomegaWithT(t)
 	// Set the environment variable.
-	os.Setenv(CodeFlareTestTrainingImage, "training/training:latest")
+	os.Setenv(TestTrainingCudaPyTorch251Image, "training/training:latest")
 
 	// Get the image.
-	image := GetCudaTrainingImage()
-
+	image := GetTrainingCudaPyTorch251Image()
 	// Assert that the image is correct.
 
 	g.Expect(image).To(gomega.Equal("training/training:latest"), "Expected image training/training:latest, but got %s", image)

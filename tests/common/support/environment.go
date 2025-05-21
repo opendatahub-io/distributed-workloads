@@ -24,13 +24,16 @@ const (
 	// The environment variables hereafter can be used to change the components
 	// used for testing.
 
-	CodeFlareTestRayVersion    = "TEST_RAY_VERSION"
-	CodeFlareTestRayImage      = "TEST_RAY_IMAGE"
-	CodeFlareTestPyTorchImage  = "TEST_PYTORCH_IMAGE"
-	CodeFlareTestTrainingImage = "TEST_TRAINING_IMAGE"
+	TestRayVersion                  = "TEST_RAY_VERSION"
+	TestRayImage                    = "TEST_RAY_IMAGE"
+	TestPyTorchImage                = "TEST_PYTORCH_IMAGE"
+	TestTrainingCudaPyTorch241Image = "TEST_TRAINING_CUDA_PYTORCH_241_IMAGE"
+	TestTrainingCudaPyTorch251Image = "TEST_TRAINING_CUDA_PYTORCH_251_IMAGE"
+	TestTrainingRocmPyTorch241Image = "TEST_TRAINING_ROCM_PYTORCH_241_IMAGE"
+	TestTrainingRocmPyTorch251Image = "TEST_TRAINING_ROCM_PYTORCH_251_IMAGE"
 
 	// The testing output directory, to write output files into.
-	CodeFlareTestOutputDir = "TEST_OUTPUT_DIR"
+	TestOutputDir = "TEST_OUTPUT_DIR"
 
 	// Type of cluster test is run on
 	ClusterTypeEnvVar = "CLUSTER_TYPE"
@@ -68,31 +71,39 @@ const (
 )
 
 func GetRayVersion() string {
-	return lookupEnvOrDefault(CodeFlareTestRayVersion, RayVersion)
+	return lookupEnvOrDefault(TestRayVersion, RayVersion)
 }
 
 func GetRayImage() string {
-	return lookupEnvOrDefault(CodeFlareTestRayImage, RayImage)
+	return lookupEnvOrDefault(TestRayImage, RayImage)
 }
 
 func GetRayROCmImage() string {
-	return lookupEnvOrDefault(CodeFlareTestRayImage, RayROCmImage)
+	return lookupEnvOrDefault(TestRayImage, RayROCmImage)
 }
 
 func GetRayTorchCudaImage() string {
-	return lookupEnvOrDefault(CodeFlareTestRayImage, RayTorchCudaImage)
+	return lookupEnvOrDefault(TestRayImage, RayTorchCudaImage)
 }
 
 func GetRayTorchROCmImage() string {
-	return lookupEnvOrDefault(CodeFlareTestRayImage, RayTorchROCmImage)
+	return lookupEnvOrDefault(TestRayImage, RayTorchROCmImage)
 }
 
-func GetCudaTrainingImage() string {
-	return lookupEnvOrDefault(CodeFlareTestTrainingImage, TrainingCudaImage)
+func GetTrainingCudaPyTorch241Image() string {
+	return lookupEnvOrDefault(TestTrainingCudaPyTorch241Image, TrainingCudaPyTorch241Image)
 }
 
-func GetROCmTrainingImage() string {
-	return lookupEnvOrDefault(CodeFlareTestTrainingImage, TrainingROCmImage)
+func GetTrainingCudaPyTorch251Image() string {
+	return lookupEnvOrDefault(TestTrainingCudaPyTorch251Image, TrainingCudaPyTorch251Image)
+}
+
+func GetTrainingROCmPyTorch241Image() string {
+	return lookupEnvOrDefault(TestTrainingRocmPyTorch241Image, TrainingRocmPyTorch241Image)
+}
+
+func GetTrainingROCmPyTorch251Image() string {
+	return lookupEnvOrDefault(TestTrainingRocmPyTorch251Image, TrainingRocmPyTorch251Image)
 }
 
 func GetClusterType(t Test) ClusterType {
