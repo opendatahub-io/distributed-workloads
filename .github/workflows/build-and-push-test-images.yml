@@ -9,6 +9,7 @@ on:
         - 'go.mod'
         - 'go.sum'
         - 'tests/**'
+        - 'images/tests/**'
   workflow_dispatch:
 
 jobs:
