@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prometheusmodel "github.com/prometheus/common/model"
+
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/opendatahub-io/distributed-workloads/tests/common/support"
