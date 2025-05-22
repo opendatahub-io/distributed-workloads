@@ -39,6 +39,7 @@ import (
 // The Validating Admission Policy feature gate is GA and enabled by default from OCP v4.17 (k8s v1.30)
 
 var (
+	err           error
 	ns            *corev1.Namespace
 	nsNoLabel     *corev1.Namespace
 	rf            *kueuev1beta1.ResourceFlavor
@@ -56,20 +57,19 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 
 	Tags(t, Sanity)
 
-	// Create a namespace
-	ns = CreateTestNamespaceWithName(test, uniqueSuffix("vap"))
-	defer test.Client().Core().CoreV1().Namespaces().Delete(test.Ctx(), ns.Name, metav1.DeleteOptions{})
-
-	// Get the latest version of the namespace
-	ns, err := test.Client().Core().CoreV1().Namespaces().Get(test.Ctx(), ns.Name, metav1.GetOptions{})
-	test.Expect(err).ToNot(HaveOccurred())
-
-	// Add the 'kueue.openshift.io/managed' label
-	ns.Labels = map[string]string{
-		"kueue.openshift.io/managed": "true",
-	}
-	_, err = test.Client().Core().CoreV1().Namespaces().Update(test.Ctx(), ns, metav1.UpdateOptions{})
-	test.Expect(err).ToNot(HaveOccurred())
+	// Create namespace with unique name and required labels
+	var AsDefaultQueueNamespace = ErrorOption[*corev1.Namespace](func(ns *corev1.Namespace) error {
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		ns.Labels["kueue.openshift.io/managed"] = "true"
+		return nil
+	})
+	ns = CreateTestNamespaceWithName(
+		test,
+		uniqueSuffix("vap"),
+		AsDefaultQueueNamespace,
+	)
 
 	// Create a namespace that will not receive the `kueue.x-k8s.io/queue-name` label
 	nsNoLabel = CreateTestNamespaceWithName(test, uniqueSuffix("vap-nl"))
