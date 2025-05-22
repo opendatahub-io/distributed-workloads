@@ -22,5 +22,9 @@ COPY tests/ .
 ENTRYPOINT [ "gotestsum"]
 
 # Configure images using environment variables
-ENV FMS_HF_TUNING_IMAGE=quay.io/modh/fms-hf-tuning:release
-ENV NOTEBOOK_IMAGE=quay.io/modh/odh-generic-data-science-notebook:v3-20250519
+ENV FMS_HF_TUNING_IMAGE=<replace_me>
+ENV CUDA_TRAINING_IMAGE_TORCH241=<replace_me>
+ENV ROCM_TRAINING_IMAGE_TORCH241=<replace_me>
+ENV CUDA_TRAINING_IMAGE_TORCH251=<replace_me>
+ENV ROCM_TRAINING_IMAGE_TORCH251=<replace_me>
+ENV NOTEBOOK_IMAGE=<replace_me>
