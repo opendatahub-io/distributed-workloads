@@ -134,7 +134,7 @@ func (t *T) Config() *rest.Config {
 func (t *T) OutputDir() string {
 	t.T().Helper()
 	t.once.outputDir.Do(func() {
-		if parent, ok := os.LookupEnv(CodeFlareTestOutputDir); ok {
+		if parent, ok := os.LookupEnv(TestOutputDir); ok {
 			if !path.IsAbs(parent) {
 				if cwd, err := os.Getwd(); err == nil {
 					// best effort to output the parent absolute path
@@ -148,7 +148,7 @@ func (t *T) OutputDir() string {
 			}
 			t.outputDir = dir
 		} else {
-			t.T().Logf("Creating ephemeral output directory as %s env variable is unset", CodeFlareTestOutputDir)
+			t.T().Logf("Creating ephemeral output directory as %s env variable is unset", TestOutputDir)
 			t.outputDir = t.T().TempDir()
 		}
 		t.T().Logf("Output directory has been created at: %s", t.outputDir)

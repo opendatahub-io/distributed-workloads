@@ -20,3 +20,7 @@ COPY tests/ .
 
 # Command to run the tests
 ENTRYPOINT [ "gotestsum"]
+
+# Configure images using environment variables
+ENV FMS_HF_TUNING_IMAGE=quay.io/modh/fms-hf-tuning:release
+ENV NOTEBOOK_IMAGE=quay.io/modh/odh-generic-data-science-notebook:v3-20250519

@@ -15,14 +15,24 @@ import (
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
-func TestPyTorchJobFailureWithCuda(t *testing.T) {
+func TestPyTorchJobFailureWithCudaPyTorch241(t *testing.T) {
 	Tags(t, Tier1)
-	runFailedPyTorchJobTest(t, GetCudaTrainingImage())
+	runFailedPyTorchJobTest(t, GetTrainingCudaPyTorch241Image())
 }
 
-func TestPyTorchJobFailureWithROCm(t *testing.T) {
+func TestPyTorchJobFailureWithCudaPyTorch251(t *testing.T) {
 	Tags(t, Tier1)
-	runFailedPyTorchJobTest(t, GetROCmTrainingImage())
+	runFailedPyTorchJobTest(t, GetTrainingCudaPyTorch251Image())
+}
+
+func TestPyTorchJobFailureWithROCmPyTorch241(t *testing.T) {
+	Tags(t, Tier1)
+	runFailedPyTorchJobTest(t, GetTrainingROCmPyTorch241Image())
+}
+
+func TestPyTorchJobFailureWithROCmPyTorch251(t *testing.T) {
+	Tags(t, Tier1)
+	runFailedPyTorchJobTest(t, GetTrainingROCmPyTorch251Image())
 }
 
 func runFailedPyTorchJobTest(t *testing.T, image string) {

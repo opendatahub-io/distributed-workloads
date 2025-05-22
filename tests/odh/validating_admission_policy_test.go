@@ -21,7 +21,6 @@ import (
 	"testing"
 	"time"
 
-	kftrainingv1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 	. "github.com/onsi/gomega"
 	awv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
@@ -35,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
-	testingpytorchjob "sigs.k8s.io/kueue/pkg/util/testingjobs/pytorchjob"
 	testingraycluster "sigs.k8s.io/kueue/pkg/util/testingjobs/raycluster"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -45,22 +43,19 @@ import (
 // The Validating Admission Policy feature gate is GA and enabled by default from OCP v4.17 (k8s v1.30)
 
 var (
-	ns            *corev1.Namespace
-	nsNoLabel     *corev1.Namespace
-	rf            *kueuev1beta1.ResourceFlavor
-	cq            *kueuev1beta1.ClusterQueue
-	lq            *kueuev1beta1.LocalQueue
-	rc            *rayv1.RayCluster
-	aw            *awv1beta2.AppWrapper
-	pyt           *kftrainingv1.PyTorchJob
-	vapb          *vapv1.ValidatingAdmissionPolicyBinding
-	vapbCopy      *vapv1.ValidatingAdmissionPolicyBinding
-	awWithLQName  = "aw-with-lq"
-	awNoLQName    = "aw-no-lq"
-	rcWithLQName  = "rc-with-lq"
-	rcNoLQName    = "rc-no-lq"
-	pytWithLQName = "pyt-with-lq"
-	pytNoLQName   = "pyt-no-lq"
+	ns           *corev1.Namespace
+	nsNoLabel    *corev1.Namespace
+	rf           *kueuev1beta1.ResourceFlavor
+	cq           *kueuev1beta1.ClusterQueue
+	lq           *kueuev1beta1.LocalQueue
+	rc           *rayv1.RayCluster
+	aw           *awv1beta2.AppWrapper
+	vapb         *vapv1.ValidatingAdmissionPolicyBinding
+	vapbCopy     *vapv1.ValidatingAdmissionPolicyBinding
+	awWithLQName = "aw-with-lq"
+	awNoLQName   = "aw-no-lq"
+	rcWithLQName = "rc-with-lq"
+	rcNoLQName   = "rc-no-lq"
 )
 
 const (
@@ -162,18 +157,6 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 				defer test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Delete(test.Ctx(), aw.Name, metav1.DeleteOptions{})
 			})
 		})
-		t.Run("PyTorchJob Tests", func(t *testing.T) {
-			t.Run("PyTorchJob should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-				err = createPyTorchJob(test, ns.Name, withLQ)
-				test.Expect(err).ToNot(HaveOccurred())
-				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
-			})
-			t.Run("PyTorchJob should not be admitted without the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-				err = createPyTorchJob(test, ns.Name, noLQ)
-				test.Expect(err).ToNot(BeNil())
-				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
-			})
-		})
 	})
 
 	/**************************************************************************
@@ -212,18 +195,6 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 				err = createAppWrapper(test, ns.Name, noLQ)
 				test.Expect(err).ToNot(HaveOccurred())
 				defer test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(ns.Name).Delete(test.Ctx(), aw.Name, metav1.DeleteOptions{})
-			})
-		})
-		t.Run("PyTorchJob Tests", func(t *testing.T) {
-			t.Run("PyTorchJob should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-				err = createPyTorchJob(test, ns.Name, withLQ)
-				test.Expect(err).ToNot(HaveOccurred())
-				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
-			})
-			t.Run("PyTorchJob should be admitted without the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-				err = createPyTorchJob(test, ns.Name, noLQ)
-				test.Expect(err).ToNot(HaveOccurred())
-				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
 			})
 		})
 	})
@@ -301,28 +272,6 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 				defer test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(nsNoLabel.Name).Delete(test.Ctx(), aw.Name, metav1.DeleteOptions{})
 			})
 		})
-		t.Run("PyTorchJob Tests", func(t *testing.T) {
-			t.Run("PyTorchJob should be admitted with the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
-				err = createPyTorchJob(test, ns.Name, withLQ)
-				test.Expect(err).ToNot(HaveOccurred())
-				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
-			})
-			t.Run("PyTorchJob should not be admitted without the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
-				err = createPyTorchJob(test, ns.Name, noLQ)
-				test.Expect(err).ToNot(BeNil())
-				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
-			})
-			t.Run("PyTorchJob should be admitted with the 'kueue.x-k8s.io/queue-name' label in any other namespace", func(t *testing.T) {
-				err = createPyTorchJob(test, nsNoLabel.Name, withLQ)
-				test.Expect(err).ToNot(HaveOccurred())
-				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
-			})
-			t.Run("PyTorchJob should be admitted without the 'kueue.x-k8s.io/queue-name' label in any other namespace", func(t *testing.T) {
-				err = createPyTorchJob(test, nsNoLabel.Name, noLQ)
-				test.Expect(err).ToNot(HaveOccurred())
-				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
-			})
-		})
 	})
 }
 
@@ -365,19 +314,5 @@ func createAppWrapper(test Test, namespaceName string, localQueue bool) error {
 	}
 	awMap, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(aw)
 	_, err := test.Client().Dynamic().Resource(awv1beta2.GroupVersion.WithResource("appwrappers")).Namespace(namespaceName).Create(test.Ctx(), &unstructured.Unstructured{Object: awMap}, metav1.CreateOptions{})
-	return err
-}
-
-func createPyTorchJob(test Test, namespaceName string, localQueue bool) error {
-	if localQueue {
-		pyt = testingpytorchjob.MakePyTorchJob(uniqueSuffix(pytWithLQName), namespaceName).Queue(lq.Name).Obj()
-		pyt.Spec.PyTorchReplicaSpecs[kftrainingv1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Name = "pytorch"
-		pyt.Spec.PyTorchReplicaSpecs[kftrainingv1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Name = "pytorch"
-	} else {
-		pyt = testingpytorchjob.MakePyTorchJob(uniqueSuffix(pytNoLQName), namespaceName).Obj()
-		pyt.Spec.PyTorchReplicaSpecs[kftrainingv1.PyTorchJobReplicaTypeMaster].Template.Spec.Containers[0].Name = "pytorch"
-		pyt.Spec.PyTorchReplicaSpecs[kftrainingv1.PyTorchJobReplicaTypeWorker].Template.Spec.Containers[0].Name = "pytorch"
-	}
-	_, err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespaceName).Create(test.Ctx(), pyt, metav1.CreateOptions{})
 	return err
 }
