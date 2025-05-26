@@ -45,3 +45,7 @@ build-test-image:
 .PHONY: push-test-image
 push-test-image:
 	podman push ${E2E_TEST_IMAGE}
+
+.PHONY: precommit
+precommit:
+	pre-commit run --all-files
