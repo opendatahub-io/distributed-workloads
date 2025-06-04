@@ -18,6 +18,8 @@ package kfto
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -48,7 +50,8 @@ func runMnistSDK(t *testing.T, trainingImage string) {
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 	userName := GetNotebookUserName(test)
-	userToken := GetNotebookUserToken(test)
+	userToken := generateNotebookUserToken(test)
+
 	jupyterNotebookConfigMapFileName := "mnist_kfto.ipynb"
 	mnist := ParseAWSArgs(test, readFile(test, "resources/kfto_sdk_mnist.py"))
 
@@ -90,19 +93,8 @@ func runMnistSDK(t *testing.T, trainingImage string) {
 	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 	CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
-	requiredChangesInNotebook := map[string]string{
-		"${api_url}":        GetOpenShiftApiUrl(test),
-		"${password}":       userToken,
-		"${num_gpus}":       "0",
-		"${namespace}":      namespace.Name,
-		"${training_image}": trainingImage,
-	}
-
 	jupyterNotebook := string(readFile(test, "resources/mnist_kfto.ipynb"))
 	requirements := readFile(test, "resources/requirements.txt")
-	for oldValue, newValue := range requiredChangesInNotebook {
-		jupyterNotebook = strings.Replace(string(jupyterNotebook), oldValue, newValue, -1)
-	}
 
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
 		jupyterNotebookConfigMapFileName: []byte(jupyterNotebook),
@@ -113,10 +105,10 @@ func runMnistSDK(t *testing.T, trainingImage string) {
 	notebookCommand := []string{
 		"/bin/sh",
 		"-c",
-		"pip install papermill && papermill /opt/app-root/notebooks/{{.NotebookConfigMapFileName}}" +
-			" /opt/app-root/src/mcad-out.ipynb -p namespace {{.Namespace}} -p openshift_api_url {{.OpenShiftApiUrl}}" +
-			" -p kubernetes_user_bearer_token {{.KubernetesUserBearerToken}}" +
-			" -p num_gpus {{.NumGpus}} --log-output && sleep infinity",
+		fmt.Sprintf("pip install papermill && papermill /opt/app-root/notebooks/%s"+
+			" /opt/app-root/src/mnist-kfto-out.ipynb -p namespace %s -p openshift_api_url %s"+
+			" -p token %s -p num_gpus %d -p training_image %s --log-output && sleep infinity",
+			jupyterNotebookConfigMapFileName, namespace.Name, GetOpenShiftApiUrl(test), userToken, 0, trainingImage),
 	}
 	// Create Notebook CR
 	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, 0)
@@ -137,4 +129,44 @@ func runMnistSDK(t *testing.T, trainingImage string) {
 
 	// TODO: write torch job logs?
 	// time.Sleep(60 * time.Second)
+}
+
+func generateNotebookUserToken(test Test) string {
+	userName := GetNotebookUserName(test)
+	password := GetNotebookUserPassword(test)
+
+	// Use own kobeconfig file to retrieve user token to keep it separated from main test credentials
+	tempFile, err := os.CreateTemp("", "custom-kubeconfig-")
+	test.Expect(err).NotTo(HaveOccurred())
+	defer os.Remove(tempFile.Name())
+
+	// Login by oc CLI using username and password
+	cmd := exec.Command("oc", "login", "-u", userName, "-p", password, GetOpenShiftApiUrl(test), "--insecure-skip-tls-verify=true", "--kubeconfig="+tempFile.Name())
+	out, err := cmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			test.T().Logf("Error running 'oc login' command: %v\n", exitError)
+			test.T().Logf("Output: %s\n", out)
+			test.T().Logf("Error output: %s\n", exitError.Stderr)
+		} else {
+			test.T().Logf("Error running 'oc login' command: %v\n", err)
+		}
+		test.T().FailNow()
+	}
+
+	// Use oc CLI to retrieve user token from kubeconfig
+	cmd = exec.Command("oc", "whoami", "--show-token", "--kubeconfig="+tempFile.Name())
+	out, err = cmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			test.T().Logf("Error running 'oc whoami' command: %v\n", exitError)
+			test.T().Logf("Output: %s\n", out)
+			test.T().Logf("Error output: %s\n", exitError.Stderr)
+		} else {
+			test.T().Logf("Error running 'oc whoami' command: %v\n", err)
+		}
+		test.T().FailNow()
+	}
+
+	return strings.TrimSpace(string(out))
 }
