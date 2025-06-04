@@ -91,7 +91,7 @@ func MultiGpu(accelerator Accelerator, numberOfGpus int) func(test Test) (runTes
 
 func MultiNode(numberOfNodes int) func(test Test) (runTest bool, skipReason string) {
 	return func(test Test) (runTest bool, skipReason string) {
-		nodes, err := test.Client().Core().CoreV1().Nodes().List(test.Ctx(), v1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
+		nodes, err := test.Client().Core().CoreV1().Nodes().List(test.Ctx(), v1.ListOptions{LabelSelector: "!node-role.kubernetes.io/infra,node-role.kubernetes.io/worker"})
 		test.Expect(err).NotTo(HaveOccurred())
 
 		if len(nodes.Items) < numberOfNodes {
@@ -132,7 +132,7 @@ func mandatoryTestTier(test Test, expectedTestTier string) (runTest bool, skipRe
 }
 
 func isGpuCountAvailableForNodes(test Test, expectedNodes int, gpuResourceName string, expectedGpus int) (runTest bool, skipReason string) {
-	nodes, err := test.Client().Core().CoreV1().Nodes().List(test.Ctx(), v1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
+	nodes, err := test.Client().Core().CoreV1().Nodes().List(test.Ctx(), v1.ListOptions{LabelSelector: "!node-role.kubernetes.io/infra,node-role.kubernetes.io/worker"})
 	test.Expect(err).NotTo(HaveOccurred())
 
 	var gpuNodes []corev1.Node
