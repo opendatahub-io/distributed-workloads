@@ -155,7 +155,7 @@ func runKFTOPyTorchMnistJob(t *testing.T, accelerator Accelerator, image string,
 	defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace.Name).Delete(test.Ctx(), tuningJob.Name, *metav1.NewDeleteOptions(0))
 
 	// Make sure the Workload is created and running
-	test.Eventually(GetKueueWorkloads(test, namespace.Name), TestTimeoutMedium).
+	test.Eventually(KueueWorkloads(test, namespace.Name), TestTimeoutMedium).
 		Should(
 			And(
 				HaveLen(1),
