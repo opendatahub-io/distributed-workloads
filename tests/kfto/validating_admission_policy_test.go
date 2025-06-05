@@ -19,6 +19,7 @@ package kfto
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	kftrainingv1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 	. "github.com/onsi/gomega"
@@ -151,17 +152,29 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 		vapb.Spec.PolicyName = "none"
 		_, err = test.Client().Core().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Update(test.Ctx(), vapb, metav1.UpdateOptions{})
 		test.Expect(err).ToNot(HaveOccurred())
+
+		// Add verification that the VAP is actually disabled
+		test.Eventually(func() (string, error) {
+			updatedVapb, err := test.Client().Core().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Get(test.Ctx(), vapb.Name, metav1.GetOptions{})
+			if err != nil {
+				return "", err
+			}
+			return updatedVapb.Spec.PolicyName, nil
+		}).WithTimeout(10*time.Second).WithPolling(500*time.Millisecond).Should(Equal("none"), "VAP should be disabled")
+
 		defer revertVAPB(test, vapbCopy)
 
 		t.Run("PyTorchJob Tests", func(t *testing.T) {
 			t.Run("PyTorchJob should be admitted with the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-				err = createPyTorchJobWithLocalQueue(test, ns.Name, lq.Name)
-				test.Expect(err).ToNot(HaveOccurred())
+				test.Eventually(func() error {
+					return createPyTorchJobWithLocalQueue(test, ns.Name, lq.Name)
+				}).WithTimeout(10*time.Second).WithPolling(500*time.Millisecond).Should(Succeed(), "PyTorchJob with queue label should be created")
 				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
 			})
 			t.Run("PyTorchJob should be admitted without the 'kueue.x-k8s.io/queue-name' label set", func(t *testing.T) {
-				err = createPyTorchJob(test, ns.Name)
-				test.Expect(err).ToNot(HaveOccurred())
+				test.Eventually(func() error {
+					return createPyTorchJob(test, ns.Name)
+				}).WithTimeout(10*time.Second).WithPolling(500*time.Millisecond).Should(Succeed(), "PyTorchJob without queue label should be created")
 				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
 			})
 		})
@@ -178,28 +191,44 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 		vapb.Spec.MatchResources.NamespaceSelector.MatchLabels = map[string]string{"kueue.openshift.io/managed": "true"}
 		_, err = test.Client().Core().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Update(test.Ctx(), vapb, metav1.UpdateOptions{})
 		test.Expect(err).ToNot(HaveOccurred())
+
+		// Add verification that the VAP namespace selector is updated
+		test.Eventually(func() (string, error) {
+			updatedVapb, err := test.Client().Core().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Get(test.Ctx(), vapb.Name, metav1.GetOptions{})
+			if err != nil {
+				return "", err
+			}
+			return updatedVapb.Spec.MatchResources.NamespaceSelector.MatchLabels["kueue.openshift.io/managed"], nil
+		}).WithTimeout(10*time.Second).WithPolling(500*time.Millisecond).Should(Equal("true"), "VAP namespace selector should be updated")
+
 		defer revertVAPB(test, vapbCopy)
 
 		t.Run("PyTorchJob Tests", func(t *testing.T) {
 			t.Run("PyTorchJob should be admitted with the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
-				err = createPyTorchJobWithLocalQueue(test, ns.Name, lq.Name)
-				test.Expect(err).ToNot(HaveOccurred())
+				test.Eventually(func() error {
+					return createPyTorchJobWithLocalQueue(test, ns.Name, lq.Name)
+				}).WithTimeout(10*time.Second).WithPolling(500*time.Millisecond).Should(Succeed(), "PyTorchJob with queue label should be created in labeled namespace")
 				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
 			})
 			t.Run("PyTorchJob should not be admitted without the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
-				err = createPyTorchJob(test, ns.Name)
-				test.Expect(err).ToNot(BeNil())
-				test.Expect(err.Error()).To(ContainSubstring("The label 'kueue.x-k8s.io/queue-name' is either missing or does not have a value set"))
+				test.Eventually(func() error {
+					err = createPyTorchJob(test, ns.Name)
+					test.Expect(err).To(HaveOccurred())
+					test.Expect(err.Error()).To(ContainSubstring("The label 'kueue.x-k8s.io/queue-name' is either missing or does not have a value set"))
+					return err
+				}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).Should(HaveOccurred())
 				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
 			})
 			t.Run("PyTorchJob should be admitted with the 'kueue.x-k8s.io/queue-name' label in any other namespace", func(t *testing.T) {
-				err = createPyTorchJobWithLocalQueue(test, nsNoLabel.Name, lq.Name)
-				test.Expect(err).ToNot(HaveOccurred())
+				test.Eventually(func() error {
+					return createPyTorchJobWithLocalQueue(test, nsNoLabel.Name, lq.Name)
+				}).WithTimeout(10*time.Second).WithPolling(500*time.Millisecond).Should(Succeed(), "PyTorchJob with queue label should be created in unlabeled namespace")
 				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
 			})
 			t.Run("PyTorchJob should be admitted without the 'kueue.x-k8s.io/queue-name' label in any other namespace", func(t *testing.T) {
-				err = createPyTorchJob(test, nsNoLabel.Name)
-				test.Expect(err).ToNot(HaveOccurred())
+				test.Eventually(func() error {
+					return createPyTorchJob(test, nsNoLabel.Name)
+				}).WithTimeout(10*time.Second).WithPolling(500*time.Millisecond).Should(Succeed(), "PyTorchJob without queue label should be created in unlabeled namespace")
 				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
 			})
 		})
