@@ -1,8 +1,8 @@
 # Snyk scan for training‑runtime Dockerfiles
-# push to main, nightly 03:00 UTC, fork PRs after label `safe-to-test`
+# push to main, nightly 03:00 UTC, fork PRs after label `run‑snyk`
 # Fails on High/Critical CVEs
 
-name: Snyk Dockerfile Security Scan
+name: Snyk Dockerfile Scan
 
 on:
   push:
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       github.event_name != 'pull_request_target' || 
-      github.event.label.name == 'safe-to-test' || 
+      github.event.label.name == 'run‑snyk' || 
       github.event.pull_request.head.repo.owner.login == github.repository_owner
     permissions:
       contents: read
@@ -392,6 +392,28 @@ jobs:
         run: |
           RESULTS_DIR="scan_results"
           
+          get_display_name() {
+            local dockerfile="$1"
+            local base_image=$(grep -m 1 "^FROM" "$dockerfile" | awk '{print $2}' | sed 's/ AS .*//g')
+            
+            # Try to resolve ARG variables from the Dockerfile
+            while IFS= read -r line; do
+              if [[ "$line" =~ ^ARG[[:space:]]+([^=[:space:]]+)=(.+)$ ]]; then
+                local var_name="${BASH_REMATCH[1]}"
+                local var_value="${BASH_REMATCH[2]//[\"\']}"
+                base_image="${base_image//\$\{$var_name\}/$var_value}"
+                base_image="${base_image//\$var_name/$var_value}"
+              fi
+            done < "$dockerfile"
+            
+            # If still contains variables, add note for display
+            if [[ "$base_image" =~ \$\{.*\} ]] || [[ "$base_image" =~ \$[A-Z_]+ ]]; then
+              echo "$base_image (contains build-time variables)"
+            else
+              echo "$base_image"
+            fi
+          }
+          
           get_base_vulns() {
             local json_file="$1"
             local count="${2:-999999}"
@@ -698,10 +720,11 @@ jobs:
                   NEW_LOW=$(get_new_vuln_count "$FULL_SCAN_JSON" "$BASE_SCAN_JSON" "low")
                   NEW_TOTAL=$((NEW_CRITICAL + NEW_HIGH + NEW_MEDIUM + NEW_LOW))
                   
-                  # Get display name for base image
+                  # Get display name for base image from stored names
                   DISPLAY_BASE_IMAGE="${BASE_IMAGE_NAMES[$BASE_SCAN_KEY]}"
                   if [ -z "$DISPLAY_BASE_IMAGE" ]; then
-                    DISPLAY_BASE_IMAGE="$BASE_IMAGE"
+                    # If not found in stored names, generate it directly
+                    DISPLAY_BASE_IMAGE=$(get_display_name "$DOCKERFILE_PATH")
                   fi
                 else
                   NEW_CRITICAL=0; NEW_HIGH=0; NEW_MEDIUM=0; NEW_LOW=0; NEW_TOTAL=0
