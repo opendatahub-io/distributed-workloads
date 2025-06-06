@@ -219,7 +219,7 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "kfto-llm-",
 			Labels: map[string]string{
-				"kueue.x-k8s.io/default-queue": localQueue.Name,
+				"kueue.x-k8s.io/queue-name": localQueue.Name,
 			},
 		},
 		Spec: kftov1.PyTorchJobSpec{
