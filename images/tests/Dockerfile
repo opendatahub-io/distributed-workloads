@@ -6,6 +6,12 @@ ENV KUBECONFIG=/distributed-workloads/tests/.kube/config
 # Set the working directory inside the container
 WORKDIR /distributed-workloads
 
+# Download the latest OpenShift CLI binary
+RUN wget -q https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.18/openshift-client-linux.tar.gz -P oc-client && \
+    tar -xf oc-client/openshift-client-linux.tar.gz -C oc-client && \
+    cp oc-client/oc /usr/local/bin && \
+    rm -rf oc-client/
+
 # Copy the go mod and sum files
 COPY go.mod go.sum ./
 

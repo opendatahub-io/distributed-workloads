@@ -31,6 +31,8 @@ const (
 	notebookUserName = "NOTEBOOK_USER_NAME"
 	// Token of the authenticated Notebook user
 	notebookUserToken = "NOTEBOOK_USER_TOKEN"
+	// Password of the authenticated Notebook user
+	notebookUserPassword = "NOTEBOOK_USER_PASSWORD"
 	// Image of the Notebook
 	notebookImage = "NOTEBOOK_IMAGE"
 	// Test tier to be invoked
@@ -75,6 +77,14 @@ func GetNotebookUserToken(t Test) string {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify token of the authenticated Notebook user.", notebookUserToken)
 	}
 	return token
+}
+
+func GetNotebookUserPassword(t Test) string {
+	password, ok := os.LookupEnv(notebookUserPassword)
+	if !ok {
+		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify token of the authenticated Notebook password.", notebookUserPassword)
+	}
+	return password
 }
 
 func GetNotebookImage(t Test) string {

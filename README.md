@@ -49,6 +49,7 @@ To upload trained model into S3 compatible storage, use the environment variable
 
 * `ODH_NAMESPACE` - Namespace where ODH components are installed to
 * `NOTEBOOK_USER_NAME` - Username of user used for running Workbench
+* `NOTEBOOK_USER_PASSWORD` - Password of user used for running Workbench
 * `NOTEBOOK_USER_TOKEN` - Login token of user used for running Workbench
 * `NOTEBOOK_IMAGE` - Image used for running Workbench
 

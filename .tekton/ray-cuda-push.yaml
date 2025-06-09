@@ -24,9 +24,9 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/ray:2.44.1-py311-cu121
+    value: quay.io/modh/ray:2.46.0-py311-cu121
   - name: additional-tag
-    value: 2.44.1-py311-cu121-{{revision}}
+    value: 2.46.0-py311-cu121-{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
