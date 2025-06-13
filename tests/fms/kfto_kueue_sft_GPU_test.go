@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 )

@@ -28,8 +28,6 @@ const (
 	fmsHfTuningImageEnvVar = "FMS_HF_TUNING_IMAGE"
 	// The environment variable referring to image containing minio CLI
 	minioCliImageEnvVar = "MINIO_CLI_IMAGE"
-	// The environment variable for HuggingFace token to download models which require authentication
-	huggingfaceTokenEnvVar = "HF_TOKEN"
 	// The environment variable specifying name of PersistenceVolumeClaim containing GPTQ models
 	gptqModelPvcNameEnvVar = "GPTQ_MODEL_PVC_NAME"
 	// The environment variable specifying s3 bucket name used to download files
@@ -53,15 +51,6 @@ func GetFmsHfTuningImage(t Test) string {
 
 func GetMinioCliImage() string {
 	return lookupEnvOrDefault(minioCliImageEnvVar, "quay.io/ksuta/mc@sha256:e128ce4caee276bcbfe3bd32ebb01c814f6b2eb2fd52d08ef0d4684f68c1e3d6")
-}
-
-func GetHuggingFaceToken(t Test) string {
-	t.T().Helper()
-	image, ok := os.LookupEnv(huggingfaceTokenEnvVar)
-	if !ok {
-		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify HuggingFace token to download models.", huggingfaceTokenEnvVar)
-	}
-	return image
 }
 
 func GetGptqModelPvcName() (string, error) {
