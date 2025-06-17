@@ -113,9 +113,13 @@ func kftoSftLlm(t *testing.T, modelName string) {
 	notebookCommand := []string{
 		"/bin/sh",
 		"-c",
-		"pip install papermill && papermill /opt/app-root/notebooks/sft.ipynb /opt/app-root/src/sft-out.ipynb " +
-			"--log-output && " +
-			"echo 'Notebook execution completed' > /opt/app-root/src/notebook_completion_marker && " +
+		"set -e; " +
+			"pip install --quiet --no-cache-dir papermill; " +
+			"if papermill /opt/app-root/notebooks/sft.ipynb /opt/app-root/src/sft-out.ipynb --log-output; then " +
+			"    echo 'SUCCESS' > /opt/app-root/src/notebook_completion_marker; " +
+			"else " +
+			"    echo 'FAILURE' > /opt/app-root/src/notebook_completion_marker; " +
+			"fi; " +
 			"sleep infinity",
 	}
 
@@ -128,19 +132,19 @@ func kftoSftLlm(t *testing.T, modelName string) {
 		test.Eventually(ListNotebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
 	}()
 
-	print("Wait for pytorch job to start running ............\n")
+	test.T().Logf("Wait for pytorch job to start running ...")
 	// Make sure the PyTorch job is running
 	test.Eventually(PyTorchJob(test, namespace.Name, fmt.Sprintf("sft-%s", namespace.Name)), TestTimeoutDouble).
 		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob sft-%s is running", namespace.Name)
 
-	print("Wait for pytorch job to complete ............\n")
+	test.T().Logf("Wait for pytorch job to complete ...")
 	// Make sure the PyTorch job succeeded
 	test.Eventually(PyTorchJob(test, namespace.Name, fmt.Sprintf("sft-%s", namespace.Name)), TestTimeoutGpuProvisioning).
 		Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob sft-%s is successfully completed", namespace.Name)
 
-	print("Wait for notebook execution to complete ............\n")
+	test.T().Logf("Wait for notebook execution to complete ...")
 	markerPath := "/opt/app-root/src/notebook_completion_marker"
 
 	// Get pod and container names dynamically
@@ -152,25 +156,38 @@ func kftoSftLlm(t *testing.T, modelName string) {
 	podName := podList[0].Name
 	containerName := podList[0].Spec.Containers[0].Name
 
+	var notebookExecutionFinalError error // This variable will store the definitive outcome of notebook execution
 	test.Eventually(func() bool {
 		cmd := exec.Command("kubectl", "-n", namespace.Name, "exec", podName,
 			"-c", containerName, "--", "cat", markerPath)
 
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Logf("Attempt to read marker file failed: %v", err)
-			t.Logf("Command output: %s", string(output))
+			test.T().Logf("Attempt to read marker file '%s' failed: %v", markerPath, err)
+			test.T().Logf("Command output: %s", string(output))
 			return false
 		}
 
-		if !strings.Contains(string(output), "Notebook execution completed") {
-			t.Logf("Marker file content incorrect: %s", string(output))
-			return false
+		markerContent := strings.TrimSpace(string(output))
+		if markerContent == "SUCCESS" {
+			test.T().Logf("Notebook execution completed as indicated by marker file: '%s'", markerContent)
+			return true
+		} else if markerContent == "FAILURE" {
+			errMessage := fmt.Sprintf("Notebook execution failed as indicated by marker file: '%s'", markerContent)
+			test.T().Errorf("%s", errMessage)
+			notebookExecutionFinalError = fmt.Errorf("%s", errMessage)
+			// Return true to stop Eventually polling, because a *final* state has been reached
+			return true
 		}
 
-		t.Logf("Successfully read marker file with content: %s", string(output))
-		return true
-	}, TestTimeoutDouble, 5*time.Second).Should(BeTrue(), "Notebook execution did not complete in time")
+		test.T().Logf("Marker file '%s' content not yet 'SUCCESS' or 'FAILURE': '%s'. Retrying...", markerPath, markerContent)
+		return false
+	}, TestTimeoutLong, 5*time.Second).Should(BeTrue(), "Notebook status never became definitive (SUCCESS or FAILURE) within timeout.")
+
+	if notebookExecutionFinalError != nil {
+		test.Expect(notebookExecutionFinalError).To(Succeed(), "Notebook execution explicitly reported FAILURE")
+	}
+
 	test.T().Logf("Notebook execution completed successfully")
 
 	pretrainedPath := "/opt/app-root/src/pretrained_output.md"
