@@ -173,7 +173,7 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpu Accelerator, numGpus, num
 	config := CreateConfigMap(test, namespace, configData)
 
 	// Create PVC for trained model
-	outputPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", corev1.ReadWriteOnce)
+	outputPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", AccessModes(corev1.ReadWriteOnce))
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
 
 	// Create training PyTorch job

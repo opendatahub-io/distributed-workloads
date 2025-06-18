@@ -115,7 +115,7 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 	defer test.Client().Core().CoreV1().ConfigMaps(namespace).Delete(test.Ctx(), config.Name, *metav1.NewDeleteOptions(0))
 
 	// Create PVC for trained model
-	outputPvc := CreatePersistentVolumeClaim(test, namespace, "200Gi", corev1.ReadWriteOnce)
+	outputPvc := CreatePersistentVolumeClaim(test, namespace, "200Gi", AccessModes(corev1.ReadWriteOnce))
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
 
 	// Create training PyTorch job

@@ -111,7 +111,7 @@ func runMnistSDK(t *testing.T, trainingImage string) {
 			jupyterNotebookConfigMapFileName, namespace.Name, GetOpenShiftApiUrl(test), userToken, 0, trainingImage)}
 
 	// Create PVC for Notebook
-	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", corev1.ReadWriteOnce)
+	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", AccessModes(corev1.ReadWriteOnce))
 
 	// Create Notebook CR
 	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, 0, notebookPVC)
