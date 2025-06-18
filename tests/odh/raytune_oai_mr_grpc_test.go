@@ -120,7 +120,7 @@ func raytuneHpo(t *testing.T, numGpus int) {
 	notebookCommand := getNotebookCommand(rayImage)
 
 	// Create PVC for Notebook
-	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", corev1.ReadWriteOnce)
+	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", AccessModes(corev1.ReadWriteOnce))
 
 	// Create Notebook CR
 	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, numGpus, notebookPVC)

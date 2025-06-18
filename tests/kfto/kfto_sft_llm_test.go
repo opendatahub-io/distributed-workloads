@@ -59,8 +59,12 @@ func kftoSftLlm(t *testing.T, modelName string) {
 	// Create role binding with Namespace specific admin cluster role
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
+	// Get storageclass that supports RWX PVC provisioning
+	storageClass, err := GetRWXStorageClass(test)
+	test.Expect(err).ToNot(HaveOccurred(), "Failed to find an RWX supporting StorageClass")
+
 	// Create PVC for Notebook
-	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "500Gi", corev1.ReadWriteMany)
+	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "500Gi", AccessModes(corev1.ReadWriteMany), StorageClassName(storageClass.Name))
 
 	// Read and update the notebook content
 	notebookContent := odh.ReadFileExt(test, workingDirectory+"/../../examples/kfto-sft-llm/sft.ipynb")

@@ -127,7 +127,7 @@ func mnistRay(t *testing.T, numGpus int, gpuResourceName string, rayImage string
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
 	// Create PVC for Notebook
-	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", corev1.ReadWriteOnce)
+	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", AccessModes(corev1.ReadWriteOnce))
 
 	notebookCommand := getNotebookCommand(rayImage)
 	// Create Notebook CR
