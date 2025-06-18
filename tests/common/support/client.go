@@ -22,6 +22,7 @@ import (
 
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	storageclient "k8s.io/client-go/kubernetes/typed/storage/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -43,6 +44,7 @@ type Client interface {
 	Image() imagev1.Interface
 	Ray() rayclient.Interface
 	Dynamic() dynamic.Interface
+	Storage() storageclient.StorageV1Interface
 }
 
 type testClient struct {
@@ -54,6 +56,7 @@ type testClient struct {
 	image    imagev1.Interface
 	ray      rayclient.Interface
 	dynamic  dynamic.Interface
+	storage  storageclient.StorageV1Interface
 }
 
 var _ Client = (*testClient)(nil)
@@ -88,6 +91,10 @@ func (t *testClient) Ray() rayclient.Interface {
 
 func (t *testClient) Dynamic() dynamic.Interface {
 	return t.dynamic
+}
+
+func (t *testClient) Storage() storageclient.StorageV1Interface {
+	return t.storage
 }
 
 func newTestClient(cfg *rest.Config) (Client, *rest.Config, error) {
@@ -142,6 +149,11 @@ func newTestClient(cfg *rest.Config) (Client, *rest.Config, error) {
 		return nil, nil, err
 	}
 
+	storageClient, err := storageclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return &testClient{
 		core:     kubeClient,
 		kubeflow: kubeflowClient,
@@ -151,5 +163,6 @@ func newTestClient(cfg *rest.Config) (Client, *rest.Config, error) {
 		image:    imageClient,
 		ray:      rayClient,
 		dynamic:  dynamicClient,
+		storage:  storageClient,
 	}, cfg, nil
 }
