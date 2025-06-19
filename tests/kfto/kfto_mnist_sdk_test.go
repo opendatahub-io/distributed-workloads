@@ -114,7 +114,7 @@ func runMnistSDK(t *testing.T, trainingImage string) {
 	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", AccessModes(corev1.ReadWriteOnce))
 
 	// Create Notebook CR
-	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, 0, notebookPVC)
+	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, 0, notebookPVC, ContainerSizeSmall)
 
 	// Gracefully cleanup Notebook
 	defer func() {
