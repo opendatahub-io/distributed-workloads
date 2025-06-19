@@ -131,7 +131,7 @@ func mnistRay(t *testing.T, numGpus int, gpuResourceName string, rayImage string
 
 	notebookCommand := getNotebookCommand(rayImage)
 	// Create Notebook CR
-	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, numGpus, notebookPVC)
+	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, numGpus, notebookPVC, ContainerSizeSmall)
 
 	// Gracefully cleanup Notebook
 	defer func() {
