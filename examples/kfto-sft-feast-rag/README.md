@@ -10,8 +10,9 @@ The core idea is to enhance a generator model (like BART) by providing it with r
 
 Before you begin, ensure you have the following setup:
 
-* An OpenShift cluster with OpenShift AI (RHOAI) 2.17+ installed:
+* An OpenShift cluster with OpenShift AI (RHOAI) 2.20+ installed:
   * The `dashboard`, `trainingoperator` and `workbenches` components enabled
+* Workbench with medium size container, 1 NVIDIA GPU accelerator, and cluster storage of 200GB.
 * Sufficient worker nodes for your configuration(s) with NVIDIA GPUs (Ampere-based or newer recommended)
 * A dynamic storage provisioner supporting RWX PVC provisioning
 * A standalone Milvus deployment. See example [here](https://github.com/rh-aiservices-bu/llm-on-openshift/tree/main/vector-databases/milvus#deployment).
@@ -27,7 +28,8 @@ You must run this notebook from within an OpenShift AI Workbench. Follow these s
 * Once the project is created, click on _Create a workbench_.
 * Then create a workbench with a preferred name and with the following settings:
   * Select the `PyTorch` (or the `ROCm-PyTorch`) workbench image with the recommended version.
-  * Select the `Medium` as the deployment container size and add an accelerator.
+  * Select the `Medium` as the deployment container size.
+  * Add an accelerator (GPU).
   * Create a storage that'll be shared between the workbench and the fine-tuning runs.
     Make sure it uses a storage class with RWX capability and give it enough size according to the size of the model you want to fine-tune.
     > [!NOTE]
