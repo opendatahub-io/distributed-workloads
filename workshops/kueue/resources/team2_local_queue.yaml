@@ -5,4 +5,4 @@ metadata:
     kueue.x-k8s.io/default-queue: "true"
   name: nvidia-a100
 spec:
-  clusterQueue: team1
+  clusterQueue: team2 
