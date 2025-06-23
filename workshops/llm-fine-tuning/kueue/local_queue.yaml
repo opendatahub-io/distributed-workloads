@@ -1,8 +1,0 @@
-apiVersion: kueue.x-k8s.io/v1beta1
-kind: LocalQueue
-metadata:
-  annotations:
-    kueue.x-k8s.io/default-queue: "true"
-  name: nvidia-a100
-spec:
-  clusterQueue: team1
