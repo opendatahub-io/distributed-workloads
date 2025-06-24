@@ -29,4 +29,4 @@ ENTRYPOINT [ "gotestsum"]
 
 # Configure images using environment variables
 ENV FMS_HF_TUNING_IMAGE=quay.io/modh/fms-hf-tuning:release
-ENV NOTEBOOK_IMAGE=quay.io/modh/odh-workbench-jupyter-datascience-cpu-py311-ubi9:rhoai-2.21
+ENV NOTEBOOK_IMAGE=quay.io/modh/odh-workbench-jupyter-datascience-cpu-py311-ubi9:rhoai-2.22
