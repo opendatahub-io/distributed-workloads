@@ -20,9 +20,9 @@ This example notebook provides a step-by-step demonstration of building and usin
 
 4. RAG System Implementation
    - **Embedding Model**: `all-MiniLM-L6-v2` (configurable)
-   - **Generator Model**: `granite-3.2-2b-instruct` (configurable)
-   - **Vector Store**: Custom implementation with Feast integration
-   - **Retriever**: Custom implementation with Feast integration extending HuggingFace's RagRetriever
+   - **Generator Model**: `granite-3.2-2b-instruct` (configurable) 
+   - **Vector Store**: Feast’s built-in FeastVectorStore backed by Milvus
+   - **Retriever**: Feast’s native RAG retriever FeastRAGRetriever
 
 5. Query Demonstration
    - Perform inference with retrieved context
@@ -37,17 +37,6 @@ This example notebook provides a step-by-step demonstration of building and usin
 From the workbench, clone this repository: https://github.com/opendatahub-io/distributed-workloads.git
 Navigate to the distributed-workloads/examples/kfto-feast-rag directory. Here you will find the following files: 
 
-* **feast_rag_retriever.py**
-  This module implements a custom RAG retriever by combining Feast feature store capabilities with HuggingFace transformer-based models. The implementation provides:
-
-  - A flexible vector store interface with Feast integration (`FeastVectorStore`)
-  - A custom RAG retriever (`FeastRAGRetriever`) that supports three search modes:
-    - Text-based search
-    - Vector-based search
-    - Hybrid search
-  - Seamless integration with HuggingFace transformers library and sentence-transformers
-  - Configurable document formatting and retrieval options
-
 * **feature_repo/feature_store.yaml**
   This is the core configuration file for the RAG project's feature store, configuring a Milvus online store on a local provider. 
   * In order to configure Milvus you should:
@@ -56,7 +45,7 @@ Navigate to the distributed-workloads/examples/kfto-feast-rag directory. Here yo
        - port (default: 19530)
        - credentials (if required)
 
-* **__feature_repo/rag_project_repo.py__**
+* **__feature_repo/ragproject_repo.py__**
   This is the Feast feature repository configuration that defines the schema and data source for Wikipedia passage embeddings. 
 
 * **__rag_feast_kfto.ipynb__**
