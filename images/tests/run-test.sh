@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -o allexport
-source .env-odh
+source .env-rhoai
 set +o allexport
 
 gotestsum "$@"

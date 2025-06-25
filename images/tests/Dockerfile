@@ -24,8 +24,8 @@ WORKDIR /distributed-workloads/tests
 # Copy the source from the current directory to the working directory inside the container
 COPY tests/ .
 
-# Copy the .env-odh file and the run-test.sh script to the working directory inside the container
-COPY images/tests/.env-odh .env-odh
+# Copy the .env-rhoai file and the run-test.sh script to the working directory inside the container
+COPY images/tests/.env-rhoai .env-rhoai
 COPY images/tests/run-test.sh .
 
 # Command to run the tests
