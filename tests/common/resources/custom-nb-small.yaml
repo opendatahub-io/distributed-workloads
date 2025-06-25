@@ -11,7 +11,7 @@ metadata:
   annotations:
     notebooks.opendatahub.io/inject-oauth: "true"
     notebooks.opendatahub.io/last-image-selection: codeflare-notebook:latest
-    notebooks.opendatahub.io/last-size-selection: Small
+    notebooks.opendatahub.io/last-size-selection: {{.SizeSelection}}
     notebooks.opendatahub.io/oauth-logout-url: https://odh-dashboard-{{.OpenDataHubNamespace}}.{{.IngressDomain}}/notebookController/kube-3aadmin/home
     opendatahub.io/link: https://jupyter-nb-kube-3aadmin-{{.Namespace}}.{{.IngressDomain}}/notebook/{{.Namespace}}/jupyter-nb-kube-3aadmin
     opendatahub.io/username: kube:admin
@@ -75,11 +75,17 @@ spec:
           protocol: TCP
         resources:
           limits:
-            cpu: "2"
-            memory: 3Gi
+            cpu: "{{ .NotebookResources.Limits.CPU }}"
+            memory: "{{ .NotebookResources.Limits.Memory }}"
+            {{ if .NotebookResources.Limits.GPUResourceLabel }} # Check if GPUResourceLabel is NOT empty
+            {{ .NotebookResources.Limits.GPUResourceLabel }}: 1
+            {{ end }}
           requests:
-            cpu: "1"
-            memory: 3Gi
+            cpu: "{{ .NotebookResources.Requests.CPU }}"
+            memory: "{{ .NotebookResources.Requests.Memory }}"
+            {{ if .NotebookResources.Requests.GPUResourceLabel }} # Check if GPUResourceLabel is NOT empty
+            {{ .NotebookResources.Requests.GPUResourceLabel }}: 1
+            {{ end }}
         volumeMounts:
         - mountPath: /opt/app-root/src
           name: jupyterhub-nb-kube-3aadmin-pvc

@@ -24,13 +24,9 @@ WORKDIR /distributed-workloads/tests
 # Copy the source from the current directory to the working directory inside the container
 COPY tests/ .
 
-# Command to run the tests
-ENTRYPOINT [ "gotestsum"]
+# Copy the .env-odh file and the run-test.sh script to the working directory inside the container
+COPY images/tests/.env-odh .env-odh
+COPY images/tests/run-test.sh .
 
-# Configure images using environment variables
-ENV FMS_HF_TUNING_IMAGE=<replace_me>
-ENV TEST_TRAINING_CUDA_PYTORCH_241_IMAGE=<replace_me>
-ENV TEST_TRAINING_ROCM_PYTORCH_241_IMAGE=<replace_me>
-ENV TEST_TRAINING_CUDA_PYTORCH_251_IMAGE=<replace_me>
-ENV TEST_TRAINING_ROCM_PYTORCH_251_IMAGE=<replace_me>
-ENV NOTEBOOK_IMAGE=<replace_me>
+# Command to run the tests
+ENTRYPOINT ["bash", "run-test.sh"]
