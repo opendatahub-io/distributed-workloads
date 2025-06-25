@@ -3,7 +3,7 @@ provider: local
 registry: data/registry.db
 online_store:
   type: milvus
-  host: # Insert Milvus route host
+  host: http:// # Insert Milvus route host
   username: # Insert Milvus username if required
   password: # Insert Milvus password if required
   port: 19530
