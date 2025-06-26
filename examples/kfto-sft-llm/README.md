@@ -17,6 +17,27 @@ It uses HuggingFace SFTTrainer, with PEFT for LoRA and qLoRA, and PyTorch FSDP t
 
 ## Setup
 
+### Configure Kueue (Optional)
+
+> [!NOTE]
+> This section is only required if you plan to use Kueue for workload management (RHOAI 2.21+).
+
+* Update the `nodeLabels` in the `workshops/kueue/resources/resource_flavor.yaml` file to match your AI worker nodes
+* Create the ResourceFlavor:
+    ```console
+    oc apply -f workshops/kueue/resources/resource_flavor.yaml
+    ```
+* Create the ClusterQueue:
+    ```console
+    oc apply -f workshops/kueue/resources/team1_cluster_queue.yaml
+    ```
+* Create a LocalQueue in your namespace:
+    ```console
+    oc apply -f workshops/kueue/resources/team1_local_queue.yaml -n <your-namespace>
+    ```
+
+### Setup Workbench
+
 * Access the OpenShift AI dashboard, for example from the top navigation bar menu:
 ![](./docs/01.png)
 * Log in, then go to _Data Science Projects_ and create a project:
@@ -42,6 +63,19 @@ It uses HuggingFace SFTTrainer, with PEFT for LoRA and qLoRA, and PyTorch FSDP t
 * From the workbench, clone this repository, i.e., `https://github.com/opendatahub-io/distributed-workloads.git`
 ![](./docs/06.png)
 * Navigate to the `distributed-workloads/examples/kfto-sft-llm` directory and open the `sft` notebook
+
+> [!IMPORTANT]
+> * You will need a Huggingface token with access to the Llama models:
+>   * Make sure you have access to the required model (e.g., https://huggingface.co/meta-llama/Llama-3.1-8B)
+>   * Set the `HF_TOKEN` environment variable in your job configuration
+> * If using RHOAI 2.21+, the example supports Kueue integration for workload management:
+>   * When using Kueue:
+>     * Follow the [Configure Kueue](#configure-kueue-optional) section to set up required resources
+>     * Add the local-queue name label to your job configuration to enforce workload management
+>   * You can skip Kueue usage by:
+>     > Note: Kueue Enablement via Validating Admission Policy was introduced in RHOAI-2.21. You can skip this section if using an earlier RHOAI release version.
+>     * Disabling the existing `Kueue-validating-admission-policy-binding`
+>     * Omitting the local-queue-name label in your job configuration
 
 You can now proceed with the instructions from the notebook. Enjoy!
 
