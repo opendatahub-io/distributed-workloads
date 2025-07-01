@@ -71,6 +71,7 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 		uniqueSuffix("vap"),
 		AsDefaultQueueNamespace,
 	)
+	defer test.Client().Core().CoreV1().Namespaces().Delete(test.Ctx(), ns.Name, metav1.DeleteOptions{})
 
 	// Create a namespace that will not receive the `kueue.x-k8s.io/queue-name` label
 	nsNoLabel = CreateTestNamespaceWithName(test, uniqueSuffix("vap-nl"))
