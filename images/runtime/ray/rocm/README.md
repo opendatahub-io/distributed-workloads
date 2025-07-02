@@ -6,4 +6,4 @@ It includes the following layers:
 * UBI 9
 * Python 3.11
 * ROCm 6.1
-* Ray 2.46.0
+* Ray 2.47.1
