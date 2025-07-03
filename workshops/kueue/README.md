@@ -1,62 +1,62 @@
 # Kueue Multi-Team Resource Management Workshop
 
-This workshop demonstrates how to use Kueue for multi-team GPU resource management and workload scheduling on OpenShift AI. Using LLM fine-tuning jobs as a practical demonstration, you'll learn how to:
+This workshop demonstrates how to use Kueue for multi-team GPU resource management and workload scheduling on OpenShift AI. Using complete ML workflows as practical demonstrations, you'll learn how to:
 - Configure Kueue for enterprise-grade resource sharing and quotas
-- Set up multi-team environments with fair resource allocation
+- Set up teams with different resource quota allocation strategies but flexible GPU access
 - Implement borrowing and preemption policies between teams
-- Manage workload priorities and scheduling strategies
-- Monitor resource usage across teams using distributed training jobs
+- Manage workload priorities and scheduling strategies for training and inference
+- Monitor resource usage across teams using distributed ML workloads
 
 The workshop uses Large Language Model fine-tuning with Kubeflow Training Operator to demonstrate real-world GPU-intensive workloads and resource contention scenarios.
 
 ## Kueue Resource Architecture
 
-The following diagram illustrates the ideal Kueue resource management flow with multiple resource flavors:
+The following diagram illustrates ideal Kueue resource management for multi-team ML workflows with different allocation strategies:
 
 ```
 Kueue Resource Hierarchy - Workshop Configuration
 ================================================
 
 Resource Layer (Hardware Abstraction)
-├── ResourceFlavor: nvidia-a100
+├── ResourceFlavor: nvidia-a100-80gb
 │   └── Node Labels: NVIDIA-A100-SXM4-80GB
-└── ResourceFlavor: amd-mi300x
-    └── Node Labels: AMD-Instinct-MI300X
+└── ResourceFlavor: nvidia-h100-80gb
+    └── Node Labels: NVIDIA-H100-80GB-HBM3
 
 Organization Layer (Cohort: "organization")
-├── ClusterQueue: team1
-│   ├── Quota: 5x A100 GPUs, 256 CPU, 2000Gi Memory
+├── ClusterQueue: team1 (ML Team A)
+│   ├── Quota: 8x A100 + 2x H100 GPUs, 80 CPU, 1280Gi Memory
 │   ├── Preemption: Can reclaim from cohort
-│   └── Borrowing: Can use unused team2 resources ←─┐
-│                                                   │
-└── ClusterQueue: team2                             │
-    ├── Quota: 5x A100 GPUs, 256 CPU, 2000Gi Memory │
-    ├── Preemption: Can reclaim from cohort         │
-    └── Borrowing: Can use unused team1 resources ──┘
+│   └── Borrowing: Can use unused team2 resources ←────────────┐
+│                                                              │
+└── ClusterQueue: team2 (ML Team B)                            │
+    ├── Quota: 4x A100 + 6x H100 GPUs, 80 CPU, 1280Gi Memory   │
+    ├── Preemption: Can reclaim from cohort                    │
+    └── Borrowing: Can use unused team1 resources ←────────────┘
 
-Project Layer (Team Access Points)
-├── Team 1 Sub-teams: (→ team1 ClusterQueue)
-│   ├── LocalQueue: team1-alpha
-│   │   └── Project: team1-project → PyTorchJob: sft-training
-│   │
-│   └── LocalQueue: team1-beta
-│       └── Project: team1-project → PyTorchJob: inference-serving
+Organization
+├── Team 1: (→ team1 ClusterQueue)
+│   ├── team1-alpha (Project) → team1 (LocalQueue) → PyTorchJob: training
+│   └── team1-beta (Project) → team1 (LocalQueue) → PyTorchJob: inference
 │
-└── Team 2 Sub-teams: (→ team2 ClusterQueue)
-    ├── LocalQueue: team2-alpha
-    │   └── Project: team2-project → PyTorchJob: sft-training
-    │
-    └── LocalQueue: team2-beta
-        └── Project: team2-project → PyTorchJob: model-evaluation
+└── Team 2: (→ team2 ClusterQueue)
+    ├── team2-alpha (Project) → team2 (LocalQueue) → PyTorchJob: training
+    └── team2-beta (Project) → team2 (LocalQueue) → PyTorchJob: inference
 
 
 Queue Relationship:
 ==================
-team1-alpha (LocalQueue) ─┐
-team1-beta  (LocalQueue) ─┤→ team1 (ClusterQueue) → nvidia-a100/amd-mi300x (ResourceFlavors)
-                          │
-team2-alpha (LocalQueue) ─┐
-team2-beta  (LocalQueue) ─┤→ team2 (ClusterQueue) → nvidia-a100/amd-mi300x (ResourceFlavors)
+team1-alpha (Project) ─┐
+team1-beta (Project)  ─┤─→ team1 (ClusterQueue) → nvidia-a100-80gb + nvidia-h100-80gb
+
+team2-alpha (Project) ─┐
+team2-beta (Project)  ─┤─→ team2 (ClusterQueue) → nvidia-a100-80gb + nvidia-h100-80gb
+
+Note: Both teams have access to both GPU types based on:
+- Team quota allocation (Team1: 8xA100+2xH100, Team2: 4xA100+6xH100)
+- Job requirements (nodeSelector specification)
+- Resource availability and borrowing policies
+
 
 
 Key Concepts:
@@ -65,12 +65,15 @@ Key Concepts:
 │                                Basic Components                                        │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │ ResourceFlavor │ Defines hardware characteristics and node labels                      │
-│                │ (e.g., NVIDIA A100 GPUs, AMD MI300X)                                  │
+│                │ (e.g., NVIDIA A100-80GB, NVIDIA H100-80GB)                            │
 ├────────────────┼───────────────────────────────────────────────────────────────────────┤
-│ ClusterQueue   │ Organization-level resource pool with quotas, policies, and           │
+│ ClusterQueue   │ Team-level resource pool with quotas, policies, and                   │
 │                │ scheduling strategies                                                 │
 ├────────────────┼───────────────────────────────────────────────────────────────────────┤
-│ LocalQueue     │ Team/project-level access point that connects to a ClusterQueue       │
+│ LocalQueue     │ Project-level proxy/access-point that connects to team's ClusterQueue │
+├────────────────┼───────────────────────────────────────────────────────────────────────┤
+│ Project        │ Kubernetes namespace for multi-tenancy within teams                   │
+│                │ (main organizing principle for workload separation)                   │
 ├────────────────┼───────────────────────────────────────────────────────────────────────┤
 │ Workload       │ Actual job submission (PyTorchJob, Job, etc.) that gets queued        │
 │                │ and scheduled                                                         │
@@ -83,7 +86,7 @@ Key Concepts:
 │                │ from each other                                                       │
 ├────────────────┼───────────────────────────────────────────────────────────────────────┤
 │ Quota          │ Guaranteed resource allocation per ClusterQueue                       │
-│                │ (e.g., 5 GPUs, 256 CPU cores)                                         │
+│                │ (e.g., Team1: 8 A100 + 2 H100, 80 CPU, 1280Gi Memory)                 │
 ├────────────────┼───────────────────────────────────────────────────────────────────────┤
 │ Borrowing      │ Using unused resources from other ClusterQueues in the same           │
 │                │ cohort                                                                │
@@ -120,47 +123,55 @@ Key Concepts:
 │ Finished  │ Job completed successfully or failed                                       │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 
+
 Resource Flavor Selection Flow:
 ==============================
-┌─────────────────────────────┐    ┌─────────────────────────────────┐
-│ PyTorchJob (team1-alpha)    │    │        Kueue Scheduler          │
-│                             │    │                                 │
-│ nodeSelector:               │    │ 1. Examines workload specs      │
-│   nvidia.com/gpu.product:   │────┤ 2. Matches nodeSelector         │──> nvidia-a100 flavor
-│   "NVIDIA-A100-SXM4-80GB"   │    │ 3. Checks available quota       │    (uses team1 quota)
-│                             │    │ 4. Schedules on matching nodes  │
-│ tolerations:                │    │                                 │
-│   - key: nvidia.com/gpu     │    │                                 │
-└─────────────────────────────┘    └─────────────────────────────────┘
+┌─────────────────────────────┐
+│ PyTorchJob                  │
+│                             │
+│ nodeSelector:               │
+│   nvidia.com/gpu.product:   │────┐
+│   "NVIDIA-A100-SXM4-80GB"   │    │
+│                             │    │
+│ tolerations:                │    │   ┌─────────────────────────────────┐
+│   - key: nvidia.com/gpu     │    │   │        Kueue Scheduler          │
+└─────────────────────────────┘    ├──>┤                                 │──> nvidia-a100-80gb flavor
+                                       │ 1. Examines workload specs      │    (uses team quota)
+┌─────────────────────────────┐        │ 2. Matches nodeSelector         │
+│ PyTorchJob                  │        │ 3. Checks available quota       │
+│                             │        │ 4. Schedules on matching nodes  │
+│ nodeSelector:               │    │──>│                                 │──> nvidia-h100-80gb flavor
+│   nvidia.com/gpu.product:   │    │   │                                 │    (uses team quota)
+│   "NVIDIA-H100-80GB-HBM3"   │    |   └─────────────────────────────────┘
+│                             │────┘
+│ tolerations:                │
+│   - key: nvidia.com/gpu     │
+└─────────────────────────────┘
 
-┌─────────────────────────────┐    ┌─────────────────────────────────┐
-│ PyTorchJob (team1-beta)     │    │        Kueue Scheduler          │
-│                             │    │                                 │
-│ nodeSelector:               │    │ 1. Examines workload specs      │
-│   amd.com/gpu.product:      │────┤ 2. Matches nodeSelector         │──> amd-mi300x flavor
-│   "AMD-Instinct-MI300X"     │    │ 3. Checks available quota       │    (uses team1 quota)
-│                             │    │ 4. Schedules on matching nodes  │
-│ tolerations:                │    │                                 │
-│   - key: amd.com/gpu        │    │                                 │
-└─────────────────────────────┘    └─────────────────────────────────┘
+Note: Both team1-alpha and team1-beta projects can use either GPU type based on:
+- Job requirements (nodeSelector)
+- Available quota in team1 ClusterQueue
+- Current resource availability
 
-Multi-Queue Scenarios:
-=====================
-Basic Resource Sharing:
-1. team1-alpha + team1-beta both submit jobs → Share team1's quota (5 GPUs total)
-2. team2-alpha submits large job → Uses all team2 quota + borrows from team1
-3. team1-beta submits urgent job → Preempts team2's borrowed resources
-4. Mixed GPU usage: team1-alpha uses A100, team1-beta uses MI300X (via nodeSelector)
+Multi-Project Scenarios:
+=======================
+Basic Multi-Tenant Resource Sharing:
+1. Team1 runs training job in team1-alpha-project → Uses GPUs from team1 ClusterQueue quota
+2. Team2 runs inference job in team2-beta-project → Uses GPUs from team2 ClusterQueue quota  
+3. Team1 needs inference capacity in team1-beta-project → Uses available GPUs from team1 quota
+4. Team2 needs training capacity in team2-alpha-project → Uses available GPUs from team2 quota
+5. GPU type selection depends on job nodeSelector and availability within team quotas
 
-Advanced Scenarios:
-5. Priority-based scheduling: team1-alpha (high priority) preempts team1-beta (low priority) within same team
-6. Resource flavor exhaustion: team1-alpha requests A100s but only MI300X available → job stays pending
-7. Cohort resource limits: Both teams at capacity → new jobs wait until resources freed
-8. Resource reclamation: team1 jobs return, automatically reclaim resources borrowed by team2
-9. Batch job conflicts: Multiple teams submit jobs simultaneously → fair scheduling across teams
-10. Workload failure recovery: Failed job releases resources immediately for other waiting jobs
-11. Administrative controls: LocalQueue suspended → jobs pause until queue resumed
-12. Mixed workload types: PyTorchJobs + regular Jobs + Deployments all sharing same quotas
+Advanced Multi-Tenant Scenarios:
+5. Full ML lifecycle per team: Each team uses alpha projects for training, beta projects for inference
+6. Cross-team borrowing: Team1 training borrows Team2's unused resources during low activity periods
+7. Project-level isolation: Teams separate workloads by project while sharing team ClusterQueue resources
+8. Resource reclamation: Team resources are reclaimed from any project when needed by team owner
+9. Priority-based scheduling: Teams can prioritize certain projects over others within their ClusterQueue
+10. Hardware optimization: Teams route jobs to appropriate projects based on GPU requirements
+11. Project-specific policies: Different resource patterns for training vs inference projects
+12. Workshop scenarios: Teams demonstrate complete ML workflows with proper project-level organization
+
 ```
 
 ## Requirements
@@ -234,18 +245,22 @@ This workshop demonstrates how to manage resources between multiple teams using 
 
 ### Resource Flavor Setup
 
-* Update the `nodeLabels` in the `resources/resource_flavor.yaml` file to match those of your AI worker nodes
+* Update the `nodeLabels` in the `resources/resource_flavors.yaml` file to match those of your AI worker nodes
 * Apply the ResourceFlavor:
     ```console
-    oc apply -f resources/resource_flavor.yaml
+    oc apply -f resources/resource_flavors.yaml
     ```
 
 ### Configure Team ClusterQueues
 
-The workshop provides two pre-configured ClusterQueues (`team1` and `team2`) that demonstrate resource management between teams:
+The workshop provides two pre-configured ClusterQueues (`team1` and `team2`) that demonstrate multi-team resource management with different allocation strategies:
 
-* Each team gets dedicated resource quotas
-* Resources are managed within an organization cohort
+* Team1 (ML Team A): Resource quota of 8x A100 + 2x H100 GPUs, 80 CPU, 1280Gi Memory
+* Team2 (ML Team B): Resource quota of 4x A100 + 6x H100 GPUs, 80 CPU, 1280Gi Memory
+* **Both teams can use either GPU type** based on job requirements (`nodeSelector`) and resource availability
+* Resource quotas are calibrated for realistic kfto-sft-llm workloads (not over-provisioned)
+* Both teams can perform full ML lifecycle: training, fine-tuning, inference, and serving
+* Resources are managed within an organization cohort with borrowing capabilities
 * Fair scheduling with BestEffortFIFO strategy
 
 Create the ClusterQueues:
@@ -256,46 +271,69 @@ oc apply -f resources/team2_cluster_queue.yaml
 
 ### Understanding Workshop Queue Configuration
 
-**Resource Allocation:**
-* Each team gets a guaranteed quota (5 GPUs, 256 CPU, 2000Gi Memory)
-* Teams can borrow beyond their quota when other teams have unused resources
-* Total cluster resources are shared within the "organization" cohort
-
-**Preemption Policies in This Workshop:**
-* `borrowWithinCohort: Never` - Teams cannot preempt other teams' workloads to borrow resources
-* `reclaimWithinCohort: Any` - Teams can reclaim their own resources from any queue in the cohort
-* `withinClusterQueue: LowerOrNewerEqualPriority` - Within a team, newer/higher priority jobs can preempt older/lower priority ones
-
 **Expected Behavior:**
 * Team1 can borrow Team2's unused resources (and vice versa)
 * Teams can reclaim their own resources from anywhere in the cohort
 * Teams cannot use preemption to borrow beyond their nominal quota
 * This balances job stability with fair resource access
 
+**Resource Sharing Model:**
+* Teams can borrow beyond their quota when other teams have unused resources
+* Teams can reclaim their own resources from anywhere in the cohort when needed
+* Total cluster resources: 12x A100 + 8x H100 GPUs shared within "organization" cohort
+* Fair scheduling ensures no team is starved of resources
+
+**Resource Quota Rationale:**
+* **GPU Requirements**:
+  * **Standard training**: kfto-sft-llm needs 8 workers × 1 GPU = 8 GPUs
+  * **Large model training**: Some examples use 16 workers × 1 GPU = 16 GPUs
+  * **Inference/serving**: Typically 1-6 GPUs per model instance
+* **CPU/Memory Requirements**:
+  * **Training jobs**: 8 workers × (4-8 CPU, 64-128Gi memory) = 32-64 CPU, 512-1024Gi
+  * **Inference jobs**: 1-6 instances × (8 CPU, 128Gi memory) = 8-48 CPU, 128-768Gi
+* **Team Allocations**:
+  * **Team1**: 10 GPUs (8 A100 + 2 H100) can run one 8-GPU job + inference, or borrow for 16-GPU jobs
+  * **Team2**: 10 GPUs (4 A100 + 6 H100) can run smaller training jobs + multiple inference instances
+  * **CPU/Memory**: 80 CPU, 1280Gi provides realistic headroom without massive over-provisioning
+
 ## Set Up Team Environments
 
 ### Create Projects for Teams
 
-For each team/project:
+Create multiple projects per team to demonstrate multi-tenancy within team resource pools:
 
+**Team 1 Projects:**
 1. Go to the OpenShift AI Dashboard
 2. Go to "Data Science Projects"
 3. Click "Create project"
-4. Choose a name (e.g., `team1-project`, `team2-project`) and click "Create"
+4. Create `team1-alpha-project` (for training workloads)
+5. Create `team1-beta-project` (for inference workloads)
+
+**Team 2 Projects:**
+1. Create `team2-alpha-project` (for training workloads)
+2. Create `team2-beta-project` (for inference workloads)
 
 ### Create Local Queues
 
-Create LocalQueues to connect each team's project to their ClusterQueue:
+Create LocalQueues in each project to connect to their team's ClusterQueue. LocalQueues are simple proxies that route workloads to the appropriate team ClusterQueue:
 
-* Team 1:
+* Team 1 Projects:
     ```console
-    oc apply -f resources/team1_local_queue.yaml -n team1-project
+    oc apply -f resources/team1_local_queue.yaml -n team1-alpha-project
+    oc apply -f resources/team1_local_queue.yaml -n team1-beta-project
     ```
 
-* Team 2:
+* Team 2 Projects:
     ```console
-    oc apply -f resources/team2_local_queue.yaml -n team2-project
+    oc apply -f resources/team2_local_queue.yaml -n team2-alpha-project
+    oc apply -f resources/team2_local_queue.yaml -n team2-beta-project
     ```
+
+> **Multi-Tenancy Architecture:**
+> - **Projects = Multi-tenancy boundary**: Each team has separate projects for different workload types
+> - **LocalQueues = Implementation detail**: Simple proxies that connect projects to team ClusterQueues
+> - **ClusterQueues = Resource management**: Where quotas, borrowing, and scheduling policies are defined
+> - **Benefits**: Project-level isolation with shared team resource pools
 
 ### Create Workbenches
 
@@ -346,6 +384,14 @@ In each team's workbench, follow these steps:
   * Training hyperparameters (batch size, learning rate, etc.)
   * **Customize `create_job()` arguments** based on your cluster's available GPU resources (e.g., adjust `num_workers`, `resources_per_worker`)
   * **Add `labels` argument** in `create_job()` with local-queue-name label - this enables Kueue workload management and is **required** for this workshop
+  * Example configuration:
+    ```python
+    client.create_job(
+        # ... other parameters ...
+        labels={"kueue.x-k8s.io/queue-name": "team1"},  # For Team1 projects
+        # ... rest of configuration ...
+    )
+    ```
 * Add `HF_TOKEN` environment variable if using gated models (the examples use gated Llama models that require a token)
   > [!NOTE]
   > - This workshop requires Red Hat OpenShift AI v2.21+ with Kubeflow Training SDK v1.9.2+ for full Kueue integration support. 
@@ -356,37 +402,37 @@ In each team's workbench, follow these steps:
 After submitting your job, verify your Kueue setup by checking the resource status:
 
 ```
-$ oc project team1-project && oc get resourceflavors,clusterqueues,localqueues,pytorchjobs,workloads -o wide
+$ oc project team1-alpha-project && oc get resourceflavors,clusterqueues,localqueues,pytorchjobs,workloads -o wide
 
 NAME                                           AGE
-resourceflavor.kueue.x-k8s.io/default-flavor   51d
-resourceflavor.kueue.x-k8s.io/nvidia-a100      142m
+resourceflavor.kueue.x-k8s.io/nvidia-a100-80gb   51m
+resourceflavor.kueue.x-k8s.io/nvidia-h100-80gb   142m
 
 NAME                                        COHORT         STRATEGY         PENDING WORKLOADS   ADMITTED WORKLOADS
 clusterqueue.kueue.x-k8s.io/team1           organization   BestEffortFIFO   0                   1
 clusterqueue.kueue.x-k8s.io/team2           organization   BestEffortFIFO   1                   0
 
 NAME                                    CLUSTERQUEUE   PENDING WORKLOADS   ADMITTED WORKLOADS
-localqueue.kueue.x-k8s.io/team1-alpha   team1          0                   1
+localqueue.kueue.x-k8s.io/team1         team1          0                   1
 
 NAME                          STATE     AGE
 pytorchjob.kubeflow.org/sft   Running   95m
 
 NAME                                           QUEUE         RESERVED IN   ADMITTED   FINISHED   AGE
-workload.kueue.x-k8s.io/pytorchjob-sft-da466   team1-alpha   team1         True                  95m
+workload.kueue.x-k8s.io/pytorchjob-sft-da466   team1         team1         True                  95m
 ```
 
 ```
-$ oc project team2-project && oc get localqueues,pytorchjobs,workloads -o wide
+$ oc project team2-alpha-project && oc get localqueues,pytorchjobs,workloads -o wide
 
 NAME                                    CLUSTERQUEUE   PENDING WORKLOADS   ADMITTED WORKLOADS
-localqueue.kueue.x-k8s.io/team2-alpha   team2          1                   0
+localqueue.kueue.x-k8s.io/team2         team2          1                   0
 
 NAME                          STATE       AGE
 pytorchjob.kubeflow.org/sft   Suspended   90m
 
 NAME                                           QUEUE         RESERVED IN   ADMITTED   FINISHED   AGE
-workload.kueue.x-k8s.io/pytorchjob-sft-0114e   team2-alpha                                       89m
+workload.kueue.x-k8s.io/pytorchjob-sft-0114e   team2                                             89m
 
 ```
 
@@ -457,7 +503,7 @@ For each team's PyTorchJob, monitor training metrics directly from the workbench
 
 ## Deploy Fine-Tuned Models
 
-After training completes, each team can deploy their models:
+After training completes, both teams can deploy their models for inference using their respective inference projects. Teams can choose deployment strategies based on their resource allocation and current workload demands.
 
 1. In the OpenShift AI Dashboard, go to the team's project and then Models section
 2. Click "Deploy model"
