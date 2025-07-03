@@ -87,11 +87,11 @@ func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string) {
 	defer test.Client().Kueue().KueueV1beta1().LocalQueues(namespace).Delete(test.Ctx(), localQueue.Name, metav1.DeleteOptions{})
 
 	// Create PVC for base model
-	baseModelPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", corev1.ReadWriteOnce)
+	baseModelPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", AccessModes(corev1.ReadWriteOnce))
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), baseModelPvc.Name, metav1.DeleteOptions{})
 
 	// Create PVC for trained model
-	outputPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", corev1.ReadWriteOnce)
+	outputPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", AccessModes(corev1.ReadWriteOnce))
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
 
 	// Load training job config file
@@ -183,7 +183,7 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name, AsDefaultQueue)
 
 	// Create PVC for base model
-	baseModelPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", corev1.ReadWriteOnce)
+	baseModelPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", AccessModes(corev1.ReadWriteOnce))
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), baseModelPvc.Name, metav1.DeleteOptions{})
 
 	// Load training job config file
@@ -208,7 +208,7 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 	config := CreateConfigMap(test, namespace, configData)
 
 	// Create first PVC for trained model
-	outputPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", corev1.ReadWriteOnce)
+	outputPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", AccessModes(corev1.ReadWriteOnce))
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
 
 	// Create first training PyTorch job
@@ -219,7 +219,7 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
 
 	// Create second PVC for trained model
-	secondOutputPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", corev1.ReadWriteOnce)
+	secondOutputPvc := CreatePersistentVolumeClaim(test, namespace, "10Gi", AccessModes(corev1.ReadWriteOnce))
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
 
 	// Create second training PyTorch job

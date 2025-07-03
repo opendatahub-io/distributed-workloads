@@ -71,6 +71,7 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 		uniqueSuffix("vap"),
 		AsDefaultQueueNamespace,
 	)
+	defer test.Client().Core().CoreV1().Namespaces().Delete(test.Ctx(), ns.Name, metav1.DeleteOptions{})
 
 	// Create a namespace that will not receive the `kueue.x-k8s.io/queue-name` label
 	nsNoLabel = CreateTestNamespaceWithName(test, uniqueSuffix("vap-nl"))
@@ -212,11 +213,13 @@ func TestValidatingAdmissionPolicy(t *testing.T) {
 			})
 			t.Run("PyTorchJob should not be admitted without the 'kueue.x-k8s.io/queue-name' label in a labeled namespace", func(t *testing.T) {
 				test.Eventually(func() error {
-					err = createPyTorchJob(test, ns.Name)
-					test.Expect(err).To(HaveOccurred())
-					test.Expect(err.Error()).To(ContainSubstring("The label 'kueue.x-k8s.io/queue-name' is either missing or does not have a value set"))
-					return err
-				}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).Should(HaveOccurred())
+					return createPyTorchJob(test, ns.Name)
+				}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).Should(
+					And(
+						HaveOccurred(),
+						MatchError(ContainSubstring("The label 'kueue.x-k8s.io/queue-name' is either missing or does not have a value set")),
+					),
+				)
 				defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(ns.Name).Delete(test.Ctx(), pyt.Name, metav1.DeleteOptions{})
 			})
 			t.Run("PyTorchJob should be admitted with the 'kueue.x-k8s.io/queue-name' label in any other namespace", func(t *testing.T) {

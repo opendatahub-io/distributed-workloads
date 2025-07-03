@@ -47,6 +47,35 @@ func readFile(t Test, fileName string) []byte {
 	return file
 }
 
+var (
+	SmallContainerResources = ContainerResources{
+		Limits:   ResourceConfig{CPU: "2", Memory: "3Gi"},
+		Requests: ResourceConfig{CPU: "1", Memory: "3Gi"},
+	}
+	MediumContainerResources = ContainerResources{
+		Limits:   ResourceConfig{CPU: "6", Memory: "24Gi"},
+		Requests: ResourceConfig{CPU: "3", Memory: "24Gi"},
+	}
+)
+
+type ResourceConfig struct {
+	CPU              string
+	Memory           string
+	GPUResourceLabel string // e.g., "nvidia.com/gpu", "amd.com/gpu", or ""
+}
+
+type ContainerResources struct {
+	Limits   ResourceConfig
+	Requests ResourceConfig
+}
+
+type ContainerSize string
+
+const (
+	ContainerSizeSmall  ContainerSize = "small"
+	ContainerSizeMedium ContainerSize = "medium"
+)
+
 var notebookResource = schema.GroupVersionResource{Group: "kubeflow.org", Version: "v1", Resource: "notebooks"}
 
 type NotebookProps struct {
@@ -68,11 +97,11 @@ type NotebookProps struct {
 	S3SecretAccessKey         string
 	S3Endpoint                string
 	S3DefaultRegion           string
+	NotebookResources         ContainerResources
+	SizeSelection             ContainerSize
 }
 
-func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken string, command []string, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int) {
-	// Create PVC for Notebook
-	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", corev1.ReadWriteOnce)
+func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken string, command []string, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int, notebookPVC *corev1.PersistentVolumeClaim, containerSize ContainerSize, acceleratorResourceLabel ...string) {
 	s3BucketName, s3BucketNameExists := GetStorageBucketName()
 	s3AccessKeyId, _ := GetStorageBucketAccessKeyId()
 	s3SecretAccessKey, _ := GetStorageBucketSecretKey()
@@ -86,6 +115,36 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 		s3SecretAccessKey = "''"
 		s3Endpoint = "''"
 		s3DefaultRegion = "''"
+	}
+
+	var selectedContainerResources ContainerResources
+	var gpuResourceLabel string
+	if len(acceleratorResourceLabel) == 1 {
+		gpuResourceLabel = acceleratorResourceLabel[0]
+	} else {
+		gpuResourceLabel = ""
+	}
+
+	if containerSize == ContainerSizeSmall {
+		selectedContainerResources = SmallContainerResources
+		// For small, ensure no GPU resource is requested
+		selectedContainerResources.Limits.GPUResourceLabel = ""
+		selectedContainerResources.Requests.GPUResourceLabel = ""
+	} else if containerSize == ContainerSizeMedium {
+		selectedContainerResources = MediumContainerResources
+
+		if gpuResourceLabel != "" && gpuResourceLabel != NVIDIA.ResourceLabel && gpuResourceLabel != AMD.ResourceLabel {
+			test.T().Errorf("Unsupported GPU resource label for medium size: %s. Must be '%s', '%s', or an empty string.", gpuResourceLabel, NVIDIA.ResourceLabel, AMD.ResourceLabel)
+			gpuResourceLabel = "" // Fallback to no GPU if label is invalid
+		}
+
+		// Apply the determined GPUResourceLabel
+		selectedContainerResources.Limits.GPUResourceLabel = gpuResourceLabel
+		selectedContainerResources.Requests.GPUResourceLabel = gpuResourceLabel
+	} else {
+		test.T().Errorf("Unsupported container size: %s. Must be '%s' or '%s'. Hence using '%s' container size.",
+			containerSize, ContainerSizeSmall, ContainerSizeMedium, ContainerSizeSmall)
+		selectedContainerResources = SmallContainerResources // Fallback to Small container size
 	}
 
 	// Read the Notebook CR from resources and perform replacements for custom values using go template
@@ -108,6 +167,8 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 		S3DefaultRegion:           s3DefaultRegion,
 		PipIndexUrl:               GetPipIndexURL(),
 		PipTrustedHost:            GetPipTrustedHost(),
+		NotebookResources:         selectedContainerResources,
+		SizeSelection:             containerSize,
 	}
 	notebookTemplate, err := files.ReadFile("resources/custom-nb-small.yaml")
 	test.Expect(err).NotTo(gomega.HaveOccurred())

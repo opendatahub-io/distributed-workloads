@@ -24,9 +24,9 @@ WORKDIR /distributed-workloads/tests
 # Copy the source from the current directory to the working directory inside the container
 COPY tests/ .
 
-# Command to run the tests
-ENTRYPOINT [ "gotestsum"]
+# Copy the .env-odh file and the run-test.sh script to the working directory inside the container
+COPY images/tests/.env-odh .env-odh
+COPY images/tests/run-test.sh .
 
-# Configure images using environment variables
-ENV FMS_HF_TUNING_IMAGE=quay.io/modh/fms-hf-tuning:release
-ENV NOTEBOOK_IMAGE=quay.io/modh/odh-workbench-jupyter-datascience-cpu-py311-ubi9:rhoai-2.21
+# Command to run the tests
+ENTRYPOINT ["bash", "run-test.sh"]

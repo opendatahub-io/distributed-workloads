@@ -223,7 +223,23 @@ func GetServiceAccounts(t Test, namespace string) []*corev1.ServiceAccount {
 	return ServiceAccounts(t, namespace)(t)
 }
 
-func CreatePersistentVolumeClaim(t Test, namespace string, storageSize string, accessMode ...corev1.PersistentVolumeAccessMode) *corev1.PersistentVolumeClaim {
+type PVCOption Option[*corev1.PersistentVolumeClaim]
+
+func StorageClassName(name string) PVCOption {
+	return ErrorOption[*corev1.PersistentVolumeClaim](func(pvc *corev1.PersistentVolumeClaim) error {
+		pvc.Spec.StorageClassName = &name
+		return nil
+	})
+}
+
+func AccessModes(accessModes ...corev1.PersistentVolumeAccessMode) PVCOption {
+	return ErrorOption[*corev1.PersistentVolumeClaim](func(pvc *corev1.PersistentVolumeClaim) error {
+		pvc.Spec.AccessModes = accessModes
+		return nil
+	})
+}
+
+func CreatePersistentVolumeClaim(t Test, namespace string, storageSize string, opts ...PVCOption) *corev1.PersistentVolumeClaim {
 	t.T().Helper()
 
 	pvc := &corev1.PersistentVolumeClaim{
@@ -236,7 +252,7 @@ func CreatePersistentVolumeClaim(t Test, namespace string, storageSize string, a
 			Namespace:    namespace,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: accessMode,
+			// AccessModes and StorageClassName will be set by applying options
 			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: resource.MustParse(storageSize),
@@ -244,6 +260,14 @@ func CreatePersistentVolumeClaim(t Test, namespace string, storageSize string, a
 			},
 		},
 	}
+
+	// Apply all provided options
+	for _, opt := range opts {
+		if err := opt.ApplyTo(pvc); err != nil {
+			t.T().Fatalf("Error applying PVC option: %v", err)
+		}
+	}
+
 	pvc, err := t.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Create(t.Ctx(), pvc, metav1.CreateOptions{})
 	t.Expect(err).NotTo(gomega.HaveOccurred())
 	t.T().Logf("Created PersistentVolumeClaim %s/%s successfully", pvc.Namespace, pvc.Name)

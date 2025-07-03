@@ -110,8 +110,11 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	rayImage := GetRayImage()
 	notebookCommand := getNotebookCommand(rayImage)
 
+	// Create PVC for Notebook
+	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", AccessModes(corev1.ReadWriteOnce))
+
 	// Create Notebook CR
-	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, numGpus)
+	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, jupyterNotebookConfigMapFileName, numGpus, notebookPVC, ContainerSizeSmall)
 
 	// Gracefully cleanup Notebook
 	defer func() {
