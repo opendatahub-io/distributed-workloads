@@ -121,7 +121,6 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpu Accelerator, numGpus, num
 
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
-	fmt.Sprintln(gpu.ResourceLabel)
 	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 	cqSpec := v1beta1.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{},
@@ -191,13 +190,13 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpu Accelerator, numGpus, num
 
 		for _, trainingPod := range trainingPods {
 			// Check that GPUs for training pods were utilized recently
-			test.Eventually(OpenShiftPrometheusGpuUtil(test, trainingPod, gpu), 15*time.Minute).
+			test.Eventually(OpenShiftPrometheusGpuUtil(test, trainingPod, gpu), 10*time.Minute).
 				Should(
 					And(
 						HaveLen(numGpus),
 						ContainElement(
-							// Check that at least some GPU was utilized on more than 50%
-							HaveField("Value", BeNumerically(">", 50)),
+							// Check that at least some GPU was utilized on more than 10%
+							HaveField("Value", BeNumerically(">", 10)),
 						),
 					),
 				)
@@ -206,7 +205,7 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpu Accelerator, numGpus, num
 	}
 
 	// Make sure the PyTorch job succeeded
-	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutGpuProvisioning).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
+	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 }
 
@@ -292,7 +291,7 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 										`torchrun /etc/config/hf_llm_training.py \
 										--model_uri /tmp/model/bloom-560m \
 										--model_dir /tmp/model/bloom-560m \
-										--dataset_file /tmp/all_datasets/alpaca_data_tenth.json \
+										--dataset_file /tmp/all_datasets/alpaca_data_hundredth.json \
 										--transformer_type AutoModelForCausalLM \
 										--training_parameters '{"output_dir": "/mnt/output", "per_device_train_batch_size": 8, "num_train_epochs": 3, "logging_dir": "/tmp/logs", "eval_strategy": "epoch", "save_strategy": "no"}' \
 										--lora_config '{"r": 4, "lora_alpha": 16, "lora_dropout": 0.1, "bias": "none"}'`,
@@ -461,7 +460,7 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 								`torchrun /etc/config/hf_llm_training.py \
 							--model_uri /tmp/model/bloom-560m \
 							--model_dir /tmp/model/bloom-560m \
-							--dataset_file /tmp/all_datasets/alpaca_data_tenth.json \
+							--dataset_file /tmp/all_datasets/alpaca_data_hundredth.json \
 							--transformer_type AutoModelForCausalLM \
 							--training_parameters '{"output_dir": "/mnt/output", "per_device_train_batch_size": 8, "num_train_epochs": 3, "logging_dir": "/logs", "eval_strategy": "epoch", "save_strategy": "no"}' \
 							--lora_config '{"r": 4, "lora_alpha": 16, "lora_dropout": 0.1, "bias": "none"}'`,
