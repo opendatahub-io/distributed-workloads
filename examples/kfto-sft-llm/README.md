@@ -58,7 +58,7 @@ It uses HuggingFace SFTTrainer, with PEFT for LoRA and qLoRA, and PyTorch FSDP t
 >     * Follow the [Configure Kueue (Optional)](#configure-kueue-optional) section to set up required resources
 >     * Add the local-queue name label to your job configuration to enforce workload management
 >   * You can skip Kueue usage by:
->     > Note: Kueue Enablement via Validating Admission Policy was introduced in RHOAI-2.21. You can skip this section if using an earlier RHOAI release version.
+>     > Note: Kueue Enablement via Validating Admission Policy was introduced in RHOAI 2.21. You can skip this section if using an earlier RHOAI release version.
 >     * Disabling the existing `kueue-validating-admission-policy-binding`
 >     * Omitting the local-queue-name label in your job configuration
 

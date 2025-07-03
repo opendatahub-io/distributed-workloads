@@ -17,12 +17,20 @@ spec:
         - memory
         - nvidia.com/gpu
       flavors:
-        - name: nvidia-a100
+        - name: nvidia-h100-80gb
           resources:
             - name: cpu
-              nominalQuota: '256'
+              nominalQuota: '16'
             - name: memory
-              nominalQuota: 2000Gi
+              nominalQuota: 256Gi
             - name: nvidia.com/gpu
-              nominalQuota: '5'
+              nominalQuota: '2'
+        - name: nvidia-a100-80gb
+          resources:
+            - name: cpu
+              nominalQuota: '64'
+            - name: memory
+              nominalQuota: 1024Gi
+            - name: nvidia.com/gpu
+              nominalQuota: '8'
   stopPolicy: None
