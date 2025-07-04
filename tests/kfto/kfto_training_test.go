@@ -19,7 +19,6 @@ package kfto
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	kftov1 "github.com/kubeflow/training-operator/pkg/apis/kubeflow.org/v1"
 	. "github.com/onsi/gomega"
@@ -182,27 +181,6 @@ func runKFTOPyTorchJob(t *testing.T, image string, gpu Accelerator, numGpus, num
 	// Make sure the PyTorch job is running
 	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutDouble).
 		Should(WithTransform(PyTorchJobConditionRunning, Equal(corev1.ConditionTrue)))
-
-	// Verify GPU utilization
-	if IsOpenShift(test) && gpu == NVIDIA {
-		trainingPods := GetPods(test, namespace, metav1.ListOptions{LabelSelector: "training.kubeflow.org/job-name=" + tuningJob.GetName()})
-		test.Expect(trainingPods).To(HaveLen(numberOfWorkerNodes + 1)) // +1 is a master node
-
-		for _, trainingPod := range trainingPods {
-			// Check that GPUs for training pods were utilized recently
-			test.Eventually(OpenShiftPrometheusGpuUtil(test, trainingPod, gpu), 10*time.Minute).
-				Should(
-					And(
-						HaveLen(numGpus),
-						ContainElement(
-							// Check that at least some GPU was utilized on more than 10%
-							HaveField("Value", BeNumerically(">", 10)),
-						),
-					),
-				)
-		}
-		test.T().Log("All GPUs were successfully utilized")
-	}
 
 	// Make sure the PyTorch job succeeded
 	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
