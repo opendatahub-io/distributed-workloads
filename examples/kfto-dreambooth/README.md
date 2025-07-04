@@ -13,6 +13,24 @@ This example is based on HuggingFace DreamBooth Hackathon example - https://hugg
 * Sufficient worker nodes for your configuration(s) with NVIDIA GPUs (Ampere-based or newer recommended) or AMD GPUs (AMD Instinct MI300X or newer recommended)
 * AWS S3 storage available
 
+> [!IMPORTANT]
+> **Hugging Face Token Requirements:**
+> * You will need a Hugging Face token if using gated models:
+>   * The examples use gated Llama models that require a token (e.g., https://huggingface.co/meta-llama/Llama-3.1-8B)
+>   * Set the `HF_TOKEN` environment variable in your job configuration
+>   * Note: You can skip the token if switching to non-gated models
+> 
+> **Kueue Integration (RHOAI 2.21+):**
+> * If using RHOAI 2.21+, the example supports Kueue integration for workload management:
+>   * When using Kueue:
+>     * Follow the [Configure Kueue (Optional)](#configure-kueue-optional) section to set up required resources
+>     * Add the local-queue name label to your job configuration to enforce workload management
+>   * You can skip Kueue usage by:
+>     * Disabling the existing `kueue-validating-admission-policy-binding`
+>     * Omitting the local-queue-name label in your job configuration
+> 
+> **Note:** Kueue Enablement via Validating Admission Policy was introduced in RHOAI-2.21. You can skip this section if using an earlier RHOAI release version.
+
 
 ## Setup
 
