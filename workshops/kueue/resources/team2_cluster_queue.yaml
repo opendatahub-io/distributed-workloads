@@ -1,7 +1,7 @@
 apiVersion: kueue.x-k8s.io/v1beta1
 kind: ClusterQueue
 metadata:
-  name: team1
+  name: team2
 spec:
   cohort: "organization"
   namespaceSelector: {}
@@ -17,12 +17,20 @@ spec:
         - memory
         - nvidia.com/gpu
       flavors:
-        - name: nvidia-a100
+        - name: nvidia-h100-80gb
           resources:
             - name: cpu
-              nominalQuota: '256'
+              nominalQuota: '48'
             - name: memory
-              nominalQuota: 2000Gi
+              nominalQuota: 768Gi
             - name: nvidia.com/gpu
-              nominalQuota: '8'
+              nominalQuota: '6'
+        - name: nvidia-a100-80gb
+          resources:
+            - name: cpu
+              nominalQuota: '32'
+            - name: memory
+              nominalQuota: 512Gi
+            - name: nvidia.com/gpu
+              nominalQuota: '4'
   stopPolicy: None

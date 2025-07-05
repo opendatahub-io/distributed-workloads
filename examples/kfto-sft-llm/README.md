@@ -3,6 +3,9 @@
 This example demonstrates how to fine-tune LLMs with the Kubeflow Training operator on OpenShift AI.
 It uses HuggingFace SFTTrainer, with PEFT for LoRA and qLoRA, and PyTorch FSDP to distribute the training on multiple GPUs / nodes.
 
+> [!TIP]
+> **Multi-Team Resource Management**: For enterprise scenarios with multiple teams sharing GPU resources, see the [**Kueue Multi-Team Resource Management Workshop**](../../workshops/kueue/README.md). It demonstrates how to use this LLM fine-tuning example with Kueue for fair resource allocation, borrowing policies, and workload scheduling across teams.
+
 > [!IMPORTANT]
 > This example has been tested with the configurations listed in the [validation](#validation) section.
 > Its configuration space is highly dimensional, and tightly coupled to runtime / hardware configuration.
@@ -16,6 +19,8 @@ It uses HuggingFace SFTTrainer, with PEFT for LoRA and qLoRA, and PyTorch FSDP t
 * A dynamic storage provisioner supporting RWX PVC provisioning
 
 ## Setup
+
+### Setup Workbench
 
 * Access the OpenShift AI dashboard, for example from the top navigation bar menu:
 ![](./docs/01.png)
@@ -43,7 +48,40 @@ It uses HuggingFace SFTTrainer, with PEFT for LoRA and qLoRA, and PyTorch FSDP t
 ![](./docs/06.png)
 * Navigate to the `distributed-workloads/examples/kfto-sft-llm` directory and open the `sft` notebook
 
+> [!IMPORTANT]
+> * You will need a Hugging Face token if using gated models:
+>   * The examples use gated Llama models that require a token (e.g., https://huggingface.co/meta-llama/Llama-3.1-8B)
+>   * Set the `HF_TOKEN` environment variable in your job configuration
+>   * Note: You can skip the token if switching to non-gated models
+> * If using RHOAI 2.21+, the example supports Kueue integration for workload management:
+>   * When using Kueue:
+>     * Follow the [Configure Kueue (Optional)](#configure-kueue-optional) section to set up required resources
+>     * Add the local-queue name label to your job configuration to enforce workload management
+>   * You can skip Kueue usage by:
+>     > Note: Kueue Enablement via Validating Admission Policy was introduced in RHOAI 2.21. You can skip this section if using an earlier RHOAI release version.
+>     * Disabling the existing `kueue-validating-admission-policy-binding`
+>     * Omitting the local-queue-name label in your job configuration
+
 You can now proceed with the instructions from the notebook. Enjoy!
+
+### Configure Kueue (Optional)
+
+> [!NOTE]
+> This section is only required if you plan to use Kueue for workload management (RHOAI 2.21+) or Kueue is not already configured in your cluster.
+
+* Update the `nodeLabels` in the `workshops/kueue/resources/resource_flavor.yaml` file to match your AI worker nodes
+* Create the ResourceFlavor:
+    ```console
+    oc apply -f workshops/kueue/resources/resource_flavor.yaml
+    ```
+* Create the ClusterQueue:
+    ```console
+    oc apply -f workshops/kueue/resources/team1_cluster_queue.yaml
+    ```
+* Create a LocalQueue in your namespace:
+    ```console
+    oc apply -f workshops/kueue/resources/team1_local_queue.yaml -n <your-namespace>
+    ```
 
 ## Validation
 
@@ -176,7 +214,7 @@ This example has been validated with the following configurations:
     num_workers: 16
     num_procs_per_worker: 1
     resources_per_worker:
-      "amd.com/gpu": 1
+      "nvidia.com/gpu": 1
       "memory": 192Gi
       "cpu": 4
     base_image: quay.io/modh/training:py311-cuda121-torch241
