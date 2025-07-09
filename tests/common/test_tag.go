@@ -77,6 +77,14 @@ var KftoRocm = func(test Test) (runTest bool, skipReason string) {
 	return testTier(test, kftoRocm)
 }
 
+var ExamplesCuda = func(test Test) (runTest bool, skipReason string) {
+	return testTier(test, examplesCuda)
+}
+
+var ExamplesRocm = func(test Test) (runTest bool, skipReason string) {
+	return testTier(test, examplesRocm)
+}
+
 func Gpu(accelerator Accelerator) func(test Test) (runTest bool, skipReason string) {
 	return func(test Test) (runTest bool, skipReason string) {
 		return isGpuCountAvailableForNodes(test, 1, accelerator.ResourceLabel, 1)
