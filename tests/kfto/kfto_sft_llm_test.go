@@ -39,12 +39,12 @@ import (
 )
 
 func TestKftoSftLlmLlama3_1_8BInstructWithCudaPyTorch251(t *testing.T) {
-	Tags(t, KftoCuda)
+	Tags(t, ExamplesCuda)
 	kftoSftLlm(t, GetTrainingCudaPyTorch251Image(), NVIDIA, "meta-llama/Llama-3.1-8B-Instruct")
 }
 
 func TestKftoSftLlmLlama3_1_8BInstructWithROCmPyTorch251(t *testing.T) {
-	Tags(t, KftoRocm)
+	Tags(t, ExamplesRocm)
 	kftoSftLlm(t, GetTrainingROCmPyTorch251Image(), AMD, "meta-llama/Llama-3.1-8B-Instruct")
 }
 
