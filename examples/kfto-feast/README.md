@@ -43,24 +43,6 @@ By integrating Feast into the fine-tuning pipeline, we ensure that the training 
   * If using PEFT LoRA/QLoRA techniques, then can use NVIDIA GPUs (G4dn)
 * AWS S3 storage available
 
-> [!IMPORTANT]
-> **Hugging Face Token Requirements:**
-> * You will need a Hugging Face token if using gated models:
->   * The examples use gated Llama models that require a token (e.g., https://huggingface.co/meta-llama/Llama-3.1-8B)
->   * Set the `HF_TOKEN` environment variable in your job configuration
->   * Note: You can skip the token if switching to non-gated models
-> 
-> **Kueue Integration (RHOAI 2.21+):**
-> * If using RHOAI 2.21+, the example supports Kueue integration for workload management:
->   * When using Kueue:
->     * Follow the [Configure Kueue (Optional)](#configure-kueue-optional) section to set up required resources
->     * Add the local-queue name label to your job configuration to enforce workload management
->   * You can skip Kueue usage by:
->     * Disabling the existing `kueue-validating-admission-policy-binding`
->     * Omitting the local-queue-name label in your job configuration
-> 
-> **Note:** Kueue Enablement via Validating Admission Policy was introduced in RHOAI-2.21. You can skip this section if using an earlier RHOAI release version.
-
 ---
 
 
@@ -127,4 +109,41 @@ By following this notebook, you'll gain hands-on experience in setting up a **fe
 
 You can now proceed with the instructions from the notebook. Enjoy!
 
+> [!IMPORTANT]
+> **Hugging Face Token Requirements:**
+> * You will need a Hugging Face token if using gated models:
+>   * The examples use gated Llama models that require a token (e.g., https://huggingface.co/meta-llama/Llama-3.1-8B)
+>   * Set the `HF_TOKEN` environment variable in your job configuration
+>   * Note: You can skip the token if switching to non-gated models
+> 
+> **Kueue Integration (RHOAI 2.21+):**
+> * If using RHOAI 2.21+, the example supports Kueue integration for workload management:
+>   * When using Kueue:
+>     * Follow the [Configure Kueue (Optional)](#configure-kueue-optional) section to set up required resources
+>     * Add the local-queue name label to your job configuration to enforce workload management
+>   * You can skip Kueue usage by:
+>     * Disabling the existing `kueue-validating-admission-policy-binding`
+>     * Omitting the local-queue-name label in your job configuration
+> 
+> **Note:** Kueue Enablement via Validating Admission Policy was introduced in RHOAI-2.21. You can skip this section if using an earlier RHOAI release version.
+
+### Configure Kueue (Optional)
+
+> [!NOTE]
+> This section is only required if you plan to use Kueue for workload management (RHOAI 2.21+) or Kueue is not already configured in your cluster.
+
+* Update the `nodeLabels` in the `workshops/kueue/resources/resource_flavor.yaml` file to match your AI worker nodes
+* Create the ResourceFlavor:
+    ```console
+    oc apply -f workshops/kueue/resources/resource_flavor.yaml
+    ```
+* Create the ClusterQueue:
+    ```console
+    oc apply -f workshops/kueue/resources/team1_cluster_queue.yaml
+    ```
+* Create a LocalQueue in your namespace:
+    ```console
+    oc apply -f workshops/kueue/resources/team1_local_queue.yaml -n <your-namespace>
+    ```
+  
 

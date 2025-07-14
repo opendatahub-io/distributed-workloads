@@ -13,18 +13,6 @@ This example is based on HuggingFace DreamBooth Hackathon example - https://hugg
 * Sufficient worker nodes for your configuration(s) with NVIDIA GPUs (Ampere-based or newer recommended) or AMD GPUs (AMD Instinct MI300X or newer recommended)
 * AWS S3 storage available
 
-> [!IMPORTANT]
-> **Kueue Integration (RHOAI 2.21+):**
-> * If using RHOAI 2.21+, the example supports Kueue integration for workload management:
->   * When using Kueue:
->     * Follow the [Configure Kueue (Optional)](#configure-kueue-optional) section to set up required resources
->     * Add the local-queue name label to your job configuration to enforce workload management
->   * You can skip Kueue usage by:
->     * Disabling the existing `kueue-validating-admission-policy-binding`
->     * Omitting the local-queue-name label in your job configuration
-> 
-> **Note:** Kueue Enablement via Validating Admission Policy was introduced in RHOAI-2.21. You can skip this section if using an earlier RHOAI release version.
-
 
 ## Setup
 
@@ -58,3 +46,34 @@ This example is based on HuggingFace DreamBooth Hackathon example - https://hugg
 * Navigate to the `distributed-workloads/examples/kfto-dreambooth` directory and open the `dreambooth` notebook
 
 You can now proceed with the instructions from the notebook. Enjoy!
+
+> [!IMPORTANT]
+> **Kueue Integration (RHOAI 2.21+):**
+> * If using RHOAI 2.21+, the example supports Kueue integration for workload management:
+>   * When using Kueue:
+>     * Follow the [Configure Kueue (Optional)](#configure-kueue-optional) section to set up required resources
+>     * Add the local-queue name label to your job configuration to enforce workload management
+>   * You can skip Kueue usage by:
+>     * Disabling the existing `kueue-validating-admission-policy-binding`
+>     * Omitting the local-queue-name label in your job configuration
+> 
+> **Note:** Kueue Enablement via Validating Admission Policy was introduced in RHOAI-2.21. You can skip this section if using an earlier RHOAI release version.
+
+### Configure Kueue (Optional)
+
+> [!NOTE]
+> This section is only required if you plan to use Kueue for workload management (RHOAI 2.21+) or Kueue is not already configured in your cluster.
+
+* Update the `nodeLabels` in the `workshops/kueue/resources/resource_flavor.yaml` file to match your AI worker nodes
+* Create the ResourceFlavor:
+    ```console
+    oc apply -f workshops/kueue/resources/resource_flavor.yaml
+    ```
+* Create the ClusterQueue:
+    ```console
+    oc apply -f workshops/kueue/resources/team1_cluster_queue.yaml
+    ```
+* Create a LocalQueue in your namespace:
+    ```console
+    oc apply -f workshops/kueue/resources/team1_local_queue.yaml -n <your-namespace>
+    ```
