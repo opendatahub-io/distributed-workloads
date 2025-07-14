@@ -1,6 +1,6 @@
 # Fine-Tuning a RAG Model with Feast on OpenShift AI
 
-This project provides an end-to-end example of how to fine-tune a Retrieval-Augmented Generation (RAG) model on **OpenShift AI**. It uses the **Feast** feature store for efficient retrieval of context and the **Kubeflow Training SDK** to orchestrate the distributed fine-tuning job on the cluster.
+This project provides an end-to-end example of how to fine-tune a Retrieval-Augmented Generation (RAG) model on **OpenShift AI**. It uses the **Feast** (Feature Store) for efficient retrieval of context and the **Kubeflow Training SDK** to orchestrate the distributed fine-tuning job on the cluster.
 
 The core idea is to enhance a generator model (like BART) by providing it with relevant documents retrieved from a knowledge base at runtime. This notebook handles the entire lifecycle: ingesting data into the feature store, fine-tuning the RAG model on synthetically generated Q&A pairs, and testing the final artifact.
 
@@ -11,10 +11,10 @@ The core idea is to enhance a generator model (like BART) by providing it with r
 Before you begin, ensure you have the following setup:
 
 * An OpenShift cluster with OpenShift AI (RHOAI) 2.20+ installed:
-  * The `dashboard`, `trainingoperator` and `workbenches` components enabled
-* Workbench with medium size container, 1 NVIDIA GPU accelerator, and cluster storage of 200GB.
-* Sufficient worker nodes for your configuration(s) with NVIDIA GPUs (Ampere-based or newer recommended)
-* A dynamic storage provisioner supporting RWX PVC provisioning
+  * The `dashboard`, `trainingoperator` and `workbenches` components enabled.
+* Workbench with medium size container, 1 NVIDIA GPU / 1 AMD GPU accelerator, and cluster storage of 200GB.
+* Sufficient worker nodes for your configuration(s) with NVIDIA GPUs (Ampere-based or newer recommended) or AMD GPUs depending on your environment.
+* A dynamic storage provisioner supporting RWX PVC provisioning.
 * A standalone Milvus deployment. See example [here](https://github.com/rh-aiservices-bu/llm-on-openshift/tree/main/vector-databases/milvus#deployment).
 
 ***
@@ -29,9 +29,9 @@ You must run this notebook from within an OpenShift AI Workbench. Follow these s
 * Then create a workbench with a preferred name and with the following settings:
   * Select the `PyTorch` (or the `ROCm-PyTorch`) workbench image with the recommended version.
   * Select the `Medium` as the deployment container size.
-  * Add an accelerator (GPU).
+  * Add one NVIDIA / AMD accelerator (GPU) depending on environment.
   * Create a storage that'll be shared between the workbench and the fine-tuning runs.
-    Make sure it uses a storage class with RWX capability and give it enough size according to the size of the model you want to fine-tune.
+    Make sure it uses a storage class with RWX capability and give it enough capacity according to the size of the model you want to fine-tune.
     > [!NOTE]
     > You can attach an existing shared storage if you already have one instead.
   * Review the storage configuration and click "Create workbench"
@@ -64,7 +64,7 @@ The notebook is structured to guide you through the following key stages:
   * It defines a `RagSequenceForGeneration` model, combining a question-encoder with a generator model.
   * It uses a custom `FeastRAGRetriever` to connect the RAG model to the Feast feature store.
   * The notebook uses the Kubeflow `TrainingClient` to submit this `main` function as a distributed `PyTorchJob` to the OpenShift cluster.
-* **Monitoring**: You can monitor the job's progress directly through its logs and visualize metrics using the integrated TensorBoard.
+* **Monitoring**: You can monitor the job's progress directly through its logs and visualize metrics using the integrated TensorBoard dashboard.
 * **Inference and Testing**: After the training job is complete, the final, fine-tuned RAG model is loaded from shared storage for testing.
 
 ***
