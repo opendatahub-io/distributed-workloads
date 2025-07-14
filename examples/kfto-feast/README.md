@@ -35,6 +35,9 @@ By integrating Feast into the fine-tuning pipeline, we ensure that the training 
 
 ---
 
+> [!TIP]
+> **Multi-Team Resource Management**: For enterprise scenarios with multiple teams sharing GPU resources, see the [**Kueue Multi-Team Resource Management Workshop**](../../workshops/kueue/README.md). It demonstrates how to use this LLM fine-tuning example with Kueue for fair resource allocation, borrowing policies, and workload scheduling across teams.
+
 ## Requirements
 
 * An OpenShift cluster with OpenShift AI (RHOAI) 2.17+ installed:
