@@ -5,6 +5,8 @@ The finetuning is performed on OpenShift environment using Kubeflow Training ope
 
 This example is based on HuggingFace DreamBooth Hackathon example - https://huggingface.co/learn/diffusion-course/en/hackathon/dreambooth
 
+> [!TIP]
+> **Multi-Team Resource Management**: For enterprise scenarios with multiple teams sharing GPU resources, see the [**Kueue Multi-Team Resource Management Workshop**](../../workshops/kueue/README.md). It demonstrates how to use this LLM fine-tuning example with Kueue for fair resource allocation, borrowing policies, and workload scheduling across teams.
 
 ## Requirements
 
