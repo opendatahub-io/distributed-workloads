@@ -134,6 +134,7 @@ You can now proceed with the instructions from the notebook. Enjoy!
 
 > [!NOTE]
 > This section is only required if you plan to use Kueue for workload management (RHOAI 2.21+) or Kueue is not already configured in your cluster.
+> The Kueue resource YAML files referenced below are located in the [Kueue workshop directory](../../workshops/kueue), specifically in `workshops/kueue/resources/`. You can use these files as templates for your own setup or copy them into your project as needed.
 
 * Update the `nodeLabels` in the `workshops/kueue/resources/resource_flavor.yaml` file to match your AI worker nodes
 * Create the ResourceFlavor:
