@@ -14,12 +14,6 @@ This example is based on HuggingFace DreamBooth Hackathon example - https://hugg
 * AWS S3 storage available
 
 > [!IMPORTANT]
-> **Hugging Face Token Requirements:**
-> * You will need a Hugging Face token if using gated models:
->   * The examples use gated Llama models that require a token (e.g., https://huggingface.co/meta-llama/Llama-3.1-8B)
->   * Set the `HF_TOKEN` environment variable in your job configuration
->   * Note: You can skip the token if switching to non-gated models
-> 
 > **Kueue Integration (RHOAI 2.21+):**
 > * If using RHOAI 2.21+, the example supports Kueue integration for workload management:
 >   * When using Kueue:
