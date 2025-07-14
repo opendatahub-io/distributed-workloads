@@ -1,0 +1,6 @@
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: LocalQueue
+metadata:
+  name: team1
+spec:
+  clusterQueue: team1 

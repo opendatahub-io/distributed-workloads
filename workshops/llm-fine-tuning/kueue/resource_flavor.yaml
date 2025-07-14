@@ -1,7 +1,0 @@
-apiVersion: kueue.x-k8s.io/v1beta1
-kind: ResourceFlavor
-metadata:
-  name: nvidia-a100
-spec:
-  nodeLabels:
-    nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
