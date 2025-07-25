@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -107,6 +108,42 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 
 	namespace := test.CreateOrGetTestNamespace().Name
 
+	// Create Kueue resources
+	resourceFlavor := CreateKueueResourceFlavor(test, kueuev1beta1.ResourceFlavorSpec{})
+	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+
+	clusterQueue := CreateKueueClusterQueue(test, kueuev1beta1.ClusterQueueSpec{
+		NamespaceSelector: &metav1.LabelSelector{},
+		ResourceGroups: []kueuev1beta1.ResourceGroup{
+			{
+				CoveredResources: []corev1.ResourceName{corev1.ResourceCPU, corev1.ResourceMemory, "nvidia.com/gpu"},
+				Flavors: []kueuev1beta1.FlavorQuotas{
+					{
+						Name: kueuev1beta1.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []kueuev1beta1.ResourceQuota{
+							{
+								Name:         corev1.ResourceCPU,
+								NominalQuota: resource.MustParse("8"),
+							},
+							{
+								Name:         corev1.ResourceMemory,
+								NominalQuota: resource.MustParse("64Gi"),
+							},
+							{
+								Name:         "nvidia.com/gpu",
+								NominalQuota: resource.MustParse(fmt.Sprint(numberOfGpus)),
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+
+	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name)
+	defer test.Client().Kueue().KueueV1beta1().LocalQueues(namespace).Delete(test.Ctx(), localQueue.Name, metav1.DeleteOptions{})
+
 	// Create a ConfigMap with configuration
 	configData := map[string][]byte{
 		"config.json": ReadFile(test, modelConfigFile),
@@ -119,8 +156,19 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
 
 	// Create training PyTorch job
-	tuningJob := createAlpacaPyTorchJob(test, namespace, *config, numberOfGpus, outputPvc.Name, options...)
+	tuningJob := createAlpacaPyTorchJob(test, namespace, *config, numberOfGpus, outputPvc.Name, localQueue.Name, options...)
 	defer test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Delete(test.Ctx(), tuningJob.Name, *metav1.NewDeleteOptions(0))
+
+	// Make sure the PyTorch job is admitted by Kueue
+	test.Eventually(KueueWorkloads(test, namespace), TestTimeoutLong).
+		Should(
+			And(
+				HaveLen(1),
+				ContainElement(
+					WithTransform(KueueWorkloadAdmitted, BeTrueBecause("Expected workload to be admitted by kueue")),
+				),
+			),
+		)
 
 	// Make sure the PyTorch job is running
 	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), TestTimeoutLong).
@@ -151,7 +199,7 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 	}
 }
 
-func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap, numberOfGpus int, outputPvc string, options ...Option[*kftov1.PyTorchJob]) *kftov1.PyTorchJob {
+func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap, numberOfGpus int, outputPvc string, localQueueName string, options ...Option[*kftov1.PyTorchJob]) *kftov1.PyTorchJob {
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -159,6 +207,9 @@ func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "kfto-sft-",
+			Labels: map[string]string{
+				"kueue.x-k8s.io/queue-name": localQueueName,
+			},
 		},
 		Spec: kftov1.PyTorchJobSpec{
 			PyTorchReplicaSpecs: map[kftov1.ReplicaType]*kftov1.ReplicaSpec{
