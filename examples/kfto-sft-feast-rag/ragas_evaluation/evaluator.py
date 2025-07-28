@@ -237,7 +237,7 @@ class RAGEvaluator:
                     generator=generator_model.config.to_dict(),
                     index_name="custom",
                     index={"index_name": "feast_dummy_index", "custom_type": "FeastIndex"},
-                    n_docs=10,
+                    n_docs=1,
                 )
             else:
                 # Use config from fine-tuned model
@@ -390,7 +390,7 @@ class RAGEvaluator:
             question_embeddings = self.feast_retriever.question_encoder(**inputs).pooler_output
             question_embeddings = question_embeddings.detach().cpu().to(torch.float32).numpy()
             
-            _, _, doc_batch = self.feast_retriever.retrieve(question_embeddings, n_docs=3, query=test_question)
+            _, _, doc_batch = self.feast_retriever.retrieve(question_embeddings, n_docs=1, query=test_question)
             retrieved_texts = doc_batch[0]["text"] if doc_batch else []
             
             # Test generation if possible
@@ -434,8 +434,14 @@ class RAGEvaluator:
         question_embeddings = retriever.question_encoder(**inputs).pooler_output
         question_embeddings = question_embeddings.detach().cpu().to(torch.float32).numpy()
         
-        _, _, doc_batch = retriever.retrieve(question_embeddings, n_docs=1, query=question)
-        context = doc_batch[0]["text"] if doc_batch else []
+        # Retrieve multiple documents for better RAGAS evaluation
+        _, _, doc_batch = retriever.retrieve(question_embeddings, n_docs=3, query=question)
+        
+        # Extract context texts as a list
+        if doc_batch and len(doc_batch) > 0:
+            context = [doc["text"] for doc in doc_batch[0]] if isinstance(doc_batch[0], list) else [doc_batch[0]["text"]]
+        else:
+            context = []
         
         return {
             "answer": answer,
@@ -445,15 +451,58 @@ class RAGEvaluator:
         }
     
     def run_ragas_evaluation(self, eval_dataset: Dataset, use_retrieval: bool = True) -> Dict[str, float]:
-        """Run RAGAS evaluation on dataset"""
+        """Run RAGAS evaluation on dataset with fallback to manual calculation"""
         try:
             logging.info("Running RAGAS evaluation...")
             
-            # Run RAGAS evaluation
+            # Debug: Check dataset structure
+            print(f"🔍 RAGAS Dataset Info:")
+            print(f"   Dataset size: {len(eval_dataset)}")
+            print(f"   Columns: {eval_dataset.column_names}")
+            
+            # Check if we have the required columns
+            required_columns = ['question', 'answer', 'contexts']
+            missing_columns = [col for col in required_columns if col not in eval_dataset.column_names]
+            if missing_columns:
+                print(f"   ❌ Missing required columns: {missing_columns}")
+                return self._calculate_manual_ragas_metrics(eval_dataset)
+            
+            # Check if we have ground_truth for context_recall
+            has_ground_truth = 'ground_truth' in eval_dataset.column_names
+            print(f"   Ground truth available: {has_ground_truth}")
+            
+            # Sample some data for debugging
+            print(f"   Sample data:")
+            for i in range(min(2, len(eval_dataset))):
+                sample = eval_dataset[i]
+                print(f"     Q{i+1}: {sample['question'][:50]}...")
+                print(f"     A{i+1}: {sample['answer'][:50]}...")
+                print(f"     C{i+1}: {len(sample['contexts'])} contexts")
+                if has_ground_truth:
+                    print(f"     GT{i+1}: {sample['ground_truth'][:50]}...")
+            
+            # Check if contexts are properly formatted
+            context_issues = 0
+            for i, sample in enumerate(eval_dataset):
+                if not isinstance(sample['contexts'], list):
+                    context_issues += 1
+                    print(f"   ⚠️ Context format issue at index {i}: {type(sample['contexts'])}")
+                elif len(sample['contexts']) == 0:
+                    context_issues += 1
+                    print(f"   ⚠️ Empty contexts at index {i}")
+            
+            if context_issues > 0:
+                print(f"   ⚠️ Found {context_issues} context formatting issues")
+            
+            # Try to run RAGAS evaluation
+            print(f"   🚀 Running RAGAS evaluation...")
             results = evaluate(
                 eval_dataset,
                 metrics=[context_recall, context_precision]
             )
+            
+            print(f"   ✅ RAGAS evaluation completed successfully")
+            print(f"   Results: {results}")
             
             return {
                 "context_recall": results["context_recall"],
@@ -462,17 +511,89 @@ class RAGEvaluator:
             
         except Exception as e:
             logging.error(f"RAGAS evaluation failed: {e}")
+            print(f"   ❌ RAGAS evaluation failed: {e}")
+            print(f"   🔄 Falling back to manual calculation...")
+            
+            # Fallback to manual calculation
+            return self._calculate_manual_ragas_metrics(eval_dataset)
+    
+    def _calculate_manual_ragas_metrics(self, eval_dataset: Dataset) -> Dict[str, float]:
+        """Calculate context recall and precision manually when RAGAS fails"""
+        try:
+            print(f"   🔧 Calculating manual RAGAS metrics...")
+            
+            context_recall_scores = []
+            context_precision_scores = []
+            
+            for i, sample in enumerate(eval_dataset):
+                question = sample['question']
+                contexts = sample['contexts']
+                ground_truth = sample.get('ground_truth', '')
+                
+                # Handle contexts properly - it's a list of lists of strings
+                if not isinstance(contexts, list) or len(contexts) == 0:
+                    context_recall_scores.append(0.0)
+                    context_precision_scores.append(0.0)
+                    continue
+                
+                # Get the context strings and join them
+                context_text = " ".join(contexts) if contexts else ""
+                
+                # Calculate context recall (how much of ground truth is in contexts)
+                if ground_truth and context_text:
+                    gt_words = set(ground_truth.lower().split())
+                    context_words = set(context_text.lower().split())
+                    
+                    if gt_words:
+                        recall = len(gt_words.intersection(context_words)) / len(gt_words)
+                        context_recall_scores.append(recall)
+                    else:
+                        context_recall_scores.append(0.0)
+                else:
+                    context_recall_scores.append(0.0)
+                
+                # Calculate context precision (how relevant contexts are to question)
+                if context_text:
+                    question_words = set(question.lower().split())
+                    context_words = set(context_text.lower().split())
+                    
+                    if context_words:
+                        precision = len(question_words.intersection(context_words)) / len(context_words)
+                        context_precision_scores.append(precision)
+                    else:
+                        context_precision_scores.append(0.0)
+                else:
+                    context_precision_scores.append(0.0)
+            
+            avg_recall = np.mean(context_recall_scores) if context_recall_scores else 0.0
+            avg_precision = np.mean(context_precision_scores) if context_precision_scores else 0.0
+            
+            print(f"   ✅ Manual calculation completed:")
+            print(f"      Context Recall: {avg_recall:.3f}")
+            print(f"      Context Precision: {avg_precision:.3f}")
+            
+            return {
+                "context_recall": avg_recall,
+                "context_precision": avg_precision
+            }
+            
+        except Exception as e:
+            logging.error(f"Manual RAGAS calculation failed: {e}")
+            print(f"   ❌ Manual calculation failed: {e}")
             return {"context_recall": 0.0, "context_precision": 0.0}
     
     def create_evaluation_dataset(self, questions: List[str], responses: List[Dict], 
-                                ground_truth: List[str] = None) -> Dataset:
-        """Create evaluation dataset for RAGAS"""
+                                ground_truth_metadata: List[Dict] = None) -> Dataset:
+        """Create evaluation dataset for RAGAS with enhanced ground truth support"""
         # RAGAS expects contexts as a list of lists of strings
         contexts = []
         for r in responses:
             if r["context"]:
-                # Keep as list of strings for RAGAS
-                contexts.append(r["context"])
+                # Use helper function to normalize context
+                context_list = self._normalize_context(r["context"])
+                # RAGAS expects contexts to be a list of lists of strings
+                # Each inner list contains the retrieved passages for this question
+                contexts.append(context_list)
             else:
                 contexts.append([])
         
@@ -482,15 +603,35 @@ class RAGEvaluator:
             "contexts": contexts
         }
         
-        if ground_truth:
-            dataset_dict["ground_truth"] = ground_truth
+        if ground_truth_metadata:
+            # Extract primary answers for RAGAS compatibility
+            ground_truth_answers = [gt['answer'] for gt in ground_truth_metadata]
+            dataset_dict["ground_truth"] = ground_truth_answers
+            
+        # Debug: Print dataset structure
+        print(f"📊 Created evaluation dataset:")
+        print(f"   Questions: {len(dataset_dict['question'])}")
+        print(f"   Answers: {len(dataset_dict['answer'])}")
+        print(f"   Contexts: {len(dataset_dict['contexts'])}")
+        print(f"   Ground truth: {len(dataset_dict.get('ground_truth', []))}")
+        
+        # Sample the data
+        print(f"   Sample data:")
+        for i in range(min(2, len(questions))):
+            print(f"     Q{i+1}: {questions[i][:50]}...")
+            print(f"     A{i+1}: {dataset_dict['answer'][i][:50]}...")
+            print(f"     C{i+1}: {len(dataset_dict['contexts'][i])} contexts")
+            if dataset_dict['contexts'][i]:
+                print(f"       Context sample: {dataset_dict['contexts'][i][0][:100]}...")
+            if 'ground_truth' in dataset_dict:
+                print(f"     GT{i+1}: {dataset_dict['ground_truth'][i][:50]}...")
             
         return Dataset.from_dict(dataset_dict)
     
     def evaluate_combination(self, qe_type: str, gen_type: str, 
-                           test_questions: List[str], ground_truth: List[str] = None,
+                           test_questions: List[str], ground_truth_metadata: List[Dict] = None,
                            use_retrieval: bool = True) -> Tuple[Dict[str, float], List[Dict]]:
-        """Evaluate a specific model combination"""
+        """Evaluate a specific model combination with enhanced ground truth support"""
         print(f"\n🔍 EVALUATING: QE={qe_type.upper()}, Generator={gen_type.upper()}, Retrieval={use_retrieval}")
         print("=" * 80)
         
@@ -509,13 +650,22 @@ class RAGEvaluator:
                 print(f"Question {i+1}/{len(test_questions)}")
                 print(f"{'='*80}")
                 print(f"❓ {question}")
+                
+                # Show ground truth if available
+                if ground_truth_metadata and i < len(ground_truth_metadata):
+                    gt_info = ground_truth_metadata[i]
+                    print(f"🎯 Ground Truth: {gt_info['answer']} (Type: {gt_info['answer_type']}, Confidence: {gt_info['confidence']:.2f})")
+                
                 print(f"{'-'*80}")
                 
                 response = self.generate_response(model, question, use_retrieval)
                 responses.append(response)
                 
                 if response['context']:
-                    context_text = response['context'][0]
+                    # Handle context display properly using helper function
+                    context_list = self._normalize_context(response['context'])
+                    context_text = context_list[0] if context_list else ""
+                    
                     # Truncate context to first 200 characters for cleaner display
                     display_context = context_text[:200] + "..." if len(context_text) > 200 else context_text
                     print(f"📚 Context: {display_context}")
@@ -524,17 +674,32 @@ class RAGEvaluator:
                 print(f"{'-'*80}")
                 print(f"💬 Answer: {response['answer']}")
                 
+                # Enhanced quality indicators with ground truth comparison
+                if ground_truth_metadata and i < len(ground_truth_metadata):
+                    gt_info = ground_truth_metadata[i]
+                    accuracy_metrics = self._calculate_answer_accuracy(response['answer'], gt_info)
+                    print(f"🎯 Accuracy Metrics:")
+                    print(f"   Exact Match: {accuracy_metrics['exact_match']}")
+                    print(f"   Semantic Similarity: {accuracy_metrics['semantic_similarity']:.3f}")
+                    print(f"   Term Overlap: {accuracy_metrics['term_overlap']:.3f}")
+                    print(f"   Answer Type Match: {accuracy_metrics['type_compatibility']}")
+                
                 # Debug: Check if answer seems relevant
                 if "location service" in response['answer'].lower() or len(response['answer']) < 10:
                     print(f"⚠️  WARNING: Answer seems irrelevant or too short!")
                     print(f"   Question was about: {question}")
                     print(f"   Answer length: {len(response['answer'])}")
                     if response['context']:
-                        print(f"   Context length: {len(response['context'][0])}")
+                        # Handle context length properly using helper function
+                        context_list = self._normalize_context(response['context'])
+                        total_context_length = sum(len(item) for item in context_list)
+                        print(f"   Context length: {total_context_length}")
                 
                 # Show quality indicators
                 if response['context']:
-                    context_text = " ".join(response['context'])
+                    # Handle context properly using helper function
+                    context_list = self._normalize_context(response['context'])
+                    context_text = " ".join(context_list) if context_list else ""
                     question_lower = question.lower()
                     
                     # Extract key terms
@@ -565,15 +730,15 @@ class RAGEvaluator:
             
             # Create evaluation dataset
             print("📊 Creating evaluation dataset...")
-            eval_dataset = self.create_evaluation_dataset(test_questions, responses, ground_truth)
+            eval_dataset = self.create_evaluation_dataset(test_questions, responses, ground_truth_metadata)
             
             # Run RAGAS evaluation
             print("🎯 Running RAGAS evaluation...")
             ragas_metrics = self.run_ragas_evaluation(eval_dataset, use_retrieval)
             
-            # Calculate fallback metrics
-            print("📈 Calculating fallback metrics...")
-            fallback_metrics = self._calculate_fallback_metrics(responses, ground_truth, use_retrieval)
+            # Calculate enhanced fallback metrics with ground truth
+            print("📈 Calculating enhanced metrics...")
+            fallback_metrics = self._calculate_enhanced_metrics(responses, ground_truth_metadata, use_retrieval)
             
             # Combine metrics
             combined_metrics = {**ragas_metrics, **fallback_metrics}
@@ -596,6 +761,141 @@ class RAGEvaluator:
                 "total_responses": 0
             }
             return error_metrics, []
+    
+    def _calculate_answer_accuracy(self, generated_answer: str, ground_truth_info: Dict) -> Dict[str, Any]:
+        """Calculate accuracy metrics comparing generated answer to ground truth"""
+        
+        def calculate_semantic_similarity(text1: str, text2: str) -> float:
+            """Calculate semantic similarity using simple word overlap"""
+            words1 = set(text1.lower().split())
+            words2 = set(text2.lower().split())
+            
+            if not words1 or not words2:
+                return 0.0
+            
+            intersection = words1.intersection(words2)
+            union = words1.union(words2)
+            
+            return len(intersection) / len(union)
+        
+        def calculate_term_overlap(text1: str, text2: str) -> float:
+            """Calculate term overlap between two texts"""
+            words1 = set(text1.lower().split())
+            words2 = set(text2.lower().split())
+            
+            if not words1 or not words2:
+                return 0.0
+            
+            intersection = words1.intersection(words2)
+            return len(intersection) / len(words1)
+        
+        def check_answer_type_compatibility(generated: str, expected_type: str) -> bool:
+            """Check if generated answer is compatible with expected answer type"""
+            generated_lower = generated.lower().strip()
+            
+            if expected_type == 'yes_no':
+                # Check for yes/no patterns
+                yes_patterns = ['yes', 'true', 'correct', 'right']
+                no_patterns = ['no', 'false', 'incorrect', 'wrong']
+                return any(pattern in generated_lower for pattern in yes_patterns + no_patterns)
+            
+            elif expected_type == 'short_text':
+                # Check if answer is concise (not too long)
+                return len(generated.split()) <= 10
+            
+            elif expected_type == 'long_text':
+                # Check if answer is descriptive
+                return len(generated.split()) > 5
+            
+            return True  # Default to compatible
+        
+        # Extract ground truth answer
+        gt_answer = ground_truth_info.get('answer', '')
+        gt_type = ground_truth_info.get('answer_type', 'short_text')
+        
+        # Ensure gt_answer is a string
+        if isinstance(gt_answer, list):
+            # If it's a list, join it or take the first element
+            if gt_answer:
+                gt_answer = str(gt_answer[0]) if len(gt_answer) == 1 else " ".join(str(item) for item in gt_answer)
+            else:
+                gt_answer = ""
+        else:
+            gt_answer = str(gt_answer)
+        
+        # Calculate metrics
+        exact_match = generated_answer.lower().strip() == gt_answer.lower().strip()
+        semantic_similarity = calculate_semantic_similarity(generated_answer, gt_answer)
+        term_overlap = calculate_term_overlap(generated_answer, gt_answer)
+        type_compatibility = check_answer_type_compatibility(generated_answer, gt_type)
+        
+        return {
+            'exact_match': exact_match,
+            'semantic_similarity': semantic_similarity,
+            'term_overlap': term_overlap,
+            'type_compatibility': type_compatibility,
+            'ground_truth': gt_answer,
+            'expected_type': gt_type
+        }
+    
+    def _calculate_enhanced_metrics(self, responses: List[Dict], 
+                                  ground_truth_metadata: List[Dict] = None,
+                                  use_retrieval: bool = True) -> Dict[str, float]:
+        """Calculate enhanced metrics with ground truth comparison"""
+        
+        # First calculate the original fallback metrics
+        original_metrics = self._calculate_fallback_metrics(responses, None, use_retrieval)
+        
+        # Add ground truth-based metrics if available
+        if ground_truth_metadata:
+            gt_metrics = self._calculate_ground_truth_metrics(responses, ground_truth_metadata)
+            original_metrics.update(gt_metrics)
+        
+        return original_metrics
+    
+    def _calculate_ground_truth_metrics(self, responses: List[Dict], 
+                                      ground_truth_metadata: List[Dict]) -> Dict[str, float]:
+        """Calculate metrics based on ground truth comparison"""
+        
+        accuracy_scores = []
+        semantic_similarity_scores = []
+        term_overlap_scores = []
+        type_compatibility_scores = []
+        exact_match_count = 0
+        
+        for i, response in enumerate(responses):
+            if i < len(ground_truth_metadata):
+                gt_info = ground_truth_metadata[i]
+                accuracy_metrics = self._calculate_answer_accuracy(response['answer'], gt_info)
+                
+                # Collect scores
+                accuracy_scores.append(accuracy_metrics['semantic_similarity'])
+                semantic_similarity_scores.append(accuracy_metrics['semantic_similarity'])
+                term_overlap_scores.append(accuracy_metrics['term_overlap'])
+                type_compatibility_scores.append(accuracy_metrics['type_compatibility'])
+                
+                if accuracy_metrics['exact_match']:
+                    exact_match_count += 1
+        
+        total_comparisons = len(accuracy_scores)
+        
+        if total_comparisons == 0:
+            return {
+                'avg_accuracy': 0.0,
+                'avg_semantic_similarity': 0.0,
+                'avg_term_overlap': 0.0,
+                'type_compatibility_rate': 0.0,
+                'exact_match_rate': 0.0
+            }
+        
+        return {
+            'avg_accuracy': np.mean(accuracy_scores),
+            'avg_semantic_similarity': np.mean(semantic_similarity_scores),
+            'avg_term_overlap': np.mean(term_overlap_scores),
+            'type_compatibility_rate': np.mean(type_compatibility_scores),
+            'exact_match_rate': exact_match_count / total_comparisons,
+            'ground_truth_comparisons': total_comparisons
+        }
     
     def _calculate_fallback_metrics(self, responses: List[Dict], 
                                   ground_truth: List[str] = None,
@@ -638,11 +938,14 @@ class RAGEvaluator:
             
             # Check for context utilization (if retrieval is used)
             if use_retrieval and context:
-                context_text = " ".join(context).lower()
-                context_words = set(context_text.split())
-                answer_words = set(answer_lower.split())
-                context_utilization = len(answer_words.intersection(context_words)) / len(answer_words) if answer_words else 0
-                score += context_utilization * 0.3
+                # Handle context properly using helper function
+                context_list = self._normalize_context(context)
+                if context_list:
+                    context_text = " ".join(context_list).lower()
+                    context_words = set(context_text.split())
+                    answer_words = set(answer_lower.split())
+                    context_utilization = len(answer_words.intersection(context_words)) / len(answer_words) if answer_words else 0
+                    score += context_utilization * 0.3
             
             return min(score, 1.0)
         
@@ -651,8 +954,13 @@ class RAGEvaluator:
             if not context:
                 return 0.0
             
+            # Handle context properly using helper function
+            context_list = self._normalize_context(context)
+            if not context_list:
+                return 0.0
+            
             question_lower = question.lower()
-            context_text = " ".join(context).lower()
+            context_text = " ".join(context_list).lower()
             
             # Extract key terms from question (nouns, proper nouns)
             key_terms = []
@@ -678,7 +986,12 @@ class RAGEvaluator:
             if not context:
                 return 0.0
             
-            total_length = sum(len(c) for c in context)
+            # Handle context properly using helper function
+            context_list = self._normalize_context(context)
+            if not context_list:
+                return 0.0
+            
+            total_length = sum(len(c) for c in context_list)
             if total_length < 50:
                 return 0.2
             elif total_length < 200:
@@ -713,7 +1026,12 @@ class RAGEvaluator:
         avg_context_coverage = np.mean(context_coverage_scores) if context_coverage_scores else 0.0
         
         # Calculate context length
-        context_lengths = [len(r["context"]) for r in responses]
+        context_lengths = []
+        for r in responses:
+            context = r["context"]
+            context_list = self._normalize_context(context)
+            context_lengths.append(len(context_list))
+        
         avg_context_length = np.mean(context_lengths) if context_lengths else 0.0
         
         # Calculate answer length
@@ -788,7 +1106,12 @@ class RAGEvaluator:
             if not context or is_error_response(answer):
                 return 0.0
             
-            context_text = " ".join(context).lower()
+            # Handle context properly using helper function
+            context_list = self._normalize_context(context)
+            if not context_list:
+                return 0.0
+            
+            context_text = " ".join(context_list).lower()
             answer_lower = answer.lower()
             
             # Count words from context that appear in answer
@@ -845,7 +1168,7 @@ class RAGEvaluator:
         }
     
     def run_comprehensive_evaluation(self, test_questions: List[str], 
-                                   ground_truth: List[str] = None,
+                                   ground_truth_metadata: List[Dict] = None,
                                    combinations: List[str] = None) -> Dict[str, Dict[str, float]]:
         """Run comprehensive evaluation across different model combinations"""
         print("🎯 Starting comprehensive RAG evaluation...")
@@ -894,7 +1217,7 @@ class RAGEvaluator:
             print("=" * 60)
             
             try:
-                result, responses = self.evaluate_combination(qe_type, gen_type, test_questions, ground_truth, use_retrieval=use_retrieval)
+                result, responses = self.evaluate_combination(qe_type, gen_type, test_questions, ground_truth_metadata, use_retrieval=use_retrieval)
                 results[result_key] = result
                 all_responses[result_key] = responses
                 print(f"✅ [{i}/{len(combinations)}] Completed successfully")
@@ -910,6 +1233,7 @@ class RAGEvaluator:
         # Store responses in results for later use
         results["_all_responses"] = all_responses
         results["_test_questions"] = test_questions
+        results["_ground_truth_metadata"] = ground_truth_metadata
         
         return results
     
@@ -933,10 +1257,10 @@ class RAGEvaluator:
         print(f"✓ Results saved to {output_path}")
     
     def print_comparison_table(self, results: Dict[str, Dict[str, float]]):
-        """Print results in a clean, readable comparison table format"""
-        print("\n" + "="*100)
+        """Print results in a clean, readable comparison table format with vertical borders"""
+        print("\n" + "="*120)
         print("COMPREHENSIVE RAG EVALUATION RESULTS")
-        print("="*100)
+        print("="*120)
         
         # Scenario descriptions
         scenario_descriptions = {
@@ -961,60 +1285,87 @@ class RAGEvaluator:
                     status = "✅ COMPLETED"
                 print(f"{combo:<30} | {status:<12} | {desc}")
         
-        # Define the most important metrics to display
-        key_metrics = [
-            'avg_quality',
-            'avg_correctness', 
-            'avg_context_relevance',
-            'avg_answer_length',
-            'avg_context_coverage',
-            'avg_specificity',
-            'avg_context_utilization',
-            'avg_coherence',
-            'error_rate'
-        ]
+        # Define metric groups for better organization
+        metric_groups = {
+            "Core Quality Metrics": [
+                'avg_quality',
+                'avg_correctness', 
+                'error_rate',
+                'avg_answer_length'
+            ],
+            "Context Performance": [
+                'avg_context_relevance',
+                'avg_context_coverage',
+                'avg_context_utilization'
+            ],
+            "Answer Characteristics": [
+                'avg_specificity',
+                'avg_coherence'
+            ],
+            "Ground Truth Comparison": [
+                'avg_accuracy',
+                'avg_semantic_similarity',
+                'avg_term_overlap',
+                'type_compatibility_rate',
+                'exact_match_rate'
+            ]
+        }
         
-        # Print key metrics table
-        print("\n📊 KEY PERFORMANCE METRICS:")
-        print("-" * 100)
+        # Calculate column widths
+        combo_width = 35
+        metric_width = 18
         
-        # Print header
-        header = f"{'Combination':<30}"
-        for metric in key_metrics:
-            metric_name = metric.replace('_', ' ').title()
-            header += f"{metric_name:<15}"
-        print(header)
-        print("-" * 100)
-        
-        # Print data rows
-        for combo, desc in scenario_descriptions.items():
-            if combo in results:
-                result = results[combo]
-                if isinstance(result, dict) and "error" not in result:
-                    row = f"{combo:<30}"
-                    for metric in key_metrics:
-                        value = result.get(metric, 0.0)
-                        if isinstance(value, (list, dict)):
-                            # Skip complex data types
-                            row += f"{'N/A':<15}"
-                        else:
-                            # Format numbers nicely
-                            if metric == 'avg_answer_length':
-                                value_str = f"{value:.1f}"
-                            elif metric == 'error_rate':
-                                value_str = f"{value:.1%}"
+        # Print each metric group in a separate table
+        for group_name, metrics in metric_groups.items():
+            print(f"\n📊 {group_name.upper()}:")
+            print("-" * 120)
+            
+            # Print header with vertical borders
+            header = f"| {'Combination':<{combo_width}} |"
+            for metric in metrics:
+                metric_name = metric.replace('_', ' ').title()
+                header += f" {metric_name:<{metric_width}} |"
+            print(header)
+            
+            # Print separator line
+            separator = "|" + "-" * (combo_width + 2) + "|"
+            for _ in metrics:
+                separator += "-" * (metric_width + 2) + "|"
+            print(separator)
+            
+            # Print data rows with vertical borders
+            for combo, desc in scenario_descriptions.items():
+                if combo in results:
+                    result = results[combo]
+                    if isinstance(result, dict) and "error" not in result:
+                        row = f"| {combo:<{combo_width}} |"
+                        for metric in metrics:
+                            value = result.get(metric, 0.0)
+                            if isinstance(value, (list, dict)):
+                                # Skip complex data types
+                                row += f" {'N/A':<{metric_width}} |"
                             else:
-                                value_str = f"{value:.3f}"
-                            row += f"{value_str:<15}"
-                    print(row)
+                                # Format numbers nicely
+                                if metric == 'avg_answer_length':
+                                    value_str = f"{value:.1f}"
+                                elif metric in ['error_rate', 'exact_match_rate', 'type_compatibility_rate']:
+                                    value_str = f"{value:.1%}"
+                                else:
+                                    value_str = f"{value:.3f}"
+                                row += f" {value_str:<{metric_width}} |"
+                        print(row)
+            
+            # Print bottom border
+            print(separator)
         
         # Print summary statistics
         print("\n📈 SUMMARY:")
         print("-" * 50)
         
-        # Find best performing model for each metric
-        for metric in key_metrics:
-            if metric == 'error_rate':
+        # Find best performing model for each metric across all groups
+        all_metrics = [metric for group in metric_groups.values() for metric in group]
+        for metric in all_metrics:
+            if metric in ['error_rate']:
                 best_value = float('inf')
                 best_combo = None
                 for combo, result in results.items():
@@ -1037,7 +1388,29 @@ class RAGEvaluator:
                 metric_name = metric.replace('_', ' ').title()
                 if metric == 'avg_answer_length':
                     print(f"🏆 Best {metric_name}: {best_value:.1f} words ({best_combo})")
-                elif metric == 'error_rate':
+                elif metric in ['error_rate', 'exact_match_rate', 'type_compatibility_rate']:
+                    print(f"🏆 Best {metric_name}: {best_value:.1%} ({best_combo})")
+                else:
+                    print(f"🏆 Best {metric_name}: {best_value:.3f} ({best_combo})")
+        
+        # Print ground truth comparison summary if available
+        print("\n🎯 GROUND TRUTH COMPARISON SUMMARY:")
+        print("-" * 50)
+        
+        ground_truth_metrics = ['avg_accuracy', 'avg_semantic_similarity', 'exact_match_rate', 'type_compatibility_rate']
+        for metric in ground_truth_metrics:
+            best_value = 0.0
+            best_combo = None
+            for combo, result in results.items():
+                if isinstance(result, dict) and "error" not in result:
+                    value = result.get(metric, 0.0)
+                    if isinstance(value, (int, float)) and value > best_value:
+                        best_value = value
+                        best_combo = combo
+            
+            if best_combo:
+                metric_name = metric.replace('_', ' ').title()
+                if metric in ['exact_match_rate', 'type_compatibility_rate']:
                     print(f"🏆 Best {metric_name}: {best_value:.1%} ({best_combo})")
                 else:
                     print(f"🏆 Best {metric_name}: {best_value:.3f} ({best_combo})")
@@ -1066,7 +1439,7 @@ class RAGEvaluator:
         charts.append(self._create_new_metrics_chart(metric_results, charts_dir))
         charts.append(self._create_radar_chart(metric_results, charts_dir))
         charts.append(self._create_heatmap(metric_results, charts_dir))
-        charts.append(self._create_qa_comparison_chart(results, charts_dir))
+        charts.append(self._create_qa_comparison_table(results, charts_dir))
         
         logging.info(f"Generated {len(charts)} charts in {charts_dir}")
         return charts
@@ -1323,16 +1696,16 @@ class RAGEvaluator:
             logging.error(f"Error creating heatmap: {e}")
             return ""
     
-    def _create_qa_comparison_chart(self, results: Dict[str, Dict[str, float]], 
+    def _create_qa_comparison_table(self, results: Dict[str, Dict[str, float]], 
                                   charts_dir: str) -> str:
-        """Create a chart showing questions, context, and answers side by side for each combination"""
+        """Create a vertical layout chart comparing questions, context, and answers across model combinations"""
         try:
             # Get the responses and questions from results
             all_responses = results.get("_all_responses", {})
             test_questions = results.get("_test_questions", [])
             
             if not all_responses or not test_questions:
-                logging.warning("No response data found for QA comparison chart")
+                logging.warning("No response data found for QA comparison table")
                 return ""
             
             # Filter out non-metric entries to get valid combinations
@@ -1342,39 +1715,35 @@ class RAGEvaluator:
                     valid_combinations.append(combo)
             
             if len(valid_combinations) < 2:
-                logging.warning("Need at least 2 valid combinations for comparison chart")
+                logging.warning("Need at least 2 valid combinations for comparison table")
                 return ""
             
-            # Show first 5 questions for readability
-            num_questions = min(5, len(test_questions))
+            # Show first 10 questions for better readability
+            num_questions = min(10, len(test_questions))
             
-            # Create figure with subplots for each question
-            fig, axes = plt.subplots(num_questions, 1, figsize=(16, 4 * num_questions))
-            if num_questions == 1:
-                axes = [axes]
+            # Create a single large figure for vertical layout
+            fig, ax = plt.subplots(figsize=(16, 20))
+            ax.axis('off')
             
-            fig.suptitle('Question-Context-Answer Comparison Across Model Combinations', 
-                        fontsize=16, fontweight='bold', y=0.98)
+            # Set title
+            ax.text(0.5, 0.98, 'Question-Context-Answer Comparison Across Model Combinations', 
+                   fontsize=16, fontweight='bold', ha='center', va='top', transform=ax.transAxes)
             
-            # Color scheme for combinations
-            colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D']
+            y_position = 0.95
+            line_height = 0.08
+            section_height = 0.12
             
             for q_idx in range(num_questions):
-                ax = axes[q_idx]
                 question = test_questions[q_idx]
                 
-                # Truncate question for display
-                display_question = question[:80] + "..." if len(question) > 80 else question
+                # Add question header
+                question_text = f"Q{q_idx+1}: {question}"
+                ax.text(0.05, y_position, question_text, fontsize=12, fontweight='bold', 
+                       ha='left', va='top', transform=ax.transAxes)
+                y_position -= 0.02
                 
-                # Create text for each combination
-                y_pos = 0.9
-                ax.text(0.02, y_pos, f"Q{q_idx+1}: {display_question}", 
-                       fontsize=12, fontweight='bold', transform=ax.transAxes,
-                       bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue", alpha=0.7))
-                
-                y_pos -= 0.15
-                
-                for i, combo in enumerate(valid_combinations):
+                # Add model combinations for this question
+                for combo in valid_combinations:
                     if combo in all_responses and q_idx < len(all_responses[combo]):
                         response = all_responses[combo][q_idx]
                         
@@ -1384,39 +1753,58 @@ class RAGEvaluator:
                         
                         # Format context for display
                         if context:
-                            context_text = " ".join(context[:2])  # Show first 2 context pieces
-                            if len(context) > 2:
-                                context_text += "..."
+                            context_list = self._normalize_context(context)
+                            if context_list:
+                                context_text = " ".join(context_list[:1])  # Show first context piece
+                                if len(context_list) > 1:
+                                    context_text += "..."
+                            else:
+                                context_text = "No context retrieved"
                         else:
                             context_text = "No context retrieved"
                         
                         # Truncate for display
                         context_text = context_text[:100] + "..." if len(context_text) > 100 else context_text
-                        answer_text = answer[:150] + "..." if len(answer) > 150 else answer
+                        answer_text = answer[:120] + "..." if len(answer) > 120 else answer
                         
-                        # Display combination name
+                        # Format combination name
                         combo_display = combo.replace('_', ' ').title()
-                        ax.text(0.02, y_pos, f"{combo_display}:", 
-                               fontsize=11, fontweight='bold', color=colors[i % len(colors)],
-                               transform=ax.transAxes)
-                        y_pos -= 0.05
                         
-                        # Display context
-                        ax.text(0.05, y_pos, f"Context: {context_text}", 
-                               fontsize=10, style='italic', transform=ax.transAxes,
-                               bbox=dict(boxstyle="round,pad=0.2", facecolor="lightyellow", alpha=0.5))
-                        y_pos -= 0.08
+                        # Add model combination label
+                        ax.text(0.05, y_position, f"{combo_display}:", fontsize=10, fontweight='bold', 
+                               ha='left', va='top', transform=ax.transAxes, color='#2E86AB')
+                        y_position -= 0.015
                         
-                        # Display answer
-                        ax.text(0.05, y_pos, f"Answer: {answer_text}", 
-                               fontsize=10, transform=ax.transAxes,
-                               bbox=dict(boxstyle="round,pad=0.2", facecolor="lightgreen", alpha=0.5))
-                        y_pos -= 0.12
+                        # Add context
+                        ax.text(0.05, y_position, "Context:", fontsize=9, fontweight='bold', 
+                               ha='left', va='top', transform=ax.transAxes, color='#A23B72')
+                        
+                        # Create context box
+                        context_box = plt.Rectangle((0.05, y_position-0.02), 0.9, 0.03, 
+                                                   facecolor='#E8F5E8', edgecolor='#4CAF50', linewidth=1)
+                        ax.add_patch(context_box)
+                        ax.text(0.06, y_position-0.01, context_text, fontsize=8, 
+                               ha='left', va='center', transform=ax.transAxes, wrap=True)
+                        y_position -= 0.04
+                        
+                        # Add answer
+                        ax.text(0.05, y_position, "Answer:", fontsize=9, fontweight='bold', 
+                               ha='left', va='top', transform=ax.transAxes, color='#F18F01')
+                        
+                        # Create answer box
+                        answer_box = plt.Rectangle((0.05, y_position-0.02), 0.9, 0.03, 
+                                                  facecolor='#F3E5F5', edgecolor='#9C27B0', linewidth=1)
+                        ax.add_patch(answer_box)
+                        ax.text(0.06, y_position-0.01, answer_text, fontsize=8, 
+                               ha='left', va='center', transform=ax.transAxes, wrap=True)
+                        y_position -= 0.05
                 
-                # Remove axes
-                ax.set_xlim(0, 1)
-                ax.set_ylim(0, 1)
-                ax.axis('off')
+                # Add separator between questions
+                if q_idx < num_questions - 1:
+                    separator = plt.Rectangle((0.05, y_position-0.01), 0.9, 0.002, 
+                                            facecolor='#CCCCCC', edgecolor='none')
+                    ax.add_patch(separator)
+                    y_position -= 0.03
             
             plt.tight_layout()
             chart_path = os.path.join(charts_dir, 'qa_comparison.png')
@@ -1426,36 +1814,194 @@ class RAGEvaluator:
             return chart_path
             
         except Exception as e:
-            logging.error(f"Error creating QA comparison chart: {e}")
+            logging.error(f"Error creating QA comparison table: {e}")
             return ""
     
     def save_answer_comparison_text(self, results: Dict[str, Dict[str, float]], 
                                   output_path: str = "answer_comparison.txt") -> str:
-        """Save detailed answer comparison to text file"""
+        """Save detailed answer comparison to text file with organized table format"""
         try:
             with open(output_path, 'w') as f:
                 f.write("RAG MODEL ANSWER COMPARISON\n")
-                f.write("=" * 50 + "\n\n")
-                
-                # This would need access to the actual responses
-                # For now, just save the metrics
-                f.write("EVALUATION METRICS:\n")
-                f.write("-" * 30 + "\n")
+                f.write("=" * 80 + "\n\n")
                 
                 # Filter out non-metric entries
                 metric_results = {k: v for k, v in results.items() 
                                 if isinstance(v, dict) and not k.startswith('_')}
                 
+                if not metric_results:
+                    f.write("No valid metric results found for comparison.\n")
+                    return output_path
+                
+                # Get all unique metrics across all combinations
+                all_metrics = set()
                 for combo, metrics in metric_results.items():
-                    f.write(f"\n{combo}:\n")
                     if isinstance(metrics, dict):
-                        for metric, value in metrics.items():
-                            if isinstance(value, (int, float)):
-                                f.write(f"  {metric}: {value:.3f}\n")
+                        all_metrics.update(metrics.keys())
+                
+                # Sort metrics into logical groups
+                metric_groups = {
+                    'RAGAS Metrics': ['context_recall', 'context_precision'],
+                    'Error & Quality': ['error_rate', 'avg_quality', 'avg_correctness'],
+                    'Context Metrics': ['avg_context_relevance', 'avg_context_coverage', 'avg_context_length', 'avg_context_utilization'],
+                    'Answer Metrics': ['avg_answer_length', 'avg_specificity', 'avg_coherence'],
+                    'Ground Truth Metrics': ['avg_accuracy', 'avg_semantic_similarity', 'avg_term_overlap', 'type_compatibility_rate', 'exact_match_rate'],
+                    'Response Counts': ['total_responses', 'successful_responses', 'ground_truth_comparisons']
+                }
+                
+                # Create table header
+                combinations = list(metric_results.keys())
+                f.write("COMPREHENSIVE METRICS COMPARISON TABLE\n")
+                f.write("=" * 80 + "\n\n")
+                
+                # Write table for each metric group
+                for group_name, metrics in metric_groups.items():
+                    # Filter metrics that exist in the data
+                    available_metrics = [m for m in metrics if m in all_metrics]
+                    if not available_metrics:
+                        continue
+                    
+                    f.write(f"{group_name.upper()}\n")
+                    f.write("-" * 80 + "\n")
+                    
+                    # Create table header
+                    header = f"{'Metric':<25}"
+                    for combo in combinations:
+                        combo_display = combo.replace('_', ' ').title()
+                        header += f" | {combo_display:<20}"
+                    f.write(header + "\n")
+                    
+                    # Write separator line
+                    separator = "-" * 25
+                    for _ in combinations:
+                        separator += "+" + "-" * 22
+                    f.write(separator + "\n")
+                    
+                    # Write metric rows
+                    for metric in available_metrics:
+                        row = f"{metric.replace('_', ' ').title():<25}"
+                        for combo in combinations:
+                            value = metric_results[combo].get(metric, 'N/A')
+                            
+                            # Format the value based on type
+                            if isinstance(value, (list, np.ndarray)):
+                                if len(value) > 0 and not np.isnan(value[0]):
+                                    formatted_value = f"{np.mean(value):.3f}"
+                                else:
+                                    formatted_value = "N/A"
+                            elif isinstance(value, (int, float)):
+                                # Check for NaN values
+                                if np.isnan(value):
+                                    formatted_value = "N/A"
+                                elif metric in ['error_rate', 'exact_match_rate', 'type_compatibility_rate']:
+                                    formatted_value = f"{value:.1%}"
+                                elif metric in ['avg_answer_length', 'avg_context_length', 'total_responses', 'successful_responses', 'ground_truth_comparisons']:
+                                    formatted_value = f"{value:.1f}"
+                                else:
+                                    formatted_value = f"{value:.3f}"
                             else:
-                                f.write(f"  {metric}: {value}\n")
-                    else:
-                        f.write(f"  {metrics}\n")
+                                formatted_value = str(value)
+                            
+                            row += f" | {formatted_value:<20}"
+                        f.write(row + "\n")
+                    
+                    f.write("\n")
+                
+                # Add summary section
+                f.write("SUMMARY INSIGHTS\n")
+                f.write("-" * 80 + "\n")
+                
+                # Find best performing model for key metrics
+                key_metrics = ['avg_accuracy', 'avg_quality', 'avg_context_relevance', 'exact_match_rate', 'type_compatibility_rate']
+                
+                for metric in key_metrics:
+                    if metric in all_metrics:
+                        best_value = 0.0
+                        best_combo = None
+                        worst_value = float('inf')
+                        worst_combo = None
+                        
+                        for combo, metrics in metric_results.items():
+                            if isinstance(metrics, dict) and metric in metrics:
+                                value = metrics[metric]
+                                if isinstance(value, (int, float)) and not np.isnan(value):
+                                    if value > best_value:
+                                        best_value = value
+                                        best_combo = combo
+                                    if value < worst_value:
+                                        worst_value = value
+                                        worst_combo = combo
+                        
+                        if best_combo:
+                            metric_name = metric.replace('_', ' ').title()
+                            if metric in ['exact_match_rate', 'type_compatibility_rate', 'error_rate']:
+                                f.write(f"🏆 Best {metric_name}: {best_value:.1%} ({best_combo})\n")
+                                if worst_combo and worst_combo != best_combo:
+                                    f.write(f"❌ Worst {metric_name}: {worst_value:.1%} ({worst_combo})\n")
+                            else:
+                                f.write(f"🏆 Best {metric_name}: {best_value:.3f} ({best_combo})\n")
+                                if worst_combo and worst_combo != best_combo:
+                                    f.write(f"❌ Worst {metric_name}: {worst_value:.3f} ({worst_combo})\n")
+                        f.write("\n")
+                
+                # Add performance analysis
+                f.write("PERFORMANCE ANALYSIS\n")
+                f.write("-" * 80 + "\n")
+                
+                for combo, metrics in metric_results.items():
+                    if isinstance(metrics, dict):
+                        f.write(f"\n{combo.replace('_', ' ').title()}:\n")
+                        
+                        # Analyze strengths
+                        strengths = []
+                        if metrics.get('avg_accuracy', 0) > 0.5:
+                            strengths.append("High accuracy")
+                        if metrics.get('avg_quality', 0) > 0.6:
+                            strengths.append("High quality")
+                        if metrics.get('type_compatibility_rate', 0) > 0.8:
+                            strengths.append("Good type compatibility")
+                        if metrics.get('avg_context_relevance', 0) > 0.5:
+                            strengths.append("Good context relevance")
+                        
+                        if strengths:
+                            f.write(f"  ✅ Strengths: {', '.join(strengths)}\n")
+                        
+                        # Analyze weaknesses
+                        weaknesses = []
+                        if metrics.get('avg_accuracy', 0) < 0.2:
+                            weaknesses.append("Low accuracy")
+                        if metrics.get('avg_context_utilization', 0) < 0.1:
+                            weaknesses.append("Poor context utilization")
+                        if metrics.get('exact_match_rate', 0) < 0.1:
+                            weaknesses.append("Low exact match rate")
+                        if metrics.get('avg_context_relevance', 0) < 0.2:
+                            weaknesses.append("Poor context relevance")
+                        
+                        if weaknesses:
+                            f.write(f"  ❌ Weaknesses: {', '.join(weaknesses)}\n")
+                        
+                        # Overall assessment
+                        overall_score = (
+                            metrics.get('avg_accuracy', 0) * 0.3 +
+                            metrics.get('avg_quality', 0) * 0.2 +
+                            metrics.get('type_compatibility_rate', 0) * 0.2 +
+                            metrics.get('avg_context_relevance', 0) * 0.15 +
+                            metrics.get('avg_context_utilization', 0) * 0.15
+                        )
+                        
+                        if overall_score > 0.7:
+                            assessment = "Excellent"
+                        elif overall_score > 0.5:
+                            assessment = "Good"
+                        elif overall_score > 0.3:
+                            assessment = "Fair"
+                        else:
+                            assessment = "Poor"
+                        
+                        f.write(f"  📊 Overall Assessment: {assessment} (Score: {overall_score:.3f})\n")
+                
+                f.write("\n" + "=" * 80 + "\n")
+                f.write("End of RAG Model Answer Comparison\n")
                 
             logging.info(f"Answer comparison saved to {output_path}")
             return output_path
@@ -1463,3 +2009,20 @@ class RAGEvaluator:
         except Exception as e:
             logging.error(f"Error saving answer comparison: {e}")
             return "" 
+    
+    def _normalize_context(self, context) -> List[str]:
+        """Normalize context to a list of strings for consistent handling"""
+        if not context:
+            return []
+        
+        if isinstance(context, list):
+            # Flatten if it's a list of lists
+            if context and isinstance(context[0], list):
+                context = [item for sublist in context for item in sublist]
+            # Ensure all items are strings
+            context = [str(item) for item in context if item]
+        else:
+            # Convert single context to list
+            context = [str(context)]
+        
+        return context

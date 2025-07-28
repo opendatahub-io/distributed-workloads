@@ -1,0 +1,1501 @@
+🔍 COMPREHENSIVE RAG EVALUATION SCRIPT
+============================================================
+📊 Evaluates combinations to test RAG functionality:
+   1. Original QE + Original Generator (baseline with retrieval)
+   2. Original QE + Fine-tuned Generator (notebook configuration)
+   3. Fine-tuned QE + Fine-tuned Generator (full pipeline)
+============================================================
+📁 Fine-tuned checkpoint: /opt/app-root/src/shared/fine_tuned_rag_model/inference_sft-rag-master-0
+📁 Feast repo path: /opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/feature_repo
+🔧 Device: cuda
+🔄 Loading curated questions...
+2025-07-29 08:01:46,959 - INFO - Loaded 10 curated questions with enhanced metadata
+📊 Dataset loaded: 10 questions
+📊 Ground truth metadata available: 10 entries
+
+📝 Sample ground truth metadata:
+   1. Type: short_text, Confidence: 1.00
+      Answer: Leonardo da Vinci
+      Total answers available: 1
+   2. Type: short_text, Confidence: 1.00
+      Answer: Marie Curie
+      Total answers available: 1
+   3. Type: short_text, Confidence: 1.00
+      Answer: Paris
+      Total answers available: 1
+
+🔧 Initializing RAG evaluator...
+2025-07-29 08:01:46,959 - INFO - Using device: cuda
+2025-07-29 08:01:46,959 - INFO - Initializing tokenizers...
+2025-07-29 08:01:48,819 - INFO - Loading fine-tuned tokenizers...
+2025-07-29 08:01:48,942 - INFO - Fine-tuned tokenizers loaded successfully
+2025-07-29 08:01:48,942 - INFO - Tokenizers initialized successfully
+2025-07-29 08:01:48,942 - INFO - Initializing Feast components...
+2025-07-29 08:01:48,942 - INFO - Feast index initialized successfully
+
+🔍 Testing Feast connection...
+2025-07-29 08:01:48,942 - INFO - Loading original question encoder from: facebook/dpr-question_encoder-single-nq-base
+2025-07-29 08:01:50,569 - INFO - Loading original generator from: facebook/bart-large
+2025-07-29 08:01:52,929 - INFO - Initializing Feast RAG retriever...
+2025-07-29 08:01:52,929 - INFO - Using original tokenizers
+2025-07-29 08:01:52,929 - INFO - Feast RAG retriever initialized successfully
+/opt/app-root/lib64/python3.11/site-packages/pydantic/_internal/_fields.py:192: UserWarning: Field name "vector_enabled" in "MilvusOnlineStoreConfig" shadows an attribute in parent "VectorStoreConfig"
+  warnings.warn(
+Connecting to Milvus remotely at http://vectordb-milvus.milvus.svc.cluster.local:19530
+2025-07-29 08:01:53,460 - DEBUG - Created new connection using: 2c8ce49cf4b14cdd9dc301c71e921ae6
+CONTEXl:  machine learning". Memex The memex (originally coined "at random", though sometimes said to be a portmanteau of "memory" and "index") is the name of the hypothetical proto-hypertext system that Vannevar Bush described in his 1945 "The Atlantic Monthly" article "As We May
+CONTEXl:  machine used to study decision problems. It can be visualized as a Turing machine with a black box, called an oracle, which is able to solve certain decision problems in a single operation. The problem
+
+machine learning concerned with how software agents ought to take "actions" in an "environment" so as to maximize some notion of cumulative "reward". The problem, due to its generality, is studied in many other disciplines, such as game theory, control theory, operations research, information theory, simulation-based optimization, multi-agent systems, swarm intelligence,
+
+Recent research has increasingly focused on unsupervised and semi-supervised learning algorithms. Such algorithms are able to learn from data that has not been hand-annotated with the desired answers, or using a combination of annotated and non-annotated data. Generally, this task
+
+machine learning". Memex The memex (originally coined "at random", though sometimes said to be a portmanteau of "memory" and "index") is the name of the hypothetical proto-hypertext system that Vannevar Bush described in his 1945 "The Atlantic Monthly" article "As We May
+
+from given input data. Computability theory, which studies computability of functions from inputs to outputs, and for which Turing machines were invented, reflects this practice. Since the 1970s, interactive use of computers became much more
+✅ Feast connection successful!
+   Retrieved 1 passages
+   Generation works: True
+
+🎯 Starting comprehensive evaluation...
+📊 Questions: 10
+📊 Combinations: ['all']
+📊 Output directory: q_10_results4
+🎯 Starting comprehensive RAG evaluation...
+================================================================================
+🔄 Will evaluate combinations to test RAG functionality:
+   1. ORIGINAL QE + ORIGINAL Generator (baseline with retrieval)
+   2. ORIGINAL QE + FINE-TUNED Generator (notebook configuration)
+   3. FINE-TUNED QE + FINE-TUNED Generator (full pipeline)
+
+🔍 Testing combinations: 1, 2, 3
+
+🔄 [1/3] Starting evaluation...
+============================================================
+🔍 EVALUATING: ORIGINAL Question Encoder + ORIGINAL Generator
+============================================================
+
+🔍 EVALUATING: QE=ORIGINAL, Generator=ORIGINAL, Retrieval=True
+================================================================================
+📦 Setting up RAG model...
+2025-07-29 08:01:54,876 - INFO - Setting up RAG model: QE=original, Generator=original
+2025-07-29 08:01:54,877 - INFO - Loading ORIGINAL QE + ORIGINAL Generator
+2025-07-29 08:01:54,877 - INFO - Loading original question encoder from: facebook/dpr-question_encoder-single-nq-base
+2025-07-29 08:01:56,153 - INFO - Loading original generator from: facebook/bart-large
+2025-07-29 08:01:58,323 - INFO - Creating fresh Feast RAG retriever...
+2025-07-29 08:01:58,323 - INFO - Using original tokenizers
+2025-07-29 08:01:58,323 - INFO - Fresh Feast RAG retriever created successfully
+✅ RAG model ready
+
+🤖 Generating responses for 10 questions...
+
+================================================================================
+Question 1/10
+================================================================================
+❓ Who painted the Mona Lisa?
+🎯 Ground Truth: Leonardo da Vinci (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+Connecting to Milvus remotely at http://vectordb-milvus.milvus.svc.cluster.local:19530
+2025-07-29 08:01:58,721 - DEBUG - Created new connection using: ab570e38f25c470282815f9b3ab0f91b
+CONTEXl:  Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as "the best known, the most visited, the most written about, the most sung about, the most parodied work of art in the world". The "Mona Lisa" is also one of the most valuable paintings in the world. It holds the Guinness
+
+four other paintings as the "Mona Lisa" referred to by Vasari. Several other women have been proposed as the subject of the painting. Isabella of Aragon, Cecilia Gallerani, Costanza d'Avalos, Duchess of Francavilla, Isabella d'Este, Pacifica Brandano or Brandino,
+
+traditionally spelled "Mona" (as used by Vasari), is also commonly spelled in modern Italian as "Monna Lisa" ("" being a vulgarity in some Italian dialects) but this is rare in English. Vasari's account of the "Mona Lisa" comes from his biography of Leonardo published in 1550, 31 years after the artist's death. It has long been the best-known source of information on the
+
+Notes Bibliography Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as "the best
+
+the subtle modelling of forms, and the atmospheric illusionism were novel qualities that have contributed to the continuing fascination and study of the work. The title of the painting, which is known in English as "Mona Lisa", comes from a description by Renaissance art historian Giorgio Vasari, who wrote "Leonardo undertook to paint, for Francesco del Giocondo, the portrait
+CONTEXl:  Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as "the best known, the most visited, the most written about, the most sung about, the most parodied work of art in the world". The "Mona Lisa" is also one of the most valuable paintings in the world. It holds the Guinness
+
+traditionally spelled "Mona" (as used by Vasari), is also commonly spelled in modern Italian as "Monna Lisa" ("" being a vulgarity in some Italian dialects) but this is rare in English. Vasari's account of the "Mona Lisa" comes from his biography of Leonardo published in 1550, 31 years after the artist's death. It has long been the best-known source of information on the
+
+Notes Bibliography Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as "the best
+📚 Context: Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as "the best known, the most visited, the m...
+--------------------------------------------------------------------------------
+💬 Answer: Questions about the Mona Lisa Questions about the "Mona Lisa" Questions and answers about the painting Bibliography Bibliography Mona LISA The Mona Lisas Bibliographic Bibliographical Bibliographies Mona lisas கான்யிலுமைபோரேடள�
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: False
+📊 Quality metrics:
+   Context relevance: 0.33 (1/3 key terms)
+   Answer length: 29 words
+   Context utilization: 0.24
+================================================================================
+
+================================================================================
+Question 2/10
+================================================================================
+❓ Who was the first woman to win a Nobel Prize?
+🎯 Ground Truth: Marie Curie (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  Marie Curie Marie Skłodowska Curie (; ; ; born Maria Salomea Skłodowska; 7 November 18674 July 1934) was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and only woman to win twice, the only person to win a Nobel Prize in two different sciences, and was part
+
+named in her honor. Marie Curie Marie Skłodowska Curie (; ; ; born Maria Salomea Skłodowska; 7 November 18674 July 1934) was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and only woman to win twice, the only person to win a Nobel Prize in two different
+
+three women (1.4% of laureates) have won the Nobel Prize in Physics: Marie Curie in 1903, Maria Goeppert Mayer in 1963, and Donna Strickland in 2018. Alfred Nobel, in his last will and testament, stated that his
+
+Mittag-Leffler, alerted Pierre to the situation, and after his complaint, Marie's name was added to the nomination. Marie Curie was the first woman to be awarded a Nobel Prize. Curie and her husband declined to go to Stockholm to receive the prize in person; they were
+
+Bertha von Suttner Bertha Felicitas Sophie Freifrau von Suttner (Baroness Bertha von Suttner, , née Countess Kinsky, Gräfin Kinsky von Wchinitz und Tettau; 9 June 184321 June 1914) was an Austrian-Bohemian pacifist and novelist. In 1905 she became the second female Nobel laureate (after Marie Curie in 1903), the first woman to be awarded the Nobel Peace Prize, and the first
+CONTEXl:  Bertha von Suttner Bertha Felicitas Sophie Freifrau von Suttner (Baroness Bertha von Suttner, , née Countess Kinsky, Gräfin Kinsky von Wchinitz und Tettau; 9 June 184321 June 1914) was an Austrian-Bohemian pacifist and novelist. In 1905 she became the second female Nobel laureate (after Marie Curie in 1903), the first woman to be awarded the Nobel Peace Prize, and the first
+
+Marie Curie Marie Skłodowska Curie (; ; ; born Maria Salomea Skłodowska; 7 November 18674 July 1934) was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and only woman to win twice, the only person to win a Nobel Prize in two different sciences, and was part
+
+named in her honor. Marie Curie Marie Skłodowska Curie (; ; ; born Maria Salomea Skłodowska; 7 November 18674 July 1934) was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and only woman to win twice, the only person to win a Nobel Prize in two different
+📚 Context: Bertha von Suttner Bertha Felicitas Sophie Freifrau von Suttner (Baroness Bertha von Suttner, , née Countess Kinsky, Gräfin Kinsky von Wchinitz und Tettau; 9 June 184321 June 1914) was an Austrian-Boh...
+--------------------------------------------------------------------------------
+💬 Answer: Mittag-Leffler, alerted Pierre to the situation, and after his complaint, Marie's name was added to the nomination. Curie and her husband declined to go to Stockholm to receive the prize in person; they were instead given the Nobel Prize in Physiology or Medicine. Alfred Nobel, in his last will and testament, stated that his wife would be the first woman to receive a Nobel Prize. In 1905 she became the second female Nobel laureate (after Marie Curie in
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.036
+   Term Overlap: 0.036
+   Answer Type Match: False
+📊 Quality metrics:
+   Context relevance: 0.75 (3/4 key terms)
+   Answer length: 78 words
+   Context utilization: 0.27
+================================================================================
+
+================================================================================
+Question 3/10
+================================================================================
+❓ What is the capital of France?
+🎯 Ground Truth: Paris (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  located in northern central France, in a north-bending arc of the river Seine whose crest includes two islands, the Île Saint-Louis and the larger Île de la Cité, which form the oldest part of the city. The river's mouth on the English Channel ("La Manche") is about downstream from the city. The city is spread widely on both banks of the river. Overall, the city is relatively
+
+headquartered in Paris, the nation's financial capital. France's economy entered the recession of the late 2000s later and appeared to leave it earlier than most affected economies, only enduring four-quarters of contraction. However, France experienced stagnant growth between 2012
+
+is exclusively and reciprocally twinned only with: Paris has agreements of friendship and co-operation with: Paris Paris () is the capital and most populous city of France, with an area of and a population of 2,206,488. Since the 17th century, Paris has been one of Europe's major centres of finance, commerce, fashion, science, and the arts. The City of Paris is the centre and
+
+seat of government of the Île-de-France, or Paris Region, which has an estimated official 2018 population of 12,246,234, or 18.2 percent of the population of France. Besides this,the Paris metropolitan area had a population of 12,532,901
+
+and is an important administrative centre in the region. It is also the seat of one of the fifteen French ecclesiastical provinces and one of the two divisions of the French Army. In 2015 the city had a population of 116,676, in a
+CONTEXl:  and is an important administrative centre in the region. It is also the seat of one of the fifteen French ecclesiastical provinces and one of the two divisions of the French Army. In 2015 the city had a population of 116,676, in a
+
+is exclusively and reciprocally twinned only with: Paris has agreements of friendship and co-operation with: Paris Paris () is the capital and most populous city of France, with an area of and a population of 2,206,488. Since the 17th century, Paris has been one of Europe's major centres of finance, commerce, fashion, science, and the arts. The City of Paris is the centre and
+
+seat of government of the Île-de-France, or Paris Region, which has an estimated official 2018 population of 12,246,234, or 18.2 percent of the population of France. Besides this,the Paris metropolitan area had a population of 12,532,901
+📚 Context: and is an important administrative centre in the region. It is also the seat of one of the fifteen French ecclesiastical provinces and one of the two divisions of the French Army. In 2015 the city had...
+--------------------------------------------------------------------------------
+💬 Answer: peoples of the world. The City of Paris is the centre andseat of government of the Île-de-France, or Paris Region, which has an estimated official 2018 population of 12,246,234, or 18.2 percent of the population of France. In 2015 the city had a population of 116,676, in a metropolitan area of 2,206,488. It is also the seat of one of the fifteen French ecclesiastical provinces and one of
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.024
+   Term Overlap: 0.024
+   Answer Type Match: False
+📊 Quality metrics:
+   Context relevance: 0.50 (1/2 key terms)
+   Answer length: 68 words
+   Context utilization: 0.56
+================================================================================
+
+================================================================================
+Question 4/10
+================================================================================
+❓ When was the Declaration of Independence signed?
+🎯 Ground Truth: 1776 (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  continued throughout most of his presidency, being finished in 1809. Jefferson was the primary author of the Declaration of Independence. The document's social and political ideals were proposed by Jefferson before the inauguration of Washington. At age 33, he was one of the youngest delegates to the Second Continental Congress beginning in 1775 at the outbreak of the American
+
+independence until after Congress had made its decision. Political maneuvering was setting the stage for an official declaration of independence even while a document was being written to explain the decision. On June 11, 1776, Congress appointed a "Committee of Five" to draft a declaration, consisting of John Adams of Massachusetts, Benjamin Franklin of Pennsylvania, Thomas
+
+Declaration of Independence on August 2, 1776. Since his signature did not appear on the printed copy that was authenticated on January 17, 1777, it is assumed that he signed after that date, possibly
+
+Congress passed Adams's radical preamble, the Virginia Convention set the stage for a formal Congressional declaration of independence. On May 15, the Convention instructed Virginia's congressional delegation "to propose to that respectable body to declare the United Colonies free and independent States, absolved from all allegiance to, or dependence upon, the Crown or
+
+Declaration of Independence: Samuel Huntington, Roger Sherman, William Williams, and Oliver Wolcott. Connecticut's legislature authorized the outfitting of six new regiments in 1775, in the wake of the clashes between British regulars and Massachusetts militia at Lexington and Concord. There were some 1,200 Connecticut troops on hand
+CONTEXl:  Declaration of Independence on August 2, 1776. Since his signature did not appear on the printed copy that was authenticated on January 17, 1777, it is assumed that he signed after that date, possibly
+
+independence until after Congress had made its decision. Political maneuvering was setting the stage for an official declaration of independence even while a document was being written to explain the decision. On June 11, 1776, Congress appointed a "Committee of Five" to draft a declaration, consisting of John Adams of Massachusetts, Benjamin Franklin of Pennsylvania, Thomas
+
+Declaration of Independence: Samuel Huntington, Roger Sherman, William Williams, and Oliver Wolcott. Connecticut's legislature authorized the outfitting of six new regiments in 1775, in the wake of the clashes between British regulars and Massachusetts militia at Lexington and Concord. There were some 1,200 Connecticut troops on hand
+📚 Context: Declaration of Independence on August 2, 1776. Since his signature did not appear on the printed copy that was authenticated on January 17, 1777, it is assumed that he signed after that date, possibly
+--------------------------------------------------------------------------------
+💬 Answer: Declaration of Independence: Samuel Huntington, Roger Sherman, William Williams, and Oliver Wolcott. Connecticut's legislature authorized the outfitting of six new regiments in 1775, in the wake of the clashes between British regulars and Massachusetts militia at Lexington and Concord. There were some 1,200 Connecticut troops on hand at the time of the signing. _______________________________________________ _______________________________________________________    Question: When was the Declaration of Independence signed? _______________________________________________________________ Answer:  
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: False
+📊 Quality metrics:
+   Context relevance: 0.67 (2/3 key terms)
+   Answer length: 65 words
+   Context utilization: 0.65
+================================================================================
+
+================================================================================
+Question 5/10
+================================================================================
+❓ What is the capital city of Australia?
+🎯 Ground Truth: Canberra (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  seat of government, many federal government ministries have secondary seats in state capital cities, as do the Governor-General and the Prime Minister. The site of Canberra was selected for the location of the nation's capital in 1908 as
+
+Sydney, and north-east of Melbourne. A resident of Canberra is known as a Canberran. Although Canberra is the capital and seat of government, many federal government ministries have secondary seats in state capital cities, as do the Governor-General
+
+national capital, a compromise was reached: the new capital would be built in New South Wales, so long as it was at least from Sydney, with Melbourne to be the temporary seat of government (but not referred to as the "capital") while the new capital was built. Newspaper proprietor John Gale circulated a pamphlet titled 'Dalgety or Canberra: Which?' advocating Canberra to every
+
+the proposed new federal capital of Canberra (Melbourne was the seat of government from 1901 to 1927). The FCT was renamed the Australian Capital Territory (ACT) in 1938. The Northern Territory was transferred from the control of the South Australian government to the Commonwealth in 1911. Australia was deeply affected by the Great Depression of the 1930s, particularly due to
+
+Australia's capital city; the newly created city of Canberra ultimately filled this role. Six Australian Prime Ministers have been born in Sydney, more than any other city, including first Prime Minister Edmund Barton and Malcolm Turnbull. Education became a proper focus
+CONTEXl:  the proposed new federal capital of Canberra (Melbourne was the seat of government from 1901 to 1927). The FCT was renamed the Australian Capital Territory (ACT) in 1938. The Northern Territory was transferred from the control of the South Australian government to the Commonwealth in 1911. Australia was deeply affected by the Great Depression of the 1930s, particularly due to
+
+Sydney, and north-east of Melbourne. A resident of Canberra is known as a Canberran. Although Canberra is the capital and seat of government, many federal government ministries have secondary seats in state capital cities, as do the Governor-General
+
+Australia's capital city; the newly created city of Canberra ultimately filled this role. Six Australian Prime Ministers have been born in Sydney, more than any other city, including first Prime Minister Edmund Barton and Malcolm Turnbull. Education became a proper focus
+📚 Context: the proposed new federal capital of Canberra (Melbourne was the seat of government from 1901 to 1927). The FCT was renamed the Australian Capital Territory (ACT) in 1938. The Northern Territory was tr...
+--------------------------------------------------------------------------------
+💬 Answer: Australia's capital city; the newly created city of Canberra ultimately filled this role. Although Canberra is the capital and seat of government, many federal government ministries have secondary seats in state capital cities, as do the Governor-General and the Prime Minister. Six Australian Prime Ministers have been born in Sydney, more than any other city, including first Prime Minister Edmund Barton and Malcolm Turnbull. A resident of Canberra is known as a Canberran. The site of Canberra was selected for the location of the
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.017
+   Term Overlap: 0.017
+   Answer Type Match: False
+📊 Quality metrics:
+   Context relevance: 0.67 (2/3 key terms)
+   Answer length: 84 words
+   Context utilization: 0.65
+================================================================================
+
+================================================================================
+Question 6/10
+================================================================================
+❓ Who wrote Romeo and Juliet?
+🎯 Ground Truth: William Shakespeare (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  Pyramus and Thisbe, the mistaken belief in one lover's death leads to consecutive suicides. The earliest version of Romeo and Juliet was published in 1476 by Masuccio Salernitano, while it mostly obtained its present form when written down in 1524 by Luigi da Porto. Salernitano and Da Porto both are thought to have been inspired by Ovid and Boccaccio's writing. Shakespeare's
+
+Romeo and Juliet"" The film's love theme was widely disseminated, notably in "Our Tune", a segment of the British Broadcasting Corporation (BBC)'s disc jockey Simon Bates's radio show. In addition, various versions of the theme have been recorded and released, including a highly successful one by Henry Mancini, whose instrumental rendition was a Number One success in the United
+
+Romeo and Juliet Romeo and Juliet is a tragedy written by William Shakespeare early in his career about two young star-crossed lovers whose deaths ultimately reconcile their feuding families. It was among Shakespeare's most popular plays during his lifetime and along with "Hamlet", is one of his most frequently performed plays. Today, the title characters are regarded as
+
+She introduced changes to the story, notably that of presenting the two families as multiracial. At least 24 operas have been based on Romeo and Juliet. The earliest, "Romeo und Julie" in 1776, a Singspiel by Georg Benda, omits much of the action of the play and most of its characters and has a happy ending. It is occasionally revived. The best-known is Gounod's 1867 "Roméo et
+
+with two tragedies: "Romeo and Juliet", the famous romantic tragedy of sexually charged adolescence, love, and death; and "Julius Caesar"—based on Sir Thomas North's 1579 translation of Plutarch's "Parallel Lives"—which introduced a new kind of drama. According to
+CONTEXl:  Pyramus and Thisbe, the mistaken belief in one lover's death leads to consecutive suicides. The earliest version of Romeo and Juliet was published in 1476 by Masuccio Salernitano, while it mostly obtained its present form when written down in 1524 by Luigi da Porto. Salernitano and Da Porto both are thought to have been inspired by Ovid and Boccaccio's writing. Shakespeare's
+
+Romeo and Juliet"" The film's love theme was widely disseminated, notably in "Our Tune", a segment of the British Broadcasting Corporation (BBC)'s disc jockey Simon Bates's radio show. In addition, various versions of the theme have been recorded and released, including a highly successful one by Henry Mancini, whose instrumental rendition was a Number One success in the United
+
+Romeo and Juliet Romeo and Juliet is a tragedy written by William Shakespeare early in his career about two young star-crossed lovers whose deaths ultimately reconcile their feuding families. It was among Shakespeare's most popular plays during his lifetime and along with "Hamlet", is one of his most frequently performed plays. Today, the title characters are regarded as
+📚 Context: Pyramus and Thisbe, the mistaken belief in one lover's death leads to consecutive suicides. The earliest version of Romeo and Juliet was published in 1476 by Masuccio Salernitano, while it mostly obta...
+--------------------------------------------------------------------------------
+💬 Answer: Romeo and Juliet Romeo and Juliet is a tragedy written by William Shakespeare early in his career about two young star-crossed lovers whose deaths ultimately reconcile their feuding families. It was among Shakespeare's most popular plays during his lifetime and along with "Hamlet", is one of his most frequently performed plays. It is occasionally revived. Today, the title characters are regarded as one of Shakespeare's greatest works. Shakespeare's "ROMEO AND JULIET" was adapted into the
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.034
+   Term Overlap: 0.034
+   Answer Type Match: False
+📊 Quality metrics:
+   Context relevance: 0.33 (1/3 key terms)
+   Answer length: 75 words
+   Context utilization: 0.67
+================================================================================
+
+================================================================================
+Question 7/10
+================================================================================
+❓ Who discovered penicillin?
+🎯 Ground Truth: Alexander Fleming (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  – to form what we today know as penicillin. In 1940, penicillin became available for medicinal use to treat bacterial infections in humans. The field of modern biotechnology is generally thought of as having been born in 1971 when Paul Berg's (Stanford) experiments in gene splicing had early success. Herbert W. Boyer (Univ. Calif. at San Francisco) and Stanley N. Cohen
+
+penicillin led to renewed interest in the search for antibiotic compounds with similar efficacy and safety. For their successful development of penicillin, which Fleming had accidentally discovered but could not develop himself, as a therapeutic drug, Chain and Florey shared the 1945 Nobel Prize in Medicine with Fleming. Florey credited Rene Dubos with pioneering the approach
+
+transforming the laboratory curiosity into a practical drug. Fleming was the first to discover the properties of the active substance, giving him the privilege of naming it: penicillin. He also kept, grew, and distributed the original mould for twelve
+
+was discovered in 1928 by Scottish scientist Alexander Fleming. People began using it to treat infections in 1942. There are several enhanced penicillin families which are effective against additional bacteria; these include the antistaphylococcal penicillins, aminopenicillins and the antipseudomonal penicillins. They are derived from "Penicillium" fungi. The term "penicillin"
+
+patented penicillin, having been advised by Sir Henry Dale that doing so would be unethical. Penicillin is actively excreted, and about 80% of a penicillin dose is cleared from the body within three to four hours of administration. Indeed, during the early penicillin era,
+CONTEXl:  – to form what we today know as penicillin. In 1940, penicillin became available for medicinal use to treat bacterial infections in humans. The field of modern biotechnology is generally thought of as having been born in 1971 when Paul Berg's (Stanford) experiments in gene splicing had early success. Herbert W. Boyer (Univ. Calif. at San Francisco) and Stanley N. Cohen
+
+penicillin led to renewed interest in the search for antibiotic compounds with similar efficacy and safety. For their successful development of penicillin, which Fleming had accidentally discovered but could not develop himself, as a therapeutic drug, Chain and Florey shared the 1945 Nobel Prize in Medicine with Fleming. Florey credited Rene Dubos with pioneering the approach
+
+transforming the laboratory curiosity into a practical drug. Fleming was the first to discover the properties of the active substance, giving him the privilege of naming it: penicillin. He also kept, grew, and distributed the original mould for twelve
+📚 Context: – to form what we today know as penicillin. In 1940, penicillin became available for medicinal use to treat bacterial infections in humans. The field of modern biotechnology is generally thought of as...
+--------------------------------------------------------------------------------
+💬 Answer: was discovered in 1928 by Scottish scientist Alexander Fleming. Fleming was the first to discover the properties of the active substance, giving him the privilege of naming it: penicillin. He also kept, grew, and distributed the original mould for twelve years. The term "penicillin" was first used in the scientific literature in 1932. Herbert W. Boyer (Univ. Calif. at San Francisco) and Stanley N. Florey credited Rene Dubos with pioneering the approach to
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.034
+   Term Overlap: 0.034
+   Answer Type Match: False
+📊 Quality metrics:
+   Context relevance: 0.50 (1/2 key terms)
+   Answer length: 73 words
+   Context utilization: 0.63
+================================================================================
+
+================================================================================
+Question 8/10
+================================================================================
+❓ What is the main component of the sun?
+🎯 Ground Truth: Hydrogen (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  the Sun). In the process, he so streamlined the cumbersome mathematics of 18th-century orbital prediction that his work remains a cornerstone of astronomical computation. It introduced the Gaussian gravitational constant, and contained an influential treatment of the method of
+
+sun, but with a range of temperatures, masses and sizes. The existence of our galaxy, the Milky Way, as a separate group of stars was only proven in the 20th century, along with the existence of "external" galaxies, and soon after, the
+
+not related to the sun. The civil versions of the Julian and Gregorian calendars are solar, because their dates do not indicate the moon phase — however, both the Gregorian and Julian calendars include undated lunar calendars
+
+instead, energy is required as input for such processes. Fusion powers stars and produces virtually all elements in a process called nucleosynthesis. The Sun is a main-sequence star, and, as such, generates its energy by nuclear fusion of hydrogen nuclei
+
+converting 4 million tons of matter into energy every second as a result. This energy, which can take between 10,000 and 170,000 years to escape from its core, is the source of the Sun's light and heat.
+CONTEXl:  instead, energy is required as input for such processes. Fusion powers stars and produces virtually all elements in a process called nucleosynthesis. The Sun is a main-sequence star, and, as such, generates its energy by nuclear fusion of hydrogen nuclei
+
+converting 4 million tons of matter into energy every second as a result. This energy, which can take between 10,000 and 170,000 years to escape from its core, is the source of the Sun's light and heat.
+
+sun, but with a range of temperatures, masses and sizes. The existence of our galaxy, the Milky Way, as a separate group of stars was only proven in the 20th century, along with the existence of "external" galaxies, and soon after, the
+📚 Context: instead, energy is required as input for such processes. Fusion powers stars and produces virtually all elements in a process called nucleosynthesis. The Sun is a main-sequence star, and, as such, gen...
+--------------------------------------------------------------------------------
+💬 Answer: A. The civil versions of the Julian and Gregorian calendars are solar, because their dates do not indicate the moon phase — however, both the Gregorian and Julian calendars include undated lunar calendars as well. A. The existence of our galaxy, the Milky Way, as a separate group of stars was only proven in the 20th century, along with the existence of "external" galaxies, and soon after, the discovery of the Hubble Space Telescope. B. The Sun is a main
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: False
+📊 Quality metrics:
+   Context relevance: 0.33 (1/3 key terms)
+   Answer length: 80 words
+   Context utilization: 0.34
+================================================================================
+
+================================================================================
+Question 9/10
+================================================================================
+❓ Who invented the telephone?
+🎯 Ground Truth: Alexander Graham Bell (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  Alexander Graham Bell Alexander Graham Bell (March 3, 1847 – August 2, 1922) was a Scottish-born scientist, inventor, engineer, and innovator who is credited with inventing and patenting the first practical telephone. He also founded the American Telephone and Telegraph Company (AT&T) in 1885. Bell's father, grandfather, and brother had all been associated with work on
+
+telephone on the harmonic telegraph principle. The translation by Alexander J. Ellis was first published in 1875 (the first English edition was from the 1870 third German edition; Ellis's second English edition from the 1877 fourth German edition was published in 1885; the 1895 and 1912 third and fourth English editions were reprints of the second). Helmholtz studied the
+
+assets. Courts in the U.S. and Canada approved a negotiated settlement of bankruptcy proceedings in 2017. Alexander Graham Bell conceived the technical aspects of the telephone and invented it in July 1874, while residing with his parents at their farm in Tutela Heights,
+
+his grandchildren. "U.S. patent images in TIFF format" Alexander Graham Bell Alexander Graham Bell (March 3, 1847 – August 2, 1922) was a Scottish-born scientist, inventor, engineer, and innovator who is credited with inventing and patenting the first practical telephone. He also founded the American Telephone and Telegraph Company (AT&T) in 1885. Bell's father, grandfather,
+
+from time to time. Charles Bourseul, Antonio Meucci, Johann Philipp Reis, Alexander Graham Bell, and Elisha Gray, amongst others, have all been credited with the invention of the telephone. Alexander Graham Bell was the first to be awarded a patent for the electric telephone by
+CONTEXl:  from time to time. Charles Bourseul, Antonio Meucci, Johann Philipp Reis, Alexander Graham Bell, and Elisha Gray, amongst others, have all been credited with the invention of the telephone. Alexander Graham Bell was the first to be awarded a patent for the electric telephone by
+
+Alexander Graham Bell Alexander Graham Bell (March 3, 1847 – August 2, 1922) was a Scottish-born scientist, inventor, engineer, and innovator who is credited with inventing and patenting the first practical telephone. He also founded the American Telephone and Telegraph Company (AT&T) in 1885. Bell's father, grandfather, and brother had all been associated with work on
+
+his grandchildren. "U.S. patent images in TIFF format" Alexander Graham Bell Alexander Graham Bell (March 3, 1847 – August 2, 1922) was a Scottish-born scientist, inventor, engineer, and innovator who is credited with inventing and patenting the first practical telephone. He also founded the American Telephone and Telegraph Company (AT&T) in 1885. Bell's father, grandfather,
+📚 Context: from time to time. Charles Bourseul, Antonio Meucci, Johann Philipp Reis, Alexander Graham Bell, and Elisha Gray, amongst others, have all been credited with the invention of the telephone. Alexander ...
+--------------------------------------------------------------------------------
+💬 Answer: telephone on the harmonic telegraph principle. The translation by Alexander J. Ellis was first published in 1875 (the first English edition was from the 1870 third German edition; Ellis's second English edition from the 1877 fourth German edition was published in1885; the 1895 and 1912 third and fourth English editions were reprints of the second). Helmholtz studied the telephone from time to time. Charles Bourseul, Antonio Meucci, Johann Philipp Reis, Alexander Graham Bell,
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.038
+   Term Overlap: 0.039
+   Answer Type Match: False
+📊 Quality metrics:
+   Context relevance: 0.00 (0/2 key terms)
+   Answer length: 73 words
+   Context utilization: 0.33
+================================================================================
+
+================================================================================
+Question 10/10
+================================================================================
+❓ Who wrote 'Alice's Adventures in Wonderland'?
+🎯 Ground Truth: Lewis Carroll (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  Alice's Adventures in Wonderland Alice's Adventures in Wonderland (commonly shortened to Alice in Wonderland) is an 1865 novel written by English author Charles Lutwidge Dodgson under the pseudonym Lewis Carroll. It tells of a girl named Alice falling through a rabbit hole into a fantasy world populated by peculiar, anthropomorphic creatures. The tale plays with logic, giving
+
+first avid readers were Queen Victoria and the young Oscar Wilde. The book has never been out of print. "Alice's Adventures in Wonderland" has been translated into at least 97 languages, or as many as 174
+
+the generations to come until the language becomes obsolete". In 1865, Dodgson's tale was published as "Alice's Adventures in Wonderland" by "Lewis Carroll" with illustrations by John Tenniel. The first print run of 2,000 was held back because Tenniel objected to the print quality. A new edition, released in December of the same year, but carrying an 1866 date, was quickly
+
+Wonderland" by Lewis Carroll (Charles Lutwidge Dodgson). The Dodo is a caricature of the author. A popular but unsubstantiated belief is that Dodgson chose the particular animal to represent himself because of his stammer,
+
+the Kate Greenaway Medal in 2000, for her work; and DeLoss McGraw (2001), with his abstract illustrations. Alice (Alice's Adventures in Wonderland) Alice is a fictional character and protagonist of Lewis Carroll's children's novel "Alice's Adventures in Wonderland" (1865) and its sequel, "Through the Looking-Glass" (1871). A child in the mid-Victorian era, Alice unintentionally
+CONTEXl:  Alice's Adventures in Wonderland Alice's Adventures in Wonderland (commonly shortened to Alice in Wonderland) is an 1865 novel written by English author Charles Lutwidge Dodgson under the pseudonym Lewis Carroll. It tells of a girl named Alice falling through a rabbit hole into a fantasy world populated by peculiar, anthropomorphic creatures. The tale plays with logic, giving
+
+the Kate Greenaway Medal in 2000, for her work; and DeLoss McGraw (2001), with his abstract illustrations. Alice (Alice's Adventures in Wonderland) Alice is a fictional character and protagonist of Lewis Carroll's children's novel "Alice's Adventures in Wonderland" (1865) and its sequel, "Through the Looking-Glass" (1871). A child in the mid-Victorian era, Alice unintentionally
+
+Wonderland" by Lewis Carroll (Charles Lutwidge Dodgson). The Dodo is a caricature of the author. A popular but unsubstantiated belief is that Dodgson chose the particular animal to represent himself because of his stammer,
+📚 Context: Alice's Adventures in Wonderland Alice's Adventures in Wonderland (commonly shortened to Alice in Wonderland) is an 1865 novel written by English author Charles Lutwidge Dodgson under the pseudonym Le...
+--------------------------------------------------------------------------------
+💬 Answer: Wonderland" by Lewis Carroll (Charles Lutwidge Dodgson). The Dodo is a caricature of the author. Alice (Alice's Adventures in Wonderland) Alice is a fictional character and protagonist of Lewis Carroll's children's novel "Alice's adventures in Wonderland" (1865) and its sequel, "Through the Looking-Glass" ( 1871). A child in the mid-Victorian era, Alice unintentionally falls through a rabbit hole into a fantasy world populated by peculiar
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.043
+   Term Overlap: 0.043
+   Answer Type Match: False
+📊 Quality metrics:
+   Context relevance: 0.25 (1/4 key terms)
+   Answer length: 65 words
+   Context utilization: 0.66
+================================================================================
+
+✅ Generated 10 responses
+📊 Creating evaluation dataset...
+📊 Created evaluation dataset:
+   Questions: 10
+   Answers: 10
+   Contexts: 10
+   Ground truth: 10
+   Sample data:
+     Q1: Who painted the Mona Lisa?...
+     A1: Questions about the Mona Lisa Questions about the ...
+     C1: 3 contexts
+       Context sample: Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Rena...
+     GT1: Leonardo da Vinci...
+     Q2: Who was the first woman to win a Nobel Prize?...
+     A2: Mittag-Leffler, alerted Pierre to the situation, a...
+     C2: 3 contexts
+       Context sample: Bertha von Suttner Bertha Felicitas Sophie Freifrau von Suttner (Baroness Bertha von Suttner, , née ...
+     GT2: Marie Curie...
+🎯 Running RAGAS evaluation...
+2025-07-29 08:02:11,836 - INFO - Running RAGAS evaluation...
+🔍 RAGAS Dataset Info:
+   Dataset size: 10
+   Columns: ['question', 'answer', 'contexts', 'ground_truth']
+   Ground truth available: True
+   Sample data:
+     Q1: Who painted the Mona Lisa?...
+     A1: Questions about the Mona Lisa Questions about the ...
+     C1: 3 contexts
+     GT1: Leonardo da Vinci...
+     Q2: Who was the first woman to win a Nobel Prize?...
+     A2: Mittag-Leffler, alerted Pierre to the situation, a...
+     C2: 3 contexts
+     GT2: Marie Curie...
+   🚀 Running RAGAS evaluation...
+Evaluating:   0%|                                                                                                                                                                                       | 0/20 [00:00<?, ?it/s]2025-07-29 08:02:12,420 - ERROR - Exception raised in Job[15]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,420 - ERROR - Exception raised in Job[1]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+Evaluating:   5%|########7                                                                                                                                                                      | 1/20 [00:00<00:03,  6.25it/s]2025-07-29 08:02:12,428 - ERROR - Exception raised in Job[12]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,428 - ERROR - Exception raised in Job[0]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,435 - ERROR - Exception raised in Job[3]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,437 - ERROR - Exception raised in Job[7]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,437 - ERROR - Exception raised in Job[8]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,439 - ERROR - Exception raised in Job[9]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,446 - ERROR - Exception raised in Job[2]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,452 - ERROR - Exception raised in Job[10]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,454 - ERROR - Exception raised in Job[11]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,457 - ERROR - Exception raised in Job[14]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,463 - ERROR - Exception raised in Job[5]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,464 - ERROR - Exception raised in Job[13]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,466 - ERROR - Exception raised in Job[6]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,468 - ERROR - Exception raised in Job[4]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,524 - ERROR - Exception raised in Job[17]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+Evaluating:  85%|###################################################################################################################################################9                          | 17/20 [00:00<00:00, 77.75it/s]2025-07-29 08:02:12,530 - ERROR - Exception raised in Job[16]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,536 - ERROR - Exception raised in Job[18]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:12,541 - ERROR - Exception raised in Job[19]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+Evaluating: 100%|##############################################################################################################################################################################| 20/20 [00:00<00:00, 71.47it/s]
+   ✅ RAGAS evaluation completed successfully
+   Results: {'context_recall': nan, 'context_precision': nan}
+📈 Calculating enhanced metrics...
+
+📊 FINAL METRICS: {'context_recall': [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan], 'context_precision': [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan], 'error_rate': 0.0, 'avg_quality': np.float64(0.6180683372008666), 'avg_correctness': np.float64(0.76), 'avg_context_relevance': np.float64(0.6133333333333334), 'avg_context_coverage': np.float64(1.0), 'avg_context_length': np.float64(3.0), 'avg_answer_length': np.float64(453.9), 'avg_specificity': np.float64(0.7048255559772689), 'avg_context_utilization': np.float64(0.374676013415732), 'avg_coherence': np.float64(0.7522222222222222), 'total_responses': 10, 'successful_responses': 10, 'avg_accuracy': np.float64(0.022740079412502154), 'avg_semantic_similarity': np.float64(0.022740079412502154), 'avg_term_overlap': np.float64(0.022815494193799288), 'type_compatibility_rate': np.float64(0.0), 'exact_match_rate': 0.0, 'ground_truth_comparisons': 10}
+✅ [1/3] Completed successfully
+🔄 [2/3] Starting evaluation...
+============================================================
+🔍 EVALUATING: ORIGINAL QE + FINE-TUNED Generator (notebook config)
+============================================================
+
+🔍 EVALUATING: QE=ORIGINAL, Generator=FINETUNED, Retrieval=True
+================================================================================
+📦 Setting up RAG model...
+2025-07-29 08:02:12,625 - INFO - Setting up RAG model: QE=original, Generator=finetuned
+2025-07-29 08:02:12,625 - INFO - Loading ORIGINAL QE + FINE-TUNED Generator
+2025-07-29 08:02:12,627 - INFO - Creating fresh Feast RAG retriever...
+2025-07-29 08:02:12,643 - INFO - Using fine-tuned tokenizers
+2025-07-29 08:02:12,644 - INFO - Fresh Feast RAG retriever created successfully
+2025-07-29 08:02:14,109 - INFO - Loading original question encoder from: facebook/dpr-question_encoder-single-nq-base
+✅ RAG model ready
+
+🤖 Generating responses for 10 questions...
+
+================================================================================
+Question 1/10
+================================================================================
+❓ Who painted the Mona Lisa?
+🎯 Ground Truth: Leonardo da Vinci (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+Connecting to Milvus remotely at http://vectordb-milvus.milvus.svc.cluster.local:19530
+2025-07-29 08:02:15,871 - DEBUG - Created new connection using: db39b17e0d84402c855e7e1ee5c66ea3
+CONTEXl:  Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as "the best known, the most visited, the most written about, the most sung about, the most parodied work of art in the world". The "Mona Lisa" is also one of the most valuable paintings in the world. It holds the Guinness
+
+four other paintings as the "Mona Lisa" referred to by Vasari. Several other women have been proposed as the subject of the painting. Isabella of Aragon, Cecilia Gallerani, Costanza d'Avalos, Duchess of Francavilla, Isabella d'Este, Pacifica Brandano or Brandino,
+
+traditionally spelled "Mona" (as used by Vasari), is also commonly spelled in modern Italian as "Monna Lisa" ("" being a vulgarity in some Italian dialects) but this is rare in English. Vasari's account of the "Mona Lisa" comes from his biography of Leonardo published in 1550, 31 years after the artist's death. It has long been the best-known source of information on the
+
+Notes Bibliography Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as "the best
+
+the subtle modelling of forms, and the atmospheric illusionism were novel qualities that have contributed to the continuing fascination and study of the work. The title of the painting, which is known in English as "Mona Lisa", comes from a description by Renaissance art historian Giorgio Vasari, who wrote "Leonardo undertook to paint, for Francesco del Giocondo, the portrait
+CONTEXl:  Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as "the best known, the most visited, the most written about, the most sung about, the most parodied work of art in the world". The "Mona Lisa" is also one of the most valuable paintings in the world. It holds the Guinness
+
+traditionally spelled "Mona" (as used by Vasari), is also commonly spelled in modern Italian as "Monna Lisa" ("" being a vulgarity in some Italian dialects) but this is rare in English. Vasari's account of the "Mona Lisa" comes from his biography of Leonardo published in 1550, 31 years after the artist's death. It has long been the best-known source of information on the
+
+Notes Bibliography Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as "the best
+📚 Context: Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as "the best known, the most visited, the m...
+--------------------------------------------------------------------------------
+💬 Answer: a work of art by Leonardo da Vinci
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.375
+   Term Overlap: 0.375
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.33 (1/3 key terms)
+   Answer length: 8 words
+   Context utilization: 1.00
+================================================================================
+
+================================================================================
+Question 2/10
+================================================================================
+❓ Who was the first woman to win a Nobel Prize?
+🎯 Ground Truth: Marie Curie (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  Marie Curie Marie Skłodowska Curie (; ; ; born Maria Salomea Skłodowska; 7 November 18674 July 1934) was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and only woman to win twice, the only person to win a Nobel Prize in two different sciences, and was part
+
+named in her honor. Marie Curie Marie Skłodowska Curie (; ; ; born Maria Salomea Skłodowska; 7 November 18674 July 1934) was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and only woman to win twice, the only person to win a Nobel Prize in two different
+
+three women (1.4% of laureates) have won the Nobel Prize in Physics: Marie Curie in 1903, Maria Goeppert Mayer in 1963, and Donna Strickland in 2018. Alfred Nobel, in his last will and testament, stated that his
+
+Mittag-Leffler, alerted Pierre to the situation, and after his complaint, Marie's name was added to the nomination. Marie Curie was the first woman to be awarded a Nobel Prize. Curie and her husband declined to go to Stockholm to receive the prize in person; they were
+
+Bertha von Suttner Bertha Felicitas Sophie Freifrau von Suttner (Baroness Bertha von Suttner, , née Countess Kinsky, Gräfin Kinsky von Wchinitz und Tettau; 9 June 184321 June 1914) was an Austrian-Bohemian pacifist and novelist. In 1905 she became the second female Nobel laureate (after Marie Curie in 1903), the first woman to be awarded the Nobel Peace Prize, and the first
+CONTEXl:  Bertha von Suttner Bertha Felicitas Sophie Freifrau von Suttner (Baroness Bertha von Suttner, , née Countess Kinsky, Gräfin Kinsky von Wchinitz und Tettau; 9 June 184321 June 1914) was an Austrian-Bohemian pacifist and novelist. In 1905 she became the second female Nobel laureate (after Marie Curie in 1903), the first woman to be awarded the Nobel Peace Prize, and the first
+
+Marie Curie Marie Skłodowska Curie (; ; ; born Maria Salomea Skłodowska; 7 November 18674 July 1934) was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and only woman to win twice, the only person to win a Nobel Prize in two different sciences, and was part
+
+named in her honor. Marie Curie Marie Skłodowska Curie (; ; ; born Maria Salomea Skłodowska; 7 November 18674 July 1934) was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and only woman to win twice, the only person to win a Nobel Prize in two different
+📚 Context: Bertha von Suttner Bertha Felicitas Sophie Freifrau von Suttner (Baroness Bertha von Suttner, , née Countess Kinsky, Gräfin Kinsky von Wchinitz und Tettau; 9 June 184321 June 1914) was an Austrian-Boh...
+--------------------------------------------------------------------------------
+💬 Answer: a) Marie Curie
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.667
+   Term Overlap: 0.667
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.75 (3/4 key terms)
+   Answer length: 3 words
+   Context utilization: 0.67
+================================================================================
+
+================================================================================
+Question 3/10
+================================================================================
+❓ What is the capital of France?
+🎯 Ground Truth: Paris (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  located in northern central France, in a north-bending arc of the river Seine whose crest includes two islands, the Île Saint-Louis and the larger Île de la Cité, which form the oldest part of the city. The river's mouth on the English Channel ("La Manche") is about downstream from the city. The city is spread widely on both banks of the river. Overall, the city is relatively
+
+headquartered in Paris, the nation's financial capital. France's economy entered the recession of the late 2000s later and appeared to leave it earlier than most affected economies, only enduring four-quarters of contraction. However, France experienced stagnant growth between 2012
+
+is exclusively and reciprocally twinned only with: Paris has agreements of friendship and co-operation with: Paris Paris () is the capital and most populous city of France, with an area of and a population of 2,206,488. Since the 17th century, Paris has been one of Europe's major centres of finance, commerce, fashion, science, and the arts. The City of Paris is the centre and
+
+seat of government of the Île-de-France, or Paris Region, which has an estimated official 2018 population of 12,246,234, or 18.2 percent of the population of France. Besides this,the Paris metropolitan area had a population of 12,532,901
+
+and is an important administrative centre in the region. It is also the seat of one of the fifteen French ecclesiastical provinces and one of the two divisions of the French Army. In 2015 the city had a population of 116,676, in a
+CONTEXl:  and is an important administrative centre in the region. It is also the seat of one of the fifteen French ecclesiastical provinces and one of the two divisions of the French Army. In 2015 the city had a population of 116,676, in a
+
+is exclusively and reciprocally twinned only with: Paris has agreements of friendship and co-operation with: Paris Paris () is the capital and most populous city of France, with an area of and a population of 2,206,488. Since the 17th century, Paris has been one of Europe's major centres of finance, commerce, fashion, science, and the arts. The City of Paris is the centre and
+
+seat of government of the Île-de-France, or Paris Region, which has an estimated official 2018 population of 12,246,234, or 18.2 percent of the population of France. Besides this,the Paris metropolitan area had a population of 12,532,901
+📚 Context: and is an important administrative centre in the region. It is also the seat of one of the fifteen French ecclesiastical provinces and one of the two divisions of the French Army. In 2015 the city had...
+--------------------------------------------------------------------------------
+💬 Answer: Paris
+🎯 Accuracy Metrics:
+   Exact Match: True
+   Semantic Similarity: 1.000
+   Term Overlap: 1.000
+   Answer Type Match: True
+⚠️  WARNING: Answer seems irrelevant or too short!
+   Question was about: What is the capital of France?
+   Answer length: 5
+   Context length: 845
+📊 Quality metrics:
+   Context relevance: 0.50 (1/2 key terms)
+   Answer length: 1 words
+   Context utilization: 1.00
+================================================================================
+
+================================================================================
+Question 4/10
+================================================================================
+❓ When was the Declaration of Independence signed?
+🎯 Ground Truth: 1776 (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  continued throughout most of his presidency, being finished in 1809. Jefferson was the primary author of the Declaration of Independence. The document's social and political ideals were proposed by Jefferson before the inauguration of Washington. At age 33, he was one of the youngest delegates to the Second Continental Congress beginning in 1775 at the outbreak of the American
+
+independence until after Congress had made its decision. Political maneuvering was setting the stage for an official declaration of independence even while a document was being written to explain the decision. On June 11, 1776, Congress appointed a "Committee of Five" to draft a declaration, consisting of John Adams of Massachusetts, Benjamin Franklin of Pennsylvania, Thomas
+
+Declaration of Independence on August 2, 1776. Since his signature did not appear on the printed copy that was authenticated on January 17, 1777, it is assumed that he signed after that date, possibly
+
+Congress passed Adams's radical preamble, the Virginia Convention set the stage for a formal Congressional declaration of independence. On May 15, the Convention instructed Virginia's congressional delegation "to propose to that respectable body to declare the United Colonies free and independent States, absolved from all allegiance to, or dependence upon, the Crown or
+
+Declaration of Independence: Samuel Huntington, Roger Sherman, William Williams, and Oliver Wolcott. Connecticut's legislature authorized the outfitting of six new regiments in 1775, in the wake of the clashes between British regulars and Massachusetts militia at Lexington and Concord. There were some 1,200 Connecticut troops on hand
+CONTEXl:  Declaration of Independence on August 2, 1776. Since his signature did not appear on the printed copy that was authenticated on January 17, 1777, it is assumed that he signed after that date, possibly
+
+independence until after Congress had made its decision. Political maneuvering was setting the stage for an official declaration of independence even while a document was being written to explain the decision. On June 11, 1776, Congress appointed a "Committee of Five" to draft a declaration, consisting of John Adams of Massachusetts, Benjamin Franklin of Pennsylvania, Thomas
+
+Declaration of Independence: Samuel Huntington, Roger Sherman, William Williams, and Oliver Wolcott. Connecticut's legislature authorized the outfitting of six new regiments in 1775, in the wake of the clashes between British regulars and Massachusetts militia at Lexington and Concord. There were some 1,200 Connecticut troops on hand
+📚 Context: Declaration of Independence on August 2, 1776. Since his signature did not appear on the printed copy that was authenticated on January 17, 1777, it is assumed that he signed after that date, possibly
+--------------------------------------------------------------------------------
+💬 Answer: 19 August 1776
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.333
+   Term Overlap: 0.333
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.67 (2/3 key terms)
+   Answer length: 3 words
+   Context utilization: 0.33
+================================================================================
+
+================================================================================
+Question 5/10
+================================================================================
+❓ What is the capital city of Australia?
+🎯 Ground Truth: Canberra (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  seat of government, many federal government ministries have secondary seats in state capital cities, as do the Governor-General and the Prime Minister. The site of Canberra was selected for the location of the nation's capital in 1908 as
+
+Sydney, and north-east of Melbourne. A resident of Canberra is known as a Canberran. Although Canberra is the capital and seat of government, many federal government ministries have secondary seats in state capital cities, as do the Governor-General
+
+national capital, a compromise was reached: the new capital would be built in New South Wales, so long as it was at least from Sydney, with Melbourne to be the temporary seat of government (but not referred to as the "capital") while the new capital was built. Newspaper proprietor John Gale circulated a pamphlet titled 'Dalgety or Canberra: Which?' advocating Canberra to every
+
+the proposed new federal capital of Canberra (Melbourne was the seat of government from 1901 to 1927). The FCT was renamed the Australian Capital Territory (ACT) in 1938. The Northern Territory was transferred from the control of the South Australian government to the Commonwealth in 1911. Australia was deeply affected by the Great Depression of the 1930s, particularly due to
+
+Australia's capital city; the newly created city of Canberra ultimately filled this role. Six Australian Prime Ministers have been born in Sydney, more than any other city, including first Prime Minister Edmund Barton and Malcolm Turnbull. Education became a proper focus
+CONTEXl:  the proposed new federal capital of Canberra (Melbourne was the seat of government from 1901 to 1927). The FCT was renamed the Australian Capital Territory (ACT) in 1938. The Northern Territory was transferred from the control of the South Australian government to the Commonwealth in 1911. Australia was deeply affected by the Great Depression of the 1930s, particularly due to
+
+Sydney, and north-east of Melbourne. A resident of Canberra is known as a Canberran. Although Canberra is the capital and seat of government, many federal government ministries have secondary seats in state capital cities, as do the Governor-General
+
+Australia's capital city; the newly created city of Canberra ultimately filled this role. Six Australian Prime Ministers have been born in Sydney, more than any other city, including first Prime Minister Edmund Barton and Malcolm Turnbull. Education became a proper focus
+📚 Context: the proposed new federal capital of Canberra (Melbourne was the seat of government from 1901 to 1927). The FCT was renamed the Australian Capital Territory (ACT) in 1938. The Northern Territory was tr...
+--------------------------------------------------------------------------------
+💬 Answer: the capital city of Australia
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.67 (2/3 key terms)
+   Answer length: 5 words
+   Context utilization: 1.00
+================================================================================
+
+================================================================================
+Question 6/10
+================================================================================
+❓ Who wrote Romeo and Juliet?
+🎯 Ground Truth: William Shakespeare (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  Pyramus and Thisbe, the mistaken belief in one lover's death leads to consecutive suicides. The earliest version of Romeo and Juliet was published in 1476 by Masuccio Salernitano, while it mostly obtained its present form when written down in 1524 by Luigi da Porto. Salernitano and Da Porto both are thought to have been inspired by Ovid and Boccaccio's writing. Shakespeare's
+
+Romeo and Juliet"" The film's love theme was widely disseminated, notably in "Our Tune", a segment of the British Broadcasting Corporation (BBC)'s disc jockey Simon Bates's radio show. In addition, various versions of the theme have been recorded and released, including a highly successful one by Henry Mancini, whose instrumental rendition was a Number One success in the United
+
+Romeo and Juliet Romeo and Juliet is a tragedy written by William Shakespeare early in his career about two young star-crossed lovers whose deaths ultimately reconcile their feuding families. It was among Shakespeare's most popular plays during his lifetime and along with "Hamlet", is one of his most frequently performed plays. Today, the title characters are regarded as
+
+She introduced changes to the story, notably that of presenting the two families as multiracial. At least 24 operas have been based on Romeo and Juliet. The earliest, "Romeo und Julie" in 1776, a Singspiel by Georg Benda, omits much of the action of the play and most of its characters and has a happy ending. It is occasionally revived. The best-known is Gounod's 1867 "Roméo et
+
+with two tragedies: "Romeo and Juliet", the famous romantic tragedy of sexually charged adolescence, love, and death; and "Julius Caesar"—based on Sir Thomas North's 1579 translation of Plutarch's "Parallel Lives"—which introduced a new kind of drama. According to
+CONTEXl:  Pyramus and Thisbe, the mistaken belief in one lover's death leads to consecutive suicides. The earliest version of Romeo and Juliet was published in 1476 by Masuccio Salernitano, while it mostly obtained its present form when written down in 1524 by Luigi da Porto. Salernitano and Da Porto both are thought to have been inspired by Ovid and Boccaccio's writing. Shakespeare's
+
+Romeo and Juliet"" The film's love theme was widely disseminated, notably in "Our Tune", a segment of the British Broadcasting Corporation (BBC)'s disc jockey Simon Bates's radio show. In addition, various versions of the theme have been recorded and released, including a highly successful one by Henry Mancini, whose instrumental rendition was a Number One success in the United
+
+Romeo and Juliet Romeo and Juliet is a tragedy written by William Shakespeare early in his career about two young star-crossed lovers whose deaths ultimately reconcile their feuding families. It was among Shakespeare's most popular plays during his lifetime and along with "Hamlet", is one of his most frequently performed plays. Today, the title characters are regarded as
+📚 Context: Pyramus and Thisbe, the mistaken belief in one lover's death leads to consecutive suicides. The earliest version of Romeo and Juliet was published in 1476 by Masuccio Salernitano, while it mostly obta...
+--------------------------------------------------------------------------------
+💬 Answer: Romeo and Juliet
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.33 (1/3 key terms)
+   Answer length: 3 words
+   Context utilization: 1.00
+================================================================================
+
+================================================================================
+Question 7/10
+================================================================================
+❓ Who discovered penicillin?
+🎯 Ground Truth: Alexander Fleming (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  – to form what we today know as penicillin. In 1940, penicillin became available for medicinal use to treat bacterial infections in humans. The field of modern biotechnology is generally thought of as having been born in 1971 when Paul Berg's (Stanford) experiments in gene splicing had early success. Herbert W. Boyer (Univ. Calif. at San Francisco) and Stanley N. Cohen
+
+penicillin led to renewed interest in the search for antibiotic compounds with similar efficacy and safety. For their successful development of penicillin, which Fleming had accidentally discovered but could not develop himself, as a therapeutic drug, Chain and Florey shared the 1945 Nobel Prize in Medicine with Fleming. Florey credited Rene Dubos with pioneering the approach
+
+transforming the laboratory curiosity into a practical drug. Fleming was the first to discover the properties of the active substance, giving him the privilege of naming it: penicillin. He also kept, grew, and distributed the original mould for twelve
+
+was discovered in 1928 by Scottish scientist Alexander Fleming. People began using it to treat infections in 1942. There are several enhanced penicillin families which are effective against additional bacteria; these include the antistaphylococcal penicillins, aminopenicillins and the antipseudomonal penicillins. They are derived from "Penicillium" fungi. The term "penicillin"
+
+patented penicillin, having been advised by Sir Henry Dale that doing so would be unethical. Penicillin is actively excreted, and about 80% of a penicillin dose is cleared from the body within three to four hours of administration. Indeed, during the early penicillin era,
+CONTEXl:  – to form what we today know as penicillin. In 1940, penicillin became available for medicinal use to treat bacterial infections in humans. The field of modern biotechnology is generally thought of as having been born in 1971 when Paul Berg's (Stanford) experiments in gene splicing had early success. Herbert W. Boyer (Univ. Calif. at San Francisco) and Stanley N. Cohen
+
+penicillin led to renewed interest in the search for antibiotic compounds with similar efficacy and safety. For their successful development of penicillin, which Fleming had accidentally discovered but could not develop himself, as a therapeutic drug, Chain and Florey shared the 1945 Nobel Prize in Medicine with Fleming. Florey credited Rene Dubos with pioneering the approach
+
+transforming the laboratory curiosity into a practical drug. Fleming was the first to discover the properties of the active substance, giving him the privilege of naming it: penicillin. He also kept, grew, and distributed the original mould for twelve
+📚 Context: – to form what we today know as penicillin. In 1940, penicillin became available for medicinal use to treat bacterial infections in humans. The field of modern biotechnology is generally thought of as...
+--------------------------------------------------------------------------------
+💬 Answer: the discovery of penicillin
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.50 (1/2 key terms)
+   Answer length: 4 words
+   Context utilization: 0.75
+================================================================================
+
+================================================================================
+Question 8/10
+================================================================================
+❓ What is the main component of the sun?
+🎯 Ground Truth: Hydrogen (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  the Sun). In the process, he so streamlined the cumbersome mathematics of 18th-century orbital prediction that his work remains a cornerstone of astronomical computation. It introduced the Gaussian gravitational constant, and contained an influential treatment of the method of
+
+sun, but with a range of temperatures, masses and sizes. The existence of our galaxy, the Milky Way, as a separate group of stars was only proven in the 20th century, along with the existence of "external" galaxies, and soon after, the
+
+not related to the sun. The civil versions of the Julian and Gregorian calendars are solar, because their dates do not indicate the moon phase — however, both the Gregorian and Julian calendars include undated lunar calendars
+
+instead, energy is required as input for such processes. Fusion powers stars and produces virtually all elements in a process called nucleosynthesis. The Sun is a main-sequence star, and, as such, generates its energy by nuclear fusion of hydrogen nuclei
+
+converting 4 million tons of matter into energy every second as a result. This energy, which can take between 10,000 and 170,000 years to escape from its core, is the source of the Sun's light and heat.
+CONTEXl:  instead, energy is required as input for such processes. Fusion powers stars and produces virtually all elements in a process called nucleosynthesis. The Sun is a main-sequence star, and, as such, generates its energy by nuclear fusion of hydrogen nuclei
+
+converting 4 million tons of matter into energy every second as a result. This energy, which can take between 10,000 and 170,000 years to escape from its core, is the source of the Sun's light and heat.
+
+sun, but with a range of temperatures, masses and sizes. The existence of our galaxy, the Milky Way, as a separate group of stars was only proven in the 20th century, along with the existence of "external" galaxies, and soon after, the
+📚 Context: instead, energy is required as input for such processes. Fusion powers stars and produces virtually all elements in a process called nucleosynthesis. The Sun is a main-sequence star, and, as such, gen...
+--------------------------------------------------------------------------------
+💬 Answer: the main component of the sun
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.33 (1/3 key terms)
+   Answer length: 6 words
+   Context utilization: 0.50
+================================================================================
+
+================================================================================
+Question 9/10
+================================================================================
+❓ Who invented the telephone?
+🎯 Ground Truth: Alexander Graham Bell (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  Alexander Graham Bell Alexander Graham Bell (March 3, 1847 – August 2, 1922) was a Scottish-born scientist, inventor, engineer, and innovator who is credited with inventing and patenting the first practical telephone. He also founded the American Telephone and Telegraph Company (AT&T) in 1885. Bell's father, grandfather, and brother had all been associated with work on
+
+telephone on the harmonic telegraph principle. The translation by Alexander J. Ellis was first published in 1875 (the first English edition was from the 1870 third German edition; Ellis's second English edition from the 1877 fourth German edition was published in 1885; the 1895 and 1912 third and fourth English editions were reprints of the second). Helmholtz studied the
+
+assets. Courts in the U.S. and Canada approved a negotiated settlement of bankruptcy proceedings in 2017. Alexander Graham Bell conceived the technical aspects of the telephone and invented it in July 1874, while residing with his parents at their farm in Tutela Heights,
+
+his grandchildren. "U.S. patent images in TIFF format" Alexander Graham Bell Alexander Graham Bell (March 3, 1847 – August 2, 1922) was a Scottish-born scientist, inventor, engineer, and innovator who is credited with inventing and patenting the first practical telephone. He also founded the American Telephone and Telegraph Company (AT&T) in 1885. Bell's father, grandfather,
+
+from time to time. Charles Bourseul, Antonio Meucci, Johann Philipp Reis, Alexander Graham Bell, and Elisha Gray, amongst others, have all been credited with the invention of the telephone. Alexander Graham Bell was the first to be awarded a patent for the electric telephone by
+CONTEXl:  from time to time. Charles Bourseul, Antonio Meucci, Johann Philipp Reis, Alexander Graham Bell, and Elisha Gray, amongst others, have all been credited with the invention of the telephone. Alexander Graham Bell was the first to be awarded a patent for the electric telephone by
+
+Alexander Graham Bell Alexander Graham Bell (March 3, 1847 – August 2, 1922) was a Scottish-born scientist, inventor, engineer, and innovator who is credited with inventing and patenting the first practical telephone. He also founded the American Telephone and Telegraph Company (AT&T) in 1885. Bell's father, grandfather, and brother had all been associated with work on
+
+his grandchildren. "U.S. patent images in TIFF format" Alexander Graham Bell Alexander Graham Bell (March 3, 1847 – August 2, 1922) was a Scottish-born scientist, inventor, engineer, and innovator who is credited with inventing and patenting the first practical telephone. He also founded the American Telephone and Telegraph Company (AT&T) in 1885. Bell's father, grandfather,
+📚 Context: from time to time. Charles Bourseul, Antonio Meucci, Johann Philipp Reis, Alexander Graham Bell, and Elisha Gray, amongst others, have all been credited with the invention of the telephone. Alexander ...
+--------------------------------------------------------------------------------
+💬 Answer: first practical telephone
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.00 (0/2 key terms)
+   Answer length: 3 words
+   Context utilization: 1.00
+================================================================================
+
+================================================================================
+Question 10/10
+================================================================================
+❓ Who wrote 'Alice's Adventures in Wonderland'?
+🎯 Ground Truth: Lewis Carroll (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  Alice's Adventures in Wonderland Alice's Adventures in Wonderland (commonly shortened to Alice in Wonderland) is an 1865 novel written by English author Charles Lutwidge Dodgson under the pseudonym Lewis Carroll. It tells of a girl named Alice falling through a rabbit hole into a fantasy world populated by peculiar, anthropomorphic creatures. The tale plays with logic, giving
+
+first avid readers were Queen Victoria and the young Oscar Wilde. The book has never been out of print. "Alice's Adventures in Wonderland" has been translated into at least 97 languages, or as many as 174
+
+the generations to come until the language becomes obsolete". In 1865, Dodgson's tale was published as "Alice's Adventures in Wonderland" by "Lewis Carroll" with illustrations by John Tenniel. The first print run of 2,000 was held back because Tenniel objected to the print quality. A new edition, released in December of the same year, but carrying an 1866 date, was quickly
+
+Wonderland" by Lewis Carroll (Charles Lutwidge Dodgson). The Dodo is a caricature of the author. A popular but unsubstantiated belief is that Dodgson chose the particular animal to represent himself because of his stammer,
+
+the Kate Greenaway Medal in 2000, for her work; and DeLoss McGraw (2001), with his abstract illustrations. Alice (Alice's Adventures in Wonderland) Alice is a fictional character and protagonist of Lewis Carroll's children's novel "Alice's Adventures in Wonderland" (1865) and its sequel, "Through the Looking-Glass" (1871). A child in the mid-Victorian era, Alice unintentionally
+CONTEXl:  Alice's Adventures in Wonderland Alice's Adventures in Wonderland (commonly shortened to Alice in Wonderland) is an 1865 novel written by English author Charles Lutwidge Dodgson under the pseudonym Lewis Carroll. It tells of a girl named Alice falling through a rabbit hole into a fantasy world populated by peculiar, anthropomorphic creatures. The tale plays with logic, giving
+
+the Kate Greenaway Medal in 2000, for her work; and DeLoss McGraw (2001), with his abstract illustrations. Alice (Alice's Adventures in Wonderland) Alice is a fictional character and protagonist of Lewis Carroll's children's novel "Alice's Adventures in Wonderland" (1865) and its sequel, "Through the Looking-Glass" (1871). A child in the mid-Victorian era, Alice unintentionally
+
+Wonderland" by Lewis Carroll (Charles Lutwidge Dodgson). The Dodo is a caricature of the author. A popular but unsubstantiated belief is that Dodgson chose the particular animal to represent himself because of his stammer,
+📚 Context: Alice's Adventures in Wonderland Alice's Adventures in Wonderland (commonly shortened to Alice in Wonderland) is an 1865 novel written by English author Charles Lutwidge Dodgson under the pseudonym Le...
+--------------------------------------------------------------------------------
+💬 Answer: English language
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.25 (1/4 key terms)
+   Answer length: 2 words
+   Context utilization: 0.50
+================================================================================
+
+✅ Generated 10 responses
+📊 Creating evaluation dataset...
+📊 Created evaluation dataset:
+   Questions: 10
+   Answers: 10
+   Contexts: 10
+   Ground truth: 10
+   Sample data:
+     Q1: Who painted the Mona Lisa?...
+     A1: a work of art by Leonardo da Vinci...
+     C1: 3 contexts
+       Context sample: Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Rena...
+     GT1: Leonardo da Vinci...
+     Q2: Who was the first woman to win a Nobel Prize?...
+     A2: a) Marie Curie...
+     C2: 3 contexts
+       Context sample: Bertha von Suttner Bertha Felicitas Sophie Freifrau von Suttner (Baroness Bertha von Suttner, , née ...
+     GT2: Marie Curie...
+🎯 Running RAGAS evaluation...
+2025-07-29 08:02:20,821 - INFO - Running RAGAS evaluation...
+🔍 RAGAS Dataset Info:
+   Dataset size: 10
+   Columns: ['question', 'answer', 'contexts', 'ground_truth']
+   Ground truth available: True
+   Sample data:
+     Q1: Who painted the Mona Lisa?...
+     A1: a work of art by Leonardo da Vinci...
+     C1: 3 contexts
+     GT1: Leonardo da Vinci...
+     Q2: Who was the first woman to win a Nobel Prize?...
+     A2: a) Marie Curie...
+     C2: 3 contexts
+     GT2: Marie Curie...
+   🚀 Running RAGAS evaluation...
+Evaluating:   0%|                                                                                                                                                                                       | 0/20 [00:00<?, ?it/s]2025-07-29 08:02:21,059 - ERROR - Exception raised in Job[4]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+Evaluating:   5%|########7                                                                                                                                                                      | 1/20 [00:00<00:02,  6.93it/s]2025-07-29 08:02:21,073 - ERROR - Exception raised in Job[2]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,077 - ERROR - Exception raised in Job[1]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,083 - ERROR - Exception raised in Job[6]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,087 - ERROR - Exception raised in Job[8]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,087 - ERROR - Exception raised in Job[7]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,091 - ERROR - Exception raised in Job[9]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,094 - ERROR - Exception raised in Job[10]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,094 - ERROR - Exception raised in Job[13]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,095 - ERROR - Exception raised in Job[12]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,100 - ERROR - Exception raised in Job[15]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,101 - ERROR - Exception raised in Job[0]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,101 - ERROR - Exception raised in Job[14]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,101 - ERROR - Exception raised in Job[11]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,109 - ERROR - Exception raised in Job[3]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,111 - ERROR - Exception raised in Job[5]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,137 - ERROR - Exception raised in Job[18]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,157 - ERROR - Exception raised in Job[16]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:21,167 - ERROR - Exception raised in Job[17]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+Evaluating:  95%|#####################################################################################################################################################################2        | 19/20 [00:00<00:00, 90.10it/s]2025-07-29 08:02:21,175 - ERROR - Exception raised in Job[19]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+Evaluating: 100%|##############################################################################################################################################################################| 20/20 [00:00<00:00, 77.22it/s]
+   ✅ RAGAS evaluation completed successfully
+   Results: {'context_recall': nan, 'context_precision': nan}
+📈 Calculating enhanced metrics...
+
+📊 FINAL METRICS: {'context_recall': [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan], 'context_precision': [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan], 'error_rate': 0.0, 'avg_quality': np.float64(0.4838333333333333), 'avg_correctness': np.float64(0.61), 'avg_context_relevance': np.float64(0.6133333333333334), 'avg_context_coverage': np.float64(1.0), 'avg_context_length': np.float64(3.0), 'avg_answer_length': np.float64(20.9), 'avg_specificity': np.float64(0.9833333333333334), 'avg_context_utilization': np.float64(0.03287032921087062), 'avg_coherence': np.float64(0.29999999999999993), 'total_responses': 10, 'successful_responses': 10, 'avg_accuracy': np.float64(0.2375), 'avg_semantic_similarity': np.float64(0.2375), 'avg_term_overlap': np.float64(0.2375), 'type_compatibility_rate': np.float64(1.0), 'exact_match_rate': 0.1, 'ground_truth_comparisons': 10}
+✅ [2/3] Completed successfully
+🔄 [3/3] Starting evaluation...
+============================================================
+🔍 EVALUATING: FINE-TUNED QE + FINE-TUNED Generator
+============================================================
+
+🔍 EVALUATING: QE=FINETUNED, Generator=FINETUNED, Retrieval=True
+================================================================================
+📦 Setting up RAG model...
+2025-07-29 08:02:21,252 - INFO - Setting up RAG model: QE=finetuned, Generator=finetuned
+2025-07-29 08:02:21,252 - INFO - Loading FINE-TUNED QE + FINE-TUNED Generator
+2025-07-29 08:02:21,254 - INFO - Creating fresh Feast RAG retriever...
+2025-07-29 08:02:21,270 - INFO - Using fine-tuned tokenizers
+2025-07-29 08:02:21,272 - INFO - Fresh Feast RAG retriever created successfully
+✅ RAG model ready
+
+🤖 Generating responses for 10 questions...
+
+================================================================================
+Question 1/10
+================================================================================
+❓ Who painted the Mona Lisa?
+🎯 Ground Truth: Leonardo da Vinci (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+Connecting to Milvus remotely at http://vectordb-milvus.milvus.svc.cluster.local:19530
+2025-07-29 08:02:22,656 - DEBUG - Created new connection using: c51e6a66be0048d0be3f66d6f4c0e92e
+CONTEXl:  in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+
+on a career as a theatre producer, and Dalma was seeking an acting career; she had expressed her desire to attend the Actor's Studio in Los Angeles. Maradona's relationship with his immediate family was a close one, and in a 1990 interview with "Sports Illustrated" he showed phone bills where he had spent a minimum of 15,000 US dollars per month calling his parents and
+
+Additionally, one
+
+long-established
+
+in 1988), which now
+CONTEXl:  in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+
+long-established
+
+Additionally, one
+📚 Context: in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, a...
+--------------------------------------------------------------------------------
+💬 Answer: in 1988), which now airs on the Sci-Fi Channel
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.00 (0/3 key terms)
+   Answer length: 9 words
+   Context utilization: 0.33
+================================================================================
+
+================================================================================
+Question 2/10
+================================================================================
+❓ Who was the first woman to win a Nobel Prize?
+🎯 Ground Truth: Marie Curie (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  Additionally, one
+
+in 1988), which now
+
+leads to a catastrophic shutdown of the park's power facilities and security precautions, a small group of visitors, and Hammond's grandchildren, struggle to survive and escape the perilous island. Before Crichton's novel was published, four studios put in bids for its film rights. With the backing of Universal Studios, Spielberg acquired the rights for $1.5 million before its
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+
+on a career as a theatre producer, and Dalma was seeking an acting career; she had expressed her desire to attend the Actor's Studio in Los Angeles. Maradona's relationship with his immediate family was a close one, and in a 1990 interview with "Sports Illustrated" he showed phone bills where he had spent a minimum of 15,000 US dollars per month calling his parents and
+CONTEXl:  Additionally, one
+
+on a career as a theatre producer, and Dalma was seeking an acting career; she had expressed her desire to attend the Actor's Studio in Los Angeles. Maradona's relationship with his immediate family was a close one, and in a 1990 interview with "Sports Illustrated" he showed phone bills where he had spent a minimum of 15,000 US dollars per month calling his parents and
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+📚 Context: Additionally, one
+--------------------------------------------------------------------------------
+💬 Answer: in 1988), which now
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.00 (0/4 key terms)
+   Answer length: 4 words
+   Context utilization: 0.50
+================================================================================
+
+================================================================================
+Question 3/10
+================================================================================
+❓ What is the capital of France?
+🎯 Ground Truth: Paris (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  in 1988), which now
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+
+Additionally, one
+
+leads to a catastrophic shutdown of the park's power facilities and security precautions, a small group of visitors, and Hammond's grandchildren, struggle to survive and escape the perilous island. Before Crichton's novel was published, four studios put in bids for its film rights. With the backing of Universal Studios, Spielberg acquired the rights for $1.5 million before its
+
+long-established
+CONTEXl:  in 1988), which now
+
+long-established
+
+Additionally, one
+📚 Context: in 1988), which now
+--------------------------------------------------------------------------------
+💬 Answer: Paris, France
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.00 (0/2 key terms)
+   Answer length: 2 words
+   Context utilization: 0.00
+================================================================================
+
+================================================================================
+Question 4/10
+================================================================================
+❓ When was the Declaration of Independence signed?
+🎯 Ground Truth: 1776 (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  in 1988), which now
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+
+long-established
+
+(D.C. Cir. 1989). Every year, between at least 1994 and 2006, the United Nations General Assembly scheduled a declaration from the Organization of African Unity about the incident, but systematically deferred the discussion year after year until formally putting it aside (along with several other issues which had been similarly rescheduled for years) in 2005. On the first
+
+Additionally, one
+CONTEXl:  Additionally, one
+
+in 1988), which now
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+📚 Context: Additionally, one
+--------------------------------------------------------------------------------
+💬 Answer: in the TV series. On the first episode of the fourth season, "The New Generation"
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: False
+📊 Quality metrics:
+   Context relevance: 0.00 (0/3 key terms)
+   Answer length: 15 words
+   Context utilization: 0.53
+================================================================================
+
+================================================================================
+Question 5/10
+================================================================================
+❓ What is the capital city of Australia?
+🎯 Ground Truth: Canberra (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  Additionally, one
+
+leads to a catastrophic shutdown of the park's power facilities and security precautions, a small group of visitors, and Hammond's grandchildren, struggle to survive and escape the perilous island. Before Crichton's novel was published, four studios put in bids for its film rights. With the backing of Universal Studios, Spielberg acquired the rights for $1.5 million before its
+
+in 1988), which now
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+
+its use. The Low-Energy Charged Particle Instrument is currently operational, and data from this instrument concerning charged particles is being transmitted to Earth. This data permits measurements of the heliosheath and termination shock. There has also been a modification to the on-board flight software to delay turning off the AP Branch 2 backup heater for one year. It was
+CONTEXl:  Additionally, one
+
+leads to a catastrophic shutdown of the park's power facilities and security precautions, a small group of visitors, and Hammond's grandchildren, struggle to survive and escape the perilous island. Before Crichton's novel was published, four studios put in bids for its film rights. With the backing of Universal Studios, Spielberg acquired the rights for $1.5 million before its
+
+in 1988), which now
+📚 Context: Additionally, one
+--------------------------------------------------------------------------------
+💬 Answer: in the TV series. The Low-Energy Charged Particle Instrument is currently operational, and data from this instrument concerning charged particles is being transmitted to Earth. This data permits measurements of the heliosheath and termination shock. There has also been a modification to the on-board flight software to delay turning off the AP Branch 2 backup heater for one year.
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: False
+📊 Quality metrics:
+   Context relevance: 0.00 (0/3 key terms)
+   Answer length: 59 words
+   Context utilization: 0.14
+================================================================================
+
+================================================================================
+Question 6/10
+================================================================================
+❓ Who wrote Romeo and Juliet?
+🎯 Ground Truth: William Shakespeare (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  Additionally, one
+
+The film was also nominated for the Hugo Award for Best Dramatic Presentation, but lost to "Star Wars". The adaptation has been called "execrable" and confusing for those not already familiar with the plot. A children's opera was written and premiered in 2004. Composer and librettist Dean Burry was commissioned by the Canadian Children's Opera Chorus, who produced the premiere
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+
+leads to a catastrophic shutdown of the park's power facilities and security precautions, a small group of visitors, and Hammond's grandchildren, struggle to survive and escape the perilous island. Before Crichton's novel was published, four studios put in bids for its film rights. With the backing of Universal Studios, Spielberg acquired the rights for $1.5 million before its
+
+Academy Awards, O’Toole was nominated for the Academy Award for Best Actor, and he won the Golden Globe Award for Best Actor in a Musical or Comedy. In 1984 it was adapted as a television serial by the BBC. It starred Roy Marsden and Jill Meager and ran for six half-hour episodes. Many scenes were filmed at Repton School, Derbyshire, in an effort to remain faithful to the
+CONTEXl:  Additionally, one
+
+Academy Awards, O’Toole was nominated for the Academy Award for Best Actor, and he won the Golden Globe Award for Best Actor in a Musical or Comedy. In 1984 it was adapted as a television serial by the BBC. It starred Roy Marsden and Jill Meager and ran for six half-hour episodes. Many scenes were filmed at Repton School, Derbyshire, in an effort to remain faithful to the
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+📚 Context: Additionally, one
+--------------------------------------------------------------------------------
+💬 Answer: at the end of the film
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.00 (0/3 key terms)
+   Answer length: 6 words
+   Context utilization: 0.67
+================================================================================
+
+================================================================================
+Question 7/10
+================================================================================
+❓ Who discovered penicillin?
+🎯 Ground Truth: Alexander Fleming (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  American King–Crane Commission of Enquiry consultation of the local population – from which the British had withdrawn – were suppressed for three years until the report was leaked in 1922. Subsequent British governments have acknowledged this deficiency, in particular the 1939 committee
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+
+Additionally, one
+
+long-established
+
+in 1988), which now
+CONTEXl:  in 1988), which now
+
+American King–Crane Commission of Enquiry consultation of the local population – from which the British had withdrawn – were suppressed for three years until the report was leaked in 1922. Subsequent British governments have acknowledged this deficiency, in particular the 1939 committee
+
+Additionally, one
+📚 Context: in 1988), which now
+--------------------------------------------------------------------------------
+💬 Answer: in 1988), which now
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.00 (0/2 key terms)
+   Answer length: 4 words
+   Context utilization: 1.00
+================================================================================
+
+================================================================================
+Question 8/10
+================================================================================
+❓ What is the main component of the sun?
+🎯 Ground Truth: Hydrogen (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  its use. The Low-Energy Charged Particle Instrument is currently operational, and data from this instrument concerning charged particles is being transmitted to Earth. This data permits measurements of the heliosheath and termination shock. There has also been a modification to the on-board flight software to delay turning off the AP Branch 2 backup heater for one year. It was
+
+not strictly
+
+preparing modifications to the fourth season in order to allow for both eventualities. Straczynski identified three primary narrative threads which would require resolution: the Shadow war, Earth's slide into a dictatorship, and a series of
+
+Additionally, one
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+CONTEXl:  Additionally, one
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+
+its use. The Low-Energy Charged Particle Instrument is currently operational, and data from this instrument concerning charged particles is being transmitted to Earth. This data permits measurements of the heliosheath and termination shock. There has also been a modification to the on-board flight software to delay turning off the AP Branch 2 backup heater for one year. It was
+📚 Context: Additionally, one
+--------------------------------------------------------------------------------
+💬 Answer: automated solar wind
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.00 (0/3 key terms)
+   Answer length: 3 words
+   Context utilization: 0.00
+================================================================================
+
+================================================================================
+Question 9/10
+================================================================================
+❓ Who invented the telephone?
+🎯 Ground Truth: Alexander Graham Bell (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  in 1988), which now
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+
+Additionally, one
+
+not strictly
+
+long-established
+CONTEXl:  in 1988), which now
+
+long-established
+
+Additionally, one
+📚 Context: in 1988), which now
+--------------------------------------------------------------------------------
+💬 Answer: in 1988), which now
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.00 (0/2 key terms)
+   Answer length: 4 words
+   Context utilization: 1.00
+================================================================================
+
+================================================================================
+Question 10/10
+================================================================================
+❓ Who wrote 'Alice's Adventures in Wonderland'?
+🎯 Ground Truth: Lewis Carroll (Type: short_text, Confidence: 1.00)
+--------------------------------------------------------------------------------
+CONTEXl:  Additionally, one
+
+on a career as a theatre producer, and Dalma was seeking an acting career; she had expressed her desire to attend the Actor's Studio in Los Angeles. Maradona's relationship with his immediate family was a close one, and in a 1990 interview with "Sports Illustrated" he showed phone bills where he had spent a minimum of 15,000 US dollars per month calling his parents and
+
+in 1988), which now
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+
+Academy Awards, O’Toole was nominated for the Academy Award for Best Actor, and he won the Golden Globe Award for Best Actor in a Musical or Comedy. In 1984 it was adapted as a television serial by the BBC. It starred Roy Marsden and Jill Meager and ran for six half-hour episodes. Many scenes were filmed at Repton School, Derbyshire, in an effort to remain faithful to the
+CONTEXl:  Additionally, one
+
+in 1988), which now
+
+in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", which would have picked up where "The New Generation" and end of "Robotech: The Sentinels" left off, and eventually created a circular storyline that would
+📚 Context: Additionally, one
+--------------------------------------------------------------------------------
+💬 Answer: at the 1988 Academy Awards
+🎯 Accuracy Metrics:
+   Exact Match: False
+   Semantic Similarity: 0.000
+   Term Overlap: 0.000
+   Answer Type Match: True
+📊 Quality metrics:
+   Context relevance: 0.00 (0/4 key terms)
+   Answer length: 5 words
+   Context utilization: 0.20
+================================================================================
+
+✅ Generated 10 responses
+📊 Creating evaluation dataset...
+📊 Created evaluation dataset:
+   Questions: 10
+   Answers: 10
+   Contexts: 10
+   Ground truth: 10
+   Sample data:
+     Q1: Who painted the Mona Lisa?...
+     A1: in 1988), which now airs on the Sci-Fi Channel...
+     C1: 3 contexts
+       Context sample: in the TV series. Carl Macek revealed ideas for another proposed series, "Robotech: The Odyssey", wh...
+     GT1: Leonardo da Vinci...
+     Q2: Who was the first woman to win a Nobel Prize?...
+     A2: in 1988), which now...
+     C2: 3 contexts
+       Context sample: Additionally, one...
+     GT2: Marie Curie...
+🎯 Running RAGAS evaluation...
+2025-07-29 08:02:28,288 - INFO - Running RAGAS evaluation...
+🔍 RAGAS Dataset Info:
+   Dataset size: 10
+   Columns: ['question', 'answer', 'contexts', 'ground_truth']
+   Ground truth available: True
+   Sample data:
+     Q1: Who painted the Mona Lisa?...
+     A1: in 1988), which now airs on the Sci-Fi Channel...
+     C1: 3 contexts
+     GT1: Leonardo da Vinci...
+     Q2: Who was the first woman to win a Nobel Prize?...
+     A2: in 1988), which now...
+     C2: 3 contexts
+     GT2: Marie Curie...
+   🚀 Running RAGAS evaluation...
+Evaluating:   0%|                                                                                                                                                                                       | 0/20 [00:00<?, ?it/s]2025-07-29 08:02:28,532 - ERROR - Exception raised in Job[3]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+Evaluating:   5%|########7                                                                                                                                                                      | 1/20 [00:00<00:02,  6.42it/s]2025-07-29 08:02:28,536 - ERROR - Exception raised in Job[2]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,542 - ERROR - Exception raised in Job[1]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,549 - ERROR - Exception raised in Job[9]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,554 - ERROR - Exception raised in Job[13]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,561 - ERROR - Exception raised in Job[7]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,562 - ERROR - Exception raised in Job[5]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,562 - ERROR - Exception raised in Job[14]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,566 - ERROR - Exception raised in Job[10]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,567 - ERROR - Exception raised in Job[6]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,567 - ERROR - Exception raised in Job[4]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,567 - ERROR - Exception raised in Job[12]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,567 - ERROR - Exception raised in Job[0]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,567 - ERROR - Exception raised in Job[11]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,570 - ERROR - Exception raised in Job[8]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,575 - ERROR - Exception raised in Job[15]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,596 - ERROR - Exception raised in Job[17]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,643 - ERROR - Exception raised in Job[18]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+Evaluating:  90%|############################################################################################################################################################6                 | 18/20 [00:00<00:00, 81.00it/s]2025-07-29 08:02:28,650 - ERROR - Exception raised in Job[16]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+2025-07-29 08:02:28,650 - ERROR - Exception raised in Job[19]: AuthenticationError(Error code: 401 - {'error': {'message': 'Incorrect API key provided: dummy-ke*****************only. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}})
+Evaluating: 100%|##############################################################################################################################################################################| 20/20 [00:00<00:00, 73.48it/s]
+   ✅ RAGAS evaluation completed successfully
+   Results: {'context_recall': nan, 'context_precision': nan}
+📈 Calculating enhanced metrics...
+
+📊 FINAL METRICS: {'context_recall': [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan], 'context_precision': [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan], 'error_rate': 0.0, 'avg_quality': np.float64(0.36356792144026184), 'avg_correctness': np.float64(0.6799999999999999), 'avg_context_relevance': np.float64(0.0), 'avg_context_coverage': np.float64(0.8), 'avg_context_length': np.float64(3.0), 'avg_answer_length': np.float64(64.6), 'avg_specificity': np.float64(0.9496610169491525), 'avg_context_utilization': np.float64(0.12125743131748576), 'avg_coherence': np.float64(0.384), 'total_responses': 10, 'successful_responses': 10, 'avg_accuracy': np.float64(0.0), 'avg_semantic_similarity': np.float64(0.0), 'avg_term_overlap': np.float64(0.0), 'type_compatibility_rate': np.float64(0.8), 'exact_match_rate': 0.0, 'ground_truth_comparisons': 10}
+✅ [3/3] Completed successfully
+
+🎉 All evaluations completed! Processed 3 combination(s)
+
+✓ Results saved to q_10_results4/comprehensive_rag_evaluation_20250729_080228.json
+2025-07-29 08:02:28,728 - INFO - Answer comparison saved to q_10_results4/answer_comparison_20250729_080228.txt
+2025-07-29 08:02:31,322 - WARNING - No numeric columns found for heatmap
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1821: UserWarning: Glyph 128218 (\N{BOOKS}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1821: UserWarning: Glyph 128172 (\N{SPEECH BALLOON}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1823: UserWarning: Glyph 128218 (\N{BOOKS}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1823: UserWarning: Glyph 128172 (\N{SPEECH BALLOON}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 2965 (\N{TAMIL LETTER KA}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Matplotlib currently does not support Tamil natively.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 3006 (\N{TAMIL VOWEL SIGN AA}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 2985 (\N{TAMIL LETTER NNNA}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 3021 (\N{TAMIL SIGN VIRAMA}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 2991 (\N{TAMIL LETTER YA}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 3007 (\N{TAMIL VOWEL SIGN I}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 2994 (\N{TAMIL LETTER LA}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 3009 (\N{TAMIL VOWEL SIGN U}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 2990 (\N{TAMIL LETTER MA}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 3016 (\N{TAMIL VOWEL SIGN AI}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 2986 (\N{TAMIL LETTER PA}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 3019 (\N{TAMIL VOWEL SIGN OO}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 2992 (\N{TAMIL LETTER RA}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 3015 (\N{TAMIL VOWEL SIGN EE}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 2975 (\N{TAMIL LETTER TTA}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1946: UserWarning: Glyph 2995 (\N{TAMIL LETTER LLA}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 2965 (\N{TAMIL LETTER KA}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Matplotlib currently does not support Tamil natively.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 3006 (\N{TAMIL VOWEL SIGN AA}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 2985 (\N{TAMIL LETTER NNNA}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 3021 (\N{TAMIL SIGN VIRAMA}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 2991 (\N{TAMIL LETTER YA}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 3007 (\N{TAMIL VOWEL SIGN I}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 2994 (\N{TAMIL LETTER LA}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 3009 (\N{TAMIL VOWEL SIGN U}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 2990 (\N{TAMIL LETTER MA}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 3016 (\N{TAMIL VOWEL SIGN AI}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 2986 (\N{TAMIL LETTER PA}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 3019 (\N{TAMIL VOWEL SIGN OO}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 2992 (\N{TAMIL LETTER RA}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 3015 (\N{TAMIL VOWEL SIGN EE}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 2975 (\N{TAMIL LETTER TTA}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/ragas_evaluation/evaluator.py:1948: UserWarning: Glyph 2995 (\N{TAMIL LETTER LLA}) missing from font(s) DejaVu Sans.
+  plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+2025-07-29 08:02:43,186 - INFO - Generated 6 charts in q_10_results4/charts_20250729_080228
+
+========================================================================================================================
+COMPREHENSIVE RAG EVALUATION RESULTS
+========================================================================================================================
+
+🎯 EVALUATION SCENARIOS:
+--------------------------------------------------------------------------------
+original_qe_original_gen       | ✅ COMPLETED  | Original QE + Original Gen (Baseline)
+original_qe_finetuned_gen      | ✅ COMPLETED  | Original QE + Fine-tuned Gen (Notebook config)
+finetuned_qe_finetuned_gen     | ✅ COMPLETED  | Fine-tuned QE + Fine-tuned Gen (Full pipeline)
+
+📊 CORE QUALITY METRICS:
+------------------------------------------------------------------------------------------------------------------------
+| Combination                         | Avg Quality        | Avg Correctness    | Error Rate         | Avg Answer Length  |
+|-------------------------------------|--------------------|--------------------|--------------------|--------------------|
+| original_qe_original_gen            | 0.618              | 0.760              | 0.0%               | 453.9              |
+| original_qe_finetuned_gen           | 0.484              | 0.610              | 0.0%               | 20.9               |
+| finetuned_qe_finetuned_gen          | 0.364              | 0.680              | 0.0%               | 64.6               |
+|-------------------------------------|--------------------|--------------------|--------------------|--------------------|
+
+📊 CONTEXT PERFORMANCE:
+------------------------------------------------------------------------------------------------------------------------
+| Combination                         | Avg Context Relevance | Avg Context Coverage | Avg Context Utilization |
+|-------------------------------------|--------------------|--------------------|--------------------|
+| original_qe_original_gen            | 0.613              | 1.000              | 0.375              |
+| original_qe_finetuned_gen           | 0.613              | 1.000              | 0.033              |
+| finetuned_qe_finetuned_gen          | 0.000              | 0.800              | 0.121              |
+|-------------------------------------|--------------------|--------------------|--------------------|
+
+📊 ANSWER CHARACTERISTICS:
+------------------------------------------------------------------------------------------------------------------------
+| Combination                         | Avg Specificity    | Avg Coherence      |
+|-------------------------------------|--------------------|--------------------|
+| original_qe_original_gen            | 0.705              | 0.752              |
+| original_qe_finetuned_gen           | 0.983              | 0.300              |
+| finetuned_qe_finetuned_gen          | 0.950              | 0.384              |
+|-------------------------------------|--------------------|--------------------|
+
+📊 GROUND TRUTH COMPARISON:
+------------------------------------------------------------------------------------------------------------------------
+| Combination                         | Avg Accuracy       | Avg Semantic Similarity | Avg Term Overlap   | Type Compatibility Rate | Exact Match Rate   |
+|-------------------------------------|--------------------|--------------------|--------------------|--------------------|--------------------|
+| original_qe_original_gen            | 0.023              | 0.023              | 0.023              | 0.0%               | 0.0%               |
+| original_qe_finetuned_gen           | 0.237              | 0.237              | 0.237              | 100.0%             | 10.0%              |
+| finetuned_qe_finetuned_gen          | 0.000              | 0.000              | 0.000              | 80.0%              | 0.0%               |
+|-------------------------------------|--------------------|--------------------|--------------------|--------------------|--------------------|
+
+📈 SUMMARY:
+--------------------------------------------------
+🏆 Best Avg Quality: 0.618 (original_qe_original_gen)
+🏆 Best Avg Correctness: 0.760 (original_qe_original_gen)
+🏆 Best Error Rate: 0.0% (original_qe_original_gen)
+🏆 Best Avg Answer Length: 453.9 words (original_qe_original_gen)
+🏆 Best Avg Context Relevance: 0.613 (original_qe_original_gen)
+🏆 Best Avg Context Coverage: 1.000 (original_qe_original_gen)
+🏆 Best Avg Context Utilization: 0.375 (original_qe_original_gen)
+🏆 Best Avg Specificity: 0.983 (original_qe_finetuned_gen)
+🏆 Best Avg Coherence: 0.752 (original_qe_original_gen)
+🏆 Best Avg Accuracy: 0.237 (original_qe_finetuned_gen)
+🏆 Best Avg Semantic Similarity: 0.237 (original_qe_finetuned_gen)
+🏆 Best Avg Term Overlap: 0.237 (original_qe_finetuned_gen)
+🏆 Best Type Compatibility Rate: 100.0% (original_qe_finetuned_gen)
+🏆 Best Exact Match Rate: 10.0% (original_qe_finetuned_gen)
+
+🎯 GROUND TRUTH COMPARISON SUMMARY:
+--------------------------------------------------
+🏆 Best Avg Accuracy: 0.237 (original_qe_finetuned_gen)
+🏆 Best Avg Semantic Similarity: 0.237 (original_qe_finetuned_gen)
+🏆 Best Exact Match Rate: 10.0% (original_qe_finetuned_gen)
+🏆 Best Type Compatibility Rate: 100.0% (original_qe_finetuned_gen)
+
+========================================================================================================================
+
+✅ Evaluation complete! All results saved to:
+   📁 Output directory: q_10_results4
+   📊 Metrics: comprehensive_rag_evaluation_20250729_080228.json
+   📝 Answers: answer_comparison_20250729_080228.txt
+   📈 Charts: 6 charts generated
+📝 Log file saved to: q_10_results4/ragas_evaluation_20250729_080146.log

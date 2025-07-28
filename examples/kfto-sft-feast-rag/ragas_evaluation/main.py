@@ -65,6 +65,12 @@ def parse_args():
         default="ragas_evaluation_results",
         help="Output directory for all results (default: ragas_evaluation_results)"
     )
+    parser.add_argument(
+        "--log-dir",
+        type=str,
+        default=None,
+        help="Directory to store log files (default: same as output-dir)"
+    )
     return parser.parse_args()
 
 def main():
@@ -75,8 +81,12 @@ def main():
     import os
     os.makedirs(args.output_dir, exist_ok=True)
     
-    # Setup logging to output directory
-    log_filename = setup_logging(output_dir=args.output_dir)
+    # Determine log directory (use log-dir if specified, otherwise use output-dir)
+    log_dir = args.log_dir if args.log_dir is not None else args.output_dir
+    os.makedirs(log_dir, exist_ok=True)
+    
+    # Setup logging to specified log directory
+    log_filename = setup_logging(output_dir=log_dir)
     
     print("🔍 COMPREHENSIVE RAG EVALUATION SCRIPT")
     print("=" * 60)
@@ -102,58 +112,58 @@ def main():
     print(f"📁 Feast repo path: {config.feast_repo_path}")
     print(f"🔧 Device: {config.device}")
     
-    # Load evaluation dataset based on configuration
+    # Load dataset based on configuration
     if config.use_natural_questions:
-        print("📥 Loading Natural Questions dataset...")
-        if args.cache_dir:
-            print(f"📁 Using cache directory: {args.cache_dir}")
-            print("   If dataset is already cached, this will be fast")
-        else:
-            print("⚠️  NOTE: Natural Questions dataset is ~50GB and will download completely")
-            print("   This may take 10-30 minutes depending on your internet connection")
-            print("   💡 Tip: Use --cache-dir to avoid re-downloading")
-        print("=" * 60)
-        
-        test_questions, ground_truth = load_natural_questions_dataset(
-            sample_percentage=config.nq_sample_percentage,
-            max_questions=config.max_evaluation_questions,
-            cache_dir=args.cache_dir
-        )
-        
-        # Check if we actually got Natural Questions or fell back to curated
-        if len(test_questions) == 10 and test_questions[0] == "What is the capital of France?":
-            print("\n⚠️  NOTICE: Natural Questions dataset failed to load (likely timeout)")
-            print("   The script has automatically fallen back to curated questions")
-            print("   To use Natural Questions, try:")
-            print("   - Better internet connection")
-            print("   - More disk space")
-            print("   - Run without --use-natural-questions to use curated questions")
-            print("=" * 60)
+        print("🔄 Loading Natural Questions dataset...")
+        try:
+            test_questions, ground_truth_metadata = load_natural_questions_dataset(
+                sample_percentage=config.nq_sample_percentage,
+                max_questions=config.max_evaluation_questions,
+                cache_dir=args.cache_dir
+            )
+            print(f"✅ Loaded {len(test_questions)} questions with enhanced metadata")
+        except Exception as e:
+            print(f"❌ Failed to load Natural Questions dataset: {e}")
+            print("🔄 Falling back to curated questions...")
+            test_questions, ground_truth_metadata = load_curated_questions()
     else:
-        print("📝 Using curated questions...")
-        test_questions, ground_truth = load_curated_questions()
+        print("🔄 Loading curated questions...")
+        test_questions, ground_truth_metadata = load_curated_questions()
     
-    print(f"📊 Using {len(test_questions)} questions for evaluation")
+    print(f"📊 Dataset loaded: {len(test_questions)} questions")
+    print(f"📊 Ground truth metadata available: {len(ground_truth_metadata)} entries")
+    
+    # Show sample of ground truth metadata
+    if ground_truth_metadata:
+        print("\n📝 Sample ground truth metadata:")
+        for i in range(min(3, len(ground_truth_metadata))):
+            gt_info = ground_truth_metadata[i]
+            print(f"   {i+1}. Type: {gt_info['answer_type']}, Confidence: {gt_info['confidence']:.2f}")
+            print(f"      Answer: {gt_info['answer']}")
+            print(f"      Total answers available: {gt_info['answer_count']}")
     
     # Initialize evaluator
-    print("🚀 Initializing RAG evaluator...")
+    print("\n🔧 Initializing RAG evaluator...")
     evaluator = RAGEvaluator(config)
     
-    # Test Feast connection first to diagnose context retrieval issues
-    print("🔍 Testing Feast connection...")
+    # Test Feast connection
+    print("\n🔍 Testing Feast connection...")
     feast_test = evaluator.test_feast_connection()
-    if feast_test['status'] == 'success':
-        print(f"✅ Feast connection successful. Found {feast_test['sample_count']} sample passages")
-        if feast_test.get('generation_works', False):
-            print("✅ Feast generation test successful")
-        else:
-            print("⚠️ Feast generation test failed - will use fallback generation")
+    if feast_test["status"] == "success":
+        print(f"✅ Feast connection successful!")
+        print(f"   Retrieved {feast_test['sample_count']} passages")
+        print(f"   Generation works: {feast_test['generation_works']}")
     else:
-        print(f"❌ Feast connection failed: {feast_test.get('error', 'Unknown error')}")
+        print(f"⚠️  Feast connection test failed: {feast_test['error']}")
+        print("   Continuing with evaluation...")
     
     # Run comprehensive evaluation
-    print("\n🎯 Starting comprehensive evaluation...")
-    results = evaluator.run_comprehensive_evaluation(test_questions, ground_truth, args.combinations)
+    print(f"\n🎯 Starting comprehensive evaluation...")
+    print(f"📊 Questions: {len(test_questions)}")
+    print(f"📊 Combinations: {args.combinations}")
+    print(f"📊 Output directory: {args.output_dir}")
+    
+    results = evaluator.run_comprehensive_evaluation(test_questions, ground_truth_metadata, args.combinations)
     
     # Save results to output directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -172,6 +182,8 @@ def main():
     
     print("\n✅ Evaluation complete! All results saved to:")
     print(f"   📁 Output directory: {args.output_dir}")
+    if args.log_dir:
+        print(f"   📝 Log directory: {args.log_dir}")
     print(f"   📊 Metrics: {os.path.basename(results_file)}")
     print(f"   📝 Answers: {os.path.basename(answer_comparison_file)}")
     if charts:
