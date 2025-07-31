@@ -91,7 +91,8 @@ func runMnistSDK(t *testing.T, trainingImage string) {
 
 	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
 	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
-	CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
+
+	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	jupyterNotebook := string(readFile(test, "resources/mnist_kfto.ipynb"))
 	requirements := readFile(test, "resources/requirements.txt")
@@ -107,8 +108,8 @@ func runMnistSDK(t *testing.T, trainingImage string) {
 		"-c",
 		fmt.Sprintf("pip install papermill && papermill /opt/app-root/notebooks/%s"+
 			" /opt/app-root/src/mnist-kfto-out.ipynb -p namespace %s -p openshift_api_url %s"+
-			" -p token %s -p num_gpus %d -p training_image %s --log-output && sleep infinity",
-			jupyterNotebookConfigMapFileName, namespace.Name, GetOpenShiftApiUrl(test), userToken, 0, trainingImage)}
+			" -p token %s -p num_gpus %d -p training_image %s -p localQueue %s --log-output && sleep infinity",
+			jupyterNotebookConfigMapFileName, namespace.Name, GetOpenShiftApiUrl(test), userToken, 0, trainingImage, localQueue.Name)}
 
 	// Create PVC for Notebook
 	notebookPVC := CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", AccessModes(corev1.ReadWriteOnce))
