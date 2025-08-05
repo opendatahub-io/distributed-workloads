@@ -1,0 +1,115 @@
+========================================================================================================================
+COMPREHENSIVE RAG EVALUATION RESULTS
+========================================================================================================================
+
+🎯 EVALUATION SCENARIOS:
+--------------------------------------------------------------------------------
+original_qe_original_gen       | ✅ COMPLETED  | Original QE + Original Gen (Baseline)
+original_qe_finetuned_gen      | ✅ COMPLETED  | Original QE + Fine-tuned Gen (Notebook config)
+finetuned_qe_finetuned_gen     | ✅ COMPLETED  | Fine-tuned QE + Fine-tuned Gen (Full pipeline)
+
+📊 CORE QUALITY METRICS:
+------------------------------------------------------------------------------------------------------------------------
+| Combination                         | Avg Quality        | Avg Correctness    | Error Rate         | Avg Answer Length  |
+|-------------------------------------|--------------------|--------------------|--------------------|--------------------|
+| original_qe_original_gen            | 0.618              | 0.760              | 0.0%               | 453.9              |
+| original_qe_finetuned_gen           | 0.484              | 0.610              | 0.0%               | 20.9               |
+| finetuned_qe_finetuned_gen          | 0.364              | 0.680              | 0.0%               | 64.6               |
+|-------------------------------------|--------------------|--------------------|--------------------|--------------------|
+
+📊 CONTEXT PERFORMANCE:
+------------------------------------------------------------------------------------------------------------------------
+| Combination                         | Avg Context Relevance | Avg Context Coverage | Avg Context Utilization |
+|-------------------------------------|--------------------|--------------------|--------------------|
+| original_qe_original_gen            | 0.613              | 1.000              | 0.375              |
+| original_qe_finetuned_gen           | 0.613              | 1.000              | 0.033              |
+| finetuned_qe_finetuned_gen          | 0.000              | 0.800              | 0.121              |
+|-------------------------------------|--------------------|--------------------|--------------------|
+
+📊 ANSWER CHARACTERISTICS:
+------------------------------------------------------------------------------------------------------------------------
+| Combination                         | Avg Specificity    | Avg Coherence      |
+|-------------------------------------|--------------------|--------------------|
+| original_qe_original_gen            | 0.705              | 0.752              |
+| original_qe_finetuned_gen           | 0.983              | 0.300              |
+| finetuned_qe_finetuned_gen          | 0.950              | 0.384              |
+|-------------------------------------|--------------------|--------------------|
+
+📊 GROUND TRUTH COMPARISON:
+------------------------------------------------------------------------------------------------------------------------
+| Combination                         | Avg Accuracy       | Avg Semantic Similarity | Avg Term Overlap   | Type Compatibility Rate | Exact Match Rate   |
+|-------------------------------------|--------------------|--------------------|--------------------|--------------------|--------------------|
+| original_qe_original_gen            | 0.023              | 0.023              | 0.023              | 0.0%               | 0.0%               |
+| original_qe_finetuned_gen           | 0.237              | 0.237              | 0.237              | 100.0%             | 10.0%              |
+| finetuned_qe_finetuned_gen          | 0.000              | 0.000              | 0.000              | 80.0%              | 0.0%               |
+|-------------------------------------|--------------------|--------------------|--------------------|--------------------|--------------------|
+
+RESPONSE COUNTS
+--------------------------------------------------------------------------------
+Metric                    | Original Qe Original Gen | Original Qe Finetuned Gen | Finetuned Qe Finetuned Gen
+-------------------------+----------------------+----------------------+----------------------
+Total Responses           | 10.0                 | 10.0                 | 10.0                
+Successful Responses      | 10.0                 | 10.0                 | 10.0                
+Ground Truth Comparisons  | 10.0                 | 10.0                 | 10.0    
+
+📈 SUMMARY:
+--------------------------------------------------
+🏆 Best Avg Quality: 0.618 (original_qe_original_gen)
+🏆 Best Avg Correctness: 0.760 (original_qe_original_gen)
+🏆 Best Error Rate: 0.0% (original_qe_original_gen)
+🏆 Best Avg Answer Length: 453.9 words (original_qe_original_gen)
+🏆 Best Avg Context Relevance: 0.613 (original_qe_original_gen)
+🏆 Best Avg Context Coverage: 1.000 (original_qe_original_gen)
+🏆 Best Avg Context Utilization: 0.375 (original_qe_original_gen)
+🏆 Best Avg Specificity: 0.983 (original_qe_finetuned_gen)
+🏆 Best Avg Coherence: 0.752 (original_qe_original_gen)
+🏆 Best Avg Accuracy: 0.237 (original_qe_finetuned_gen)
+🏆 Best Avg Semantic Similarity: 0.237 (original_qe_finetuned_gen)
+🏆 Best Avg Term Overlap: 0.237 (original_qe_finetuned_gen)
+🏆 Best Type Compatibility Rate: 100.0% (original_qe_finetuned_gen)
+🏆 Best Exact Match Rate: 10.0% (original_qe_finetuned_gen)
+
+🎯 GROUND TRUTH COMPARISON SUMMARY:
+--------------------------------------------------
+🏆 Best Avg Accuracy: 0.237 (original_qe_finetuned_gen)
+🏆 Best Avg Semantic Similarity: 0.237 (original_qe_finetuned_gen)
+🏆 Best Exact Match Rate: 10.0% (original_qe_finetuned_gen)
+🏆 Best Type Compatibility Rate: 100.0% (original_qe_finetuned_gen)         
+            
+
+SUMMARY INSIGHTS
+--------------------------------------------------------------------------------
+🏆 Best Avg Accuracy: 0.237 (original_qe_finetuned_gen)
+❌ Worst Avg Accuracy: 0.000 (finetuned_qe_finetuned_gen)
+
+🏆 Best Avg Quality: 0.618 (original_qe_original_gen)
+❌ Worst Avg Quality: 0.364 (finetuned_qe_finetuned_gen)
+
+🏆 Best Avg Context Relevance: 0.613 (original_qe_original_gen)
+❌ Worst Avg Context Relevance: 0.000 (finetuned_qe_finetuned_gen)
+
+🏆 Best Exact Match Rate: 10.0% (original_qe_finetuned_gen)
+❌ Worst Exact Match Rate: 0.0% (original_qe_original_gen)
+
+🏆 Best Type Compatibility Rate: 100.0% (original_qe_finetuned_gen)
+❌ Worst Type Compatibility Rate: 0.0% (original_qe_original_gen)
+
+PERFORMANCE ANALYSIS
+--------------------------------------------------------------------------------
+
+Original Qe Original Gen:
+  ✅ Strengths: High quality, Good context relevance
+  ❌ Weaknesses: Low accuracy, Low exact match rate
+  📊 Overall Assessment: Poor (Score: 0.279)
+
+Original Qe Finetuned Gen:
+  ✅ Strengths: Good type compatibility, Good context relevance
+  ❌ Weaknesses: Poor context utilization
+  📊 Overall Assessment: Fair (Score: 0.465)
+
+Finetuned Qe Finetuned Gen:
+  ❌ Weaknesses: Low accuracy, Low exact match rate, Poor context relevance
+  📊 Overall Assessment: Poor (Score: 0.251)
+
+================================================================================
+End of RAG Model Answer Comparison
