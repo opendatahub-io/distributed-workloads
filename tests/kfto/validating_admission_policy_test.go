@@ -56,8 +56,6 @@ var (
 func TestValidatingAdmissionPolicy(t *testing.T) {
 	test := With(t)
 
-	Tags(t, Sanity)
-
 	// Create namespace with unique name and required labels
 	var AsDefaultQueueNamespace = ErrorOption[*corev1.Namespace](func(ns *corev1.Namespace) error {
 		if ns.Labels == nil {
