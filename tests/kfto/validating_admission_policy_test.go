@@ -32,7 +32,6 @@ import (
 	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 	testingpytorchjob "sigs.k8s.io/kueue/pkg/util/testingjobs/pytorchjob"
 
-	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
@@ -55,8 +54,6 @@ var (
 
 func TestValidatingAdmissionPolicy(t *testing.T) {
 	test := With(t)
-
-	Tags(t, Sanity)
 
 	// Create namespace with unique name and required labels
 	var AsDefaultQueueNamespace = ErrorOption[*corev1.Namespace](func(ns *corev1.Namespace) error {
