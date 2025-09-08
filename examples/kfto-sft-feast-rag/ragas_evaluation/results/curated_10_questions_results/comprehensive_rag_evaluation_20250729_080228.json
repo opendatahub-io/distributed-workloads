@@ -1,0 +1,523 @@
+{
+  "timestamp": "2025-07-29T08:02:28.726936",
+  "config": {
+    "finetuned_checkpoint_dir": "/opt/app-root/src/shared/fine_tuned_rag_model/inference_sft-rag-master-0",
+    "feast_repo_path": "/opt/app-root/src/distributed-workloads/examples/kfto-sft-feast-rag/feature_repo",
+    "device": "cuda",
+    "max_new_tokens": 200
+  },
+  "results": {
+    "original_qe_original_gen": {
+      "context_recall": [
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN
+      ],
+      "context_precision": [
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN
+      ],
+      "error_rate": 0.0,
+      "avg_quality": 0.6180683372008666,
+      "avg_correctness": 0.76,
+      "avg_context_relevance": 0.6133333333333334,
+      "avg_context_coverage": 1.0,
+      "avg_context_length": 3.0,
+      "avg_answer_length": 453.9,
+      "avg_specificity": 0.7048255559772689,
+      "avg_context_utilization": 0.374676013415732,
+      "avg_coherence": 0.7522222222222222,
+      "total_responses": 10,
+      "successful_responses": 10,
+      "avg_accuracy": 0.022740079412502154,
+      "avg_semantic_similarity": 0.022740079412502154,
+      "avg_term_overlap": 0.022815494193799288,
+      "type_compatibility_rate": 0.0,
+      "exact_match_rate": 0.0,
+      "ground_truth_comparisons": 10
+    },
+    "original_qe_finetuned_gen": {
+      "context_recall": [
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN
+      ],
+      "context_precision": [
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN
+      ],
+      "error_rate": 0.0,
+      "avg_quality": 0.4838333333333333,
+      "avg_correctness": 0.61,
+      "avg_context_relevance": 0.6133333333333334,
+      "avg_context_coverage": 1.0,
+      "avg_context_length": 3.0,
+      "avg_answer_length": 20.9,
+      "avg_specificity": 0.9833333333333334,
+      "avg_context_utilization": 0.03287032921087062,
+      "avg_coherence": 0.29999999999999993,
+      "total_responses": 10,
+      "successful_responses": 10,
+      "avg_accuracy": 0.2375,
+      "avg_semantic_similarity": 0.2375,
+      "avg_term_overlap": 0.2375,
+      "type_compatibility_rate": 1.0,
+      "exact_match_rate": 0.1,
+      "ground_truth_comparisons": 10
+    },
+    "finetuned_qe_finetuned_gen": {
+      "context_recall": [
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN
+      ],
+      "context_precision": [
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN,
+        NaN
+      ],
+      "error_rate": 0.0,
+      "avg_quality": 0.36356792144026184,
+      "avg_correctness": 0.6799999999999999,
+      "avg_context_relevance": 0.0,
+      "avg_context_coverage": 0.8,
+      "avg_context_length": 3.0,
+      "avg_answer_length": 64.6,
+      "avg_specificity": 0.9496610169491525,
+      "avg_context_utilization": 0.12125743131748576,
+      "avg_coherence": 0.384,
+      "total_responses": 10,
+      "successful_responses": 10,
+      "avg_accuracy": 0.0,
+      "avg_semantic_similarity": 0.0,
+      "avg_term_overlap": 0.0,
+      "type_compatibility_rate": 0.8,
+      "exact_match_rate": 0.0,
+      "ground_truth_comparisons": 10
+    },
+    "_all_responses": {
+      "original_qe_original_gen": [
+        {
+          "answer": "Questions about the Mona Lisa Questions about the \"Mona Lisa\" Questions and answers about the painting Bibliography Bibliography Mona LISA The Mona Lisas Bibliographic Bibliographical Bibliographies Mona lisas \u0b95\u0bbe\u0ba9\u0bcd\u0baf\u0bbf\u0bb2\u0bc1\u0bae\u0bc8\u0baa\u0bcb\u0bb0\u0bc7\u0b9f\u0bb3\ufffd",
+          "context": [
+            [
+              "Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as \"the best known, the most visited, the most written about, the most sung about, the most parodied work of art in the world\". The \"Mona Lisa\" is also one of the most valuable paintings in the world. It holds the Guinness",
+              "traditionally spelled \"Mona\" (as used by Vasari), is also commonly spelled in modern Italian as \"Monna Lisa\" (\"\" being a vulgarity in some Italian dialects) but this is rare in English. Vasari's account of the \"Mona Lisa\" comes from his biography of Leonardo published in 1550, 31 years after the artist's death. It has long been the best-known source of information on the",
+              "Notes Bibliography Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as \"the best"
+            ]
+          ],
+          "question": "Who painted the Mona Lisa?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "Mittag-Leffler, alerted Pierre to the situation, and after his complaint, Marie's name was added to the nomination. Curie and her husband declined to go to Stockholm to receive the prize in person; they were instead given the Nobel Prize in Physiology or Medicine. Alfred Nobel, in his last will and testament, stated that his wife would be the first woman to receive a Nobel Prize. In 1905 she became the second female Nobel laureate (after Marie Curie in",
+          "context": [
+            [
+              "Bertha von Suttner Bertha Felicitas Sophie Freifrau von Suttner (Baroness Bertha von Suttner, , n\u00e9e Countess Kinsky, Gr\u00e4fin Kinsky von Wchinitz und Tettau; 9 June 184321 June 1914) was an Austrian-Bohemian pacifist and novelist. In 1905 she became the second female Nobel laureate (after Marie Curie in 1903), the first woman to be awarded the Nobel Peace Prize, and the first",
+              "Marie Curie Marie Sk\u0142odowska Curie (; ; ; born Maria Salomea Sk\u0142odowska; 7 November 18674 July 1934) was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and only woman to win twice, the only person to win a Nobel Prize in two different sciences, and was part",
+              "named in her honor. Marie Curie Marie Sk\u0142odowska Curie (; ; ; born Maria Salomea Sk\u0142odowska; 7 November 18674 July 1934) was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and only woman to win twice, the only person to win a Nobel Prize in two different"
+            ]
+          ],
+          "question": "Who was the first woman to win a Nobel Prize?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "peoples of the world. The City of Paris is the centre andseat of government of the \u00cele-de-France, or Paris Region, which has an estimated official 2018 population of 12,246,234, or 18.2 percent of the population of France. In 2015 the city had a population of 116,676, in a metropolitan area of 2,206,488. It is also the seat of one of the fifteen French ecclesiastical provinces and one of",
+          "context": [
+            [
+              "and is an important administrative centre in the region. It is also the seat of one of the fifteen French ecclesiastical provinces and one of the two divisions of the French Army. In 2015 the city had a population of 116,676, in a",
+              "is exclusively and reciprocally twinned only with: Paris has agreements of friendship and co-operation with: Paris Paris () is the capital and most populous city of France, with an area of and a population of 2,206,488. Since the 17th century, Paris has been one of Europe's major centres of finance, commerce, fashion, science, and the arts. The City of Paris is the centre and",
+              "seat of government of the \u00cele-de-France, or Paris Region, which has an estimated official 2018 population of 12,246,234, or 18.2 percent of the population of France. Besides this,the Paris metropolitan area had a population of 12,532,901"
+            ]
+          ],
+          "question": "What is the capital of France?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "Declaration of Independence: Samuel Huntington, Roger Sherman, William Williams, and Oliver Wolcott. Connecticut's legislature authorized the outfitting of six new regiments in 1775, in the wake of the clashes between British regulars and Massachusetts militia at Lexington and Concord. There were some 1,200 Connecticut troops on hand at the time of the signing. _______________________________________________ _______________________________________________________    Question: When was the Declaration of Independence signed? _______________________________________________________________ Answer:  ",
+          "context": [
+            [
+              "Declaration of Independence on August 2, 1776. Since his signature did not appear on the printed copy that was authenticated on January 17, 1777, it is assumed that he signed after that date, possibly",
+              "independence until after Congress had made its decision. Political maneuvering was setting the stage for an official declaration of independence even while a document was being written to explain the decision. On June 11, 1776, Congress appointed a \"Committee of Five\" to draft a declaration, consisting of John Adams of Massachusetts, Benjamin Franklin of Pennsylvania, Thomas",
+              "Declaration of Independence: Samuel Huntington, Roger Sherman, William Williams, and Oliver Wolcott. Connecticut's legislature authorized the outfitting of six new regiments in 1775, in the wake of the clashes between British regulars and Massachusetts militia at Lexington and Concord. There were some 1,200 Connecticut troops on hand"
+            ]
+          ],
+          "question": "When was the Declaration of Independence signed?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "Australia's capital city; the newly created city of Canberra ultimately filled this role. Although Canberra is the capital and seat of government, many federal government ministries have secondary seats in state capital cities, as do the Governor-General and the Prime Minister. Six Australian Prime Ministers have been born in Sydney, more than any other city, including first Prime Minister Edmund Barton and Malcolm Turnbull. A resident of Canberra is known as a Canberran. The site of Canberra was selected for the location of the",
+          "context": [
+            [
+              "the proposed new federal capital of Canberra (Melbourne was the seat of government from 1901 to 1927). The FCT was renamed the Australian Capital Territory (ACT) in 1938. The Northern Territory was transferred from the control of the South Australian government to the Commonwealth in 1911. Australia was deeply affected by the Great Depression of the 1930s, particularly due to",
+              "Sydney, and north-east of Melbourne. A resident of Canberra is known as a Canberran. Although Canberra is the capital and seat of government, many federal government ministries have secondary seats in state capital cities, as do the Governor-General",
+              "Australia's capital city; the newly created city of Canberra ultimately filled this role. Six Australian Prime Ministers have been born in Sydney, more than any other city, including first Prime Minister Edmund Barton and Malcolm Turnbull. Education became a proper focus"
+            ]
+          ],
+          "question": "What is the capital city of Australia?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "Romeo and Juliet Romeo and Juliet is a tragedy written by William Shakespeare early in his career about two young star-crossed lovers whose deaths ultimately reconcile their feuding families. It was among Shakespeare's most popular plays during his lifetime and along with \"Hamlet\", is one of his most frequently performed plays. It is occasionally revived. Today, the title characters are regarded as one of Shakespeare's greatest works. Shakespeare's \"ROMEO AND JULIET\" was adapted into the",
+          "context": [
+            [
+              "Pyramus and Thisbe, the mistaken belief in one lover's death leads to consecutive suicides. The earliest version of Romeo and Juliet was published in 1476 by Masuccio Salernitano, while it mostly obtained its present form when written down in 1524 by Luigi da Porto. Salernitano and Da Porto both are thought to have been inspired by Ovid and Boccaccio's writing. Shakespeare's",
+              "Romeo and Juliet\"\" The film's love theme was widely disseminated, notably in \"Our Tune\", a segment of the British Broadcasting Corporation (BBC)'s disc jockey Simon Bates's radio show. In addition, various versions of the theme have been recorded and released, including a highly successful one by Henry Mancini, whose instrumental rendition was a Number One success in the United",
+              "Romeo and Juliet Romeo and Juliet is a tragedy written by William Shakespeare early in his career about two young star-crossed lovers whose deaths ultimately reconcile their feuding families. It was among Shakespeare's most popular plays during his lifetime and along with \"Hamlet\", is one of his most frequently performed plays. Today, the title characters are regarded as"
+            ]
+          ],
+          "question": "Who wrote Romeo and Juliet?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "was discovered in 1928 by Scottish scientist Alexander Fleming. Fleming was the first to discover the properties of the active substance, giving him the privilege of naming it: penicillin. He also kept, grew, and distributed the original mould for twelve years. The term \"penicillin\" was first used in the scientific literature in 1932. Herbert W. Boyer (Univ. Calif. at San Francisco) and Stanley N. Florey credited Rene Dubos with pioneering the approach to",
+          "context": [
+            [
+              "\u2013 to form what we today know as penicillin. In 1940, penicillin became available for medicinal use to treat bacterial infections in humans. The field of modern biotechnology is generally thought of as having been born in 1971 when Paul Berg's (Stanford) experiments in gene splicing had early success. Herbert W. Boyer (Univ. Calif. at San Francisco) and Stanley N. Cohen",
+              "penicillin led to renewed interest in the search for antibiotic compounds with similar efficacy and safety. For their successful development of penicillin, which Fleming had accidentally discovered but could not develop himself, as a therapeutic drug, Chain and Florey shared the 1945 Nobel Prize in Medicine with Fleming. Florey credited Rene Dubos with pioneering the approach",
+              "transforming the laboratory curiosity into a practical drug. Fleming was the first to discover the properties of the active substance, giving him the privilege of naming it: penicillin. He also kept, grew, and distributed the original mould for twelve"
+            ]
+          ],
+          "question": "Who discovered penicillin?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "A. The civil versions of the Julian and Gregorian calendars are solar, because their dates do not indicate the moon phase \u2014 however, both the Gregorian and Julian calendars include undated lunar calendars as well. A. The existence of our galaxy, the Milky Way, as a separate group of stars was only proven in the 20th century, along with the existence of \"external\" galaxies, and soon after, the discovery of the Hubble Space Telescope. B. The Sun is a main",
+          "context": [
+            [
+              "instead, energy is required as input for such processes. Fusion powers stars and produces virtually all elements in a process called nucleosynthesis. The Sun is a main-sequence star, and, as such, generates its energy by nuclear fusion of hydrogen nuclei",
+              "converting 4 million tons of matter into energy every second as a result. This energy, which can take between 10,000 and 170,000 years to escape from its core, is the source of the Sun's light and heat.",
+              "sun, but with a range of temperatures, masses and sizes. The existence of our galaxy, the Milky Way, as a separate group of stars was only proven in the 20th century, along with the existence of \"external\" galaxies, and soon after, the"
+            ]
+          ],
+          "question": "What is the main component of the sun?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "telephone on the harmonic telegraph principle. The translation by Alexander J. Ellis was first published in 1875 (the first English edition was from the 1870 third German edition; Ellis's second English edition from the 1877 fourth German edition was published in1885; the 1895 and 1912 third and fourth English editions were reprints of the second). Helmholtz studied the telephone from time to time. Charles Bourseul, Antonio Meucci, Johann Philipp Reis, Alexander Graham Bell,",
+          "context": [
+            [
+              "from time to time. Charles Bourseul, Antonio Meucci, Johann Philipp Reis, Alexander Graham Bell, and Elisha Gray, amongst others, have all been credited with the invention of the telephone. Alexander Graham Bell was the first to be awarded a patent for the electric telephone by",
+              "Alexander Graham Bell Alexander Graham Bell (March 3, 1847 \u2013 August 2, 1922) was a Scottish-born scientist, inventor, engineer, and innovator who is credited with inventing and patenting the first practical telephone. He also founded the American Telephone and Telegraph Company (AT&T) in 1885. Bell's father, grandfather, and brother had all been associated with work on",
+              "his grandchildren. \"U.S. patent images in TIFF format\" Alexander Graham Bell Alexander Graham Bell (March 3, 1847 \u2013 August 2, 1922) was a Scottish-born scientist, inventor, engineer, and innovator who is credited with inventing and patenting the first practical telephone. He also founded the American Telephone and Telegraph Company (AT&T) in 1885. Bell's father, grandfather,"
+            ]
+          ],
+          "question": "Who invented the telephone?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "Wonderland\" by Lewis Carroll (Charles Lutwidge Dodgson). The Dodo is a caricature of the author. Alice (Alice's Adventures in Wonderland) Alice is a fictional character and protagonist of Lewis Carroll's children's novel \"Alice's adventures in Wonderland\" (1865) and its sequel, \"Through the Looking-Glass\" ( 1871). A child in the mid-Victorian era, Alice unintentionally falls through a rabbit hole into a fantasy world populated by peculiar",
+          "context": [
+            [
+              "Alice's Adventures in Wonderland Alice's Adventures in Wonderland (commonly shortened to Alice in Wonderland) is an 1865 novel written by English author Charles Lutwidge Dodgson under the pseudonym Lewis Carroll. It tells of a girl named Alice falling through a rabbit hole into a fantasy world populated by peculiar, anthropomorphic creatures. The tale plays with logic, giving",
+              "the Kate Greenaway Medal in 2000, for her work; and DeLoss McGraw (2001), with his abstract illustrations. Alice (Alice's Adventures in Wonderland) Alice is a fictional character and protagonist of Lewis Carroll's children's novel \"Alice's Adventures in Wonderland\" (1865) and its sequel, \"Through the Looking-Glass\" (1871). A child in the mid-Victorian era, Alice unintentionally",
+              "Wonderland\" by Lewis Carroll (Charles Lutwidge Dodgson). The Dodo is a caricature of the author. A popular but unsubstantiated belief is that Dodgson chose the particular animal to represent himself because of his stammer,"
+            ]
+          ],
+          "question": "Who wrote 'Alice's Adventures in Wonderland'?",
+          "use_retrieval": true
+        }
+      ],
+      "original_qe_finetuned_gen": [
+        {
+          "answer": "a work of art by Leonardo da Vinci",
+          "context": [
+            [
+              "Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as \"the best known, the most visited, the most written about, the most sung about, the most parodied work of art in the world\". The \"Mona Lisa\" is also one of the most valuable paintings in the world. It holds the Guinness",
+              "traditionally spelled \"Mona\" (as used by Vasari), is also commonly spelled in modern Italian as \"Monna Lisa\" (\"\" being a vulgarity in some Italian dialects) but this is rare in English. Vasari's account of the \"Mona Lisa\" comes from his biography of Leonardo published in 1550, 31 years after the artist's death. It has long been the best-known source of information on the",
+              "Notes Bibliography Mona Lisa The Mona Lisa (; or La Gioconda , ) is a half-length portrait painting by the Italian Renaissance artist Leonardo da Vinci that has been described as \"the best"
+            ]
+          ],
+          "question": "Who painted the Mona Lisa?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "a) Marie Curie",
+          "context": [
+            [
+              "Bertha von Suttner Bertha Felicitas Sophie Freifrau von Suttner (Baroness Bertha von Suttner, , n\u00e9e Countess Kinsky, Gr\u00e4fin Kinsky von Wchinitz und Tettau; 9 June 184321 June 1914) was an Austrian-Bohemian pacifist and novelist. In 1905 she became the second female Nobel laureate (after Marie Curie in 1903), the first woman to be awarded the Nobel Peace Prize, and the first",
+              "Marie Curie Marie Sk\u0142odowska Curie (; ; ; born Maria Salomea Sk\u0142odowska; 7 November 18674 July 1934) was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and only woman to win twice, the only person to win a Nobel Prize in two different sciences, and was part",
+              "named in her honor. Marie Curie Marie Sk\u0142odowska Curie (; ; ; born Maria Salomea Sk\u0142odowska; 7 November 18674 July 1934) was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and only woman to win twice, the only person to win a Nobel Prize in two different"
+            ]
+          ],
+          "question": "Who was the first woman to win a Nobel Prize?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "Paris",
+          "context": [
+            [
+              "and is an important administrative centre in the region. It is also the seat of one of the fifteen French ecclesiastical provinces and one of the two divisions of the French Army. In 2015 the city had a population of 116,676, in a",
+              "is exclusively and reciprocally twinned only with: Paris has agreements of friendship and co-operation with: Paris Paris () is the capital and most populous city of France, with an area of and a population of 2,206,488. Since the 17th century, Paris has been one of Europe's major centres of finance, commerce, fashion, science, and the arts. The City of Paris is the centre and",
+              "seat of government of the \u00cele-de-France, or Paris Region, which has an estimated official 2018 population of 12,246,234, or 18.2 percent of the population of France. Besides this,the Paris metropolitan area had a population of 12,532,901"
+            ]
+          ],
+          "question": "What is the capital of France?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "19 August 1776",
+          "context": [
+            [
+              "Declaration of Independence on August 2, 1776. Since his signature did not appear on the printed copy that was authenticated on January 17, 1777, it is assumed that he signed after that date, possibly",
+              "independence until after Congress had made its decision. Political maneuvering was setting the stage for an official declaration of independence even while a document was being written to explain the decision. On June 11, 1776, Congress appointed a \"Committee of Five\" to draft a declaration, consisting of John Adams of Massachusetts, Benjamin Franklin of Pennsylvania, Thomas",
+              "Declaration of Independence: Samuel Huntington, Roger Sherman, William Williams, and Oliver Wolcott. Connecticut's legislature authorized the outfitting of six new regiments in 1775, in the wake of the clashes between British regulars and Massachusetts militia at Lexington and Concord. There were some 1,200 Connecticut troops on hand"
+            ]
+          ],
+          "question": "When was the Declaration of Independence signed?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "the capital city of Australia",
+          "context": [
+            [
+              "the proposed new federal capital of Canberra (Melbourne was the seat of government from 1901 to 1927). The FCT was renamed the Australian Capital Territory (ACT) in 1938. The Northern Territory was transferred from the control of the South Australian government to the Commonwealth in 1911. Australia was deeply affected by the Great Depression of the 1930s, particularly due to",
+              "Sydney, and north-east of Melbourne. A resident of Canberra is known as a Canberran. Although Canberra is the capital and seat of government, many federal government ministries have secondary seats in state capital cities, as do the Governor-General",
+              "Australia's capital city; the newly created city of Canberra ultimately filled this role. Six Australian Prime Ministers have been born in Sydney, more than any other city, including first Prime Minister Edmund Barton and Malcolm Turnbull. Education became a proper focus"
+            ]
+          ],
+          "question": "What is the capital city of Australia?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "Romeo and Juliet",
+          "context": [
+            [
+              "Pyramus and Thisbe, the mistaken belief in one lover's death leads to consecutive suicides. The earliest version of Romeo and Juliet was published in 1476 by Masuccio Salernitano, while it mostly obtained its present form when written down in 1524 by Luigi da Porto. Salernitano and Da Porto both are thought to have been inspired by Ovid and Boccaccio's writing. Shakespeare's",
+              "Romeo and Juliet\"\" The film's love theme was widely disseminated, notably in \"Our Tune\", a segment of the British Broadcasting Corporation (BBC)'s disc jockey Simon Bates's radio show. In addition, various versions of the theme have been recorded and released, including a highly successful one by Henry Mancini, whose instrumental rendition was a Number One success in the United",
+              "Romeo and Juliet Romeo and Juliet is a tragedy written by William Shakespeare early in his career about two young star-crossed lovers whose deaths ultimately reconcile their feuding families. It was among Shakespeare's most popular plays during his lifetime and along with \"Hamlet\", is one of his most frequently performed plays. Today, the title characters are regarded as"
+            ]
+          ],
+          "question": "Who wrote Romeo and Juliet?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "the discovery of penicillin",
+          "context": [
+            [
+              "\u2013 to form what we today know as penicillin. In 1940, penicillin became available for medicinal use to treat bacterial infections in humans. The field of modern biotechnology is generally thought of as having been born in 1971 when Paul Berg's (Stanford) experiments in gene splicing had early success. Herbert W. Boyer (Univ. Calif. at San Francisco) and Stanley N. Cohen",
+              "penicillin led to renewed interest in the search for antibiotic compounds with similar efficacy and safety. For their successful development of penicillin, which Fleming had accidentally discovered but could not develop himself, as a therapeutic drug, Chain and Florey shared the 1945 Nobel Prize in Medicine with Fleming. Florey credited Rene Dubos with pioneering the approach",
+              "transforming the laboratory curiosity into a practical drug. Fleming was the first to discover the properties of the active substance, giving him the privilege of naming it: penicillin. He also kept, grew, and distributed the original mould for twelve"
+            ]
+          ],
+          "question": "Who discovered penicillin?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "the main component of the sun",
+          "context": [
+            [
+              "instead, energy is required as input for such processes. Fusion powers stars and produces virtually all elements in a process called nucleosynthesis. The Sun is a main-sequence star, and, as such, generates its energy by nuclear fusion of hydrogen nuclei",
+              "converting 4 million tons of matter into energy every second as a result. This energy, which can take between 10,000 and 170,000 years to escape from its core, is the source of the Sun's light and heat.",
+              "sun, but with a range of temperatures, masses and sizes. The existence of our galaxy, the Milky Way, as a separate group of stars was only proven in the 20th century, along with the existence of \"external\" galaxies, and soon after, the"
+            ]
+          ],
+          "question": "What is the main component of the sun?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "first practical telephone",
+          "context": [
+            [
+              "from time to time. Charles Bourseul, Antonio Meucci, Johann Philipp Reis, Alexander Graham Bell, and Elisha Gray, amongst others, have all been credited with the invention of the telephone. Alexander Graham Bell was the first to be awarded a patent for the electric telephone by",
+              "Alexander Graham Bell Alexander Graham Bell (March 3, 1847 \u2013 August 2, 1922) was a Scottish-born scientist, inventor, engineer, and innovator who is credited with inventing and patenting the first practical telephone. He also founded the American Telephone and Telegraph Company (AT&T) in 1885. Bell's father, grandfather, and brother had all been associated with work on",
+              "his grandchildren. \"U.S. patent images in TIFF format\" Alexander Graham Bell Alexander Graham Bell (March 3, 1847 \u2013 August 2, 1922) was a Scottish-born scientist, inventor, engineer, and innovator who is credited with inventing and patenting the first practical telephone. He also founded the American Telephone and Telegraph Company (AT&T) in 1885. Bell's father, grandfather,"
+            ]
+          ],
+          "question": "Who invented the telephone?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "English language",
+          "context": [
+            [
+              "Alice's Adventures in Wonderland Alice's Adventures in Wonderland (commonly shortened to Alice in Wonderland) is an 1865 novel written by English author Charles Lutwidge Dodgson under the pseudonym Lewis Carroll. It tells of a girl named Alice falling through a rabbit hole into a fantasy world populated by peculiar, anthropomorphic creatures. The tale plays with logic, giving",
+              "the Kate Greenaway Medal in 2000, for her work; and DeLoss McGraw (2001), with his abstract illustrations. Alice (Alice's Adventures in Wonderland) Alice is a fictional character and protagonist of Lewis Carroll's children's novel \"Alice's Adventures in Wonderland\" (1865) and its sequel, \"Through the Looking-Glass\" (1871). A child in the mid-Victorian era, Alice unintentionally",
+              "Wonderland\" by Lewis Carroll (Charles Lutwidge Dodgson). The Dodo is a caricature of the author. A popular but unsubstantiated belief is that Dodgson chose the particular animal to represent himself because of his stammer,"
+            ]
+          ],
+          "question": "Who wrote 'Alice's Adventures in Wonderland'?",
+          "use_retrieval": true
+        }
+      ],
+      "finetuned_qe_finetuned_gen": [
+        {
+          "answer": "in 1988), which now airs on the Sci-Fi Channel",
+          "context": [
+            [
+              "in the TV series. Carl Macek revealed ideas for another proposed series, \"Robotech: The Odyssey\", which would have picked up where \"The New Generation\" and end of \"Robotech: The Sentinels\" left off, and eventually created a circular storyline that would",
+              "long-established",
+              "Additionally, one"
+            ]
+          ],
+          "question": "Who painted the Mona Lisa?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "in 1988), which now",
+          "context": [
+            [
+              "Additionally, one",
+              "on a career as a theatre producer, and Dalma was seeking an acting career; she had expressed her desire to attend the Actor's Studio in Los Angeles. Maradona's relationship with his immediate family was a close one, and in a 1990 interview with \"Sports Illustrated\" he showed phone bills where he had spent a minimum of 15,000 US dollars per month calling his parents and",
+              "in the TV series. Carl Macek revealed ideas for another proposed series, \"Robotech: The Odyssey\", which would have picked up where \"The New Generation\" and end of \"Robotech: The Sentinels\" left off, and eventually created a circular storyline that would"
+            ]
+          ],
+          "question": "Who was the first woman to win a Nobel Prize?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "Paris, France",
+          "context": [
+            [
+              "in 1988), which now",
+              "long-established",
+              "Additionally, one"
+            ]
+          ],
+          "question": "What is the capital of France?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "in the TV series. On the first episode of the fourth season, \"The New Generation\"",
+          "context": [
+            [
+              "Additionally, one",
+              "in 1988), which now",
+              "in the TV series. Carl Macek revealed ideas for another proposed series, \"Robotech: The Odyssey\", which would have picked up where \"The New Generation\" and end of \"Robotech: The Sentinels\" left off, and eventually created a circular storyline that would"
+            ]
+          ],
+          "question": "When was the Declaration of Independence signed?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "in the TV series. The Low-Energy Charged Particle Instrument is currently operational, and data from this instrument concerning charged particles is being transmitted to Earth. This data permits measurements of the heliosheath and termination shock. There has also been a modification to the on-board flight software to delay turning off the AP Branch 2 backup heater for one year.",
+          "context": [
+            [
+              "Additionally, one",
+              "leads to a catastrophic shutdown of the park's power facilities and security precautions, a small group of visitors, and Hammond's grandchildren, struggle to survive and escape the perilous island. Before Crichton's novel was published, four studios put in bids for its film rights. With the backing of Universal Studios, Spielberg acquired the rights for $1.5 million before its",
+              "in 1988), which now"
+            ]
+          ],
+          "question": "What is the capital city of Australia?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "at the end of the film",
+          "context": [
+            [
+              "Additionally, one",
+              "Academy Awards, O\u2019Toole was nominated for the Academy Award for Best Actor, and he won the Golden Globe Award for Best Actor in a Musical or Comedy. In 1984 it was adapted as a television serial by the BBC. It starred Roy Marsden and Jill Meager and ran for six half-hour episodes. Many scenes were filmed at Repton School, Derbyshire, in an effort to remain faithful to the",
+              "in the TV series. Carl Macek revealed ideas for another proposed series, \"Robotech: The Odyssey\", which would have picked up where \"The New Generation\" and end of \"Robotech: The Sentinels\" left off, and eventually created a circular storyline that would"
+            ]
+          ],
+          "question": "Who wrote Romeo and Juliet?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "in 1988), which now",
+          "context": [
+            [
+              "in 1988), which now",
+              "American King\u2013Crane Commission of Enquiry consultation of the local population \u2013 from which the British had withdrawn \u2013 were suppressed for three years until the report was leaked in 1922. Subsequent British governments have acknowledged this deficiency, in particular the 1939 committee",
+              "Additionally, one"
+            ]
+          ],
+          "question": "Who discovered penicillin?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "automated solar wind",
+          "context": [
+            [
+              "Additionally, one",
+              "in the TV series. Carl Macek revealed ideas for another proposed series, \"Robotech: The Odyssey\", which would have picked up where \"The New Generation\" and end of \"Robotech: The Sentinels\" left off, and eventually created a circular storyline that would",
+              "its use. The Low-Energy Charged Particle Instrument is currently operational, and data from this instrument concerning charged particles is being transmitted to Earth. This data permits measurements of the heliosheath and termination shock. There has also been a modification to the on-board flight software to delay turning off the AP Branch 2 backup heater for one year. It was"
+            ]
+          ],
+          "question": "What is the main component of the sun?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "in 1988), which now",
+          "context": [
+            [
+              "in 1988), which now",
+              "long-established",
+              "Additionally, one"
+            ]
+          ],
+          "question": "Who invented the telephone?",
+          "use_retrieval": true
+        },
+        {
+          "answer": "at the 1988 Academy Awards",
+          "context": [
+            [
+              "Additionally, one",
+              "in 1988), which now",
+              "in the TV series. Carl Macek revealed ideas for another proposed series, \"Robotech: The Odyssey\", which would have picked up where \"The New Generation\" and end of \"Robotech: The Sentinels\" left off, and eventually created a circular storyline that would"
+            ]
+          ],
+          "question": "Who wrote 'Alice's Adventures in Wonderland'?",
+          "use_retrieval": true
+        }
+      ]
+    },
+    "_test_questions": [
+      "Who painted the Mona Lisa?",
+      "Who was the first woman to win a Nobel Prize?",
+      "What is the capital of France?",
+      "When was the Declaration of Independence signed?",
+      "What is the capital city of Australia?",
+      "Who wrote Romeo and Juliet?",
+      "Who discovered penicillin?",
+      "What is the main component of the sun?",
+      "Who invented the telephone?",
+      "Who wrote 'Alice's Adventures in Wonderland'?"
+    ]
+  }
+}
