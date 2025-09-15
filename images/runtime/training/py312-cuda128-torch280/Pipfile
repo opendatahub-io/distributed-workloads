@@ -3,8 +3,13 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[[source]]
+url = "https://download.pytorch.org/whl/cu128"
+verify_ssl = true
+name = "pytorch-cu128"
+
 [packages]
-torch = "==2.8.0"
+torch = {version = "==2.8.0", index = "pytorch-cu128"}
 accelerate = "==1.10.0" 
 transformers = "==4.55.2"
 peft = "==0.17.0"
@@ -25,7 +30,6 @@ liger-kernel = "==0.5.4"
 sentencepiece = "<0.3,>=0.1.99"
 tokenizers = "==0.21.4"
 "training-hub" = {git = "https://github.com/Red-Hat-AI-Innovation-Team/training_hub.git", ref = "main", editable = true}
-triton = "==3.4.0"
 trl = "==0.21.0"
 deepspeed = ">=0.14.3"
 async-timeout = "==4.0.3"
