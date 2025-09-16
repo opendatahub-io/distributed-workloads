@@ -32,7 +32,7 @@ spec:
   - name: path-context
     value: images/runtime/ray/cuda
   taskRunSpecs:
-    - pipelineTaskName: build-container
+    - pipelineTaskName: build-images
       stepSpecs:
         - name: build
           computeResources:
