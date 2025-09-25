@@ -1,0 +1,119 @@
+# This workflow handles "/approve" comments on PRs with "lake-gate" label
+# It performs a fast-forward merge of the stable branch to point to the same commit as the temporary branch
+#
+# This workflow uses the built-in GITHUB_TOKEN with the required permissions set below.
+
+name: Approve Lake Gate PR
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  approve-lake-gate:
+    runs-on: ubuntu-latest
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/approve') && contains(github.event.issue.labels.*.name, 'lake-gate') && github.event.comment.author_association == 'OWNER'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Configure Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Get PR details and perform fast-forward merge
+      run: |
+        set -euo pipefail
+        PR_NUMBER="${{ github.event.issue.number }}"
+        
+        # Get PR details
+        PR_DATA=$(gh pr view "$PR_NUMBER" --json headRefName,baseRefName)
+        HEAD_BRANCH=$(echo "$PR_DATA" | jq -r '.headRefName')
+        BASE_BRANCH=$(echo "$PR_DATA" | jq -r '.baseRefName')
+        
+        echo "PR #$PR_NUMBER details:"
+        echo "  Head branch: $HEAD_BRANCH"
+        echo "  Base branch: $BASE_BRANCH"
+        
+        # Ensure we're working with the stable branch as base
+        if [ "$BASE_BRANCH" != "stable" ]; then
+          echo "Error: PR base branch is not 'stable'. Expected 'stable', got '$BASE_BRANCH'"
+          exit 1
+        fi
+        
+        # Fetch all refs
+        git fetch origin
+        
+        # Switch to and update stable branch
+        git switch stable
+        git reset --hard origin/stable
+        
+        # Switch to the temporary branch from the PR
+        git switch "$HEAD_BRANCH"
+        git reset --hard origin/"$HEAD_BRANCH"
+        
+        # Get the commit that the temporary branch points to
+        TEMP_BRANCH_COMMIT=$(git rev-parse HEAD)
+        echo "Temporary branch commit: $TEMP_BRANCH_COMMIT"
+        
+        # Switch back to stable and perform fast-forward merge
+        git switch stable
+        
+        # Check if we can fast-forward merge
+        if git merge-base --is-ancestor stable "$TEMP_BRANCH_COMMIT"; then
+          echo "Performing fast-forward merge of stable to $TEMP_BRANCH_COMMIT"
+          git reset --hard "$TEMP_BRANCH_COMMIT"
+          
+          # Push the updated stable branch
+          git push origin stable
+          
+          echo "✅ Successfully fast-forwarded stable branch to commit $TEMP_BRANCH_COMMIT"
+          
+          # Wait a moment for GitHub to process the push
+          sleep 2
+          
+          # Check PR status and close if still open
+          PR_STATE=$(gh pr view "$PR_NUMBER" --json state --jq '.state')
+          if [ "$PR_STATE" = "OPEN" ]; then
+            echo "PR is still open, closing it manually..."
+            gh pr close "$PR_NUMBER" --comment "✅ Approved and merged! The stable branch has been fast-forwarded to point to the same commit as this temporary branch."
+          else
+            echo "PR was automatically closed by GitHub (state: $PR_STATE)"
+            # Add a comment to the already-closed PR
+            gh pr comment "$PR_NUMBER" --body "✅ Approved and merged! The stable branch has been fast-forwarded to point to the same commit as this temporary branch."
+          fi
+          
+          # Clean up the temporary branch after some delay
+          sleep 5  # Brief pause to ensure PR operations complete
+          echo "Cleaning up temporary branch: $HEAD_BRANCH"
+
+          # Guard: Only delete branches that match the expected lake-gate pattern
+          if [[ "$HEAD_BRANCH" =~ ^lake-gate- ]]; then
+            echo "Branch matches lake-gate pattern, proceeding with deletion..."
+            git push origin --delete "$HEAD_BRANCH" || {
+              echo "Warning: Failed to delete branch $HEAD_BRANCH (it may have already been deleted)"
+            }
+          else
+            echo "Warning: Branch '$HEAD_BRANCH' does not match expected lake-gate pattern (lake-gate-*). Skipping deletion to prevent accidental removal of non-lake-gate branches."
+          fi
+          
+        else
+          echo "Error: Cannot fast-forward merge. The stable branch is not an ancestor of the temporary branch commit."
+          gh pr comment "$PR_NUMBER" --body "❌ Cannot approve: Fast-forward merge is not possible. The stable branch is not an ancestor of the temporary branch. Please rebase or recreate the PR."
+          exit 1
+        fi
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Summary
+      run: |
+        echo "✅ Lake-gate PR approved and merged successfully via fast-forward merge."
