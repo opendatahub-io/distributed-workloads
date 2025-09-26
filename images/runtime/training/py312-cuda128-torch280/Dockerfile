@@ -82,10 +82,6 @@ RUN micropipenv install -- --no-cache-dir && \
     chmod -R g+w /opt/app-root/lib/python3.12/site-packages && \
     fix-permissions /opt/app-root -P
 
-# Install Flash Attention
-RUN pip install wheel
-RUN pip install --no-cache-dir flash-attn==2.8.3 --no-build-isolation
-
 # Upgrade NCCL to a more recent version and add Training Hub NVIDIA dependencies
 RUN pip install \
     nvidia-nccl-cu12==2.27.3 \
