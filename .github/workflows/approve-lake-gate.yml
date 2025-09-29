@@ -16,7 +16,7 @@ permissions:
 jobs:
   approve-lake-gate:
     runs-on: ubuntu-latest
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '/approve') && contains(github.event.issue.labels.*.name, 'lake-gate') && github.event.comment.author_association == 'OWNER'
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/approve') && contains(github.event.issue.labels.*.name, 'lake-gate')
     
     steps:
     - name: Checkout repository
@@ -24,6 +24,40 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Disallow forks
+      run: |
+        set -euo pipefail
+        PR_NUMBER="${{ github.event.issue.number }}"
+        IS_CROSS=$(gh pr view "$PR_NUMBER" --json isCrossRepository --jq '.isCrossRepository')
+        if [ "$IS_CROSS" = "true" ]; then
+          gh pr comment "$PR_NUMBER" --body "❌ Cannot approve: fork-based PRs are not supported for lake-gate. Please open the PR from a branch in the main repository."
+          exit 1
+        fi
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Check if user is authorized to approve
+      run: |
+        set -euo pipefail
+        COMMENT_USER="${{ github.event.comment.user.login }}"
+        echo "Checking authorization for user: $COMMENT_USER"
+
+        # Check if the user is in the approve-lake-gate alias in OWNERS_ALIASES file
+        if yq eval '.aliases.approve-lake-gate[] | select(. == "'${COMMENT_USER}'")' OWNERS_ALIASES | grep -q "${COMMENT_USER}"; then
+          echo "✅ User ${COMMENT_USER} is authorized to approve lake-gate PRs"
+        else
+          echo "❌ User ${COMMENT_USER} is not authorized to approve lake-gate PRs"
+
+          # Show available approvers for debugging
+          echo "Available approve-lake-gate users:"
+          yq eval '.aliases.approve-lake-gate[]' OWNERS_ALIASES || echo "No approve-lake-gate alias found"
+
+          gh pr comment "${{ github.event.issue.number }}" --body "❌ @${COMMENT_USER} is not authorized to approve lake-gate PRs. Only users listed in the approve-lake-gate alias in OWNERS_ALIASES file can approve."
+          exit 1
+        fi
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Configure Git
       run: |
