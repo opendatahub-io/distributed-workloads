@@ -1,0 +1,49 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[[source]]
+url = "https://download.pytorch.org/whl/rocm6.4"
+verify_ssl = true
+name = "pytorch-rocm64"
+
+[packages]
+peft = "==0.17.0"
+datasets = "==4.0.0"
+liger-kernel = "==0.5.10"
+transformers = "==4.55.2"
+numpy = "<2.0.0,>=1.23.5"
+accelerate = "==1.10.0"
+torch = {version = "==2.8.0", index = "pytorch-rocm64"}
+pytorch-triton-rocm = {version = "*", index = "pytorch-rocm64"}
+sentencepiece = "<0.3,>=0.1.99"
+tokenizers = "==0.21.4"
+training-hub = "==0.2.0"
+# Training Hub doesn't provide ROCm dependencies, so we list them explicitly.
+instructlab-training = {version = ">=0.12.0", extras = ["rocm"]}
+rhai-innovation-mini-trainer = ">=0.2.0"
+einops = ">=0.8"
+kernels = ">=0.9.0"
+# End of Training Hub dependencies
+tqdm = "==4.67.1"
+trl = "==0.21.0"
+protobuf = "<6.0.0,>=5.28.0"
+simpleeval = "<1.0,>=0.9.13"
+safetensors = "==0.6.2"
+packaging = "==25.0"
+pyyaml = "==6.0.2"
+py-cpuinfo = "==9.0.0"
+numba = "==0.61.2"
+rich = "==14.1.0"
+instructlab-dolomite = ">=0.1.1"
+pydantic = ">=2.11.7"
+deepspeed = ">=0.14.3"
+aiofiles = "==24.1.0"
+async-timeout = "==4.0.3"
+tensorboard = "2.19.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
