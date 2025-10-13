@@ -23,12 +23,9 @@ import (
 
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	gomega "github.com/onsi/gomega"
-	awv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
@@ -86,73 +83,4 @@ func GetTestJobId(test support.Test, rayClient support.RayClusterClient) string 
 func uniqueSuffix(prefix string) string {
 	suffix := gonanoid.MustGenerate("1234567890abcdef", 4)
 	return prefix + "-" + suffix
-}
-
-func newAppWrapperWithRayCluster(awName string, rcName string, namespace string) *awv1beta2.AppWrapper {
-	return &awv1beta2.AppWrapper{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "workload.codeflare.dev/v1beta2",
-			Kind:       "AppWrapper",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      awName,
-			Namespace: namespace,
-		},
-		Spec: awv1beta2.AppWrapperSpec{
-			Components: []awv1beta2.AppWrapperComponent{
-				{
-					Template: runtime.RawExtension{
-						Object: &rayv1.RayCluster{
-							TypeMeta: metav1.TypeMeta{
-								APIVersion: "ray.io/v1",
-								Kind:       "RayCluster",
-							},
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      rcName,
-								Namespace: namespace,
-							},
-							Spec: rayv1.RayClusterSpec{
-								HeadGroupSpec: rayv1.HeadGroupSpec{
-									RayStartParams: map[string]string{},
-									Template: v1.PodTemplateSpec{
-										Spec: v1.PodSpec{
-											Containers: []v1.Container{
-												{
-													Name:  "ray-head",
-													Image: "rayproject/ray:latest",
-													Ports: []v1.ContainerPort{
-														{
-															Name:          "redis",
-															ContainerPort: 6379,
-														},
-													},
-												},
-											},
-										},
-									},
-								},
-								WorkerGroupSpecs: []rayv1.WorkerGroupSpec{
-									{
-										GroupName:      "workers",
-										Replicas:       support.Ptr(int32(1)),
-										RayStartParams: map[string]string{},
-										Template: v1.PodTemplateSpec{
-											Spec: v1.PodSpec{
-												Containers: []v1.Container{
-													{
-														Name:  "ray-worker",
-														Image: "rayproject/ray:latest",
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
 }
