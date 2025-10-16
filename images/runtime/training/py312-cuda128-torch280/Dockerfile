@@ -33,7 +33,7 @@ ENV CUDA_VERSION=12.8.0 \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility \
     NV_CUDA_CUDART_VERSION=12.8.57-1 \
     NV_CUDA_COMPAT_VERSION=3:570.172.08-1.el9 \
-    NV_CUDA_NVCC_VERSION=12.8.61-1
+    NV_CUDA_NVCC_VERSION=12.8.93-1
 
 # Ref: https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.8.0/ubi9/base/Dockerfile
 # nvcc is required for Flash Attention
@@ -43,6 +43,9 @@ RUN dnf config-manager \
      --disablerepo=rhel-9-for-x86_64-baseos-rpms \
      --disablerepo=rhel-9-for-x86_64-appstream-rpms \
      cuda-cudart-12-8-${NV_CUDA_CUDART_VERSION} \
+     cuda-cudart-devel-12-8-${NV_CUDA_CUDART_VERSION} \
+     cuda-libraries-devel-12-8-${NV_CUDA_LIB_VERSION} \
+     cuda-compiler-12-8 \
      cuda-compat-12-8-${NV_CUDA_COMPAT_VERSION} \
      cuda-nvcc-12-8-${NV_CUDA_NVCC_VERSION} \
  && echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf \
