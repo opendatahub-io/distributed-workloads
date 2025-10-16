@@ -33,7 +33,7 @@ ENV CUDA_VERSION=12.8.0 \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility \
     NV_CUDA_CUDART_VERSION=12.8.57-1 \
     NV_CUDA_COMPAT_VERSION=3:570.172.08-1.el9 \
-    NV_CUDA_NVCC_VERSION=12.8.61-1
+    NV_CUDA_NVCC_VERSION=12.8.93-1
 
 # Ref: https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.8.0/ubi9/base/Dockerfile
 # nvcc is required for Flash Attention
@@ -43,11 +43,23 @@ RUN dnf config-manager \
      --disablerepo=rhel-9-for-x86_64-baseos-rpms \
      --disablerepo=rhel-9-for-x86_64-appstream-rpms \
      cuda-cudart-12-8-${NV_CUDA_CUDART_VERSION} \
+     cuda-cudart-devel-12-8-${NV_CUDA_CUDART_VERSION} \
+     cuda-libraries-devel-12-8-${NV_CUDA_LIB_VERSION} \
+     cuda-compiler-12-8 \
      cuda-compat-12-8-${NV_CUDA_COMPAT_VERSION} \
      cuda-nvcc-12-8-${NV_CUDA_NVCC_VERSION} \
  && echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf \
  && echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf \
  && dnf clean all
+
+# Add build tools for compiling PyTorch extensions
+RUN dnf install -y --disablerepo="*" --enablerepo="ubi-9-appstream-rpms,ubi-9-baseos-rpms" \
+        gcc-c++ \
+        make \
+        cmake \
+        git \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf/*
 
 ENV CUDA_HOME="/usr/local/cuda" \
  PATH="/usr/local/nvidia/bin:${CUDA_HOME}/bin:${PATH}" \
@@ -68,20 +80,6 @@ RUN dnf install -y --disablerepo="*" --enablerepo="cuda-rhel9-x86_64,mlnx_ofed_2
     && dnf clean all \
     && rm -rf /var/cache/dnf/*
 
-# Install Python packages
-
-# Install micropipenv to deploy packages from Pipfile.lock
-RUN pip install --no-cache-dir -U "micropipenv[toml]"
-
-# Install Python dependencies from Pipfile.lock file
-COPY Pipfile.lock ./
-
-RUN micropipenv install -- --no-cache-dir && \
-    rm -f ./Pipfile.lock && \
-    # Fix permissions to support pip in OpenShift environments \
-    chmod -R g+w /opt/app-root/lib/python3.12/site-packages && \
-    fix-permissions /opt/app-root -P
-
 # Upgrade NCCL to a more recent version and add Training Hub NVIDIA dependencies
 RUN pip install \
     nvidia-nccl-cu12==2.27.3 \
@@ -98,7 +96,34 @@ RUN pip install \
     nvidia-cusparselt-cu12==0.7.1 \
     nvidia-nvjitlink-cu12==12.8.93 \
     nvidia-nvtx-cu12==12.8.90 \
- && fix-permissions /opt/app-root -P
+    && fix-permissions /opt/app-root -P
+
+# Ensure cuDNN from pip is discoverable during source builds
+ENV LD_LIBRARY_PATH="/opt/app-root/lib/python3.12/site-packages/nvidia/cudnn/lib:${LD_LIBRARY_PATH}"
+# Install Python packages
+
+# Install micropipenv to deploy packages from Pipfile.lock
+RUN pip install --no-cache-dir -U "micropipenv[toml]"
+
+# Install Python dependencies from Pipfile.lock file
+COPY Pipfile.lock ./
+
+RUN micropipenv install -- --no-cache-dir && \
+    rm -f ./Pipfile.lock && \
+    # Fix permissions to support pip in OpenShift environments \
+    chmod -R g+w /opt/app-root/lib/python3.12/site-packages && \
+    fix-permissions /opt/app-root -P
+
+# Build helpers to compile PyTorch extensions
+RUN pip install -U pip setuptools wheel ninja cmake
+
+# Optional: set GPU archs if you hit arch issues
+ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0"
+
+# Deterministic 2-step: sub-dep first, then parent without deps
+RUN pip install --no-build-isolation --no-cache-dir causal-conv1d==1.5.3.post1 && \
+    pip install --no-build-isolation --no-cache-dir mamba-ssm==2.2.6.post3 --no-deps && \
+    fix-permissions /opt/app-root -P
 
 # Restore user workspace
 USER 1001
