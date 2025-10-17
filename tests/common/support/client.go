@@ -17,6 +17,7 @@ limitations under the License.
 package support
 
 import (
+	trainerclient "github.com/kubeflow/trainer/v2/pkg/client/clientset/versioned"
 	kubeflowclient "github.com/kubeflow/training-operator/pkg/client/clientset/versioned"
 	rayclient "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned"
 
@@ -37,6 +38,7 @@ import (
 
 type Client interface {
 	Core() kubernetes.Interface
+	Trainer() trainerclient.Interface
 	Kubeflow() kubeflowclient.Interface
 	Kueue() kueueclient.Interface
 	Machine() machinev1.Interface
@@ -49,6 +51,7 @@ type Client interface {
 
 type testClient struct {
 	core     kubernetes.Interface
+	trainer  trainerclient.Interface
 	kubeflow kubeflowclient.Interface
 	kueue    kueueclient.Interface
 	machine  machinev1.Interface
@@ -63,6 +66,10 @@ var _ Client = (*testClient)(nil)
 
 func (t *testClient) Core() kubernetes.Interface {
 	return t.core
+}
+
+func (t *testClient) Trainer() trainerclient.Interface {
+	return t.trainer
 }
 
 func (t *testClient) Kubeflow() kubeflowclient.Interface {
@@ -114,6 +121,11 @@ func newTestClient(cfg *rest.Config) (Client, *rest.Config, error) {
 		return nil, nil, err
 	}
 
+	trainerClient, err := trainerclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	kubeflowClient, err := kubeflowclient.NewForConfig(cfg)
 	if err != nil {
 		return nil, nil, err
@@ -156,6 +168,7 @@ func newTestClient(cfg *rest.Config) (Client, *rest.Config, error) {
 
 	return &testClient{
 		core:     kubeClient,
+		trainer:  trainerClient,
 		kubeflow: kubeflowClient,
 		kueue:    kueueClient,
 		machine:  machineClient,
