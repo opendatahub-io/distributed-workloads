@@ -118,7 +118,7 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelName string, modelC
 	// Gracefully cleanup Notebook
 	defer func() {
 		DeleteNotebook(test, namespace)
-		test.Eventually(ListNotebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		test.Eventually(Notebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
 	}()
 
 	// Make sure the RayCluster is created and running

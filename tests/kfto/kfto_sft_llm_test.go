@@ -178,7 +178,7 @@ func kftoSftLlm(t *testing.T, image string, gpu Accelerator, modelName string) {
 	// Gracefully cleanup Notebook
 	defer func() {
 		DeleteNotebook(test, namespace)
-		test.Eventually(ListNotebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		test.Eventually(Notebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
 	}()
 
 	test.T().Logf("Wait for pytorch job to start running ...")

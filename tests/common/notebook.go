@@ -189,14 +189,16 @@ func DeleteNotebook(test Test, namespace *corev1.Namespace) {
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
-func ListNotebooks(test Test, namespace *corev1.Namespace) []*unstructured.Unstructured {
-	ntbs, err := test.Client().Dynamic().Resource(notebookResource).Namespace(namespace.Name).List(test.Ctx(), metav1.ListOptions{})
-	test.Expect(err).NotTo(gomega.HaveOccurred())
+func Notebooks(test Test, namespace *corev1.Namespace) func(g gomega.Gomega) []*unstructured.Unstructured {
+	return func(g gomega.Gomega) []*unstructured.Unstructured {
+		ntbs, err := test.Client().Dynamic().Resource(notebookResource).Namespace(namespace.Name).List(test.Ctx(), metav1.ListOptions{})
+		g.Expect(err).NotTo(gomega.HaveOccurred())
 
-	ntbsp := []*unstructured.Unstructured{}
-	for _, v := range ntbs.Items {
-		ntbsp = append(ntbsp, &v)
+		ntbsp := []*unstructured.Unstructured{}
+		for _, v := range ntbs.Items {
+			ntbsp = append(ntbsp, &v)
+		}
+
+		return ntbsp
 	}
-
-	return ntbsp
 }

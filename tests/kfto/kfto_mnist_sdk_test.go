@@ -120,7 +120,7 @@ func runMnistSDK(t *testing.T, trainingImage string) {
 	// Gracefully cleanup Notebook
 	defer func() {
 		DeleteNotebook(test, namespace)
-		test.Eventually(ListNotebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		test.Eventually(Notebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
 	}()
 
 	// Make sure pytorch job is created

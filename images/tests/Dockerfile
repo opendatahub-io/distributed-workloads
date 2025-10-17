@@ -1,5 +1,5 @@
 # Use the official Go image as a base image
-FROM golang:1.23
+FROM golang:1.24
 
 ENV KUBECONFIG=/distributed-workloads/tests/.kube/config
 
@@ -17,7 +17,7 @@ COPY go.mod go.sum ./
 
 # Download all dependencies
 RUN go mod download && \
-    go install gotest.tools/gotestsum@latest
+    go install gotest.tools/gotestsum@v1.13
 
 WORKDIR /distributed-workloads/tests
 
