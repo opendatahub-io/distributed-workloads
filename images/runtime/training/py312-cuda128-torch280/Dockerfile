@@ -45,7 +45,6 @@ RUN dnf config-manager \
      cuda-cudart-12-8-${NV_CUDA_CUDART_VERSION} \
      cuda-cudart-devel-12-8-${NV_CUDA_CUDART_VERSION} \
      cuda-libraries-devel-12-8-${NV_CUDA_LIB_VERSION} \
-     cuda-compiler-12-8 \
      cuda-compat-12-8-${NV_CUDA_COMPAT_VERSION} \
      cuda-nvcc-12-8-${NV_CUDA_NVCC_VERSION} \
  && echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf \
