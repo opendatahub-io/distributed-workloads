@@ -53,6 +53,11 @@ func TestPyTorchJobMnistMultiNodeSingleGpuWithCudaPyTorch251(t *testing.T) {
 	runKFTOPyTorchMnistJob(t, NVIDIA, GetTrainingCudaPyTorch251Image(), "resources/requirements.txt", 1, 1)
 }
 
+func TestPyTorchJobMnistMultiNodeSingleGpuWithCudaPyTorch28(t *testing.T) {
+	Tags(t, KftoCuda)
+	runKFTOPyTorchMnistJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 1, 1)
+}
+
 func TestPyTorchJobMnistMultiNodeMultiGpuWithCudaPyTorch241(t *testing.T) {
 	Tags(t, KftoCuda)
 	runKFTOPyTorchMnistJob(t, NVIDIA, GetTrainingCudaPyTorch241Image(), "resources/requirements.txt", 1, 2)
@@ -61,6 +66,11 @@ func TestPyTorchJobMnistMultiNodeMultiGpuWithCudaPyTorch241(t *testing.T) {
 func TestPyTorchJobMnistMultiNodeMultiGpuWithCudaPyTorch251(t *testing.T) {
 	Tags(t, KftoCuda)
 	runKFTOPyTorchMnistJob(t, NVIDIA, GetTrainingCudaPyTorch251Image(), "resources/requirements.txt", 1, 2)
+}
+
+func TestPyTorchJobMnistMultiNodeMultiGpuWithCudaPyTorch28(t *testing.T) {
+	Tags(t, KftoCuda)
+	runKFTOPyTorchMnistJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 1, 2)
 }
 
 func TestPyTorchJobMnistMultiNodeSingleGpuWithROCmPyTorch241(t *testing.T) {
@@ -81,6 +91,11 @@ func TestPyTorchJobMnistMultiNodeMultiGpuWithROCmPyTorch241(t *testing.T) {
 func TestPyTorchJobMnistMultiNodeMultiGpuWithROCmPyTorch251(t *testing.T) {
 	Tags(t, KftoRocm)
 	runKFTOPyTorchMnistJob(t, AMD, GetTrainingROCmPyTorch251Image(), "resources/requirements-rocm.txt", 1, 2)
+}
+
+func TestPyTorchJobMnistMultiNodeMultiGpuWithROCmPyTorch28(t *testing.T) {
+	Tags(t, KftoRocm)
+	runKFTOPyTorchMnistJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 1, 2)
 }
 
 func runKFTOPyTorchMnistJob(t *testing.T, accelerator Accelerator, image string, requirementsFile string, workerReplicas, numProcPerNode int) {
@@ -229,7 +244,7 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 								{
 									Name:            "pytorch",
 									Image:           baseImage,
-									ImagePullPolicy: corev1.PullIfNotPresent,
+									ImagePullPolicy: corev1.PullAlways,
 									Command: []string{
 										"/bin/bash", "-c",
 										fmt.Sprintf(`mkdir -p /tmp/lib /tmp/datasets/mnist && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \
@@ -325,7 +340,7 @@ func createKFTOPyTorchMnistJob(test Test, namespace string, config corev1.Config
 								{
 									Name:            "pytorch",
 									Image:           baseImage,
-									ImagePullPolicy: corev1.PullIfNotPresent,
+									ImagePullPolicy: corev1.PullAlways,
 									Command: []string{
 										"/bin/bash", "-c",
 										fmt.Sprintf(`mkdir -p /tmp/lib /tmp/datasets/mnist && export PYTHONPATH=$PYTHONPATH:/tmp/lib && \

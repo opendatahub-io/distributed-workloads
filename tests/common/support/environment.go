@@ -29,8 +29,10 @@ const (
 	TestPyTorchImage                = "TEST_PYTORCH_IMAGE"
 	TestTrainingCudaPyTorch241Image = "TEST_TRAINING_CUDA_PYTORCH_241_IMAGE"
 	TestTrainingCudaPyTorch251Image = "TEST_TRAINING_CUDA_PYTORCH_251_IMAGE"
+	TestTrainingCudaPyTorch28Image  = "TEST_TRAINING_CUDA_PYTORCH_28_IMAGE"
 	TestTrainingRocmPyTorch241Image = "TEST_TRAINING_ROCM_PYTORCH_241_IMAGE"
 	TestTrainingRocmPyTorch251Image = "TEST_TRAINING_ROCM_PYTORCH_251_IMAGE"
+	TestTrainingRocmPyTorch28Image  = "TEST_TRAINING_ROCM_PYTORCH_28_IMAGE"
 
 	// The testing output directory, to write output files into.
 	TestOutputDir = "TEST_OUTPUT_DIR"
@@ -98,12 +100,20 @@ func GetTrainingCudaPyTorch251Image() string {
 	return lookupEnvOrDefault(TestTrainingCudaPyTorch251Image, TrainingCudaPyTorch251Image)
 }
 
+func GetTrainingCudaPyTorch28Image() string {
+	return lookupEnvOrDefault(TestTrainingCudaPyTorch28Image, TrainingCudaPyTorch28Image)
+}
+
 func GetTrainingROCmPyTorch241Image() string {
 	return lookupEnvOrDefault(TestTrainingRocmPyTorch241Image, TrainingRocmPyTorch241Image)
 }
 
 func GetTrainingROCmPyTorch251Image() string {
 	return lookupEnvOrDefault(TestTrainingRocmPyTorch251Image, TrainingRocmPyTorch251Image)
+}
+
+func GetTrainingRocmPyTorch28Image() string {
+	return lookupEnvOrDefault(TestTrainingRocmPyTorch28Image, TrainingRocmPyTorch28Image)
 }
 
 func GetClusterType(t Test) ClusterType {
