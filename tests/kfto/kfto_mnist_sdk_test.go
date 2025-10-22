@@ -45,6 +45,11 @@ func TestMnistSDKPyTorch251(t *testing.T) {
 	runMnistSDK(t, GetTrainingCudaPyTorch251Image())
 }
 
+func TestMnistSDKPyTorch28(t *testing.T) {
+	Tags(t, Tier1)
+	runMnistSDK(t, GetTrainingCudaPyTorch28Image())
+}
+
 func runMnistSDK(t *testing.T, trainingImage string) {
 	test := With(t)
 	// Create a namespace

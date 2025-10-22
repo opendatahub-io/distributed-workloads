@@ -42,6 +42,11 @@ func TestPyTorchJobSingleNodeSingleGpuWithCudaPyTorch251(t *testing.T) {
 	runKFTOPyTorchJob(t, GetTrainingCudaPyTorch251Image(), NVIDIA, 1, 0)
 }
 
+func TestPyTorchJobSingleNodeSingleGpuWithCudaPyTorch28(t *testing.T) {
+	Tags(t, Tier1, Gpu(NVIDIA))
+	runKFTOPyTorchJob(t, GetTrainingCudaPyTorch28Image(), NVIDIA, 1, 0)
+}
+
 func TestPyTorchJobSingleNodeMultiGpuWithCudaPyTorch241(t *testing.T) {
 	Tags(t, KftoCuda)
 	runKFTOPyTorchJob(t, GetTrainingCudaPyTorch241Image(), NVIDIA, 2, 0)
@@ -50,6 +55,11 @@ func TestPyTorchJobSingleNodeMultiGpuWithCudaPyTorch241(t *testing.T) {
 func TestPyTorchJobSingleNodeMultiGpuWithCudaPyTorch251(t *testing.T) {
 	Tags(t, KftoCuda)
 	runKFTOPyTorchJob(t, GetTrainingCudaPyTorch251Image(), NVIDIA, 2, 0)
+}
+
+func TestPyTorchJobSingleNodeMultiGpuWithCudaPyTorch28(t *testing.T) {
+	Tags(t, KftoCuda)
+	runKFTOPyTorchJob(t, GetTrainingCudaPyTorch28Image(), NVIDIA, 2, 0)
 }
 
 func TestPyTorchJobMultiNodeSingleGpuWithCudaPyTorch241(t *testing.T) {
@@ -62,6 +72,11 @@ func TestPyTorchJobMultiNodeSingleGpuWithCudaPyTorch251(t *testing.T) {
 	runKFTOPyTorchJob(t, GetTrainingCudaPyTorch251Image(), NVIDIA, 1, 1)
 }
 
+func TestPyTorchJobMultiNodeSingleGpuWithCudaPyTorch28(t *testing.T) {
+	Tags(t, KftoCuda)
+	runKFTOPyTorchJob(t, GetTrainingCudaPyTorch28Image(), NVIDIA, 1, 1)
+}
+
 func TestPyTorchJobMultiNodeMultiGpuWithCudaPyTorch241(t *testing.T) {
 	Tags(t, KftoCuda)
 	runKFTOPyTorchJob(t, GetTrainingCudaPyTorch241Image(), NVIDIA, 2, 1)
@@ -70,6 +85,11 @@ func TestPyTorchJobMultiNodeMultiGpuWithCudaPyTorch241(t *testing.T) {
 func TestPyTorchJobMultiNodeMultiGpuWithCudaPyTorch251(t *testing.T) {
 	Tags(t, KftoCuda)
 	runKFTOPyTorchJob(t, GetTrainingCudaPyTorch251Image(), NVIDIA, 2, 1)
+}
+
+func TestPyTorchJobMultiNodeMultiGpuWithCudaPyTorch28(t *testing.T) {
+	Tags(t, KftoCuda)
+	runKFTOPyTorchJob(t, GetTrainingCudaPyTorch28Image(), NVIDIA, 2, 1)
 }
 
 func TestPyTorchJobSingleNodeSingleGpuWithROCmPyTorch241(t *testing.T) {
@@ -82,6 +102,11 @@ func TestPyTorchJobSingleNodeSingleGpuWithROCmPyTorch251(t *testing.T) {
 	runKFTOPyTorchJob(t, GetTrainingROCmPyTorch251Image(), AMD, 1, 0)
 }
 
+func TestPyTorchJobSingleNodeSingleGpuWithROCmPyTorch28(t *testing.T) {
+	Tags(t, Tier1, Gpu(AMD))
+	runKFTOPyTorchJob(t, GetTrainingRocmPyTorch28Image(), AMD, 1, 0)
+}
+
 func TestPyTorchJobSingleNodeMultiGpuWithROCmPyTorch241(t *testing.T) {
 	Tags(t, KftoRocm)
 	runKFTOPyTorchJob(t, GetTrainingROCmPyTorch241Image(), AMD, 2, 0)
@@ -90,6 +115,11 @@ func TestPyTorchJobSingleNodeMultiGpuWithROCmPyTorch241(t *testing.T) {
 func TestPyTorchJobSingleNodeMultiGpuWithROCmPyTorch251(t *testing.T) {
 	Tags(t, KftoRocm)
 	runKFTOPyTorchJob(t, GetTrainingROCmPyTorch251Image(), AMD, 2, 0)
+}
+
+func TestPyTorchJobSingleNodeMultiGpuWithROCmPyTorch28(t *testing.T) {
+	Tags(t, KftoRocm)
+	runKFTOPyTorchJob(t, GetTrainingRocmPyTorch28Image(), AMD, 2, 0)
 }
 
 func TestPyTorchJobMultiNodeSingleGpuWithROCmPyTorch241(t *testing.T) {
@@ -102,6 +132,11 @@ func TestPyTorchJobMultiNodeSingleGpuWithROCmPyTorch251(t *testing.T) {
 	runKFTOPyTorchJob(t, GetTrainingROCmPyTorch251Image(), AMD, 1, 1)
 }
 
+func TestPyTorchJobMultiNodeSingleGpuWithROCmPyTorch28(t *testing.T) {
+	Tags(t, KftoRocm)
+	runKFTOPyTorchJob(t, GetTrainingRocmPyTorch28Image(), AMD, 1, 1)
+}
+
 func TestPyTorchJobMultiNodeMultiGpuWithROCmPyTorch241(t *testing.T) {
 	Tags(t, KftoRocm)
 	runKFTOPyTorchJob(t, GetTrainingROCmPyTorch241Image(), AMD, 2, 1)
@@ -110,6 +145,11 @@ func TestPyTorchJobMultiNodeMultiGpuWithROCmPyTorch241(t *testing.T) {
 func TestPyTorchJobMultiNodeMultiGpuWithROCmPyTorch251(t *testing.T) {
 	Tags(t, KftoRocm)
 	runKFTOPyTorchJob(t, GetTrainingROCmPyTorch251Image(), AMD, 2, 1)
+}
+
+func TestPyTorchJobMultiNodeMultiGpuWithROCmPyTorch28(t *testing.T) {
+	Tags(t, KftoRocm)
+	runKFTOPyTorchJob(t, GetTrainingRocmPyTorch28Image(), AMD, 2, 1)
 }
 
 func runKFTOPyTorchJob(t *testing.T, image string, gpu Accelerator, numGpus, numberOfWorkerNodes int) {
@@ -263,7 +303,7 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 								{
 									Name:            "pytorch",
 									Image:           baseImage,
-									ImagePullPolicy: corev1.PullIfNotPresent,
+									ImagePullPolicy: corev1.PullAlways,
 									Command: []string{
 										"/bin/bash", "-c",
 										`torchrun /etc/config/hf_llm_training.py \
@@ -432,7 +472,7 @@ func createKFTOPyTorchJob(test Test, namespace string, config corev1.ConfigMap, 
 						{
 							Name:            "pytorch",
 							Image:           baseImage,
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							ImagePullPolicy: corev1.PullAlways,
 							Command: []string{
 								"/bin/bash", "-c",
 								`torchrun /etc/config/hf_llm_training.py \
