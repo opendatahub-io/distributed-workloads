@@ -1,0 +1,31 @@
+# Core ML and Deep Learning
+torch>=2.0.0
+transformers>=4.30.0
+datasets>=2.12.0
+
+# RAGAS Evaluation Framework
+ragas>=0.0.22
+
+# Feast Feature Store
+feast>=0.38.0
+
+# Data Processing and Analysis
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Utilities
+tqdm>=4.65.0
+requests>=2.31.0
+
+# Optional: For better performance
+accelerate>=0.20.0
+bitsandbytes>=0.41.0  # For quantization support
+
+# Development and Testing (optional)
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0 
