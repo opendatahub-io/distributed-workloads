@@ -152,7 +152,7 @@ RUN pip install --retries 5 --timeout 300 --no-cache-dir \
  && fix-permissions /opt/app-root -P
 
 # Provide a POSIX entrypoint wrapper to choose behavior based on invocation
-COPY --chmod=0755 entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
+COPY --chmod=0755 ./images/universal/training/py312-cuda128-torch280/entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
 
 # Set ENTRYPOINT to the wrapper so that providing a command runs headless.
 # Default CMD maintains workbench behavior (no args → start-notebook.sh)
