@@ -9,7 +9,7 @@ verify_ssl = true
 name = "pytorch-rocm64"
 
 [packages]
-peft = "==0.17.0"
+peft = "==0.17.1"
 datasets = "==4.0.0"
 liger-kernel = "==0.5.10"
 transformers = "==4.55.2"
