@@ -19,7 +19,7 @@ LABEL name="universal:py312-cuda128-torch280" \
       io.k8s.display-name="Universal CUDA 12.8 Python 3.12 (Workbench + Runtime)" \
       io.k8s.description="Universal image: Jupyter workbench by default; runtime when command provided. Includes RDMA/IB libs, Torch 2.8.0 cu128, FlashAttention 2.8.3."
 
-COPY LICENSE.md /licenses/cuda-license.md
+COPY ./images/universal/training/py312-cuda128-torch280/LICENSE.md /licenses/cuda-license.md
 
 # For OS installs we need elevated privileges; base may default to 1001
 USER 0
