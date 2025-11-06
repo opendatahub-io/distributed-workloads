@@ -273,8 +273,8 @@ sigs.k8s.io/controller-runtime v0.21.0 h1:CYfjpEuicjUecRk+KAeyYh+ouUBn4llGyDYytI
 sigs.k8s.io/controller-runtime v0.21.0/go.mod h1:OSg14+F65eWqIu4DceX7k/+QRAbTTvxeQSNSOQpukWM=
 sigs.k8s.io/jobset v0.8.2 h1:WC5a5G7MqfJJy4p+6OxGMpfbB90KoDSay96Mc4yMMZM=
 sigs.k8s.io/jobset v0.8.2/go.mod h1:yitjuGOExl2p964nhyevQGIkfiPSRHcdC3zNBneKCT8=
-sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 h1:gBQPwqORJ8d8/YNZWEjoZs7npUVDpVXUUOFfW6CgAqE=
-sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8/go.mod h1:mdzfpAEoE6DHQEN0uh9ZbOCuHbLK5wOm7dK4ctXE9Tg=
+sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 h1:IpInykpT6ceI+QxKBbEflcR5EXP7sU1kvOlxwZh5txg=
+sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730/go.mod h1:mdzfpAEoE6DHQEN0uh9ZbOCuHbLK5wOm7dK4ctXE9Tg=
 sigs.k8s.io/kueue v0.6.2 h1:wSX6DY/BNCIaza9R8TyhRxwzSrY02EkyxfXXeHbV758=
 sigs.k8s.io/kueue v0.6.2/go.mod h1:TQ1lIc+2rdvObH7SszaxdCGTMYbp9XupKnCj0ZZDgEw=
 sigs.k8s.io/randfill v0.0.0-20250304075658-069ef1bbf016/go.mod h1:XeLlZ/jmk4i1HRopwe7/aU3H5n1zNUcX6TM94b3QxOY=
