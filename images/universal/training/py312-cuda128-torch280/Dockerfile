@@ -119,7 +119,7 @@ RUN pip install --retries 5 --timeout 300 --no-cache-dir ninja
 RUN pip install --retries 5 --timeout 300 --no-cache-dir \
     flash-attn==2.8.3 --no-build-isolation \
     accelerate==1.10.0 \
-    transformers==4.55.2 \
+    transformers==4.57.1 \
     peft==0.17.0 \
     tqdm==4.67.1 \
     datasets==4.0.0 \
@@ -131,14 +131,18 @@ RUN pip install --retries 5 --timeout 300 --no-cache-dir \
     packaging==25.0 \
     pyyaml==6.0.2 \
     py-cpuinfo==9.0.0 \
-    numba==0.61.2 \
+    numba==0.62.1 \
     rich==14.1.0 \
     tensorboard==2.19.0 \
-    bitsandbytes>=0.45.3 \
-    liger-kernel==0.5.10 \
+    bitsandbytes==0.48.1 \
+    liger-kernel==0.6.2 \
+    einops==0.8.1 \
+    kernels==0.10.3 \
     "sentencepiece>=0.1.99,<0.3" \
-    tokenizers==0.21.4 \
-    training-hub==0.2.0 \
+    tokenizers==0.22.1 \
+    instructlab-training==0.12.1 \
+    rhai-innovation-mini-trainer==0.3.0 \
+    training-hub==0.3.0 \
     trl==0.21.0 \
     deepspeed>=0.14.3 \
     async-timeout==4.0.3 \
@@ -149,6 +153,11 @@ RUN pip install --retries 5 --timeout 300 --no-cache-dir \
     psutil==7.0.0 \
  && chmod -R g+w /opt/app-root/lib/python3.12/site-packages \
  && fix-permissions /opt/app-root -P
+
+# Deterministic 2-step: sub-dep first, then parent without deps (align with runtime)
+RUN pip install --retries 5 --timeout 300 --no-cache-dir --no-build-isolation causal-conv1d==1.5.3.post1 && \
+    pip install --retries 5 --timeout 300 --no-cache-dir --no-build-isolation mamba-ssm==2.2.6.post3 --no-deps && \
+    fix-permissions /opt/app-root -P
 
 # Provide a POSIX entrypoint wrapper to choose behavior based on invocation
 COPY --chmod=0755 ./images/universal/training/py312-cuda128-torch280/entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
