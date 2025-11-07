@@ -7,7 +7,7 @@ require (
 	github.com/kubeflow/training-operator v1.7.0
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/onsi/gomega v1.37.0
-	github.com/openshift/api v0.0.0-20251015095338-264e80a2b6e7
+	github.com/openshift/api v0.0.0-20251106190826-ebe535b08719
 	github.com/openshift/client-go v0.0.0-20251015124057-db0dee36e235
 	github.com/prometheus/client_golang v1.22.0
 	github.com/prometheus/common v0.62.0
