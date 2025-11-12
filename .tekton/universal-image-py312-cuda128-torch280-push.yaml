@@ -39,6 +39,10 @@ spec:
     - description: Source Repository URL
       name: git-url
       type: string
+    - name: build-platforms
+      default:
+      - linux-extra-fast/amd64
+      description: List of platforms to build the container images on. The available set of values is determined by the configuration of the multi-platform-controller.      
     - default: ""
       description: Revision of the Source Repository
       name: revision
@@ -194,6 +198,8 @@ spec:
         value: $(params.path-context)
       - name: HERMETIC
         value: $(params.hermetic)
+      - name: PLATFORM
+        value: $(params.build-platforms)        
       - name: PREFETCH_INPUT
         value: $(params.prefetch-input)
       - name: IMAGE_EXPIRES_AFTER

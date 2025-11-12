@@ -46,6 +46,10 @@ spec:
       description: Revision of the Source Repository
       name: revision
       type: string
+    - name: build-platforms
+      default:
+      - linux-extra-fast/amd64
+      description: List of platforms to build the container images on. The available set of values is determined by the configuration of the multi-platform-controller.
     - description: Fully Qualified Output Image
       name: output-image
       type: string
@@ -193,6 +197,8 @@ spec:
         value: $(params.output-image)
       - name: DOCKERFILE
         value: $(params.dockerfile)
+      - name: PLATFORM
+        value: $(params.build-platforms)
       - name: CONTEXT
         value: $(params.path-context)
       - name: HERMETIC
