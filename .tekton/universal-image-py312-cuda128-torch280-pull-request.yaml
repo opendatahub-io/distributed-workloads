@@ -106,6 +106,10 @@ spec:
         VMs
       name: privileged-nested
       type: string
+    - name: build-platforms
+      default:
+      - linux-extra-fast/amd64
+      description: List of platforms to build the container images on. The available set of values is determined by the configuration of the multi-platform-controller.
     results:
     - description: ""
       name: IMAGE_URL
@@ -193,6 +197,8 @@ spec:
         value: $(params.output-image)
       - name: DOCKERFILE
         value: $(params.dockerfile)
+      - name: PLATFORM
+        value: linux-extra-fast/amd64
       - name: CONTEXT
         value: $(params.path-context)
       - name: HERMETIC
