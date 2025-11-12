@@ -26,6 +26,9 @@ spec:
     value: quay.io/opendatahub/odh-training-cuda128-torch28-py312-rhel9:latest
   - name: dockerfile
     value: /images/universal/training/py312-cuda128-torch280/Dockerfile
+  - name: build-platforms
+    value:
+    - linux-extra-fast/amd64
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while reducing network traffic.
