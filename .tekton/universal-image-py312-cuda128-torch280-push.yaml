@@ -17,6 +17,8 @@ metadata:
   name: universal-image-py312-cuda128-torch280-on-push
   namespace: open-data-hub-tenant
 spec:
+  timeouts:
+    pipeline: 9h  
   params:
   - name: git-url
     value: '{{source_url}}'
