@@ -187,15 +187,18 @@ spec:
         workspace: git-auth
       - name: netrc
         workspace: netrc
-    - name: build-container
+    - matrix:
+        params:
+        - name: PLATFORM
+          value:
+          - $(params.build-platforms)
+      name: build-container
       timeout: 8h
       params:
       - name: IMAGE
         value: $(params.output-image)
       - name: DOCKERFILE
         value: $(params.dockerfile)
-      - name: PLATFORM
-        value: linux-extra-fast/amd64
       - name: CONTEXT
         value: $(params.path-context)
       - name: HERMETIC
@@ -248,7 +251,7 @@ spec:
         value: $(params.build-image-index)
       - name: IMAGES
         value:
-        - $(tasks.build-container.results.IMAGE_URL)@$(tasks.build-container.results.IMAGE_DIGEST)
+        - $(tasks.build-container.results.IMAGE_URL[*])@$(tasks.build-container.results.IMAGE_DIGEST[*])
       - name: BUILDAH_FORMAT
         value: $(params.buildah-format)
       runAfter:
