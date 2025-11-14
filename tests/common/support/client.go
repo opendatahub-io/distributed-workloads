@@ -27,6 +27,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	jobsetclient "sigs.k8s.io/jobset/client-go/clientset/versioned"
 	kueueclient "sigs.k8s.io/kueue/client-go/clientset/versioned"
 
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned"
@@ -40,6 +41,7 @@ type Client interface {
 	Core() kubernetes.Interface
 	Trainer() trainerclient.Interface
 	Kubeflow() kubeflowclient.Interface
+	JobSet() jobsetclient.Interface
 	Kueue() kueueclient.Interface
 	Machine() machinev1.Interface
 	Route() routev1.Interface
@@ -53,6 +55,7 @@ type testClient struct {
 	core     kubernetes.Interface
 	trainer  trainerclient.Interface
 	kubeflow kubeflowclient.Interface
+	jobset   jobsetclient.Interface
 	kueue    kueueclient.Interface
 	machine  machinev1.Interface
 	route    routev1.Interface
@@ -74,6 +77,10 @@ func (t *testClient) Trainer() trainerclient.Interface {
 
 func (t *testClient) Kubeflow() kubeflowclient.Interface {
 	return t.kubeflow
+}
+
+func (t *testClient) JobSet() jobsetclient.Interface {
+	return t.jobset
 }
 
 func (t *testClient) Kueue() kueueclient.Interface {
@@ -131,6 +138,11 @@ func newTestClient(cfg *rest.Config) (Client, *rest.Config, error) {
 		return nil, nil, err
 	}
 
+	jobsetClient, err := jobsetclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	kueueClient, err := kueueclient.NewForConfig(cfg)
 	if err != nil {
 		return nil, nil, err
@@ -170,6 +182,7 @@ func newTestClient(cfg *rest.Config) (Client, *rest.Config, error) {
 		core:     kubeClient,
 		trainer:  trainerClient,
 		kubeflow: kubeflowClient,
+		jobset:   jobsetClient,
 		kueue:    kueueClient,
 		machine:  machineClient,
 		route:    routeClient,
