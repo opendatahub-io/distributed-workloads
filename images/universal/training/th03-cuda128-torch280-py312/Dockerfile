@@ -19,7 +19,7 @@ LABEL name="universal:py312-cuda128-torch280" \
       io.k8s.display-name="Universal CUDA 12.8 Python 3.12 (Workbench + Runtime)" \
       io.k8s.description="Universal image: Jupyter workbench by default; runtime when command provided. Includes RDMA/IB libs, Torch 2.8.0 cu128, FlashAttention 2.8.3."
 
-COPY ./images/universal/training/py312-cuda128-torch280/LICENSE.md /licenses/cuda-license.md
+COPY LICENSE.md /licenses/cuda-license.md
 
 # For OS installs we need elevated privileges; base may default to 1001
 USER 0
@@ -108,10 +108,10 @@ RUN pip install --retries 5 --timeout 300 --no-cache-dir numpy==2.3.3
 
 # Install build backend for VCS package and the SDK itself (no build isolation so backend is visible)
 RUN pip install --retries 5 --timeout 300 --no-cache-dir hatchling hatch-vcs
-RUN pip install --retries 5 --timeout 300 --no-cache-dir --no-build-isolation "git+https://github.com/briangallagher/sdk@training-hub"
+RUN pip install --retries 5 --timeout 300 --no-cache-dir --no-build-isolation "git+https://github.com/briangallagher/sdk@add-training-hub"
 
 # Provide ninja via pip (RHEL/UBI repo ninja-build may be unavailable)
-RUN pip install --retries 5 --timeout 300 --no-cache-dir ninja
+# RUN pip install --retries 5 --timeout 300 --no-cache-dir ninja
 
 # Install remaining runtime packages (resolved from default PyPI), including FlashAttention
 # Note: We intentionally do not use a Pipfile/lock here to avoid mixing resolvers with the base (uv lock),
@@ -119,26 +119,29 @@ RUN pip install --retries 5 --timeout 300 --no-cache-dir ninja
 RUN pip install --retries 5 --timeout 300 --no-cache-dir \
     flash-attn==2.8.3 --no-build-isolation \
     accelerate==1.10.0 \
-    transformers==4.55.2 \
+    transformers==4.57.1 \
     peft==0.17.0 \
     tqdm==4.67.1 \
     datasets==4.0.0 \
     pydantic>=2.11.7 \
     aiofiles==24.1.0 \
+    deprecated==1.2.18 \
+    typer==0.19.2 \
     "protobuf>=5.28.0,<6.0.0" \
     "simpleeval>=0.9.13,<1.0" \
     safetensors==0.6.2 \
     packaging==25.0 \
     pyyaml==6.0.2 \
     py-cpuinfo==9.0.0 \
-    numba==0.61.2 \
+    numba==0.62.1 \
     rich==14.1.0 \
     tensorboard==2.19.0 \
-    bitsandbytes>=0.45.3 \
-    liger-kernel==0.5.10 \
+    bitsandbytes==0.48.1 \
+    liger-kernel==0.6.2 \
+    einops==0.8.1 \
+    kernels==0.10.3 \
     "sentencepiece>=0.1.99,<0.3" \
-    tokenizers==0.21.4 \
-    training-hub==0.2.0 \
+    tokenizers==0.22.1 \
     trl==0.21.0 \
     deepspeed>=0.14.3 \
     async-timeout==4.0.3 \
@@ -147,11 +150,26 @@ RUN pip install --retries 5 --timeout 300 --no-cache-dir \
     huggingface-hub==0.34.4 \
     mlflow==3.4.0 \
     psutil==7.0.0 \
+    training-hub==0.3.0 \
+    instructlab-training==0.12.1 \
+    rhai-innovation-mini-trainer==0.3.0 \
  && chmod -R g+w /opt/app-root/lib/python3.12/site-packages \
  && fix-permissions /opt/app-root -P
 
+
+# Build helpers to compile PyTorch extensions
+RUN pip install -U pip setuptools wheel ninja cmake
+
+# Optional: set GPU archs if you hit arch issues
+# ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0"
+
+# Deterministic 2-step: sub-dep first, then parent without deps
+RUN pip install --no-build-isolation --no-cache-dir causal-conv1d==1.5.3.post1 && \
+    pip install --no-build-isolation --no-cache-dir mamba-ssm==2.2.6.post3 --no-deps && \
+    fix-permissions /opt/app-root -P
+
 # Provide a POSIX entrypoint wrapper to choose behavior based on invocation
-COPY --chmod=0755 ./images/universal/training/py312-cuda128-torch280/entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
+COPY --chmod=0755 entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
 
 # Set ENTRYPOINT to the wrapper so that providing a command runs headless.
 # Default CMD maintains workbench behavior (no args → start-notebook.sh)
