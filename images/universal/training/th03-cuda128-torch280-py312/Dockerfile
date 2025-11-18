@@ -108,7 +108,7 @@ RUN pip install --retries 5 --timeout 300 --no-cache-dir numpy==2.3.3
 
 # Install build backend for VCS package and the SDK itself (no build isolation so backend is visible)
 RUN pip install --retries 5 --timeout 300 --no-cache-dir hatchling hatch-vcs
-RUN pip install --retries 5 --timeout 300 --no-cache-dir --no-build-isolation "git+https://github.com/briangallagher/sdk@add-training-hub"
+RUN pip install --retries 5 --timeout 300 --no-cache-dir --no-build-isolation "git+https://github.com/opendatahub-io/kubeflow-sdk@main"
 
 # Provide ninja via pip (RHEL/UBI repo ninja-build may be unavailable)
 # RUN pip install --retries 5 --timeout 300 --no-cache-dir ninja
