@@ -42,33 +42,62 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 	// Create a new test namespace
 	namespace := test.NewTestNamespace()
 
-	// Ensure pre-requisites to run the test are met
-	trainerutils.EnsureTrainerClusterReady(t, test)
-
-	// Ensure Notebook SA and RBACs are set for this namespace
-	trainerutils.EnsureNotebookRBAC(t, test, namespace.Name)
+	// Ensure Notebook ServiceAccount exists (no extra RBAC)
+	trainerutils.EnsureNotebookServiceAccount(t, test, namespace.Name)
 
 	// RBACs setup
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GetNotebookUserToken(test)
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
-	// Read notebook from directory
+	// Create ConfigMap with notebook
 	localPath := notebookPath
 	nb, err := os.ReadFile(localPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
-
-	// Create ConfigMap with notebook
 	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{notebookName: nb})
 
-	// Build command
-	marker := "/opt/app-root/src/notebook_completion_marker"
-	shellCmd := trainerutils.BuildPapermillShellCmd(notebookName, marker, nil)
+	// Build command with parameters and pinned deps, and print definitive status line to logs
+	endpoint, endpointOK := support.GetStorageBucketDefaultEndpoint()
+	accessKey, _ := support.GetStorageBucketAccessKeyId()
+	secretKey, _ := support.GetStorageBucketSecretKey()
+	bucket, bucketOK := support.GetStorageBucketName()
+	prefix, _ := support.GetStorageBucketMnistDir()
+	if !endpointOK {
+		endpoint = ""
+	}
+	if !bucketOK {
+		bucket = ""
+	}
+	// Create RWX PVC for shared dataset and pass the claim name to the notebook
+	storageClass, err := support.GetRWXStorageClass(test)
+	test.Expect(err).NotTo(HaveOccurred(), "Failed to find an RWX supporting StorageClass")
+	rwxPvc := support.CreatePersistentVolumeClaim(
+		test,
+		namespace.Name,
+		"20Gi",
+		support.AccessModes(corev1.ReadWriteMany),
+		support.StorageClassName(storageClass.Name),
+	)
+
+	shellCmd := fmt.Sprintf(
+		"set -e; "+
+			"export OPENSHIFT_API_URL='%s'; export NOTEBOOK_TOKEN='%s'; "+
+			"export NOTEBOOK_NAMESPACE='%s'; "+
+			"export SHARED_PVC_NAME='%s'; "+
+			"export AWS_DEFAULT_ENDPOINT='%s'; export AWS_ACCESS_KEY_ID='%s'; "+
+			"export AWS_SECRET_ACCESS_KEY='%s'; export AWS_STORAGE_BUCKET='%s'; "+
+			"export AWS_STORAGE_BUCKET_MNIST_DIR='%s'; "+
+			"python -m pip install --quiet --no-cache-dir papermill boto3==1.34.162 && "+
+			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
+			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
+		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
+		endpoint, accessKey, secretKey, bucket, prefix,
+		notebookName,
+	)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
-	// Create Notebook CR (with default 10Gi PVC)
-	pvc := support.CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", support.AccessModes(corev1.ReadWriteOnce))
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, 0, pvc, common.ContainerSizeSmall)
+	// Create Notebook CR using the RWX PVC
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, 0, rwxPvc, common.ContainerSizeSmall)
 
 	// Cleanup
 	defer func() {
@@ -79,8 +108,9 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 	// Wait for the Notebook Pod and get pod/container names
 	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
 
-	// Poll marker file to check if the notebook execution completed successfully
-	if err := trainerutils.PollNotebookCompletionMarker(test, namespace.Name, podName, containerName, marker, support.TestTimeoutDouble); err != nil {
+	// Poll logs to check if the notebook execution completed successfully
+	if err := trainerutils.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble); err != nil {
 		test.Expect(err).To(Succeed(), "Notebook execution reported FAILURE")
 	}
+
 }

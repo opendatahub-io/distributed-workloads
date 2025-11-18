@@ -26,5 +26,4 @@ import (
 func TestKubeflowSDK_Sanity(t *testing.T) {
 	Tags(t, Sanity)
 	sdktests.RunFashionMnistCpuDistributedTraining(t)
-	// ADD MORE SANITY TESTS HERE
 }
