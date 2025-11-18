@@ -31,20 +31,6 @@ import (
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
-// BuildPapermillShellCmd builds a shell command to execute a notebook with papermill and write a SUCCESS/FAILURE marker.
-// extraPipPackages, if provided, are installed alongside papermill.
-func BuildPapermillShellCmd(notebookName string, marker string, extraPipPackages []string) string {
-	pipLine := "pip install --quiet --no-cache-dir papermill"
-	if len(extraPipPackages) > 0 {
-		pipLine = pipLine + " " + strings.Join(extraPipPackages, " ")
-	}
-	return fmt.Sprintf(
-		"set -e; %s; if papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
-			"then echo 'SUCCESS' > %s; else echo 'FAILURE' > %s; fi; sleep infinity",
-		pipLine, notebookName, marker, marker,
-	)
-}
-
 // CreateNotebookFromBytes creates a ConfigMap with the notebook and a Notebook CR to run it.
 func CreateNotebookFromBytes(test Test, namespace *corev1.Namespace, userToken string, notebookName string, notebookBytes []byte, command []string, numGpus int, containerSize common.ContainerSize) *corev1.ConfigMap {
 	cm := CreateConfigMap(test, namespace.Name, map[string][]byte{notebookName: notebookBytes})
@@ -63,18 +49,19 @@ func WaitForNotebookPodRunning(test Test, namespace string) (string, string) {
 	return pods[0].Name, pods[0].Spec.Containers[0].Name
 }
 
-// PollNotebookCompletionMarker polls the given marker file inside the notebook pod until SUCCESS/FAILURE or timeout.
-func PollNotebookCompletionMarker(test Test, namespace, podName, containerName, marker string, timeout time.Duration) error {
+// PollNotebookLogsForStatus polls the notebook container logs until a definitive NOTEBOOK_STATUS line appears or timeout.
+func PollNotebookLogsForStatus(test Test, namespace, podName, containerName string, timeout time.Duration) error {
 	var finalErr error
 	test.Eventually(func() bool {
-		out, err := exec.Command("kubectl", "-n", namespace, "exec", podName, "-c", containerName, "--", "cat", marker).CombinedOutput()
+		out, err := exec.Command("kubectl", "-n", namespace, "logs", podName, "-c", containerName, "--tail=2000").CombinedOutput()
 		if err != nil {
 			return false
 		}
-		switch strings.TrimSpace(string(out)) {
-		case "SUCCESS":
+		logs := string(out)
+		switch {
+		case strings.Contains(logs, "NOTEBOOK_STATUS: SUCCESS"):
 			return true
-		case "FAILURE":
+		case strings.Contains(logs, "NOTEBOOK_STATUS: FAILURE"):
 			finalErr = fmt.Errorf("Notebook execution failed")
 			return true
 		default:
