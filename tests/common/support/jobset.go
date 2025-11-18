@@ -68,6 +68,10 @@ func JobSetConditionFailed(jobset *jobsetv1alpha2.JobSet) metav1.ConditionStatus
 	return JobSetCondition(jobset, jobsetv1alpha2.JobSetFailed)
 }
 
+func JobSetConditionCompleted(jobset *jobsetv1alpha2.JobSet) metav1.ConditionStatus {
+	return JobSetCondition(jobset, jobsetv1alpha2.JobSetCompleted)
+}
+
 func JobSetFailureMessage(jobset *jobsetv1alpha2.JobSet) string {
 	if jobset == nil {
 		return ""

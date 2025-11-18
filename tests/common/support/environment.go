@@ -51,12 +51,13 @@ const (
 	pipTrustedHost = "PIP_TRUSTED_HOST"
 
 	// Storage bucket credentials
-	storageDefaultEndpoint = "AWS_DEFAULT_ENDPOINT"
-	storageDefaultRegion   = "AWS_DEFAULT_REGION"
-	storageAccessKeyId     = "AWS_ACCESS_KEY_ID"
-	storageSecretKey       = "AWS_SECRET_ACCESS_KEY"
-	storageBucketName      = "AWS_STORAGE_BUCKET"
-	storageBucketMnistDir  = "AWS_STORAGE_BUCKET_MNIST_DIR"
+	storageDefaultEndpoint       = "AWS_DEFAULT_ENDPOINT"
+	storageDefaultRegion         = "AWS_DEFAULT_REGION"
+	storageAccessKeyId           = "AWS_ACCESS_KEY_ID"
+	storageSecretKey             = "AWS_SECRET_ACCESS_KEY"
+	storageBucketName            = "AWS_STORAGE_BUCKET"
+	storageBucketMnistDir        = "AWS_STORAGE_BUCKET_MNIST_DIR"
+	storageBucketFashionMnistDir = "AWS_STORAGE_BUCKET_FASHION_MNIST_DIR"
 
 	// Name of existing namespace to be used for test
 	testNamespaceNameEnvVar = "TEST_NAMESPACE_NAME"
@@ -177,6 +178,11 @@ func GetStorageBucketName() (string, bool) {
 func GetStorageBucketMnistDir() (string, bool) {
 	storage_bucket_mnist_dir, exists := os.LookupEnv(storageBucketMnistDir)
 	return storage_bucket_mnist_dir, exists
+}
+
+func GetStorageBucketFashionMnistDir() (string, bool) {
+	storage_bucket_fashion_mnist_dir, exists := os.LookupEnv(storageBucketFashionMnistDir)
+	return storage_bucket_fashion_mnist_dir, exists
 }
 
 func GetPipIndexURL() string {
