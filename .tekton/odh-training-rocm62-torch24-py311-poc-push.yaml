@@ -18,6 +18,8 @@ metadata:
   name: odh-training-rocm62-torch24-py311-poc-on-push
   namespace: open-data-hub-tenant
 spec:
+  timeouts:
+    pipelines: 4h
   params:
   - name: git-url
     value: '{{source_url}}'
