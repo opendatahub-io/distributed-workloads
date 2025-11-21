@@ -18,7 +18,6 @@ package trainer
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -52,21 +51,31 @@ func WaitForNotebookPodRunning(test Test, namespace string) (string, string) {
 // PollNotebookLogsForStatus polls the notebook container logs until a definitive NOTEBOOK_STATUS line appears or timeout.
 func PollNotebookLogsForStatus(test Test, namespace, podName, containerName string, timeout time.Duration) error {
 	var finalErr error
+
+	// Tail last N lines similar to the previous kubectl --tail
+	var tail int64 = 2000
+	getLogs := PodLog(test, namespace, podName, corev1.PodLogOptions{
+		Container: containerName,
+		TailLines: &tail,
+	})
+
+	// Track failure signal while polling
+	sawFailure := false
 	test.Eventually(func() bool {
-		out, err := exec.Command("kubectl", "-n", namespace, "logs", podName, "-c", containerName, "--tail=2000").CombinedOutput()
-		if err != nil {
-			return false
-		}
-		logs := string(out)
+		logs := getLogs(test)
 		switch {
 		case strings.Contains(logs, "NOTEBOOK_STATUS: SUCCESS"):
 			return true
 		case strings.Contains(logs, "NOTEBOOK_STATUS: FAILURE"):
-			finalErr = fmt.Errorf("Notebook execution failed")
+			sawFailure = true
 			return true
 		default:
 			return false
 		}
 	}, timeout).Should(BeTrue(), "Notebook did not reach definitive state")
+
+	if sawFailure {
+		finalErr = fmt.Errorf("Notebook execution failed")
+	}
 	return finalErr
 }
