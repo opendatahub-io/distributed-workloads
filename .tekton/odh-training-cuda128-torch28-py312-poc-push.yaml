@@ -19,6 +19,8 @@ metadata:
   name: odh-training-cuda128-torch28-py312-poc-on-push
   namespace: open-data-hub-tenant
 spec:
+  timeouts:
+    pipelines: 4h
   params:
   - name: git-url
     value: '{{source_url}}'
