@@ -109,8 +109,7 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
 
 	// Poll logs to check if the notebook execution completed successfully
-	if err := trainerutils.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble); err != nil {
-		test.Expect(err).To(Succeed(), "Notebook execution reported FAILURE")
-	}
+	err = trainerutils.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 
 }

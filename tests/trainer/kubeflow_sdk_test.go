@@ -23,7 +23,7 @@ import (
 	sdktests "github.com/opendatahub-io/distributed-workloads/tests/trainer/sdk_tests"
 )
 
-func TestKubeflowSDK_Sanity(t *testing.T) {
+func TestKubeflowSdkSanity(t *testing.T) {
 	Tags(t, Sanity)
 	sdktests.RunFashionMnistCpuDistributedTraining(t)
 }
