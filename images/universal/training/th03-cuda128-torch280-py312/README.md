@@ -98,10 +98,15 @@ If the base image (`workbench-images`) has been updated with new versions:
    # Pull the latest base image (example)
    podman pull quay.io/opendatahub/workbench-images:cuda-jupyter-minimal-ubi9-python-3.12-2025a_20250903
    
-   # Extract the pylock.toml from base image
-   podman run --rm --entrypoint cat \
-     quay.io/opendatahub/workbench-images:cuda-jupyter-minimal-ubi9-python-3.12-2025a_20250903 \
-     /opt/app-root/src/pylock.toml > base-pylock.toml
+   # Get bases exact installed versions
+   podman run --rm --entrypoint pip \
+   quay.io/opendatahub/workbench-images:cuda-jupyter-minimal-ubi9-python-3.12-2025a_20250903 \
+   list --format freeze > base-freeze.txt
+
+   # Get specific packages versions
+   podman run --rm --entrypoint sh \
+   quay.io/opendatahub/workbench-images:cuda-jupyter-minimal-ubi9-python-3.12-2025a_20250903 \
+   -lc 'python -m pip show jupyterlab jupyterlab-server jupyter-server jupyterlab-git jupyterlab-pygments | egrep "Name|Version"'
    ```
 
 2. **Update `pyproject.toml`** with new base package versions from `base-pylock.toml`
