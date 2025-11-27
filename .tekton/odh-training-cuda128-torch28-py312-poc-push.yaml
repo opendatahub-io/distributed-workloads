@@ -20,7 +20,7 @@ metadata:
   namespace: open-data-hub-tenant
 spec:
   timeouts:
-    pipelines: "8h0m0s"
+    pipeline: "8h0m0s"
   params:
   - name: git-url
     value: '{{source_url}}'
