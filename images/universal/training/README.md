@@ -6,14 +6,14 @@ A FIPS-friendly container image for machine learning workloads, built on top of 
 
 **Key Features:**
 - ✅ FIPS-friendly multi-stage build (no build tools in runtime)
-- ✅ Python 3.12 with PyTorch 2.8.0 + CUDA 12.8
+- ✅ Python with PyTorch + CUDA
 - ✅ GPU-accelerated ML: flash-attention, Mamba SSM, Transformers
 - ✅ Dependency management via `uv` and `pylock.toml`
 - ✅ RDMA/InfiniBand support for distributed training
 - ✅ Reproducible builds with locked dependencies
 
-**Installed ML Packages:**
-- PyTorch 2.8.0 (CUDA 12.8)
+**Latest installed ML Packages:**
+- PyTorch 2.9.0 (CUDA 12.8)
 - Transformers 4.57.1
 - Accelerate 1.10.0
 - flash-attn 2.8.3
@@ -56,6 +56,7 @@ The image has **two layers** of dependencies:
 1. **Base Image Dependencies** (from `workbench-images`)
    - JupyterLab, notebook extensions, authentication
    - Pre-installed in the base image via its own `pylock.toml`
+   - Latest image can be found [here](https://github.com/opendatahub-io/notebooks/blob/main/manifests/base/params-latest.env#L2)
 
 2. **ML Dependencies** (this image)
    - PyTorch, Transformers, flash-attn, Mamba

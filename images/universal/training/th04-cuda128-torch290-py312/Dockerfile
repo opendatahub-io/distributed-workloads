@@ -9,7 +9,7 @@
 ################################################################################
 # Build Arguments
 ################################################################################
-ARG BASE_IMAGE=quay.io/opendatahub/workbench-images:cuda-jupyter-minimal-ubi9-python-3.12-2025a_20250903
+ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cuda-py312-ubi9:2025b-v1.39
 # CUDA_VERSION: Used for environment variables and documentation purposes
 # - Sets CUDA_VERSION env var (helps with debugging and tooling)
 # - Not used for package installation (specific versions hardcoded below)
