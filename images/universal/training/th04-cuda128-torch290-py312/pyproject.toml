@@ -11,7 +11,7 @@ dependencies = [
     
     # JupyterLab Core (exact versions from base image)
     "odh-jupyter-trash-cleanup==0.1.1",
-    "jupyterlab==4.4.4",
+    "jupyterlab==4.4.9",
     "jupyterlab-server==2.27.3",
     "jupyterlab-git==0.51.2",
     "jupyterlab-pygments==0.3.0",
