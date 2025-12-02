@@ -10,7 +10,8 @@ import (
 )
 
 var rwxSupportedProvisioners = map[string]bool{
-	"nfs.csi.k8s.io": true,
+	"nfs.csi.k8s.io":     true,
+	"file.csi.azure.com": true,
 }
 
 func GetStorageClasses(t Test) []storagev1.StorageClass {

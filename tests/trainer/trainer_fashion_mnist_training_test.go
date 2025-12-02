@@ -36,30 +36,50 @@ import (
 
 func TestPyTorchDDPMultiNodeMultiCPUWithTorchCuda28(t *testing.T) {
 	Tags(t, Tier1, MultiNode(2))
-	runPyTorchDDPMultiNodeJob(t, CPU, GetTrainingCudaPyTorch28Image(), 2, 2)
+	runPyTorchDDPMultiNodeJob(t, CPU, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 2, 2)
+}
+
+func TestPyTorchDDPSingleNodeSingleGPUWithTorchCuda(t *testing.T) {
+	Tags(t, KftoCuda)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 1, 1)
 }
 
 func TestPyTorchDDPSingleNodeMultiGPUWithTorchCuda(t *testing.T) {
-	Tags(t, KftoCuda, MultiNode(2))
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), 1, 2)
+	Tags(t, KftoCuda)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 1, 2)
+}
+
+func TestPyTorchDDPMultiNodeSingleGPUWithTorchCuda(t *testing.T) {
+	Tags(t, KftoCuda)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 2, 1)
 }
 
 func TestPyTorchDDPMultiNodeMultiGPUWithTorchCuda(t *testing.T) {
-	Tags(t, KftoCuda, MultiNode(2))
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), 2, 2)
+	Tags(t, KftoCuda)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 2, 2)
+}
+
+func TestPyTorchDDPSingleNodeSingleGPUWithTorchRocm(t *testing.T) {
+	Tags(t, KftoRocm)
+	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 1, 1)
 }
 
 func TestPyTorchDDPSingleNodeMultiGPUWithTorchRocm(t *testing.T) {
-	Tags(t, KftoRocm, MultiNode(2))
-	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), 1, 2)
+	Tags(t, KftoRocm)
+	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 1, 2)
+}
+
+func TestPyTorchDDPMultiNodeSingleGPUWithTorchRocm(t *testing.T) {
+	Tags(t, KftoRocm)
+	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 2, 1)
 }
 
 func TestPyTorchDDPMultiNodeMultiGPUWithTorchRocm(t *testing.T) {
-	Tags(t, KftoRocm, MultiNode(2))
-	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), 2, 2)
+	Tags(t, KftoRocm)
+	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 2, 2)
 }
 
-func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, baseImage string, numNodes, numProcPerNode int32) {
+func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, baseImage string, requirementsFile string, numNodes, numProcPerNode int32) {
 	test := With(t)
 
 	// Create a namespace
@@ -72,21 +92,19 @@ func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, baseImage 
 	// Create PVC
 	pvc := CreatePersistentVolumeClaim(test, namespace, "2Gi", AccessModes(corev1.ReadWriteMany), StorageClassName(storageClass.Name))
 
-	// Create ConfigMap
+	// Create ConfigMap with training scripts and requirements
 	files := map[string][]byte{
 		"fashion_mnist.py":          readFile(test, "resources/fashion_mnist.py"),
 		"download_fashion_mnist.py": readFile(test, "resources/download_fashion_mnist.py"),
-		"requirements.txt":          readFile(test, "resources/requirements.txt"),
+		"requirements.txt":          readFile(test, requirementsFile),
 	}
 	config := CreateConfigMap(test, namespace, files)
 
 	// Create TrainingRuntime with dataset-initializer
 	trainingRuntime := createFashionMNISTTrainingRuntime(test, namespace, config.Name, pvc.Name, baseImage, accelerator, numProcPerNode)
-	defer deleteTrainingRuntime(test, namespace, trainingRuntime.Name)
 
 	// Create TrainJob
 	trainJob := createFashionMNISTTrainJob(test, namespace, trainingRuntime.Name, accelerator, numNodes, numProcPerNode)
-	defer deleteTrainJob(test, namespace, trainJob.Name)
 
 	// Verify JobSet creation
 	test.T().Logf("Verifying JobSet creation with replicated jobs...")
@@ -110,13 +128,6 @@ func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, baseImage 
 
 func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcName, baseImage string, accelerator Accelerator, numProcPerNode int32) *trainerv1alpha1.TrainingRuntime {
 	test.T().Helper()
-
-	var backend string
-	if accelerator.IsGpu() {
-		backend = "nccl"
-	} else {
-		backend = "gloo"
-	}
 
 	trainingRuntime := &trainerv1alpha1.TrainingRuntime{
 		ObjectMeta: metav1.ObjectMeta{
@@ -161,28 +172,41 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 															echo "          Dataset Initializer             "
 															echo "=========================================="
 
-														echo "Installing dependencies from requirements.txt to ${LIB_PATH}..."
+														# Install to local temp directory first, then copy to PVC to avoid Azure Files SMB cross-device link issues
+														LOCAL_LIB=/tmp/pip_packages
+														mkdir -p ${LOCAL_LIB}
 														mkdir -p ${LIB_PATH}
 
-														while IFS= read -r line || [[ -n "$line" ]]; do
+														echo "Installing dependencies from requirements.txt ..."
+														# Extract --extra-index-url if present in requirements.txt file
+														EXTRA_INDEX=""
+														if grep -q "^--extra-index-url" /mnt/scripts/requirements.txt; then
+															EXTRA_INDEX=$(grep "^--extra-index-url" /mnt/scripts/requirements.txt)
+															echo "Using: $EXTRA_INDEX"
+														fi
 
-															[[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+														# Parse requirements file and install packages
+														while IFS= read -r line || [[ -n "$line" ]]; do
+															# Skip empty lines, comments, and pip options (like --extra-index-url)
+															[[ -z "$line" || "$line" =~ ^[[:space:]]*# || "$line" =~ ^-- ]] && continue
 															
 															# Check if line has "# no-deps" marker
 															if [[ "$line" =~ "# no-deps" ]]; then
 																pkg=$(echo "$line" | sed 's/[[:space:]]*#.*//')
-																echo "Installing $pkg (--no-deps)..."
-																pip install --no-cache-dir --no-deps "$pkg" --target=${LIB_PATH}
+																echo "Installing $pkg without dependencies ..."
+																pip install --no-cache-dir --no-deps $EXTRA_INDEX "$pkg" --target=${LOCAL_LIB} --verbose
 															else
 																# Install with dependencies
 																pkg=$(echo "$line" | sed 's/[[:space:]]*#.*//')
-																echo "Installing $pkg (with deps)..."
-																pip install --no-cache-dir "$pkg" --target=${LIB_PATH}
+																echo "Installing $pkg with dependencies ..."
+																pip install --no-cache-dir $EXTRA_INDEX "$pkg" --target=${LOCAL_LIB} --verbose
 															fi
 														done < /mnt/scripts/requirements.txt
 														
 														echo ""
-														echo "Dependencies installed successfully ..."
+														echo "Copying installed packages to ${LIB_PATH}..."
+														cp -r ${LOCAL_LIB}/* ${LIB_PATH}/
+														echo "Dependencies installed successfully!"
 														ls -la ${LIB_PATH}/ | head -20
 
 														# Download dataset to shared volume
@@ -271,11 +295,10 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 													ImagePullPolicy: corev1.PullIfNotPresent,
 													Command:         []string{"/bin/bash", "-c"},
 													Args: []string{
-														fmt.Sprintf(`
+														`
 															set -e
 
 														echo "==================== Environment Info ===================="
-														echo "PyTorch Backend: %s"
 														echo "Dataset Path: ${DATASET_PATH}"
 														echo "==========================================================="
 
@@ -309,7 +332,7 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 
 															echo ""
 															echo "==================== Training Complete ===================="
-															`, backend),
+															`,
 													},
 													Resources: buildResourceRequirements(accelerator, numProcPerNode),
 													VolumeMounts: []corev1.VolumeMount{
