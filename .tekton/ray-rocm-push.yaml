@@ -16,7 +16,7 @@ metadata:
     appstudio.openshift.io/component: ray-rocm
     pipelines.appstudio.openshift.io/type: build
   name: ray-rocm-on-push
-  namespace: rhoai-tenant
+  namespace: open-data-hub-tenant
 spec:
   params:
   - name: git-url

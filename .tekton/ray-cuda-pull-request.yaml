@@ -16,7 +16,7 @@ metadata:
     appstudio.openshift.io/component: pull-request-pipelines-ray-cuda
     pipelines.appstudio.openshift.io/type: build
   name: ray-cuda-on-pull-request
-  namespace: rhoai-tenant
+  namespace: open-data-hub-tenant
 spec:
   timeouts:
     pipeline: 10h
