@@ -1,0 +1,8 @@
+# Uses PyTorch ROCm wheel index for compatible packages
+# Install only packages which are not present in base image
+# Use "# no-deps" marker for packages that should be installed without dependencies
+--extra-index-url https://download.pytorch.org/whl/rocm6.4
+
+minio==7.2.13
+torchvision==0.23.0  # no-deps
+pillow==11.0.0  # no-deps
