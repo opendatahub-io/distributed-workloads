@@ -1,13 +1,13 @@
 ARG PYTHON_VERSION=311
-ARG IMAGE_TAG=9.6-1750969934
+ARG IMAGE_TAG=9.7-1764607356
 
 FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG}
 
-LABEL name="ray-ubi9-py311-rocm62" \
-      summary="ROCm Python 3.11 image based on UBI9 for Ray" \
-      description="ROCm Python 3.11 image based on UBI9 for Ray" \
-      io.k8s.display-name="ROCm Python 3.11 base image for Ray" \
-      io.k8s.description="ROCm Python 3.11 image based on UBI9 for Ray" \
+LABEL name="ray-ubi9-py312-rocm62" \
+      summary="ROCm Python 3.12 image based on UBI9 for Ray" \
+      description="ROCm Python 3.12 image based on UBI9 for Ray" \
+      io.k8s.display-name="ROCm Python 3.12 base image for Ray" \
+      io.k8s.description="ROCm Python 3.12 image based on UBI9 for Ray" \
       authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
 
 # Install ROCm
