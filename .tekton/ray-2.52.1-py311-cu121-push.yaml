@@ -8,7 +8,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" 
-      && target_branch == "main" 
+      && target_branch == "rhoai-2.25" 
       && ( "images/runtime/ray/cuda/2.52.1-py311-cu121/**".pathChanged() || ".tekton/ray-2.52.1-py311-cu121-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
