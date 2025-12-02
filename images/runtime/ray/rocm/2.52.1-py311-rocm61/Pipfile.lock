@@ -1,11 +1,11 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "6b549fcd51a3781fed5189b03d655be763ed46bb72f0ad25db118c49edbcc16f"
+            "sha256": "6953bb976e207dd5d71a23c49b44e497c23b06cb927c3a23c1596e6a21ee0d10"
         },
         "pipfile-spec": 6,
         "requires": {
-            "python_version": "3.12"
+            "python_version": "3.11"
         },
         "sources": [
             {
@@ -611,11 +611,11 @@
         },
         "fastapi": {
             "hashes": [
-                "sha256:4c2bd282575f4be7986e637a3339fb193460806eb6b15a1ea8c48e2b4e641d77",
-                "sha256:fe463e5865baf5550c4e73fe421250e4709bf845505dd14a64f83af25abe2789"
+                "sha256:54bbb660ca231d3985474498b51c621ddcf8888d9a4c1ecb10aa40ec217e4965",
+                "sha256:a9c708e47c0fa424139cddb8601d0f92d3111b77843c22e9c8d0164d65fe3c97"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==0.123.3"
+            "version": "==0.123.5"
         },
         "filelock": {
             "hashes": [
