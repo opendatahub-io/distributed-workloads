@@ -24,9 +24,9 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/ray:2.47.1-py312-rocm62
+    value: quay.io/modh/ray:2.52.1-py312-rocm62
   - name: additional-tag
-    value: 2.47.1-py312-rocm62-{{revision}}
+    value: 2.52.1-py312-rocm62-{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
