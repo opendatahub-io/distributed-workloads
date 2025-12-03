@@ -42,7 +42,7 @@ FROM ${BASE_IMAGE} AS base
 
 LABEL name="universal:py312-cuda128-torch290" \
       summary="Universal CUDA 12.8 Python 3.12 image with PyTorch 2.9.0" \
-      description="Universal image combining minimal Jupyter workbench and runtime ML stack (CUDA 12.8, PyTorch 2.9.0, FlashAttention 2.8.3) on UBI9" \
+      description="Universal image combining minimal Jupyter workbench and runtime ML stack (CUDA 12.8, PyTorch 2.9.0, FlashAttention 2.8.2) on UBI9" \
       io.k8s.display-name="Universal CUDA 12.8 Python 3.12 (Workbench + Runtime)" \
       io.k8s.description="Universal image: Jupyter workbench by default; runtime when command provided."
 
@@ -183,6 +183,12 @@ RUN pip install --no-build-isolation --no-cache-dir --no-deps \
 # 2. Mamba SSM dependencies (order matters!)
 # - causal-conv1d first (needs --no-build-isolation)
 # - mamba-ssm second (needs --no-build-isolation --no-deps)
+#
+# To avoid out-of-memory during CUDA extension builds, cap parallel jobs.
+# These environment variables are respected by PyTorch/ninja/CMake builds.
+ENV MAX_JOBS=4 \
+    CMAKE_BUILD_PARALLEL_LEVEL=4 \
+    NINJA_FLAGS=-j4
 RUN pip install --no-build-isolation --no-cache-dir \
     $(grep "^causal-conv1d" /tmp/deps/requirements-special.txt) \
  && pip install --no-build-isolation --no-cache-dir --no-deps \
