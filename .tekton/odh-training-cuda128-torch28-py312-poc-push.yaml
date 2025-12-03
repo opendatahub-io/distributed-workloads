@@ -626,7 +626,7 @@ spec:
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-training-th03-cuda128-torch28-py312-rhel9
+    serviceAccountName: build-pipeline-odh-training-cuda128-torch28-py312-poc
   workspaces:
   - name: git-auth
     secret:
