@@ -1895,15 +1895,17 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/08/20/0f2523b9e50a805
 
 [[packages]]
 name = "pytorch-triton-rocm"
-version = "3.4.0"
-marker = "platform_machine == 'x86_64' and sys_platform == 'linux'"
+version = "3.5.0"
+marker = "sys_platform == 'linux'"
 wheels = [
-    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.4.0-cp310-cp310-linux_x86_64.whl", hashes = { sha256 = "1ee0a5cf569175e63b43bc334dcaaf6f9b0d88eb455a452869c2bab14e1f7eb4" } },
-    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.4.0-cp311-cp311-linux_x86_64.whl", hashes = { sha256 = "b0362725d8e16d185251e3dcd48455ebf9cdaad2c26052bb47ef08a1d687ed20" } },
-    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.4.0-cp312-cp312-linux_x86_64.whl", hashes = { sha256 = "7afe951b9fc38f1a5b3a7b98bebbaa092bf51e6192b699b4fade9b1ad6fc9c2c" } },
-    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.4.0-cp313-cp313-linux_x86_64.whl", hashes = { sha256 = "1e7ccba3501fcd38e8cd8415f97a654043370e1fdc5a936bb75abe1bebeb94c9" } },
-    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.4.0-cp313-cp313t-linux_x86_64.whl", hashes = { sha256 = "c262cd42e38b6955391338cca1c3a779cceb8c51e4b45200d87305c870ef99d7" } },
-    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.4.0-cp39-cp39-linux_x86_64.whl", hashes = { sha256 = "7f26455680a068b04456c6977348d404ff31d2fef1d7472e980483db7acbe462" } },
+    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.0-cp310-cp310-linux_x86_64.whl", hashes = { sha256 = "f2ea8cb272afcdb8b08a85eb947ed01d0921a56b26aee8648c6d1de1aaf4db08" } },
+    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.0-cp311-cp311-linux_x86_64.whl", hashes = { sha256 = "b3d4624a662e0dfad60d679166047840415e16ed62df93ac9f8d3685dc9869d7" } },
+    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.0-cp312-cp312-linux_x86_64.whl", hashes = { sha256 = "b3a209621d0433367c489e8dce90ebc4c7c9e3bfe1c2b7adc928344f8290d5f5" } },
+    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.0-cp313-cp313-linux_x86_64.whl", hashes = { sha256 = "bd2fab6dfb077dfc11fb581c5d33a0ee2d43ea13415530d095d1d5326d85d8b2" } },
+    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.0-cp313-cp313t-linux_x86_64.whl", hashes = { sha256 = "0922f3ed8cd09f7d7f3a62138808efc9cdf9c9ee2913e00786e948b10f091fb0" } },
+    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.0-cp314-cp314-linux_x86_64.whl", hashes = { sha256 = "af67c42a8022fc4de3ddb707a201bd0cd49a41ca761bf3da0537b3e127e5b4d0" } },
+    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.0-cp314-cp314t-linux_x86_64.whl", hashes = { sha256 = "cdf579cf1982ade33011e5eafe0f741a2bfa1560075b23412e41b681d1fb8ca4" } },
+    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.0-cp39-cp39-linux_x86_64.whl", hashes = { sha256 = "041415bbb4f11f0bbad13a39374cd5e0b9b74a5c0864ef8f58c38b635689123d" } },
 ]
 
 [[packages]]
@@ -2588,14 +2590,15 @@ wheels = [
 
 [[packages]]
 name = "torch"
-version = "2.8.0+rocm6.4"
+version = "2.9.0+rocm6.4"
 wheels = [
-    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.8.0%2Brocm6.4-cp310-cp310-manylinux_2_28_x86_64.whl", hashes = { sha256 = "1fb876f6c215282bbfe8f3dc6d17a3b8755865601fac44e7c036a3f55b84a315" } },
-    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.8.0%2Brocm6.4-cp311-cp311-manylinux_2_28_x86_64.whl", hashes = { sha256 = "2d35c37d15a0eb61ceab94dffae9399cab1b4a0d64668e4405025b5ce65df033" } },
-    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.8.0%2Brocm6.4-cp312-cp312-manylinux_2_28_x86_64.whl", hashes = { sha256 = "b2ee7e4967d4ad38689a38cefff2a60baa1e884fe61d96c390c187e525a02b3a" } },
-    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.8.0%2Brocm6.4-cp313-cp313-manylinux_2_28_x86_64.whl", hashes = { sha256 = "262ebeac6905df801969fb6dbdc085c75c21c5609dc8357334ec0b0a242e50eb" } },
-    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.8.0%2Brocm6.4-cp313-cp313t-manylinux_2_28_x86_64.whl", hashes = { sha256 = "5b7d7a8d0174ceb30d203bbf7e5cf04eb8d7aa9e8ed09521ca84a7f48979b4e9" } },
-    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.8.0%2Brocm6.4-cp39-cp39-manylinux_2_28_x86_64.whl", hashes = { sha256 = "3bc4073e4aaed0f0d1e4c3cfdb14ccde502654bfacd02b0f2b9d4f7d3f6bd89b" } },
+    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.0%2Brocm6.4-cp310-cp310-manylinux_2_28_x86_64.whl", hashes = { sha256 = "400e63239a85e69c9c6dbae4c0e6c7bb01312f3ed5eef25f3b886ff73d7eb2ab" } },
+    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.0%2Brocm6.4-cp311-cp311-manylinux_2_28_x86_64.whl", hashes = { sha256 = "a29a9cd848f281ed9af6c1c5651437897ef3320d125818fac2f050399890b32b" } },
+    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.0%2Brocm6.4-cp312-cp312-manylinux_2_28_x86_64.whl", hashes = { sha256 = "bbb1d006c7a7f9f27447fd5c17674d408625e6e562a83f11f58460bb0acbd9c1" } },
+    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.0%2Brocm6.4-cp313-cp313-manylinux_2_28_x86_64.whl", hashes = { sha256 = "c8a8876e7c5bd8fdcc394289076d2b83295addad4f5ca60ea3865123d5dc9f76" } },
+    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.0%2Brocm6.4-cp313-cp313t-manylinux_2_28_x86_64.whl", hashes = { sha256 = "a025a602ce880e3a967cff80ce4c6c599e3f5b73195c18edc48b26ae2e5f1926" } },
+    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.0%2Brocm6.4-cp314-cp314-manylinux_2_28_x86_64.whl", hashes = { sha256 = "94a2c768ed5b76c53ff152e43baf081fbab965a94ceac972c15c814ece7810d0" } },
+    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.0%2Brocm6.4-cp314-cp314t-manylinux_2_28_x86_64.whl", hashes = { sha256 = "54b34f01b05c629814573c2b5f0a86f910b934b0807cd063cd7f8d0abdd6a617" } },
 ]
 
 [[packages]]
