@@ -9,13 +9,13 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" 
       && target_branch == "main" 
-      && ( "images/runtime/ray/rocm/**".pathChanged() || ".tekton/ray-rocm-push.yaml".pathChanged() )
+      && ( "images/runtime/ray/rocm/2.52.1-py311-rocm61/**".pathChanged() || ".tekton/ray-2.52.1-py311-rocm61-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
     appstudio.openshift.io/component: ray-rocm
     pipelines.appstudio.openshift.io/type: build
-  name: ray-rocm-on-push
+  name: ray-rocm-2.52.1-py311-rocm61-on-push
   namespace: rhoai-tenant
 spec:
   params:
@@ -24,13 +24,13 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/ray:2.47.1-py311-rocm62
+    value: quay.io/modh/ray:2.52.1-py311-rocm61
   - name: additional-tag
-    value: 2.47.1-py311-rocm62-{{revision}}
+    value: 2.52.1-py311-rocm61-{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
-    value: images/runtime/ray/rocm
+    value: images/runtime/ray/rocm/2.52.1-py311-rocm61
   taskRunSpecs:
     - pipelineTaskName: build-container
       stepSpecs:
@@ -469,7 +469,8 @@ spec:
       optional: true
     - name: netrc
       optional: true
-  taskRunTemplate: {}
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-ray-2.52.1-py311-rocm61
   workspaces:
   - name: git-auth
     secret:
