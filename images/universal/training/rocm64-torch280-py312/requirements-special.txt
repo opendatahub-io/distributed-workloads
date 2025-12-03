@@ -1,0 +1,8 @@
+# Special packages requiring special installation
+# 
+# flash-attn is installed from ROCm fork (https://github.com/ROCm/flash-attention)
+# The ROCm fork handles GPU architecture detection differently than PyPI version
+# and can be built without an actual GPU at build time using GPU_ARCHS env var
+
+# Installed from source in Dockerfile:
+# git+https://github.com/ROCm/flash-attention.git
