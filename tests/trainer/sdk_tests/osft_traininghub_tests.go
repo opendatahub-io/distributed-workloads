@@ -61,6 +61,19 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
 	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{osftNotebookName: nb})
 
+	// Build command with parameters and pinned deps, and print definitive status line to logs
+	endpoint, endpointOK := support.GetStorageBucketDefaultEndpoint()
+	accessKey, _ := support.GetStorageBucketAccessKeyId()
+	secretKey, _ := support.GetStorageBucketSecretKey()
+	bucket, bucketOK := support.GetStorageBucketName()
+	prefix, _ := support.GetStorageBucketMnistDir()
+	if !endpointOK {
+		endpoint = ""
+	}
+	if !bucketOK {
+		bucket = ""
+	}
+
 	// Create RWX PVC for shared dataset and pass the claim name to the notebook
 	storageClass, err := support.GetRWXStorageClass(test)
 	test.Expect(err).NotTo(HaveOccurred(), "Failed to find an RWX supporting StorageClass")
@@ -77,10 +90,15 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 			"export OPENSHIFT_API_URL='%s'; export NOTEBOOK_USER_TOKEN='%s'; "+
 			"export NOTEBOOK_NAMESPACE='%s'; "+
 			"export SHARED_PVC_NAME='%s'; "+
+			"export AWS_DEFAULT_ENDPOINT='%s'; export AWS_ACCESS_KEY_ID='%s'; "+
+			"export AWS_SECRET_ACCESS_KEY='%s'; export AWS_STORAGE_BUCKET='%s'; "+
+			"export AWS_STORAGE_BUCKET_DATA_DIR='%s'; "+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill boto3==1.34.162 git+https://github.com/opendatahub-io/kubeflow-sdk.git@main && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name, osftNotebookName,
+		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
+		endpoint, accessKey, secretKey, bucket, prefix,
+		osftNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
@@ -98,7 +116,6 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
 
 	// Poll logs to check if the notebook execution completed successfully
-	// Use extra long timeout for multi-GPU distributed training
 	err = trainerutils.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
 	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 }
