@@ -59,7 +59,7 @@ ENV NVIDIA_VISIBLE_DEVICES=all \
     CUDA_HOME=/usr/local/cuda \
     PATH=/usr/local/cuda/bin:$PATH \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
-    TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0" \
+    TORCH_CUDA_ARCH_LIST="8.6" \
     XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
 
 ################################################################################
@@ -176,6 +176,12 @@ RUN pip install --retries 5 --timeout 300 --no-cache-dir \
 # Copy requirements-special.txt for installation
 COPY --chown=1001:0 requirements-special.txt /tmp/deps/
 
+# To avoid out-of-memory during CUDA extension builds, cap parallel jobs
+# These environment variables are respected by PyTorch/ninja/CMake builds
+ENV MAX_JOBS=4 \
+    CMAKE_BUILD_PARALLEL_LEVEL=4 \
+    NINJA_FLAGS=-j4
+
 # 1. Flash Attention (standalone, needs --no-build-isolation --no-deps)
 RUN pip install --no-build-isolation --no-cache-dir --no-deps \
     $(grep "^flash-attn" /tmp/deps/requirements-special.txt)
@@ -183,12 +189,6 @@ RUN pip install --no-build-isolation --no-cache-dir --no-deps \
 # 2. Mamba SSM dependencies (order matters!)
 # - causal-conv1d first (needs --no-build-isolation)
 # - mamba-ssm second (needs --no-build-isolation --no-deps)
-#
-# To avoid out-of-memory during CUDA extension builds, cap parallel jobs.
-# These environment variables are respected by PyTorch/ninja/CMake builds.
-ENV MAX_JOBS=4 \
-    CMAKE_BUILD_PARALLEL_LEVEL=4 \
-    NINJA_FLAGS=-j4
 RUN pip install --no-build-isolation --no-cache-dir \
     $(grep "^causal-conv1d" /tmp/deps/requirements-special.txt) \
  && pip install --no-build-isolation --no-cache-dir --no-deps \
