@@ -195,9 +195,11 @@ spec:
         workspace: git-auth
       - name: netrc
         workspace: netrc
-    - name: build-container
+    - name: build-images
       timeout: 8h
       params:
+      - name: ADDITIONAL_SECRET
+        value: $(params.additional-build-secret)
       - name: IMAGE
         value: $(params.output-image)
       - name: DOCKERFILE
@@ -219,22 +221,31 @@ spec:
         value: $(params.build-args-file)
       - name: PRIVILEGED_NESTED
         value: $(params.privileged-nested)
-      - name: SOURCE_URL
-        value: $(tasks.clone-repository.results.url)
-      - name: BUILDAH_FORMAT
-        value: $(params.buildah-format)
+      - name: ACTIVATION_KEY
+        value: custom-activation-key
+      - name: LABELS
+        value:
+        - $(params.additional-labels[*])
+        - url=$(params.git-url)
+        - release=$(tasks.clone-repository.results.commit-timestamp)
+        - git.url=$(params.git-url)
+        - git.commit=$(params.revision)
       - name: SOURCE_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
       - name: CACHI2_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+      - name: IMAGE_APPEND_PLATFORM
+        value: "true"
+      - name: BUILDAH_FORMAT
+        value: $(params.buildah-format)
       runAfter:
       - prefetch-dependencies
       taskRef:
         params:
         - name: name
-          value: buildah-oci-ta
+          value: buildah-remote-oci-ta
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-buildah-oci-ta:0.6@sha256:bb8ca56a61aa467d087b2eb5a9a9c2d1193cfba41e5b1f4de7ee9a252111f669
+          value: quay.io/konflux-ci/tekton-catalog/task-buildah-remote-oci-ta:0.7@sha256:ee5e01eb59a3f70bb1012950fbc4081bac96d3f3517e6d204314484cd2e0059b
         - name: kind
           value: task
         resolver: bundles
