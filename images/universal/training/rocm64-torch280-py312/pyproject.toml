@@ -144,7 +144,7 @@ dependencies = [
     # ===================================================================
     
     # PyTorch with ROCm 6.4 (local version suffix)
-    "torch==2.8.0+rocm6.4",
+    "torch==2.9.0+rocm6.4",
     
     # ML Training and Inference Libraries
     "peft==0.17.0",
