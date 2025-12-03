@@ -28,7 +28,7 @@ spec:
     - '{{target_branch}}-{{revision}}'
   - name: additional-labels
     value:
-    - version=v2.25.0
+    - version=v2.25.1
     - io.openshift.tags=odh-training-cuda121-torch24-py311
   - name: output-image
     value: quay.io/rhoai/odh-training-cuda121-torch24-py311-rhel9:{{target_branch}}
