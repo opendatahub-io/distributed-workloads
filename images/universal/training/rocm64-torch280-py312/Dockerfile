@@ -27,9 +27,9 @@ RUN pip install --no-cache-dir uv
 ################################################################################
 FROM ${BASE_IMAGE} AS base
 
-LABEL name="rocm:py312-rocm64-torch280" \
-      summary="ROCm 6.4 Python 3.12 image with PyTorch 2.8.0" \
-      description="ROCm image combining minimal Jupyter workbench and runtime ML stack (ROCm 6.4, PyTorch 2.8.0) on UBI9" \
+LABEL name="rocm:py312-rocm64-torch290" \
+      summary="ROCm 6.4 Python 3.12 image with PyTorch 2.9.0" \
+      description="ROCm image combining minimal Jupyter workbench and runtime ML stack (ROCm 6.4, PyTorch 2.9.0) on UBI9" \
       io.k8s.display-name="ROCm 6.4 Python 3.12 (Workbench + Runtime)" \
       io.k8s.description="ROCm image: Jupyter workbench by default; runtime when command provided."
 
@@ -140,17 +140,16 @@ ENV UV_NO_CACHE=
 RUN pip install --retries 5 --timeout 300 --no-cache-dir \
     "git+https://github.com/opendatahub-io/kubeflow-sdk@main"
 
-# TODO: Re-enable Flash Attention after confirming base image works
 # Install Flash Attention from original Dao-AILab repo
 # --no-build-isolation: Use already-installed torch instead of isolated env
-# USER 0
-# ENV GPU_ARCHS="gfx90a;gfx942"
-# RUN cd /tmp \
-#     && git clone --depth 1 --branch v2.8.3 https://github.com/Dao-AILab/flash-attention.git \
-#     && cd flash-attention \
-#     && git submodule update --init \
-#     && MAX_JOBS="16" pip install --no-build-isolation --no-cache-dir --no-deps . \
-#     && cd / && rm -rf /tmp/flash-attention
+USER 0
+ENV GPU_ARCHS="gfx90a;gfx942"
+RUN cd /tmp \
+    && git clone --depth 1 --branch v2.8.2 https://github.com/Dao-AILab/flash-attention.git \
+    && cd flash-attention \
+    && git submodule update --init \
+    && MAX_JOBS="4" pip install --no-build-isolation --no-cache-dir --no-deps . \
+    && cd / && rm -rf /tmp/flash-attention
 
 
 # Fix permissions for OpenShift
