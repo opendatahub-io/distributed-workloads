@@ -10,6 +10,6 @@
 # 2. causal-conv1d (first, needs --no-build-isolation)
 # 3. mamba-ssm (second, needs --no-build-isolation --no-deps)
 
-flash-attn==2.8.3
+flash-attn==2.8.2
 causal-conv1d==1.5.3.post1
 mamba-ssm==2.2.6.post3
