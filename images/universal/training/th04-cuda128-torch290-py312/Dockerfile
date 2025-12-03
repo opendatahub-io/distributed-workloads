@@ -59,7 +59,7 @@ ENV NVIDIA_VISIBLE_DEVICES=all \
     CUDA_HOME=/usr/local/cuda \
     PATH=/usr/local/cuda/bin:$PATH \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
-    TORCH_CUDA_ARCH_LIST="8.6" \
+    TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0" \
     XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
 
 ################################################################################

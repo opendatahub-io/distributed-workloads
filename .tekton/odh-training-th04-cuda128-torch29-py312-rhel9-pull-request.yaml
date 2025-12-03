@@ -18,6 +18,9 @@ metadata:
   name: odh-training-th04-cuda128-torch29-py312-rhel9-on-pull-request
   namespace: open-data-hub-tenant
 spec:
+  timeouts:
+    pipeline: 20h
+    tasks: 18h
   params:
   - name: git-url
     value: '{{source_url}}'
