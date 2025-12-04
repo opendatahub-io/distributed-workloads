@@ -20,10 +20,17 @@ import (
 	"testing"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
+	support "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 	sdktests "github.com/opendatahub-io/distributed-workloads/tests/trainer/sdk_tests"
 )
 
 func TestKubeflowSdkSanity(t *testing.T) {
 	Tags(t, Sanity)
 	sdktests.RunFashionMnistCpuDistributedTraining(t)
+}
+
+// TestOsftTrainingHubMultiNodeMultiGPU tests OSFT training using TrainingHubTrainer
+func TestOsftTrainingHubMultiNodeMultiGPU(t *testing.T) {
+	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 1)) // TODO: may need to be updated once https://issues.redhat.com/browse/RHOAIENG-30719 and https://issues.redhat.com/browse/RHOAIENG-24552 are resolved
+	sdktests.RunOsftTrainingHubMultiGpuDistributedTraining(t)
 }
