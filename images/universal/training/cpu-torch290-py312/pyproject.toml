@@ -149,17 +149,17 @@ dependencies = [
     # ML Training and Inference Libraries
     "peft==0.17.0",
     "datasets==4.0.0",
-    "transformers==4.55.2",
+    "transformers==4.57.1",
     "accelerate==1.10.0",
     "trl==0.21.0",
     
     # Deep Learning Utilities (CPU-compatible)
     "einops>=0.8",
-    "numba==0.61.2",
+    "numba==0.62.1",
     
     # Tokenization
     "sentencepiece>=0.1.99,<0.3",
-    "tokenizers==0.21.4",
+    "tokenizers==0.22.1",
     
     # Core Dependencies
     "numpy>=1.23.5,<2.0.0",
@@ -173,6 +173,9 @@ dependencies = [
     "aiofiles==24.1.0",
     "async-timeout==4.0.3",
     "tensorboard==2.19.0",
+    
+    # Training Frameworks
+    "training_hub==0.4.0",
     
     # Note: GPU-specific packages are NOT included:
     # - flash-attn (requires CUDA/ROCm)
