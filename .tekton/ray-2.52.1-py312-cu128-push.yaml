@@ -40,6 +40,11 @@ spec:
               memory: 16Gi
             limits:
               memory: 32Gi
+          volumeClaimTemplate:
+            spec:
+              resources:
+                requests:
+                  storage: 30Gi
     - pipelineTaskName: prefetch-dependencies
       computeResources:
         requests:
