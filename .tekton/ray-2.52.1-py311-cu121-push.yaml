@@ -473,7 +473,7 @@ spec:
       - name: netrc
         optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-ray-2.52.1-py311-cu121
+    serviceAccountName: build-pipeline-ray-cuda
   workspaces:
     - name: git-auth
       secret:
