@@ -25,7 +25,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/open-data-hub-tenant/odh-training-cuda124-torch25-py311-poc:{{revision}}
+    value: quay.io/opendatahub/odh-training-cuda124-torch25-py311:odh-stable
   - name: dockerfile
     value: Dockerfile
   - name: path-context
