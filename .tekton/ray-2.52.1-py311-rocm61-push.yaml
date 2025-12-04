@@ -8,14 +8,14 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" 
-      && target_branch == "main" 
-      && ( "images/runtime/ray/cuda/**".pathChanged() || ".tekton/ray-cuda-push.yaml".pathChanged() )
+      && target_branch == "rhoai-2.25" 
+      && ( "images/runtime/ray/rocm/2.52.1-py311-rocm61/**".pathChanged() || ".tekton/ray-2.52.1-py311-rocm61-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
-    appstudio.openshift.io/component: ray-cuda
+    appstudio.openshift.io/component: ray-rocm
     pipelines.appstudio.openshift.io/type: build
-  name: ray-cuda-on-push
+  name: ray-rocm-2.52.1-py311-rocm61-on-push
   namespace: rhoai-tenant
 spec:
   params:
@@ -24,15 +24,15 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/ray:2.52.1-py312-cu128
+    value: quay.io/modh/ray:2.52.1-py311-rocm61
   - name: additional-tag
-    value: 2.52.1-py312-cu128-{{revision}}
+    value: 2.52.1-py311-rocm61-{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
-    value: images/runtime/ray/cuda
+    value: images/runtime/ray/rocm/2.52.1-py311-rocm61
   taskRunSpecs:
-    - pipelineTaskName: build-images
+    - pipelineTaskName: build-container
       stepSpecs:
         - name: build
           computeResources:
@@ -115,7 +115,7 @@ spec:
       description: Build a source image.
       name: build-source-image
       type: string
-    - default: "true"
+    - default: "false"
       description: Add built image into an OCI image index
       name: build-image-index
       type: string
@@ -127,11 +127,6 @@ spec:
       description: Path to a file with build arguments for buildah, see https://www.mankier.com/1/buildah-build#--build-arg-file
       name: build-args-file
       type: string
-    - name: build-platforms
-      default:
-      - linux-extra-fast/amd64
-      - linux-m2xlarge/arm64
-      description: List of platforms to build the container images on. The available set of values is determined by the configuration of the multi-platform-controller.
     results:
     - description: ""
       name: IMAGE_URL
@@ -218,13 +213,7 @@ spec:
         workspace: git-auth
       - name: netrc
         workspace: netrc
-    - matrix:
-        params:
-        - name: PLATFORM
-          value:
-          - $(params.build-platforms)
-      name: build-images
-      timeout: 8h
+    - name: build-container
       params:
       - name: IMAGE
         value: $(params.output-image)
@@ -249,16 +238,14 @@ spec:
         value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
       - name: CACHI2_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
-      - name: IMAGE_APPEND_PLATFORM
-        value: "true"
       runAfter:
       - prefetch-dependencies
       taskRef:
         params:
         - name: name
-          value: buildah-remote-oci-ta
+          value: buildah-oci-ta
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-buildah-remote-oci-ta:0.4@sha256:252e5c94fb2375c43bdfd4b65097d246f4f37392956b08e5c38f366623a0b9ce
+          value: quay.io/konflux-ci/tekton-catalog/task-buildah-oci-ta:0.2@sha256:6620f885c459e0e062c44797a4fc7b0f28c54c117de3771234b065c76714f663
         - name: kind
           value: task
         resolver: bundles
@@ -279,9 +266,9 @@ spec:
         value: $(params.build-image-index)
       - name: IMAGES
         value:
-        - $(tasks.build-images.results.IMAGE_REF[*])
+        - $(tasks.build-container.results.IMAGE_URL)@$(tasks.build-container.results.IMAGE_DIGEST)
       runAfter:
-      - build-images
+      - build-container
       taskRef:
         params:
         - name: name
@@ -369,7 +356,6 @@ spec:
         values:
         - "false"
     - name: ecosystem-cert-preflight-checks
-      timeout: 2h
       params:
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
@@ -380,7 +366,7 @@ spec:
         - name: name
           value: ecosystem-cert-preflight-checks
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-ecosystem-cert-preflight-checks:0.2@sha256:51ee3ca7b8142f39a2861ed0f94f67e02c538e3b7e57de56ed301fbb9774aa12
+          value: quay.io/konflux-ci/tekton-catalog/task-ecosystem-cert-preflight-checks:0.1@sha256:5131cce0f93d0b728c7bcc0d6cee4c61d4c9f67c6d619c627e41e3c9775b497d
         - name: kind
           value: task
         resolver: bundles
@@ -389,11 +375,6 @@ spec:
         operator: in
         values:
         - "false"
-      matrix:
-        params:
-        - name: platform
-          value:
-          - $(params.build-platforms)
     - name: sast-snyk-check
       params:
       - name: image-digest
@@ -488,7 +469,8 @@ spec:
       optional: true
     - name: netrc
       optional: true
-  taskRunTemplate: {}
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-ray-2.52.1-py311-rocm61
   workspaces:
   - name: git-auth
     secret:
