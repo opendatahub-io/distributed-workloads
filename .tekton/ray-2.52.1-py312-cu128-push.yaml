@@ -135,7 +135,7 @@ spec:
     - name: build-platforms
       default:
       - linux-extra-fast/amd64
-      - linux-m2xlarge/arm64
+      - linux-d160-m2xlarge/arm64
       description: List of platforms to build the container images on. The available set of values is determined by the configuration of the multi-platform-controller.
     results:
     - description: ""
