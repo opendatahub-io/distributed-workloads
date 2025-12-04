@@ -4,48 +4,36 @@ metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/distributed-workloads?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
-    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "true"
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "main" &&
-      ("images/universal/training/rocm64-torch280-py312/Dockerfile".pathChanged() || "images/universal/training/rocm64-torch280-py312/entrypoint-universal.sh".pathChanged() || ".tekton/odh-training-rocm64-torch28-py312-rhel9-pull-request.yaml".pathChanged())
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "main" &&
+      ("images/universal/training/rocm64-torch290-py312/Dockerfile".pathChanged() || "images/universal/training/rocm64-torch290-py312/entrypoint-universal.sh".pathChanged() || ".tekton/odh-training-rocm64-torch290-py312-rhel9-push.yaml".pathChanged())
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: odh-universal-image
-    appstudio.openshift.io/component: odh-training-rocm64-torch28-py312-rhel9
+    appstudio.openshift.io/component: odh-training-rocm64-torch29-py312-rhel9
     pipelines.appstudio.openshift.io/type: build
-  name: odh-training-rocm64-torch28-py312-rhel9-on-pull-request
+  name: odh-training-rocm64-torch29-py312-rhel9-on-push
   namespace: open-data-hub-tenant
 spec:
   timeouts:
-    pipeline: 24h
-    tasks: 20h
-  taskRunSpecs:
-    - pipelineTaskName: build-images
-      stepSpecs:
-        - name: build
-          computeResources:
-            requests:
-              memory: 10Gi
-            limits:
-              memory: 10Gi
+    pipeline: "24h"
+    tasks: "20h"
   params:
   - name: git-url
     value: '{{source_url}}'
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-training-th03-cuda128-torch28-py312-rhel9:rocm-on-pr-{{revision}}
-  - name: image-expires-after
-    value: 5d
+    value: quay.io/opendatahub/odh-training-th03-cuda128-torch28-py312-rhel9:rocm-latest
   - name: build-platforms
     value:
-    - linux-extra-fast/amd64
+    - linux-d160-m8xlarge/amd64
   - name: dockerfile
     value: Dockerfile
   - name: path-context
-    value: images/universal/training/rocm64-torch280-py312
+    value: images/universal/training/rocm64-torch290-py312
   pipelineSpec:
     description: |
       This pipeline is ideal for building multi-arch container images from a Containerfile while maintaining trust after pipeline customization.
@@ -648,7 +636,7 @@ spec:
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-training-rocm64-torch28-py312-rhel9
+    serviceAccountName: build-pipeline-odh-training-rocm64-torch29-py312-rhel9
   workspaces:
   - name: git-auth
     secret:
