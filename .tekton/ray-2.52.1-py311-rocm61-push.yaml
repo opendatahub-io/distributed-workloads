@@ -470,7 +470,7 @@ spec:
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-ray-2.52.1-py311-rocm61
+    serviceAccountName: build-pipeline-ray-rocm
   workspaces:
   - name: git-auth
     secret:
