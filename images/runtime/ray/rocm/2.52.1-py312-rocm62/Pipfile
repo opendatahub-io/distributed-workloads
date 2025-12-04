@@ -1,0 +1,11 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+numpy = {version = "<2.0.0" }
+"ray[all]" = {version = "~=2.52.1"}
+
+[requires]
+python_version = "3.12"

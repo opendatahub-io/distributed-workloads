@@ -9,13 +9,13 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" 
       && target_branch == "main" 
-      && ( "images/runtime/ray/cuda/**".pathChanged() || ".tekton/ray-cuda-push.yaml".pathChanged() )
+      && ( "images/runtime/ray/rocm/2.52.1-py312-rocm62/**".pathChanged() || ".tekton/ray-2.52.1-py312-rocm62-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
-    appstudio.openshift.io/component: ray-cuda
+    appstudio.openshift.io/component: ray-rocm
     pipelines.appstudio.openshift.io/type: build
-  name: ray-cuda-on-push
+  name: ray-rocm-2.52.1-py312-rocm62-on-push
   namespace: rhoai-tenant
 spec:
   params:
@@ -24,13 +24,13 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/ray:2.47.1-py312-cu128
+    value: quay.io/modh/ray:2.52.1-py312-rocm62
   - name: additional-tag
-    value: 2.47.1-py312-cu128-{{revision}}
+    value: 2.52.1-py312-rocm62-{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
-    value: images/runtime/ray/cuda
+    value: images/runtime/ray/rocm/2.52.1-py312-rocm62
   taskRunSpecs:
     - pipelineTaskName: build-container
       stepSpecs:
@@ -469,9 +469,11 @@ spec:
       optional: true
     - name: netrc
       optional: true
-  taskRunTemplate: {}
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-ray-2.52.1-py312-rocm62
   workspaces:
   - name: git-auth
     secret:
       secretName: '{{ git_auth_secret }}'
 status: {}
+#restart
