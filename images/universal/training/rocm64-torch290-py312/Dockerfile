@@ -100,6 +100,11 @@ RUN dnf install -y --setopt=install_weak_deps=False \
     cmake \
     git && dnf clean all && rm -rf /var/cache/dnf/*
 
+# Install ninja as root (critical for flash-attention, reduces build from hours to minutes)
+# ninja-build package not available in base repos, so install via pip
+RUN pip install --no-cache-dir ninja && \
+    ln -sf /usr/local/bin/ninja /usr/bin/ninja
+
 # Bundle RDMA runtime libs to a staging dir
 RUN mkdir -p /opt/rdma-runtime \
  && cp -a /usr/lib64/libibverbs* /opt/rdma-runtime/ || true \
@@ -143,12 +148,22 @@ RUN pip install --retries 5 --timeout 300 --no-cache-dir \
 # Install Flash Attention from original Dao-AILab repo
 # --no-build-isolation: Use already-installed torch instead of isolated env
 USER 0
-ENV GPU_ARCHS="gfx90a;gfx942"
+
+# Set build parallelism environment variables
+# MAX_JOBS: Controls PyTorch extension build parallelism
+# CMAKE_BUILD_PARALLEL_LEVEL: Controls CMake parallelism
+# NINJA_FLAGS: Controls ninja build parallelism
+# GPU_ARCHS: Target GPU architectures (gfx942=MI300, gfx90a=MI200/MI250)
+ENV GPU_ARCHS="gfx90a;gfx942" \
+    MAX_JOBS=12 \
+    CMAKE_BUILD_PARALLEL_LEVEL=12 \
+    NINJA_FLAGS=-j12
+
 RUN cd /tmp \
     && git clone --depth 1 --branch v2.8.2 https://github.com/Dao-AILab/flash-attention.git \
     && cd flash-attention \
     && git submodule update --init \
-    && MAX_JOBS="4" pip install --no-build-isolation --no-cache-dir --no-deps . \
+    && pip install --no-build-isolation --no-cache-dir --no-deps . \
     && cd / && rm -rf /tmp/flash-attention
 
 
