@@ -100,11 +100,6 @@ RUN dnf install -y --setopt=install_weak_deps=False \
     cmake \
     git && dnf clean all && rm -rf /var/cache/dnf/*
 
-# Install ninja as root (critical for flash-attention, reduces build from hours to minutes)
-# ninja-build package not available in base repos, so install via pip
-RUN pip install --no-cache-dir ninja && \
-    ln -sf /usr/local/bin/ninja /usr/bin/ninja
-
 # Bundle RDMA runtime libs to a staging dir
 RUN mkdir -p /opt/rdma-runtime \
  && cp -a /usr/lib64/libibverbs* /opt/rdma-runtime/ || true \
@@ -145,25 +140,29 @@ ENV UV_NO_CACHE=
 RUN pip install --retries 5 --timeout 300 --no-cache-dir \
     "git+https://github.com/opendatahub-io/kubeflow-sdk@main"
 
-# Install Flash Attention from original Dao-AILab repo
-# --no-build-isolation: Use already-installed torch instead of isolated env
+# Install Flash Attention from ROCm fork with Triton AMD backend
+# This is faster to build and optimized for AMD GPUs
 USER 0
 
 # Set build parallelism environment variables
 # MAX_JOBS: Controls PyTorch extension build parallelism
 # CMAKE_BUILD_PARALLEL_LEVEL: Controls CMake parallelism
-# NINJA_FLAGS: Controls ninja build parallelism
 # GPU_ARCHS: Target GPU architectures (gfx942=MI300, gfx90a=MI200/MI250)
 ENV GPU_ARCHS="gfx90a;gfx942" \
     MAX_JOBS=12 \
-    CMAKE_BUILD_PARALLEL_LEVEL=12 \
-    NINJA_FLAGS=-j12
+    CMAKE_BUILD_PARALLEL_LEVEL=12
+
+# Install Triton and ninja (required for ROCm flash-attention build)
+RUN /opt/app-root/bin/pip install --no-cache-dir triton==3.2.0 ninja
+
+# Enable Triton AMD backend for flash-attention
+ENV FLASH_ATTENTION_TRITON_AMD_ENABLE="TRUE"
 
 RUN cd /tmp \
-    && git clone --depth 1 --branch v2.8.2 https://github.com/Dao-AILab/flash-attention.git \
+    && git clone https://github.com/ROCm/flash-attention.git \
     && cd flash-attention \
-    && git submodule update --init \
-    && pip install --no-build-isolation --no-cache-dir --no-deps . \
+    && git checkout main_perf \
+    && /opt/app-root/bin/python setup.py install \
     && cd / && rm -rf /tmp/flash-attention
 
 
