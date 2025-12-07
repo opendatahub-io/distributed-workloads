@@ -57,7 +57,7 @@ COPY mellanox.repo rocm.repo /etc/yum.repos.d/
 
 # Install ROCm development tools
 # Using individual packages instead of metapackages to avoid python3-wheel dependency issue
-# hipcc is the HIP compiler needed for flash-attention build
+# hipcc is the HIP compiler (may be needed for building ROCm packages)
 # rocm-device-libs provides the GPU device library required by clang for ROCm compilation
 RUN dnf install -y --setopt=install_weak_deps=False \
     hipcc \
@@ -131,8 +131,16 @@ WORKDIR /opt/app-root/src
 # This syncs the environment to match exactly what's in the lockfile
 # pylock.toml was compiled with --find-links=https://download.pytorch.org/whl/rocm6.4
 # so torch comes from ROCm index
-ENV UV_NO_CACHE=1
-RUN uv pip sync --python-platform=linux --python-version=3.12 /tmp/deps/pylock.toml
+#
+# flash-attn requires torch at build time and GPU architecture info, so we:
+# 1. First install torch from ROCm index
+# 2. Set GPU_ARCHS so flash-attn knows what to build for (no GPU needed at build time)
+# 3. Then sync all dependencies with --no-build-isolation
+ENV UV_NO_CACHE=1 \
+    GPU_ARCHS="gfx90a;gfx942" \
+    PYTORCH_ROCM_ARCH="gfx90a;gfx942"
+RUN uv pip install --index-strategy=unsafe-best-match --index-url=https://download.pytorch.org/whl/rocm6.4 --extra-index-url=https://pypi.org/simple "torch==2.9.0+rocm6.4"
+RUN uv pip sync --python-platform=linux --python-version=3.12 --no-build-isolation /tmp/deps/pylock.toml
 ENV UV_NO_CACHE=
 
 # Install kubeflow-sdk from Git (not in pylock.toml or requirements-special.txt)
@@ -140,31 +148,8 @@ ENV UV_NO_CACHE=
 RUN pip install --retries 5 --timeout 300 --no-cache-dir \
     "git+https://github.com/opendatahub-io/kubeflow-sdk@main"
 
-# Install Flash Attention from ROCm fork with Triton AMD backend
-# This is faster to build and optimized for AMD GPUs
-USER 0
-
-# Set build parallelism environment variables
-# MAX_JOBS: Controls PyTorch extension build parallelism
-# CMAKE_BUILD_PARALLEL_LEVEL: Controls CMake parallelism
-# GPU_ARCHS: Target GPU architectures (gfx942=MI300, gfx90a=MI200/MI250)
-ENV GPU_ARCHS="gfx90a;gfx942" \
-    MAX_JOBS=12 \
-    CMAKE_BUILD_PARALLEL_LEVEL=12
-
-# Install Triton and ninja (required for ROCm flash-attention build)
-RUN /opt/app-root/bin/pip install --no-cache-dir triton==3.2.0 ninja
-
-# Enable Triton AMD backend for flash-attention
-ENV FLASH_ATTENTION_TRITON_AMD_ENABLE="TRUE"
-
-RUN cd /tmp \
-    && git clone https://github.com/ROCm/flash-attention.git \
-    && cd flash-attention \
-    && git checkout main_perf \
-    && /opt/app-root/bin/python setup.py install \
-    && cd / && rm -rf /tmp/flash-attention
-
+# flash-attn is included as a transitive dependency from instructlab-training[rocm]
+# in pylock.toml (version 2.8.3), so no separate install needed
 
 # Fix permissions for OpenShift
 ARG PYTHON_VERSION

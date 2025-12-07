@@ -153,8 +153,9 @@ dependencies = [
     "accelerate==1.10.0",
     "trl==0.21.0",
     
-    # Flash Attention - installed separately via requirements-special.txt
-    # (needs --no-build-isolation for ROCm build)
+    # Training Hub and InstructLab (brings in flash-attn as ROCm dependency)
+    "training-hub==0.2.0",
+    "instructlab-training[rocm]==0.12.0",
     
     # Deep Learning Utilities
     "liger-kernel==0.5.10",
@@ -192,3 +193,7 @@ environments = [
 # Use ROCm index for torch
 index-url = "https://download.pytorch.org/whl/rocm6.4"
 extra-index-url = ["https://pypi.org/simple"]
+
+# flash-attn requires torch to be available during build
+[tool.uv.extra-build-dependencies]
+flash-attn = ["torch"]
