@@ -34,3 +34,9 @@ func TestOsftTrainingHubMultiNodeMultiGPU(t *testing.T) {
 	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 1)) // TODO: may need to be updated once https://issues.redhat.com/browse/RHOAIENG-30719 and https://issues.redhat.com/browse/RHOAIENG-24552 are resolved
 	sdktests.RunOsftTrainingHubMultiGpuDistributedTraining(t)
 }
+
+// TestSftTrainingHubMultiNodeMultiGPU tests SFT training using TrainingHubTrainer
+func TestSftTrainingHubMultiNodeMultiGPU(t *testing.T) {
+	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 1))
+	sdktests.RunSftTrainingHubMultiGpuDistributedTraining(t)
+}
