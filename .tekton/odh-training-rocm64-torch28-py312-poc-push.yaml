@@ -18,6 +18,8 @@ metadata:
   name: odh-training-rocm64-torch28-py312-poc-on-push
   namespace: open-data-hub-tenant
 spec:
+  timeouts:
+    pipeline: "8h0m0s"
   params:
   - name: git-url
     value: '{{source_url}}'
@@ -203,6 +205,7 @@ spec:
           value:
           - $(params.build-platforms)
       name: build-images
+      timeout: 8h
       params:
       - name: IMAGE
         value: $(params.output-image)
