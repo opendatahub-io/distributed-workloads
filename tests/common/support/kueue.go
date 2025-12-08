@@ -129,3 +129,21 @@ func KueueWorkloadAdmitted(workload *kueuev1beta1.Workload) bool {
 	}
 	return false
 }
+
+func KueueWorkloadEvicted(workload *kueuev1beta1.Workload) bool {
+	for _, v := range workload.Status.Conditions {
+		if v.Type == "Evicted" && v.Status == "True" {
+			return true
+		}
+	}
+	return false
+}
+
+func KueueWorkloadInadmissible(workload *kueuev1beta1.Workload) (bool, string) {
+	for _, v := range workload.Status.Conditions {
+		if v.Type == "QuotaReserved" && v.Status == "False" && v.Reason == "Inadmissible" {
+			return true, v.Message
+		}
+	}
+	return false, ""
+}

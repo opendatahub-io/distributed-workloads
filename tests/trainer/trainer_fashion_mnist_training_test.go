@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	jobsetv1alpha2 "sigs.k8s.io/jobset/api/jobset/v1alpha2"
+	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -81,9 +82,11 @@ func TestPyTorchDDPMultiNodeMultiGPUWithTorchRocm(t *testing.T) {
 
 func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, baseImage string, requirementsFile string, numNodes, numProcPerNode int32) {
 	test := With(t)
+	setupKueue(test)
 
-	// Create a namespace
-	namespace := test.NewTestNamespace().Name
+	// Create a namespace with Kueue labeled
+	namespace := test.NewTestNamespace(WithKueueManaged()).Name
+	test.T().Logf("Created Kueue-managed namespace: %s", namespace)
 
 	// Get storageclass that supports RWX PVC provisioning
 	storageClass, err := GetRWXStorageClass(test)
@@ -100,11 +103,68 @@ func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, baseImage 
 	}
 	config := CreateConfigMap(test, namespace, files)
 
+	// Create Kueue resources
+	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
+	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+
+	cqSpec := v1beta1.ClusterQueueSpec{
+		NamespaceSelector: &metav1.LabelSelector{},
+		ResourceGroups: []v1beta1.ResourceGroup{
+			{
+				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory")},
+				Flavors: []v1beta1.FlavorQuotas{
+					{
+						Name: v1beta1.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []v1beta1.ResourceQuota{
+							{
+								Name:         corev1.ResourceCPU,
+								NominalQuota: resource.MustParse("8"),
+							},
+							{
+								Name:         corev1.ResourceMemory,
+								NominalQuota: resource.MustParse("36Gi"),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if accelerator.IsGpu() {
+		numGpus := numNodes * numProcPerNode
+		cqSpec.ResourceGroups[0].CoveredResources = append(
+			cqSpec.ResourceGroups[0].CoveredResources,
+			corev1.ResourceName(accelerator.ResourceLabel),
+		)
+		cqSpec.ResourceGroups[0].Flavors[0].Resources = append(
+			cqSpec.ResourceGroups[0].Flavors[0].Resources,
+			v1beta1.ResourceQuota{
+				Name:         corev1.ResourceName(accelerator.ResourceLabel),
+				NominalQuota: resource.MustParse(fmt.Sprint(numGpus)),
+			},
+		)
+	}
+
+	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
+	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name, AsDefaultQueue)
+
 	// Create TrainingRuntime with dataset-initializer
 	trainingRuntime := createFashionMNISTTrainingRuntime(test, namespace, config.Name, pvc.Name, baseImage, accelerator, numProcPerNode)
 
 	// Create TrainJob
-	trainJob := createFashionMNISTTrainJob(test, namespace, trainingRuntime.Name, accelerator, numNodes, numProcPerNode)
+	trainJob := createFashionMNISTTrainJob(test, namespace, trainingRuntime.Name, accelerator, numNodes, numProcPerNode, localQueue.Name)
+
+	// Verify Kueue Workload is created and admitted
+	test.Eventually(KueueWorkloads(test, namespace), TestTimeoutMedium).
+		Should(
+			And(
+				HaveLen(1),
+				ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrueBecause("Workload failed to be admitted"))),
+			),
+		)
+	test.T().Log("Kueue Workload admitted")
 
 	// Verify JobSet creation
 	test.T().Logf("Verifying JobSet creation with replicated jobs...")
@@ -404,13 +464,16 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 	return runtime
 }
 
-func createFashionMNISTTrainJob(test Test, namespace, runtimeName string, accelerator Accelerator, numNodes, numProcPerNode int32) *trainerv1alpha1.TrainJob {
+func createFashionMNISTTrainJob(test Test, namespace, runtimeName string, accelerator Accelerator, numNodes, numProcPerNode int32, queueName string) *trainerv1alpha1.TrainJob {
 	test.T().Helper()
 
 	trainJob := &trainerv1alpha1.TrainJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-fashion-mnist-trainjob-",
 			Namespace:    namespace,
+			Labels: map[string]string{
+				"kueue.x-k8s.io/queue-name": queueName,
+			},
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
