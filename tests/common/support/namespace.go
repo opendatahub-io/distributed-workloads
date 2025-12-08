@@ -99,3 +99,14 @@ func StoreNamespaceLogs(t Test, namespace *corev1.Namespace) {
 	storeAllPodLogs(t, namespace)
 	storeEvents(t, namespace)
 }
+
+// WithKueueManaged adds the label required for Red Hat Build of Kueue (RHBOK) to manage workloads in the namespace
+func WithKueueManaged() Option[*corev1.Namespace] {
+	return ErrorOption[*corev1.Namespace](func(ns *corev1.Namespace) error {
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		ns.Labels["kueue.openshift.io/managed"] = "true"
+		return nil
+	})
+}

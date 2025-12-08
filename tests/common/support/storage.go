@@ -11,6 +11,7 @@ import (
 
 var rwxSupportedProvisioners = map[string]bool{
 	"nfs.csi.k8s.io":     true,
+	"example.com/nfs":    true,
 	"file.csi.azure.com": true,
 }
 
