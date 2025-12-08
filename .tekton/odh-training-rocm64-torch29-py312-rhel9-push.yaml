@@ -34,6 +34,8 @@ spec:
     value: Dockerfile
   - name: path-context
     value: images/universal/training/rocm64-torch290-py312
+  - name: build-args-file
+    value: images/universal/training/rocm64-torch290-py312/argfile.konflux.conf
   pipelineSpec:
     timeouts:
       pipeline: 40h

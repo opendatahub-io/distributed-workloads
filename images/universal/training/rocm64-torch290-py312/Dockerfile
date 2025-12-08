@@ -138,7 +138,9 @@ WORKDIR /opt/app-root/src
 # 3. Then sync all dependencies with --no-build-isolation
 ENV UV_NO_CACHE=1 \
     GPU_ARCHS="gfx90a;gfx942" \
-    PYTORCH_ROCM_ARCH="gfx90a;gfx942"
+    PYTORCH_ROCM_ARCH="gfx90a;gfx942" \
+    MAX_JOBS=32 \
+    CMAKE_BUILD_PARALLEL_LEVEL=32
 RUN uv pip install --index-strategy=unsafe-best-match --index-url=https://download.pytorch.org/whl/rocm6.4 --extra-index-url=https://pypi.org/simple "torch==2.9.0+rocm6.4"
 RUN uv pip sync --python-platform=linux --python-version=3.12 --no-build-isolation /tmp/deps/pylock.toml
 ENV UV_NO_CACHE=
