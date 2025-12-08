@@ -33,6 +33,8 @@ spec:
   - name: build-platforms
     value:
     - linux-d160-m8xlarge/amd64
+  - name: build-args-file
+    value: images/universal/training/rocm64-torch290-py312/argfile.konflux.conf
   - name: dockerfile
     value: Dockerfile
   - name: path-context
