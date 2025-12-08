@@ -32,7 +32,7 @@ import (
 
 const (
 	osftNotebookName = "osft.ipynb"
-	osftNotebookPath = "../resources/" + osftNotebookName
+	osftNotebookPath = "resources/" + osftNotebookName
 )
 
 // Multi-GPU - Distributed Training with OSFT and TrainingHubTrainer
@@ -41,11 +41,6 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 
 	// Create a new test namespace
 	namespace := test.NewTestNamespace()
-
-	// Create custom ClusterTrainingRuntime for 2 nodes with 1 GPU each (to be updated to 2 gpus each later)
-	runtimeName := "training-hub-2node-1gpu"
-	image := "quay.io/opendatahub/odh-training-th03-cuda128-torch28-py312-rhel9:latest"
-	trainerutils.CreateClusterTrainingRuntime(t, test, runtimeName, 2, 1, image) // TODO: this will need to be updated to use 2 GPUs per node (if/when this config is available)
 
 	// Ensure Notebook ServiceAccount exists (no extra RBAC)
 	trainerutils.EnsureNotebookServiceAccount(t, test, namespace.Name)
@@ -66,7 +61,7 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 	accessKey, _ := support.GetStorageBucketAccessKeyId()
 	secretKey, _ := support.GetStorageBucketSecretKey()
 	bucket, bucketOK := support.GetStorageBucketName()
-	prefix, _ := support.GetStorageBucketMnistDir()
+	prefix, _ := support.GetStorageBucketOsftDir()
 	if !endpointOK {
 		endpoint = ""
 	}
@@ -91,9 +86,10 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 			"export NOTEBOOK_NAMESPACE='%s'; "+
 			"export SHARED_PVC_NAME='%s'; "+
 			"export AWS_DEFAULT_ENDPOINT='%s'; export AWS_ACCESS_KEY_ID='%s'; "+
-			"export AWS_SECRET_ACCESS_KEY='%s'; export AWS_STORAGE_BUCKET='%s'; "+
-			"export AWS_STORAGE_BUCKET_DATA_DIR='%s'; "+
-			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill boto3==1.34.162 git+https://github.com/opendatahub-io/kubeflow-sdk.git@main && "+
+			"export AWS_SECRET_ACCESS_KEY='%s'; "+
+			"export AWS_STORAGE_BUCKET='%s'; "+
+			"export AWS_STORAGE_BUCKET_OSFT_DIR='%s'; "+
+			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill boto3==1.34.162 && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
