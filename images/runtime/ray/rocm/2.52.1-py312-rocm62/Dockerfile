@@ -37,7 +37,10 @@ gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
 EOD
 EOF
 
-RUN yum install -y rocm-developer-tools rocm-ml-sdk rocm-opencl-sdk rocm-openmp-sdk rocm-utils && yum clean all && rm -rf /var/cache/yum
+# Install ROCm ML SDK only (runtime optimized)
+RUN yum install -y rocm-ml-sdk \
+    && yum clean all \
+    && rm -rf /var/cache/yum/*
 
 # Install Python packages
 
@@ -47,7 +50,12 @@ RUN pip install --no-cache-dir -U "micropipenv[toml]"
 # Install Python dependencies from Pipfile.lock file
 COPY Pipfile.lock ./
 
-RUN micropipenv install && rm -f ./Pipfile.lock
+RUN micropipenv install && rm -f ./Pipfile.lock && \
+    # Cleanup Python cache and debug symbols
+    find /opt/app-root/lib/python3.12/site-packages -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true && \
+    find /opt/app-root/lib/python3.12/site-packages -name "*.pyc" -delete 2>/dev/null || true && \
+    find /opt/app-root/lib/python3.12/site-packages -name "*.pyo" -delete 2>/dev/null || true && \
+    find /opt/app-root/lib/python3.12/site-packages -name "*.so" -exec strip --strip-debug {} \; 2>/dev/null || true
 
 # Restore user workspace
 USER 1001
