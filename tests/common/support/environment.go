@@ -58,6 +58,7 @@ const (
 	storageBucketName            = "AWS_STORAGE_BUCKET"
 	storageBucketMnistDir        = "AWS_STORAGE_BUCKET_MNIST_DIR"
 	storageBucketFashionMnistDir = "AWS_STORAGE_BUCKET_FASHION_MNIST_DIR"
+	storageBucketLoraSftDir      = "AWS_STORAGE_BUCKET_LORA_SFT_DIR"
 
 	// Name of existing namespace to be used for test
 	testNamespaceNameEnvVar = "TEST_NAMESPACE_NAME"
@@ -183,6 +184,11 @@ func GetStorageBucketMnistDir() (string, bool) {
 func GetStorageBucketFashionMnistDir() (string, bool) {
 	storage_bucket_fashion_mnist_dir, exists := os.LookupEnv(storageBucketFashionMnistDir)
 	return storage_bucket_fashion_mnist_dir, exists
+}
+
+func GetStorageBucketLoraSftDir() (string, bool) {
+	storage_bucket_lora_sft_dir, exists := os.LookupEnv(storageBucketLoraSftDir)
+	return storage_bucket_lora_sft_dir, exists
 }
 
 func GetPipIndexURL() string {
