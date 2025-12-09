@@ -19,8 +19,8 @@ metadata:
   namespace: open-data-hub-tenant
 spec:
   timeouts:
-    pipeline: 40h
-    tasks: 30h
+    pipeline: 100h
+    tasks: 90h
   params:
   - name: git-url
     value: '{{source_url}}'
@@ -41,8 +41,8 @@ spec:
     value: images/universal/training/rocm64-torch290-py312
   pipelineSpec:
     timeouts:
-      pipeline: 40h
-      tasks: 30h
+      pipeline: 100h
+      tasks: 90h
     description: |
       This pipeline is ideal for building multi-arch container images from a Containerfile while maintaining trust after pipeline customization.
       _Uses `buildah` to create a multi-platform container image leveraging [trusted artifacts](https://konflux-ci.dev/architecture/ADR/0036-trusted-artifacts.html). It also optionally creates a source image and runs some build-time tests. This pipeline requires that the [multi platform controller](https://github.com/konflux-ci/multi-platform-controller) is deployed and configured on your Konflux instance. Information is shared between tasks using OCI artifacts instead of PVCs. EC will pass the [`trusted_task.trusted`](https://conforma.dev/docs/policy/packages/release_trusted_task.html#trusted_task__trusted) policy as long as all data used to build the artifact is generated from trusted tasks.
@@ -218,7 +218,7 @@ spec:
           value:
           - $(params.build-platforms)
       name: build-images
-      timeout: 30h
+      timeout: 90h
       params:
       - name: IMAGE
         value: $(params.output-image)
