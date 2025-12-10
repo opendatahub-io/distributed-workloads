@@ -1,7 +1,12 @@
-# Special packages requiring special installation
+# Special packages requiring --no-build-isolation
 # 
-# flash-attn: Included as a transitive dependency from instructlab-training[rocm]
-# in pylock.toml (version 2.8.3). No separate install needed.
+# These packages are in a separate file because they:
+# 1. Cannot be resolved in pylock.toml (need ROCm/HIP at compile time)
+# 2. Need to be prefetched for Konflux hermetic builds
+# 3. Must be installed with special flags in the Dockerfile
 #
-# PyTorch 2.9's built-in scaled_dot_product_attention also provides
-# flash attention support via SDPA (confirmed working on MI300X)
+# Installation:
+# flash-attn needs --no-build-isolation --no-deps
+# GPU_ARCHS must be set for ROCm builds (e.g., gfx90a;gfx942)
+
+flash-attn==2.8.3
