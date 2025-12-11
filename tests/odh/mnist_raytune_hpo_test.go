@@ -48,6 +48,9 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	// Creating a namespace
 	namespace := test.NewTestNamespace()
 
+	// Ensure Notebook ServiceAccount exists (no extra RBAC)
+	ensureNotebookServiceAccount(test, namespace.Name)
+
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
 	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})

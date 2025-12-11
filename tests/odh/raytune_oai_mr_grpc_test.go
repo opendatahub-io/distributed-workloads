@@ -48,6 +48,9 @@ func raytuneHpo(t *testing.T, numGpus int) {
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 
+	// Ensure Notebook ServiceAccount exists (no extra RBAC)
+	ensureNotebookServiceAccount(test, namespace.Name)
+
 	// Get current working directory
 	workingDirectory, err := os.Getwd()
 	test.Expect(err).ToNot(HaveOccurred())

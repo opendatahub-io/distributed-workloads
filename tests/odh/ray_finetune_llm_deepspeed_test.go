@@ -48,6 +48,9 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelName string, modelC
 	var workingDirectory, err = os.Getwd()
 	test.Expect(err).ToNot(HaveOccurred())
 
+	// Ensure Notebook ServiceAccount exists (no extra RBAC)
+	ensureNotebookServiceAccount(test, namespace.Name)
+
 	// Define the regular(non-admin) user
 	userName := GetNotebookUserName(test)
 	userToken := GetNotebookUserToken(test)

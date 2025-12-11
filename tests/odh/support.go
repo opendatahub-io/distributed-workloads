@@ -25,7 +25,9 @@ import (
 	gomega "github.com/onsi/gomega"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
@@ -58,7 +60,7 @@ func getNotebookCommand(rayImage string) []string {
 	}
 }
 
-func GetDashboardUrl(test support.Test, namespace *v1.Namespace, rayCluster *rayv1.RayCluster) string {
+func GetDashboardUrl(test support.Test, namespace *corev1.Namespace, rayCluster *rayv1.RayCluster) string {
 	dashboardName := "ray-dashboard-" + rayCluster.Name
 	route := support.GetRoute(test, namespace.Name, dashboardName)
 	hostname := route.Status.Ingress[0].Host
@@ -77,6 +79,18 @@ func GetTestJobId(test support.Test, rayClient support.RayClusterClient) string 
 	test.T().Logf("Ray job has been successfully submitted to the raycluster with Submission-ID : %s\n", jobID)
 
 	return jobID
+}
+
+// EnsureNotebookServiceAccount ensures the Notebook ServiceAccount exists in the target namespace.
+// This avoids webhook/controller failures when creating the Notebook CR.
+func ensureNotebookServiceAccount(test support.Test, namespace string) {
+	test.T().Helper()
+	saName := "jupyter-nb-kube-3aadmin"
+	sa := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: saName, Namespace: namespace}}
+	_, err := test.Client().Core().CoreV1().ServiceAccounts(namespace).Create(test.Ctx(), sa, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		test.T().Fatalf("Failed to create ServiceAccount %s/%s: %v", namespace, saName, err)
+	}
 }
 
 // Adds a unique suffix to the provided string
