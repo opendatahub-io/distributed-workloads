@@ -72,10 +72,10 @@ func raytuneHpo(t *testing.T, numGpus int) {
 		outputPath := filepath.Join(outputDir, fileName)
 		cmd := exec.Command("curl", "-L", "-o", outputPath, "--create-dirs", url)
 		if err := cmd.Run(); err != nil {
-			test.T().Logf(fmt.Sprintf("Failed to download %s: %v\n", url, err.Error()))
+			test.T().Logf("Failed to download %s: %v\n", url, err.Error())
 			test.Expect(err).ToNot(HaveOccurred())
 		}
-		test.T().Logf("File '%s' downloaded sucessfully", fileName)
+		test.T().Logf("File '%s' downloaded successfully", fileName)
 	}
 	defer os.RemoveAll(outputDir)
 
@@ -84,7 +84,7 @@ func raytuneHpo(t *testing.T, numGpus int) {
 		test.T().Logf("Failed to start the Model Registry service with PostgreSQL: %v\n", err.Error())
 		test.Expect(err).ToNot(HaveOccurred())
 	} else {
-		test.T().Logf(fmt.Sprint("Successfully started the Model Registry service with PostgreSQL"))
+		test.T().Log("Successfully started the Model Registry service with PostgreSQL")
 	}
 
 	// Define the regular(non-admin) user
