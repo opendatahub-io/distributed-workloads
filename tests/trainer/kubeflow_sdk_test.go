@@ -20,10 +20,17 @@ import (
 	"testing"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
+	support "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 	sdktests "github.com/opendatahub-io/distributed-workloads/tests/trainer/sdk_tests"
 )
 
 func TestKubeflowSdkSanity(t *testing.T) {
 	Tags(t, Sanity)
 	sdktests.RunFashionMnistCpuDistributedTraining(t)
+}
+
+// TestLoraSftTrainingHubMultiNodeMultiGPU tests LORA-SFT training using TrainingHubTrainer
+func TestLoraSftTrainingHubMultiNodeMultiGPU(t *testing.T) {
+	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 1))
+	sdktests.RunLoraSftTrainingHubMultiGpuDistributedTraining(t)
 }
