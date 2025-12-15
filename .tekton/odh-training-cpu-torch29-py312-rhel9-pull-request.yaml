@@ -9,7 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "main" &&
-      ("images/universal/training/cpu-torch290-py312/Dockerfile".pathChanged() || "images/universal/training/cpu-torch290-py312/entrypoint-universal.sh".pathChanged() || ".tekton/odh-training-cpu-torch29-py312-rhel9-pull-request.yaml".pathChanged())
+      ("images/universal/training/cpu-torch290-py312/Dockerfile".pathChanged() || "images/universal/training/utils/entrypoint-universal.sh".pathChanged() || ".tekton/odh-training-cpu-torch29-py312-rhel9-pull-request.yaml".pathChanged() || "images/universal/training/utils/start-notebook.sh".pathChanged() || "images/universal/training/utils/process.sh".pathChanged())
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: odh-universal-image
@@ -31,9 +31,9 @@ spec:
     value:
     - linux-extra-fast/amd64
   - name: dockerfile
-    value: /images/universal/training/cpu-torch290-py312/Dockerfile
+    value: cpu-torch290-py312/Dockerfile
   - name: path-context
-    value: images/universal/training/cpu-torch290-py312
+    value: images/universal/training
   pipelineSpec:
     description: |
       This pipeline is ideal for building multi-arch container images from a Containerfile while maintaining trust after pipeline customization.

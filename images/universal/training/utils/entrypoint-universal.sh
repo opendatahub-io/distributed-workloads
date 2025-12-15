@@ -22,3 +22,4 @@ else
 	echo "No NOTEBOOK_ARGS set and no command provided. Either set NOTEBOOK_ARGS to run start-notebook.sh, or provide a command, e.g.: python -m your.module" >&2
 	exit 2
 fi
+

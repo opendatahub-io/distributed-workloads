@@ -1,0 +1,5 @@
+# site-packages/*.pth gets executed during Python startup
+#  but only lines starting with `import`, so `import ...; print("hello")` is possible
+# https://docs.python.org/3/library/site.html
+
+import monkey_patch_protobuf_6x

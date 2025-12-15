@@ -1,0 +1,41 @@
+// https://pnpm.io/package_json
+{
+  type: "module",
+  private: true,
+  name: 'jupyter-utils-addons',
+  version: '1.0.0',
+  description: 'Addons for JupyterLab workbenches',
+  license: 'Apache-2.0',
+  scripts: {
+    test: './test-build.sh',
+    build: 'webpack --mode production',
+    'build:dev': 'webpack --mode development',
+    start: 'webpack serve --open',
+    watch: 'webpack --watch',
+    clean: 'rm -rf dist .cache',
+    'build:clean': 'pnpm clean && pnpm build',
+  },
+  dependencies: {
+    '@patternfly/patternfly': '6.0.0',
+  },
+  devDependencies: {
+    // webpack to minify css file
+    webpack: '^5.99.6',
+    'webpack-cli': '^6.0.1',
+    'webpack-dev-server': '^5.2.1',
+
+    // plugins for webpack
+    'css-loader': '^7.1.2',
+    'html-loader': '^5.1.0',
+    'html-webpack-plugin': '^5.6.3',
+    'mini-css-extract-plugin': '^2.9.2',
+    'purgecss-webpack-plugin': '^7.0.2',
+
+    // https://webpack.js.org/configuration/configuration-languages/#typescript,
+    'ts-node': '^10.9.2',
+    typescript: '^5.8.3',
+    '@types/node': '^22.14.1',
+    '@types/webpack': '^5.28.5'
+  },
+  // "packageManager": "pnpm@10.8.1" // forces install of a precise version, so annoying
+}
