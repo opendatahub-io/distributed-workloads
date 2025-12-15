@@ -54,3 +54,20 @@ func GetOpenShiftApiUrl(test Test) string {
 	test.T().Logf("OpenShift API URL: %s", openShiftApiUrl)
 	return openShiftApiUrl
 }
+
+func GetExpectedRegistry(test Test, odhNamespace string) string {
+	test.T().Helper()
+
+	var registryName string
+	switch odhNamespace {
+	case "redhat-ods-applications":
+		registryName = "registry.redhat.io"
+	case "opendatahub":
+		registryName = "quay.io"
+	default:
+		test.T().Fatalf("Unknown ODH namespace: %s. Expected 'redhat-ods-applications' for RHOAI operator or 'opendatahub' ODH operator.", odhNamespace)
+	}
+
+	test.T().Logf("ODH namespace '%s' is using registry: %s", odhNamespace, registryName)
+	return registryName
+}

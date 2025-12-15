@@ -43,22 +43,46 @@ const (
 )
 
 var initialKueueState string
+var initialTrainerState string
 
 func TestMain(m *testing.M) {
+	// Capture initial Trainer state before running any tests
+	initialTrainerState = captureComponentState("trainer")
+	fmt.Printf("Initial Trainer managementState: %s\n", initialTrainerState)
+
 	// Capture initial Kueue state before running any tests
-	initialKueueState = captureKueueState()
+	initialKueueState = captureComponentState("kueue")
 	fmt.Printf("Initial Kueue managementState: %s\n", initialKueueState)
+
+	// Setup Trainer to Managed if not already
+	if initialTrainerState != "Managed" {
+		if err := setupTrainer(); err != nil {
+			fmt.Printf("Setup: Failed to set Trainer managementState to Managed in DataScienceCluster: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Println("Setup: Skipping Trainer setup as it is already set to Managed in DataScienceCluster")
+	}
 
 	// Run all tests
 	code := m.Run()
 
-	// Only tearDown if Kueue was not already Unmanaged before tests
-	if initialKueueState != "Unmanaged" {
-		if err := tearDown(); err != nil {
-			fmt.Printf("TearDown: Failed: %v\n", err)
+	// TearDown Trainer: Only set to Removed if it was not already Managed before tests
+	if initialTrainerState != "Managed" {
+		if err := tearDownComponent("trainer"); err != nil {
+			fmt.Printf("TearDown: Failed to set Trainer to Removed in DataScienceCluster: %v\n", err)
 		}
 	} else {
-		fmt.Println("TearDown: Skipping as Initial Kueue managementState was already Unmanaged")
+		fmt.Println("TearDown: Skipping Trainer teardown as Initial Trainer managementState was Managed in DataScienceCluster")
+	}
+
+	// TearDown Kueue: Only set to Removed if it was not already Unmanaged before tests
+	if initialKueueState != "Unmanaged" {
+		if err := tearDownComponent("kueue"); err != nil {
+			fmt.Printf("TearDown: Failed to set Kueue to Removed : %v\n", err)
+		}
+	} else {
+		fmt.Println("TearDown: Skipping Kueue teardown as Initial Kueue managementState was Unmanaged in DataScienceCluster")
 	}
 
 	os.Exit(code)
@@ -81,7 +105,7 @@ func createDynamicClient() (dynamic.Interface, error) {
 	return dynamicClient, nil
 }
 
-func captureKueueState() string {
+func captureComponentState(component string) string {
 	dynamicClient, err := createDynamicClient()
 	if err != nil {
 		fmt.Printf("Warning: %v\n", err)
@@ -94,22 +118,38 @@ func captureKueueState() string {
 		return ""
 	}
 
-	return ComponentStatusManagementState(dsc, "kueue")
+	return ComponentStatusManagementState(dsc, component)
 }
 
-func tearDown() error {
+func setupTrainer() error {
+	dynamicClient, err := createDynamicClient()
+	if err != nil {
+		return fmt.Errorf("Setup: %w", err)
+	}
+
+	fmt.Println("Setup: Setting trainer managementState to Managed in DataScienceCluster...")
+	err = SetComponentStateAndWait(dynamicClient, context.Background(), defaultDSCName, "trainer", "Managed", 2*time.Minute)
+	if err != nil {
+		return fmt.Errorf("Setup: failed to set trainer to Managed: %w", err)
+	}
+
+	fmt.Println("Setup: Trainer is set to Managed managementState successfully")
+	return nil
+}
+
+func tearDownComponent(component string) error {
 	dynamicClient, err := createDynamicClient()
 	if err != nil {
 		return fmt.Errorf("TearDown: %w", err)
 	}
 
-	fmt.Println("TearDown: Setting kueue managementState to Removed in DataScienceCluster...")
-	err = SetComponentStateAndWait(dynamicClient, context.Background(), defaultDSCName, "kueue", "Removed", 2*time.Minute)
+	fmt.Printf("TearDown: Setting %s managementState to Removed in DataScienceCluster...\n", component)
+	err = SetComponentStateAndWait(dynamicClient, context.Background(), defaultDSCName, component, "Removed", 2*time.Minute)
 	if err != nil {
-		return fmt.Errorf("TearDown: failed to set kueue to Removed: %w", err)
+		return fmt.Errorf("TearDown: failed to set %s to Removed: %w", component, err)
 	}
 
-	fmt.Println("TearDown: Kueue is set to Removed managementState successfully")
+	fmt.Printf("TearDown: %s is set to Removed managementState successfully\n", component)
 	return nil
 }
 
@@ -145,7 +185,7 @@ func TestKueueDefaultLocalQueueLabelInjection(t *testing.T) {
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
-				Name: "torch-cuda-251",
+				Name: defaultClusterTrainingRuntime,
 			},
 			Trainer: &trainerv1alpha1.Trainer{
 				Command: []string{"echo", "test"},
@@ -223,7 +263,7 @@ func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
-				Name: "torch-cuda-251",
+				Name: defaultClusterTrainingRuntime,
 			},
 			Trainer: &trainerv1alpha1.Trainer{
 				Command: []string{"sleep", "120"},
@@ -305,7 +345,7 @@ func TestKueueWorkloadInadmissibleWithNonExistentLocalQueue(t *testing.T) {
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
-				Name: "torch-cuda-251",
+				Name: defaultClusterTrainingRuntime,
 			},
 			Trainer: &trainerv1alpha1.Trainer{
 				Command: []string{"echo", "test"},

@@ -60,7 +60,8 @@ func storeEvents(t Test, namespace *corev1.Namespace) {
 	bytes, err := renderEventContent(eventKeys, mapEventsToKeys(events))
 	t.Expect(err).NotTo(gomega.HaveOccurred())
 
-	WriteToOutputDir(t, eventLogFileName, Log, bytes)
+	// Include namespace name in filename to avoid overwriting when multiple namespaces are used
+	WriteToOutputDir(t, eventLogFileName+"-"+namespace.Name, Log, bytes)
 }
 
 func mapEventsToKeys(eventList *eventsv1.EventList) []map[string]string {
