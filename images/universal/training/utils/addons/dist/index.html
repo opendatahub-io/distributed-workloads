@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>Example spinner page</title><link rel="stylesheet" href="./pf.css"/><style>:where(html,body){height:100%}#loading-container{width:100%;height:100%;display:flex;align-items:center;justify-content:center}</style></head><body><p>Check the following</p><ol><li>the spinner is shown</li><li>the spinner is not too thin at the beginning of animation (missing CSS manifested this way)</li><li>if you scroll down as much as possible, the spinner is centered vertically and horizontally</li><li>the spinner is not shown after the button is clicked</li></ol><button>Finish loading</button><script>function htmlToNode(html) {
+        const template = document.createElement('template');
+        template.innerHTML = html;
+        return template.content.firstChild;
+    }
+    document.querySelector('button').addEventListener('click', function () {
+        document.querySelector('button').replaceWith(
+            htmlToNode(`<div class="lm-Widget jp-LabShell" id="main">Jupyter is here.</div>`)
+        );
+    });</script><div id="loading-container"><svg class="pf-v6-c-spinner" role="progressbar" viewBox="0 0 100 100" aria-label="Loading..."><circle class="pf-v6-c-spinner__path" cx="50" cy="50" r="45" fill="none"/></svg></div><script>function checkForTargetElement(){const e=document.querySelector(".lm-Widget.jp-LabShell#main"),t=document.getElementById("loading-container");e&&t?t.remove():requestAnimationFrame(checkForTargetElement)}requestAnimationFrame(checkForTargetElement)</script></body></html>

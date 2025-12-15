@@ -9,7 +9,8 @@
 ################################################################################
 # Build Arguments
 ################################################################################
-ARG BASE_IMAGE=quay.io/opendatahub/workbench-images:cuda-jupyter-minimal-ubi9-python-3.12-2025a_20250903
+# Align base with notebooks minimal CUDA
+ARG BASE_IMAGE=quay.io/opendatahub/odh-base-image-cuda-py312-c9s:v12.8
 # CUDA_VERSION: Used for environment variables and documentation purposes
 # - Sets CUDA_VERSION env var (helps with debugging and tooling)
 # - Not used for package installation (specific versions hardcoded below)
@@ -18,6 +19,7 @@ ARG CUDA_VERSION=12.8
 # - Used to locate site-packages directory (e.g., /opt/app-root/lib/python3.12/site-packages)
 # - Must match base image Python version
 ARG PYTHON_VERSION=3.12
+ARG SRC_DIR=th04-cuda128-torch290-py312
 
 ################################################################################
 # Builder Stage - Install uv for dependency resolution
@@ -47,7 +49,8 @@ LABEL name="universal:py312-cuda128-torch290" \
       io.k8s.description="Universal image: Jupyter workbench by default; runtime when command provided."
 
 # Copy license file
-COPY LICENSE.md /licenses/cuda-license.md
+ARG SRC_DIR
+COPY ${SRC_DIR}/LICENSE.md /licenses/cuda-license.md
 
 USER 0
 WORKDIR /opt/app-root/bin
@@ -67,11 +70,38 @@ ENV NVIDIA_VISIBLE_DEVICES=all \
 ################################################################################
 FROM base AS system-deps
 
+ARG SRC_DIR
 USER 0
 WORKDIR /opt/app-root/bin
 
+# Core OS packages (minimal, keep from notebooks)
+RUN dnf install -y --setopt=install_weak_deps=False \
+    perl \
+    mesa-libGL \
+    skopeo && \
+    dnf clean all && rm -rf /var/cache/dnf/*
+
+# Install the oc client (matches notebooks)
+RUN /bin/bash <<'EOF'
+set -Eeuxo pipefail
+curl -L https://mirror.openshift.com/pub/openshift-v4/$(uname -m)/clients/ocp/stable/openshift-client-linux.tar.gz \
+    -o /tmp/openshift-client-linux.tar.gz
+tar -xzvf /tmp/openshift-client-linux.tar.gz oc
+rm -f /tmp/openshift-client-linux.tar.gz
+EOF
+
 # Copy repository configuration files
-COPY cuda.repo mellanox.repo /etc/yum.repos.d/
+COPY ${SRC_DIR}/cuda.repo ${SRC_DIR}/mellanox.repo /etc/yum.repos.d/
+
+# Notebook utils and PDF deps (local copy)
+COPY utils/ /opt/app-root/bin/utils/
+RUN chmod -R 0755 /opt/app-root/bin/utils && \
+    /opt/app-root/bin/utils/install_pdf_deps.sh
+
+# Copy notebook entry script and entrypoint
+COPY utils/start-notebook.sh /opt/app-root/bin/start-notebook.sh
+COPY utils/entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
+RUN chmod 0755 /opt/app-root/bin/start-notebook.sh /usr/local/bin/entrypoint-universal.sh
 
 # Install system packages (RDMA, CUDA tools, build toolchain)
 # Package list defined in rpms.in.yaml for documentation
@@ -135,8 +165,12 @@ RUN mkdir -p /opt/rdma-runtime \
 ################################################################################
 FROM system-deps AS python-deps
 
+ARG SRC_DIR
 USER 0
 WORKDIR /tmp/deps
+
+# Ensure python version arg available in this stage
+ARG PYTHON_VERSION
 
 # Copy uv from builder stage (FIPS: uv only used during build, not in runtime)
 COPY --from=builder /opt/app-root/bin/uv /usr/local/bin/uv
@@ -144,7 +178,7 @@ COPY --from=builder /opt/app-root/bin/uv /usr/local/bin/uv
 # Copy pyproject.toml, pylock.toml, and requirements-special.txt
 # pylock.toml contains most dependencies
 # requirements-special.txt contains packages needing --no-build-isolation
-COPY --chown=1001:0 pyproject.toml pylock.toml requirements-special.txt ./
+COPY --chown=1001:0 ${SRC_DIR}/pyproject.toml ${SRC_DIR}/pylock.toml ${SRC_DIR}/requirements-special.txt ./
 
 # Switch to user 1001 for pip installations
 USER 1001
@@ -169,12 +203,26 @@ ENV UV_NO_CACHE=
 RUN pip install --retries 5 --timeout 300 --no-cache-dir \
     "git+https://github.com/opendatahub-io/kubeflow-sdk@main"
 
+# Apply notebook customizations (match notebooks minimal)
+RUN /bin/bash <<'EOF'
+set -Eeuo pipefail
+# disable announcements
+jupyter labextension disable "@jupyterlab/apputils-extension:announcements" || true
+# rename kernel launcher to current python version
+sed -i -e "s/Python.*/$(python --version | cut -d '.' -f-2)\",/" /opt/app-root/share/jupyter/kernels/python3/kernel.json
+# copy jupyter config
+mkdir -p /opt/app-root/etc/jupyter
+cp /opt/app-root/bin/utils/jupyter_server_config.py /opt/app-root/etc/jupyter
+# apply addons
+/opt/app-root/bin/utils/addons/apply.sh
+# usercustomize / protobuf patch
+cp /opt/app-root/bin/utils/usercustomize.pth /opt/app-root/lib/python${PYTHON_VERSION}/site-packages/
+cp /opt/app-root/bin/utils/monkey_patch_protobuf_6x.py /opt/app-root/lib/python${PYTHON_VERSION}/site-packages/
+EOF
+
 # Install special packages with proper flags
 # These packages require --no-build-isolation to use pre-installed CUDA tools
 # and must be installed in a specific order
-
-# Copy requirements-special.txt for installation
-COPY --chown=1001:0 requirements-special.txt /tmp/deps/
 
 # To avoid out-of-memory during CUDA extension builds, cap parallel jobs
 # These environment variables are respected by PyTorch/ninja/CMake builds
@@ -223,8 +271,13 @@ WORKDIR /opt/app-root/src
 # Copy Python site-packages and CLI entry points from python-deps stage
 # This excludes build tools like gcc, cmake, uv (FIPS friendly)
 ARG PYTHON_VERSION
+ARG SRC_DIR
 COPY --from=python-deps /opt/app-root/lib/python${PYTHON_VERSION}/site-packages /opt/app-root/lib/python${PYTHON_VERSION}/site-packages
 COPY --from=python-deps /opt/app-root/bin /opt/app-root/bin
+# Copy Jupyter shared assets (lab static files, etc.)
+COPY --from=python-deps /opt/app-root/share/jupyter /opt/app-root/share/jupyter
+# Copy Jupyter etc configs (server extensions, settings)
+COPY --from=python-deps /opt/app-root/etc/jupyter /opt/app-root/etc/jupyter
 
 # Copy CUDA runtime from system-deps (built Python packages need CUDA libs)
 # Contains all necessary CUDA libraries - no need to install via dnf
@@ -258,10 +311,10 @@ ENV NVIDIA_VISIBLE_DEVICES=all \
     XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
 
 # Copy license file
-COPY LICENSE.md /licenses/cuda-license.md
+COPY ${SRC_DIR}/LICENSE.md /licenses/cuda-license.md
 
 # Copy entrypoint
-COPY --chmod=0755 entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
+COPY --chmod=0755 utils/entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
 
 # Fix permissions for OpenShift (final stage)
 # What: Ensures proper permissions for OpenShift/Kubernetes arbitrary UIDs

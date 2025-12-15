@@ -9,7 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "main" &&
-      ("images/universal/training/rocm64-torch290-py312/Dockerfile".pathChanged() || "images/universal/training/rocm64-torch290-py312/entrypoint-universal.sh".pathChanged() || ".tekton/odh-training-rocm64-torch290-py312-rhel9-pull-request.yaml".pathChanged())
+      ("images/universal/training/rocm64-torch290-py312/Dockerfile".pathChanged() || "images/universal/training/utils/entrypoint-universal.sh".pathChanged() || ".tekton/odh-training-rocm64-torch290-py312-rhel9-pull-request.yaml".pathChanged() || "images/universal/training/utils/start-notebook.sh".pathChanged() || "images/universal/training/utils/process.sh".pathChanged())
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: odh-universal-image
@@ -34,11 +34,11 @@ spec:
     value:
     - linux-d160-m8xlarge/amd64
   - name: build-args-file
-    value: images/universal/training/rocm64-torch290-py312/argfile.konflux.conf
+    value: rocm64-torch290-py312/argfile.konflux.conf
   - name: dockerfile
-    value: Dockerfile
+    value: rocm64-torch290-py312/Dockerfile
   - name: path-context
-    value: images/universal/training/rocm64-torch290-py312
+    value: images/universal/training
   pipelineSpec:
     timeouts:
       pipeline: 100h
