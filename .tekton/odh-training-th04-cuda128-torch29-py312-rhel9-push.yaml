@@ -29,7 +29,7 @@ spec:
     value: quay.io/opendatahub/odh-training-th04-cuda128-torch29-py312-rhel9:latest
   - name: build-platforms
     value:
-    - linux-extra-fast/amd64
+    - linux-d160-m8xlarge/amd64
   - name: dockerfile
     value: th04-cuda128-torch290-py312/Dockerfile
   - name: path-context
