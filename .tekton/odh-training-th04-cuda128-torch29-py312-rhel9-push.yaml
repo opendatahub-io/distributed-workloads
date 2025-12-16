@@ -26,7 +26,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/open-data-hub-tenant/odh-training-th04-cuda128-torch29-py312-rhel9:latest
+    value: quay.io/opendatahub/odh-training-th04-cuda128-torch29-py312-rhel9:latest
   - name: build-platforms
     value:
     - linux-extra-fast/amd64
