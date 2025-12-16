@@ -2291,6 +2291,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/c7/77/19ddf2683bcf03ef7
 wheels = [{ url = "https://files.pythonhosted.org/packages/5e/c2/37eaa2c4efd7c1a6403aaa59822f0df2730b0f43b3fc274f4bd14998bd12/odh_jupyter_trash_cleanup-0.1.1-py3-none-any.whl", upload-time = 2025-09-18T14:04:55Z, size = 27553, hashes = { sha256 = "19b409372d5781937b42e047bf23503f4d602461765a9b145b0a6974cd090623" } }]
 
 [[packages]]
+name = "olot"
+version = "0.1.13"
+sdist = { url = "https://files.pythonhosted.org/packages/9e/cc/e18944e3c6af81d690e5c3bc24068459cd3b84f38f196e11941a0235f701/olot-0.1.13.tar.gz", upload-time = 2025-11-26T15:30:50Z, size = 25432, hashes = { sha256 = "a553c0e1798156ec13257689d483993363303de8573cc91465c48edb1c66b70f" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/46/dc/799d7027883a6cf70802f380f5715aa41870ea07b5017bd2916799909751/olot-0.1.13-py3-none-any.whl", upload-time = 2025-11-26T15:30:48Z, size = 32481, hashes = { sha256 = "fa5dff7f5766c62e49fc49983546b6e8050268b4733f9dd2fb305a402f6e939a" } }]
+
+[[packages]]
 name = "openapi-pydantic"
 version = "0.5.1"
 sdist = { url = "https://files.pythonhosted.org/packages/02/2e/58d83848dd1a79cb92ed8e63f6ba901ca282c5f09d04af9423ec26c56fd7/openapi_pydantic-0.5.1.tar.gz", upload-time = 2025-01-08T19:29:27Z, size = 60892, hashes = { sha256 = "ff6835af6bde7a459fb93eb93bb92b8749b754fc6e51b2f1590a19dc3005ee0d" } }

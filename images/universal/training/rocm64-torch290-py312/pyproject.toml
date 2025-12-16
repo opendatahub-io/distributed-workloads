@@ -179,6 +179,9 @@ dependencies = [
     "async-timeout==4.0.3",
     "tensorboard==2.19.0",
     
+    # Misc
+    "olot",
+    
     # Build tools (needed for flash-attn compilation)
     "ninja",
 ]
