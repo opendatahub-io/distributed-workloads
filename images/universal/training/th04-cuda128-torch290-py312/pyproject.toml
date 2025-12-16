@@ -133,6 +133,9 @@ dependencies = [
     "instructlab-training==0.12.1",
     "rhai-innovation-mini-trainer==0.3.0",
     
+    # Misc
+    "olot",
+    
     # Build tools for PyTorch extensions
     "ninja==1.11.1.1",
     "cmake==3.30.0",

@@ -177,6 +177,9 @@ dependencies = [
     # Training Frameworks
     "training_hub==0.4.0",
     
+    # Misc
+    "olot",
+    
     # Note: GPU-specific packages are NOT included:
     # - flash-attn (requires CUDA/ROCm)
     # - bitsandbytes (GPU-focused)
