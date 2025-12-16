@@ -40,3 +40,33 @@ func TestSftTrainingHubMultiNodeMultiGPU(t *testing.T) {
 	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 1))
 	sdktests.RunSftTrainingHubMultiGpuDistributedTraining(t)
 }
+
+func TestRhaiTrainingProgression(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunRhaiFeaturesProgressionTest(t)
+}
+
+func TestRhaiTrainingProgressionGPU(t *testing.T) {
+	Tags(t, KftoCuda)
+	sdktests.RunRhaiFeaturesProgressionTestGPU(t)
+}
+
+func TestRhaiJitCheckpointing(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunRhaiFeaturesCheckpointTest(t)
+}
+
+func TestRhaiJitCheckpointingGPU(t *testing.T) {
+	Tags(t, KftoCuda)
+	sdktests.RunRhaiFeaturesCheckpointTestGPU(t)
+}
+
+func TestRhaiFeatures(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunRhaiFeaturesAllTest(t)
+}
+
+func TestRhaiFeaturesGPU(t *testing.T) {
+	Tags(t, KftoCuda)
+	sdktests.RunRhaiFeaturesAllTestGPU(t)
+}
