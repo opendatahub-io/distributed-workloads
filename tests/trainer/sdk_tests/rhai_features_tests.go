@@ -143,6 +143,8 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
+	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
+	CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
 	// Create ConfigMap with notebook
 	localPath := rhaiFeaturesNotebookPath
