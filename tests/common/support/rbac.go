@@ -203,6 +203,24 @@ func CreateUserClusterRoleBinding(t Test, userName string, roleName string) *rba
 	return rb
 }
 
+// CreateUserClusterRoleBindingForTrainerRuntimes creates a ClusterRole with get/list access
+// to ClusterTrainingRuntimes and binds it to the specified user
+func CreateUserClusterRoleBindingForTrainerRuntimes(t Test, userName string) *rbacv1.ClusterRoleBinding {
+	t.T().Helper()
+
+	// Create minimal ClusterRole for trainer runtime read access
+	role := CreateClusterRole(t, []rbacv1.PolicyRule{
+		{
+			APIGroups: []string{"trainer.kubeflow.org"},
+			Resources: []string{"clustertrainingruntimes"},
+			Verbs:     []string{"get", "list", "watch"},
+		},
+	})
+
+	// Bind the role to the user
+	return CreateUserClusterRoleBinding(t, userName, role.Name)
+}
+
 func CreateUserRoleBindingWithClusterRole(t Test, userName string, namespace string, roleName string) *rbacv1.RoleBinding {
 	t.T().Helper()
 
