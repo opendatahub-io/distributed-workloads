@@ -87,7 +87,7 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 			"export AWS_DEFAULT_ENDPOINT='%s'; export AWS_ACCESS_KEY_ID='%s'; "+
 			"export AWS_SECRET_ACCESS_KEY='%s'; export AWS_STORAGE_BUCKET='%s'; "+
 			"export AWS_STORAGE_BUCKET_MNIST_DIR='%s'; "+
-			"python -m pip install --quiet --no-cache-dir papermill boto3==1.34.162 && "+
+			"python -m pip install --quiet --no-cache-dir ipykernel papermill boto3==1.34.162 && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
