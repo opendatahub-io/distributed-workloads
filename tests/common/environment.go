@@ -19,7 +19,9 @@ package common
 import (
 	"flag"
 	"os"
+	"os/exec"
 	"slices"
+	"strings"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
@@ -79,6 +81,49 @@ func GetNotebookUserPassword(t Test) string {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify token of the authenticated Notebook password.", notebookUserPassword)
 	}
 	return password
+}
+
+// GenerateNotebookUserToken generates an OpenShift token using oc login with username and password
+func GenerateNotebookUserToken(t Test) string {
+	userName := GetNotebookUserName(t)
+	password := GetNotebookUserPassword(t)
+
+	// Use own kubeconfig file to retrieve user token to keep it separated from main test credentials
+	tempFile, err := os.CreateTemp("", "custom-kubeconfig-")
+	if err != nil {
+		t.T().Fatalf("Failed to create temp kubeconfig file: %v", err)
+	}
+	defer os.Remove(tempFile.Name())
+
+	// Login by oc CLI using username and password
+	cmd := exec.Command("oc", "login", "-u", userName, "-p", password, GetOpenShiftApiUrl(t), "--insecure-skip-tls-verify=true", "--kubeconfig="+tempFile.Name())
+	out, err := cmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			t.T().Logf("Error running 'oc login' command: %v\n", exitError)
+			t.T().Logf("Output: %s\n", out)
+			t.T().Logf("Error output: %s\n", exitError.Stderr)
+		} else {
+			t.T().Logf("Error running 'oc login' command: %v\n", err)
+		}
+		t.T().FailNow()
+	}
+
+	// Use oc CLI to retrieve user token from kubeconfig
+	cmd = exec.Command("oc", "whoami", "--show-token", "--kubeconfig="+tempFile.Name())
+	out, err = cmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			t.T().Logf("Error running 'oc whoami' command: %v\n", exitError)
+			t.T().Logf("Output: %s\n", out)
+			t.T().Logf("Error output: %s\n", exitError.Stderr)
+		} else {
+			t.T().Logf("Error running 'oc whoami' command: %v\n", err)
+		}
+		t.T().FailNow()
+	}
+
+	return strings.TrimSpace(string(out))
 }
 
 func GetNotebookImage(t Test) string {

@@ -47,7 +47,7 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 
 	// RBACs setup
 	userName := common.GetNotebookUserName(test)
-	userToken := common.GetNotebookUserToken(test)
+	userToken := common.GenerateNotebookUserToken(test)
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 
 	// Create ConfigMap with notebook
