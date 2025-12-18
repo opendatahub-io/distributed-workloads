@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -144,7 +143,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	userToken := common.GenerateNotebookUserToken(test)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
-	CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
+	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
 	// Create ConfigMap with notebook
 	localPath := rhaiFeaturesNotebookPath
@@ -175,10 +174,14 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		enableCheckpoint = "true"
 	}
 
-	// Determine GPU resource label (empty for CPU)
+	// Determine GPU resource label (empty for CPU) and training runtime
 	gpuResourceLabel := ""
+	trainingRuntime := "torch-distributed" // Default for CPU and NVIDIA
 	if config.Accelerator.IsGpu() {
 		gpuResourceLabel = config.Accelerator.ResourceLabel
+		if config.Accelerator == AMD {
+			trainingRuntime = "torch-distributed-rocm"
+		}
 	}
 
 	shellCmd := fmt.Sprintf(
@@ -193,6 +196,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 			"export CHECKPOINT_SAVE_STRATEGY='%s'; "+
 			"export CHECKPOINT_SAVE_TOTAL_LIMIT='%s'; "+
 			"export GPU_RESOURCE_LABEL='%s'; "+
+			"export TRAINING_RUNTIME='%s'; "+
 			"python -m pip install --quiet --no-cache-dir papermill && "+
 			"python -m pip install --quiet --no-cache-dir git+https://github.com/opendatahub-io/kubeflow-sdk.git@main && "+
 			"python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
@@ -204,6 +208,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		config.CheckpointSaveStrategy,
 		config.CheckpointSaveTotalLimit,
 		gpuResourceLabel,
+		trainingRuntime,
 		rhaiFeaturesNotebookName,
 	)
 
@@ -219,20 +224,18 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		test.Eventually(common.Notebooks(test, namespace), TestTimeoutLong).Should(HaveLen(0))
 	}()
 
-	// Wait for the Notebook Pod and get pod/container names
-	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
+	// Wait for the Notebook Pod to be running
+	trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
 
-	// Wait for notebook to output TRAINJOB_NAME and extract it
+	// Wait for TrainJob to be created in the namespace (notebook creates exactly one)
 	var trainJobName string
-	test.Eventually(func() string {
-		logs := PodLog(test, namespace.Name, podName, corev1.PodLogOptions{Container: containerName})(test)
-		re := regexp.MustCompile(`TRAINJOB_NAME:\s*(\S+)`)
-		if matches := re.FindStringSubmatch(logs); len(matches) > 1 {
-			trainJobName = strings.TrimSpace(matches[1])
-			return trainJobName
+	test.Eventually(func() int {
+		jobs := TrainJobs(test, namespace.Name)(test)
+		if len(jobs) == 1 {
+			trainJobName = jobs[0].Name
 		}
-		return ""
-	}, TestTimeoutDouble, 5*time.Second).ShouldNot(BeEmpty(), "Failed to extract TRAINJOB_NAME from notebook logs")
+		return len(jobs)
+	}, TestTimeoutDouble, 5*time.Second).Should(Equal(1), "Expected exactly one TrainJob to be created in namespace")
 
 	test.T().Logf("TrainJob created: %s", trainJobName)
 
@@ -325,7 +328,7 @@ func verifyTerminationMessage(test Test, namespace, trainJobName string) {
 			pods = append(pods, pod)
 		}
 	}
-	test.Expect(len(pods)).To(BeNumerically(">", 0), "Expected at least one training pod")
+	test.Expect(len(pods)).To(Equal(2), "Expected exactly 2 training pods for distributed job")
 
 	test.T().Logf("Found %d training pod(s) for TrainJob %s", len(pods), trainJobName)
 
@@ -441,9 +444,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string)
 
 	// If training already completed, skip suspend/resume test
 	if trainingAlreadyComplete {
-		test.T().Log("Training completed before suspend could be triggered (fast GPU) - skipping suspend/resume")
-		test.T().Log("JIT checkpoint test requires longer training duration. Consider increasing dataset size or epochs.")
-		return
+		test.T().Fatal("Training completed before suspend could be triggered - cannot verify JIT checkpoint functionality. Consider increasing dataset size or epochs.")
 	}
 
 	test.T().Log("1st epoch completed - ready to suspend")
@@ -451,6 +452,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string)
 	// Capture progress percentage BEFORE suspension
 	preSuspendProgress := getProgressPercentage(test, namespace, trainJobName)
 	test.T().Logf("Progress BEFORE suspension: %d%%", preSuspendProgress)
+	test.Expect(preSuspendProgress).To(BeNumerically(">", 0), "Expected training progress > 0 before suspension")
 
 	// Step 2: Suspend the TrainJob to trigger JIT checkpoint save
 	test.T().Log("Step 2: Suspending TrainJob to trigger checkpoint save...")
@@ -500,8 +502,8 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string)
 
 	// Verify progress after resume is >= progress before suspension (checkpoint worked)
 	test.T().Logf("Checkpoint validation: pre-suspend=%d%%, post-resume=%d%%", preSuspendProgress, postResumeProgress)
-	test.Expect(postResumeProgress).To(BeNumerically(">=", preSuspendProgress-5),
-		fmt.Sprintf("Progress after resume (%d%%) should be near or greater than before suspend (%d%%)", postResumeProgress, preSuspendProgress))
+	test.Expect(postResumeProgress).To(BeNumerically(">=", preSuspendProgress),
+		fmt.Sprintf("Progress after resume (%d%%) should be >= before suspend (%d%%) - checkpoint should preserve progress", postResumeProgress, preSuspendProgress))
 
 	// Step 5: Wait for training to complete or fail (to get final state)
 	test.T().Log("Step 5: Waiting for training to complete after resume...")
@@ -532,12 +534,6 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string)
 				test.T().Logf("Failure reason: %s - %s", cond.Reason, cond.Message)
 			}
 		}
-
-		// Print pod logs for debugging (try to get from terminated pods)
-		printTrainingPodLogs(test, namespace, trainJobName)
-
-		// Print events for the namespace
-		printNamespaceEvents(test, namespace, trainJobName)
 
 		// Fail the test since checkpoint resume didn't lead to successful completion
 		test.Expect(TrainJobConditionComplete(finalJob)).To(Equal(metav1.ConditionTrue),
@@ -592,94 +588,6 @@ func suspendTrainJob(test Test, namespace, trainJobName string, suspend bool) {
 	test.T().Logf("TrainJob %s %s", trainJobName, map[bool]string{true: "suspended", false: "resumed"}[suspend])
 }
 
-// printTrainingPodLogs prints logs from rank 0 training pod for debugging
-func printTrainingPodLogs(test Test, namespace, trainJobName string) {
-	test.T().Helper()
-
-	// List ALL pods (including terminated) to find training pods
-	allPods, err := test.Client().Core().CoreV1().Pods(namespace).List(
-		test.Ctx(),
-		metav1.ListOptions{},
-	)
-	if err != nil {
-		test.T().Logf("Failed to list pods: %v", err)
-		return
-	}
-
-	// Find rank 0 pod (contains "-node-0-0-" in name)
-	var rank0Pod *corev1.Pod
-	for i := range allPods.Items {
-		pod := &allPods.Items[i]
-		if strings.HasPrefix(pod.Name, trainJobName) && strings.Contains(pod.Name, "-node-0-0-") {
-			rank0Pod = pod
-			break
-		}
-	}
-
-	if rank0Pod == nil {
-		test.T().Logf("Rank 0 pod not found for TrainJob %s", trainJobName)
-		return
-	}
-
-	test.T().Logf("=== Rank 0 Pod Logs (%s, Phase: %s) ===", rank0Pod.Name, rank0Pod.Status.Phase)
-
-	// Try to get logs (with Previous flag for terminated containers)
-	logOpts := corev1.PodLogOptions{
-		Container: "node",
-		TailLines: ptr(int64(100)),
-	}
-
-	// If pod is not running, try to get previous logs
-	if rank0Pod.Status.Phase != corev1.PodRunning {
-		logOpts.Previous = true
-	}
-
-	logContent := PodLog(test, namespace, rank0Pod.Name, logOpts)(test)
-	test.T().Logf("Logs:\n%s", logContent)
-	test.T().Log("=== End of Rank 0 Pod Logs ===")
-}
-
-// printNamespaceEvents prints recent events related to the TrainJob
-func printNamespaceEvents(test Test, namespace, trainJobName string) {
-	test.T().Helper()
-
-	events, err := test.Client().Core().CoreV1().Events(namespace).List(
-		test.Ctx(),
-		metav1.ListOptions{},
-	)
-	if err != nil {
-		test.T().Logf("Failed to list events: %v", err)
-		return
-	}
-
-	test.T().Logf("=== Recent Events for %s ===", trainJobName)
-	count := 0
-	for _, event := range events.Items {
-		// Filter events related to this TrainJob
-		if strings.Contains(event.InvolvedObject.Name, trainJobName) {
-			test.T().Logf("[%s] %s/%s: %s - %s",
-				event.Type,
-				event.InvolvedObject.Kind,
-				event.InvolvedObject.Name,
-				event.Reason,
-				event.Message)
-			count++
-			if count >= 20 { // Limit to 20 events
-				break
-			}
-		}
-	}
-	if count == 0 {
-		test.T().Log("No events found for this TrainJob")
-	}
-	test.T().Log("=== End of Events ===")
-}
-
-// ptr returns a pointer to the given value
-func ptr[T any](v T) *T {
-	return &v
-}
-
 // listTrainingPods returns all training pods for a TrainJob
 func listTrainingPods(test Test, namespace, trainJobName string) []corev1.Pod {
 	test.T().Helper()
@@ -709,13 +617,10 @@ func verifyCheckpointLoadedFromLogs(test Test, namespace, trainJobName string) {
 		return
 	}
 
-	// Check logs of completed pods for checkpoint resume indicators
+	// Check logs of completed pods for checkpoint resume indicators (from Kubeflow SDK)
 	checkpointIndicators := []string{
-		"Checkpoint detected",
-		"resume_from_checkpoint",
-		"Resuming training from",
-		"Loading checkpoint",
-		"Continuing training from",
+		"[Kubeflow] Found latest checkpoint:",
+		"[Kubeflow] Auto-resuming from:",
 	}
 
 	foundCheckpointLog := false
@@ -739,10 +644,5 @@ func verifyCheckpointLoadedFromLogs(test Test, namespace, trainJobName string) {
 		}
 	}
 
-	// Log result but don't fail - checkpoint resume logging varies by framework
-	if foundCheckpointLog {
-		test.T().Log("Verified: Training resumed from checkpoint")
-	} else {
-		test.T().Log("Note: No explicit checkpoint resume log found (may depend on framework/logging level)")
-	}
+	test.Expect(foundCheckpointLog).To(BeTrue(), "Expected checkpoint resume log (e.g. '[Kubeflow] Auto-resuming from:') not found in training pod logs")
 }
