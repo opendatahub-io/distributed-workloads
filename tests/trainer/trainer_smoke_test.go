@@ -24,7 +24,8 @@ func TestKubeflowTrainerSmoke(t *testing.T) {
 // runSmoke runs a smoke test for a given deployment and expected image names.
 func runSmoke(t *testing.T, deploymentName string, rhoaiImage string, odhImage string) {
 	test := With(t)
-	namespace := GetOpenDataHubNamespace(test)
+	namespace, err := GetApplicationsNamespaceFromDSCI(test, DefaultDSCIName)
+	test.Expect(err).NotTo(HaveOccurred())
 
 	test.T().Logf("Waiting for %s deployment to be available ...", deploymentName)
 	test.Eventually(func(g Gomega, ctx context.Context) {
@@ -38,7 +39,7 @@ func runSmoke(t *testing.T, deploymentName string, rhoaiImage string, odhImage s
 
 	test.T().Logf("%s deployment is available", deploymentName)
 
-	// Determine registry based on ODH namespace
+	// Determine registry based on namespace
 	registryName := GetExpectedRegistry(test, namespace)
 
 	test.T().Logf("Verifying %s container image is referred from expected registry ...", deploymentName)

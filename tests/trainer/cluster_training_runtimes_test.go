@@ -50,7 +50,8 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 	test := With(t)
 
 	// Determine registry based on ODH namespace
-	namespace := GetOpenDataHubNamespace(test)
+	namespace, err := GetApplicationsNamespaceFromDSCI(test, DefaultDSCIName)
+	test.Expect(err).NotTo(HaveOccurred())
 	registryName := GetExpectedRegistry(test, namespace)
 
 	// Build a map of expected runtimes for quick lookup
