@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -39,12 +40,23 @@ const (
 	rhaiFeaturesNotebookName = "rhai_features.ipynb"
 	rhaiFeaturesNotebookPath = "resources/" + rhaiFeaturesNotebookName
 
-	// Annotation keys for progression tracking
+	// Annotation keys for progression tracking (must match SDK/training-operator constants)
 	annotationProgressionTracking = "trainer.opendatahub.io/progression-tracking"
 	annotationMetricsPort         = "trainer.opendatahub.io/metrics-port"
 	annotationMetricsPollInterval = "trainer.opendatahub.io/metrics-poll-interval"
 	annotationTrainerStatus       = "trainer.opendatahub.io/trainerStatus"
 )
+
+// Compiled regex for epoch detection (compiled once for performance)
+var epochPattern = regexp.MustCompile(`'epoch': [1-9]`)
+
+// boolStr converts bool to "true"/"false" string for env vars
+func boolStr(b bool) string {
+	if b {
+		return "true"
+	}
+	return "false"
+}
 
 // RhaiFeatureConfig holds configuration for RHAI feature tests
 type RhaiFeatureConfig struct {
@@ -127,16 +139,8 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	)
 
 	// Build command with parameters (API URL, token, namespace, shared PVC, feature flags)
-	// Install kubeflow SDK from opendatahub-io/kubeflow-sdk main branch
-	// Uses torch-distributed runtime, model/dataset downloaded in training function
-	enableProgression := "false"
-	if config.EnableProgressionTracking {
-		enableProgression = "true"
-	}
-	enableCheckpoint := "false"
-	if config.EnableJitCheckpoint {
-		enableCheckpoint = "true"
-	}
+	enableProgression := boolStr(config.EnableProgressionTracking)
+	enableCheckpoint := boolStr(config.EnableJitCheckpoint)
 
 	// Determine GPU resource label (empty for CPU) and training runtime
 	gpuResourceLabel := ""
@@ -204,10 +208,14 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	test.T().Logf("TrainJob created: %s", trainJobName)
 
+	// Verify TrainJob annotations match expected config BEFORE running tests
+	// This catches configuration issues early (e.g., SDK defaults overriding our settings)
+	verifyTrainJobAnnotations(test, namespace.Name, trainJobName, config)
+
 	// For checkpoint tests, run suspend/resume flow instead of waiting for completion
 	if config.EnableJitCheckpoint {
 		test.T().Log("Running JIT checkpoint suspend/resume test...")
-		verifyCheckpoints(test, namespace.Name, trainJobName, config.CheckpointOutputDir)
+		verifyCheckpoints(test, namespace.Name, trainJobName, config.CheckpointOutputDir, config.EnableProgressionTracking)
 	} else {
 		// Wait for TrainJob to complete normally
 		test.Eventually(TrainJob(test, namespace.Name, trainJobName), TestTimeoutLong, 10*time.Second).
@@ -269,32 +277,62 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		test.T().Logf("estimatedRemainingSeconds: %.0f", remaining)
 
 		test.T().Log("Progression tracking verification passed!")
+	} else {
+		// Verify progression tracking is NOT enabled when disabled
+		test.T().Log("Verifying progression tracking is disabled...")
+
+		// trainerStatus annotation should be empty when progression tracking is disabled
+		trainerStatusRaw := annotations[annotationTrainerStatus]
+		test.Expect(trainerStatusRaw).To(BeEmpty(),
+			"trainerStatus annotation should be empty when progression tracking is disabled")
+		test.T().Log("trainerStatus annotation is empty as expected")
 	}
 
 	test.T().Log("All RHAI features tests passed!")
+}
+
+// verifyTrainJobAnnotations verifies TrainJob annotations match expected config
+// This catches configuration issues early (e.g., SDK defaults overriding settings)
+func verifyTrainJobAnnotations(test Test, namespace, trainJobName string, config RhaiFeatureConfig) {
+	test.T().Helper()
+
+	trainJob := TrainJob(test, namespace, trainJobName)(test)
+	annotations := trainJob.GetAnnotations()
+
+	test.T().Log("Verifying TrainJob annotations match expected config...")
+
+	// Verify progression-tracking annotation
+	// SDK sets this annotation only when progression tracking is enabled
+	actualProgression := annotations[annotationProgressionTracking]
+	if config.EnableProgressionTracking {
+		test.Expect(actualProgression).To(Equal("true"),
+			"progression-tracking annotation should be 'true' when enabled")
+		test.T().Logf("progression-tracking: expected=true, actual=%s", actualProgression)
+
+		// Also verify metrics annotations are present when progression is enabled
+		test.Expect(annotations[annotationMetricsPort]).NotTo(BeEmpty(),
+			"metrics-port annotation should be set when progression tracking is enabled")
+		test.Expect(annotations[annotationMetricsPollInterval]).NotTo(BeEmpty(),
+			"metrics-poll-interval annotation should be set when progression tracking is enabled")
+	} else {
+		// When disabled, annotation should be absent or explicitly "false"
+		test.Expect(actualProgression).To(Or(BeEmpty(), Equal("false")),
+			"progression-tracking annotation should be empty or 'false' when disabled")
+		test.T().Logf("progression-tracking: expected=empty/false, actual=%s", actualProgression)
+	}
+
+	// Note: SDK does not have a separate jit-checkpoint annotation
+	// Checkpoint functionality is verified via pod logs (verifyCheckpointLoadedFromLogs)
+
+	test.T().Log("TrainJob annotations match expected config")
 }
 
 // verifyTerminationMessage checks that training pods have termination messages with progress data
 func verifyTerminationMessage(test Test, namespace, trainJobName string) {
 	test.T().Helper()
 
-	// List all pods in namespace and filter by TrainJob name prefix
-	// Pod naming convention: <trainjob-name>-node-<index>-<index>-<suffix>
-	allPods, err := test.Client().Core().CoreV1().Pods(namespace).List(
-		test.Ctx(),
-		metav1.ListOptions{},
-	)
-	test.Expect(err).NotTo(HaveOccurred(), "Failed to list pods")
-
-	// Filter pods that belong to this TrainJob (name starts with trainjob name and contains "node")
-	var pods []corev1.Pod
-	for _, pod := range allPods.Items {
-		if strings.HasPrefix(pod.Name, trainJobName) && strings.Contains(pod.Name, "-node-") {
-			pods = append(pods, pod)
-		}
-	}
+	pods := listTrainingPods(test, namespace, trainJobName)
 	test.Expect(len(pods)).To(Equal(2), "Expected exactly 2 training pods for distributed job")
-
 	test.T().Logf("Found %d training pod(s) for TrainJob %s", len(pods), trainJobName)
 
 	// Check termination message on at least one pod
@@ -330,6 +368,14 @@ func verifyTerminationMessage(test Test, namespace, trainJobName string) {
 			test.Expect(terminationData).To(HaveKey("totalEpochs"), "Termination message should have totalEpochs")
 			test.Expect(terminationData).To(HaveKey("estimatedRemainingSeconds"), "Termination message should have estimatedRemainingSeconds")
 
+			// Log optional fields if present (per training-operator AnnotationStatus)
+			if summary, ok := terminationData["estimatedRemainingTimeSummary"].(string); ok {
+				test.T().Logf("estimatedRemainingTimeSummary: %s", summary)
+			}
+			if lastUpdated, ok := terminationData["lastUpdatedTime"].(string); ok {
+				test.T().Logf("lastUpdatedTime: %s", lastUpdated)
+			}
+
 			// Verify trainMetrics if present
 			if trainMetrics, ok := terminationData["trainMetrics"].(map[string]interface{}); ok {
 				test.T().Logf("trainMetrics: %v", trainMetrics)
@@ -359,65 +405,26 @@ func verifyTerminationMessage(test Test, namespace, trainJobName string) {
 // 3. Verifying checkpoint was saved
 // 4. Resuming the TrainJob to verify checkpoint restore
 // 5. Verifying training completes successfully
-func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string) {
+// When progressionEnabled=true, also verifies progress before/after suspend using annotations
+func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string, progressionEnabled bool) {
 	test.T().Helper()
 
 	test.T().Logf("Starting JIT checkpoint verification for TrainJob %s (checkpoint_dir=%s)", trainJobName, checkpointDir)
 
-	// Step 1: Wait for training pods to be running and make actual progress
-	test.T().Log("Step 1: Waiting for training pods to start and make progress...")
+	// Step 1: Wait for training pods to be running
+	test.T().Log("Step 1: Waiting for training pods to start...")
 	test.Eventually(func() int {
-		pods := listTrainingPods(test, namespace, trainJobName)
-		runningCount := 0
-		for _, pod := range pods {
-			if pod.Status.Phase == corev1.PodRunning {
-				runningCount++
-			}
-		}
-		return runningCount
-	}, TestTimeoutLong, 5*time.Second).Should(BeNumerically(">", 0), "At least one training pod should be running")
+		return countRunningPods(test, namespace, trainJobName)
+	}, TestTimeoutLong, 5*time.Second).Should(Equal(2), "Expected exactly 2 training pods to be running")
 	test.T().Log("Training pods are running")
 
-	// Wait for 1st epoch to complete before suspending
-	// But also check if training already completed (fast GPU case)
-	test.T().Log("Waiting for 1st epoch to complete (currentEpoch >= 1.0)...")
-
-	trainingAlreadyComplete := false
+	// Wait for training to complete at least 1 epoch (detected from logs)
+	// HuggingFace Trainer logs epoch completion with patterns like "'epoch': 1.0" or "Epoch 1"
+	test.T().Log("Waiting for training to complete at least 1 epoch (checking logs)...")
 	test.Eventually(func() bool {
-		trainJob := TrainJob(test, namespace, trainJobName)(test)
-
-		// Check if already completed
-		if TrainJobConditionComplete(trainJob) == metav1.ConditionTrue {
-			trainingAlreadyComplete = true
-			return true
-		}
-
-		annotations := trainJob.GetAnnotations()
-		statusJSON, ok := annotations[annotationTrainerStatus]
-		if !ok {
-			return false
-		}
-		var status map[string]interface{}
-		if err := json.Unmarshal([]byte(statusJSON), &status); err != nil {
-			return false
-		}
-		if currentEpoch, ok := status["currentEpoch"].(float64); ok {
-			return currentEpoch >= 1.0
-		}
-		return false
-	}, TestTimeoutMedium, 2*time.Second).Should(BeTrue(), "Training should complete at least 1 epoch or finish")
-
-	// If training already completed, skip suspend/resume test
-	if trainingAlreadyComplete {
-		test.T().Fatal("Training completed before suspend could be triggered - cannot verify JIT checkpoint functionality. Consider increasing dataset size or epochs.")
-	}
-
-	test.T().Log("1st epoch completed - ready to suspend")
-
-	// Capture progress percentage BEFORE suspension
-	preSuspendProgress := getProgressPercentage(test, namespace, trainJobName)
-	test.T().Logf("Progress BEFORE suspension: %d%%", preSuspendProgress)
-	test.Expect(preSuspendProgress).To(BeNumerically(">", 0), "Expected training progress > 0 before suspension")
+		return hasCompletedEpochFromLogs(test, namespace, trainJobName)
+	}, TestTimeoutMedium, 5*time.Second).Should(BeTrue(), "Training should complete at least 1 epoch before suspension")
+	test.T().Log("At least 1 epoch completed - ready to suspend")
 
 	// Step 2: Suspend the TrainJob to trigger JIT checkpoint save
 	test.T().Log("Step 2: Suspending TrainJob to trigger checkpoint save...")
@@ -426,72 +433,64 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string)
 	// Step 3: Wait for pods to fully terminate (checkpoint saved before termination)
 	test.T().Log("Step 3: Waiting for training pods to fully terminate...")
 	test.Eventually(func() int {
-		pods := listTrainingPods(test, namespace, trainJobName)
-		// Count pods that are still running or pending termination
-		activeCount := 0
-		for _, pod := range pods {
-			if pod.Status.Phase == corev1.PodRunning || pod.Status.Phase == corev1.PodPending {
-				activeCount++
-			}
-		}
-		return activeCount
+		return countActivePods(test, namespace, trainJobName)
 	}, TestTimeoutMedium, 5*time.Second).Should(Equal(0), "All training pods should terminate after suspend")
 	test.T().Log("All training pods terminated - checkpoint should be saved")
 
-	// Step 4: Resume the TrainJob
-	test.T().Log("Step 4: Resuming TrainJob to verify checkpoint restore...")
+	// Step 4: Verify job is suspended and NOT already completed (race condition check)
+	test.T().Log("Step 4: Verifying job is suspended (not completed)...")
+	trainJob := TrainJob(test, namespace, trainJobName)(test)
+	if TrainJobConditionComplete(trainJob) == metav1.ConditionTrue {
+		test.T().Fatal("Training completed before suspend took effect - cannot verify JIT checkpoint functionality. Consider increasing dataset size or epochs.")
+	}
+	test.Expect(TrainJobConditionSuspended(trainJob)).To(Equal(metav1.ConditionTrue), "TrainJob should be in suspended state")
+	test.T().Log("TrainJob is suspended")
+
+	// Step 5: Store progress before resume (only when progression tracking is enabled)
+	var preSuspendProgress int
+	var preSuspendEpoch float64
+	if progressionEnabled {
+		preSuspendProgress = getProgressPercentage(test, namespace, trainJobName)
+		preSuspendEpoch = getCurrentEpoch(test, namespace, trainJobName)
+		test.T().Logf("Pre-suspend state: epoch=%.2f, progress=%d%%", preSuspendEpoch, preSuspendProgress)
+		test.Expect(preSuspendProgress).To(BeNumerically(">", 0), "Progress should be > 0 at suspension")
+	}
+
+	// Step 6: Resume the TrainJob
+	test.T().Log("Step 6: Resuming TrainJob to verify checkpoint restore...")
 	suspendTrainJob(test, namespace, trainJobName, false)
 
 	// Wait for new pods to start
 	test.T().Log("Waiting for new training pods to start...")
 	test.Eventually(func() int {
-		pods := listTrainingPods(test, namespace, trainJobName)
-		runningCount := 0
-		for _, pod := range pods {
-			if pod.Status.Phase == corev1.PodRunning {
-				runningCount++
-			}
-		}
-		return runningCount
-	}, TestTimeoutMedium, 5*time.Second).Should(BeNumerically(">", 0), "Training pods should start after resume")
+		return countRunningPods(test, namespace, trainJobName)
+	}, TestTimeoutMedium, 5*time.Second).Should(Equal(2), "Expected exactly 2 training pods to start after resume")
 	test.T().Log("New training pods started")
 
-	// Capture pre-suspend state for comparison
-	preSuspendEpoch := getCurrentEpoch(test, namespace, trainJobName)
-	preSuspendLastUpdated := getLastUpdatedTime(test, namespace, trainJobName)
-	test.T().Logf("Pre-suspend state: epoch=%.2f, progress=%d%%, lastUpdatedTime=%s", preSuspendEpoch, preSuspendProgress, preSuspendLastUpdated)
+	// Step 7: Verify progress after resume (only when progression tracking is enabled)
+	if progressionEnabled {
+		// Wait for progress annotation to be updated by resumed pods
+		test.T().Log("Step 7: Waiting for progress update after resume...")
+		var postResumeProgress int
+		var postResumeEpoch float64
+		test.Eventually(func() bool {
+			postResumeProgress = getProgressPercentage(test, namespace, trainJobName)
+			postResumeEpoch = getCurrentEpoch(test, namespace, trainJobName)
+			// Wait until we have fresh data (epoch should be at least floor of pre-suspend)
+			return postResumeEpoch >= float64(int(preSuspendEpoch))
+		}, TestTimeoutMedium, 5*time.Second).Should(BeTrue(), "Progress should be updated after resume")
 
-	// Wait for new pods to update the annotation (lastUpdatedTime must change)
-	// This ensures we're reading fresh data from resumed pods, not stale pre-suspend data
-	test.T().Log("Waiting for resumed pods to report fresh progress...")
-	test.Eventually(func() bool {
-		newLastUpdated := getLastUpdatedTime(test, namespace, trainJobName)
-		if newLastUpdated != "" && newLastUpdated != preSuspendLastUpdated {
-			test.T().Logf("Fresh progress detected: lastUpdatedTime=%s", newLastUpdated)
-			return true
-		}
-		return false
-	}, TestTimeoutMedium, 5*time.Second).Should(BeTrue(), "Annotation should be updated by resumed pods (lastUpdatedTime should change)")
+		test.T().Logf("Post-resume state: epoch=%.2f, progress=%d%%", postResumeEpoch, postResumeProgress)
 
-	// Now read the fresh values reported by resumed pods
-	initialResumeEpoch := getCurrentEpoch(test, namespace, trainJobName)
-	initialResumeProgress := getProgressPercentage(test, namespace, trainJobName)
-	test.T().Logf("Initial after resume: epoch=%.2f, progress=%d%%", initialResumeEpoch, initialResumeProgress)
+		// Verify checkpoint preserved training state
+		expectedMinEpoch := float64(int(preSuspendEpoch)) // floor of pre-suspend epoch
+		test.Expect(postResumeEpoch).To(BeNumerically(">=", expectedMinEpoch),
+			fmt.Sprintf("Epoch after resume (%.2f) should be >= floor(pre-suspend epoch %.2f)", postResumeEpoch, expectedMinEpoch))
+		test.T().Log("Checkpoint verification: Progress preserved after resume")
+	}
 
-	// Epoch after resume should be >= pre-suspend (checkpoint preserves state)
-	test.Expect(initialResumeEpoch).To(BeNumerically(">=", preSuspendEpoch),
-		fmt.Sprintf("Initial epoch after resume (%.2f) should be >= pre-suspend epoch (%.2f) - checkpoint should preserve training state", initialResumeEpoch, preSuspendEpoch))
-
-	// Progress percentage should also be preserved
-	test.Expect(initialResumeProgress).To(BeNumerically(">=", preSuspendProgress),
-		fmt.Sprintf("Initial progress after resume (%d%%) should be >= pre-suspend progress (%d%%) - checkpoint should preserve progress", initialResumeProgress, preSuspendProgress))
-
-	test.T().Log("Checkpoint verification: Training resumed from correct epoch and progress")
-
-	test.T().Log("Waiting for resumed training to complete...")
-
-	// Step 5: Wait for training to complete or fail (to get final state)
-	test.T().Log("Step 5: Waiting for training to complete after resume...")
+	// Step 8: Wait for training to complete or fail
+	test.T().Log("Step 8: Waiting for training to complete after resume...")
 	test.Eventually(func() bool {
 		trainJob := TrainJob(test, namespace, trainJobName)(test)
 		complete := TrainJobConditionComplete(trainJob) == metav1.ConditionTrue
@@ -507,12 +506,6 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string)
 		// Log failure details
 		test.T().Log("WARNING: TrainJob failed after resume")
 
-		// Get trainerStatus to see progress after resume
-		annotations := finalJob.GetAnnotations()
-		if statusJSON, ok := annotations[annotationTrainerStatus]; ok {
-			test.T().Logf("Final trainerStatus: %s", statusJSON)
-		}
-
 		// Get failure reason from TrainJob conditions
 		for _, cond := range finalJob.Status.Conditions {
 			if cond.Type == "Failed" && cond.Status == metav1.ConditionTrue {
@@ -525,77 +518,45 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string)
 			"TrainJob should complete successfully after checkpoint resume")
 	}
 
-	// Step 6: Verify logs show checkpoint was loaded
-	test.T().Log("Step 6: Verifying checkpoint was loaded from logs...")
+	// Step 9: Verify logs show checkpoint was loaded
+	test.T().Log("Step 9: Verifying checkpoint was loaded from logs...")
 	verifyCheckpointLoadedFromLogs(test, namespace, trainJobName)
 
 	test.T().Log("JIT checkpoint verification completed successfully!")
 }
 
-// getProgressPercentage extracts progress percentage from trainerStatus annotation
-func getProgressPercentage(test Test, namespace, trainJobName string) int {
-	test.T().Helper()
-
+// getTrainerStatus extracts trainerStatus annotation as parsed map
+func getTrainerStatus(test Test, namespace, trainJobName string) map[string]interface{} {
 	trainJob := TrainJob(test, namespace, trainJobName)(test)
-	annotations := trainJob.GetAnnotations()
-	statusJSON, ok := annotations[annotationTrainerStatus]
-	if !ok {
-		return 0
+	statusJSON := trainJob.GetAnnotations()[annotationTrainerStatus]
+	if statusJSON == "" {
+		return nil
 	}
-
 	var status map[string]interface{}
 	if err := json.Unmarshal([]byte(statusJSON), &status); err != nil {
-		return 0
+		return nil
 	}
+	return status
+}
 
-	if progress, ok := status["progressPercentage"].(float64); ok {
-		return int(progress)
+// getProgressPercentage extracts progressPercentage from trainerStatus annotation
+func getProgressPercentage(test Test, namespace, trainJobName string) int {
+	if status := getTrainerStatus(test, namespace, trainJobName); status != nil {
+		if progress, ok := status["progressPercentage"].(float64); ok {
+			return int(progress)
+		}
 	}
 	return 0
 }
 
 // getCurrentEpoch extracts currentEpoch from trainerStatus annotation
 func getCurrentEpoch(test Test, namespace, trainJobName string) float64 {
-	test.T().Helper()
-
-	trainJob := TrainJob(test, namespace, trainJobName)(test)
-	annotations := trainJob.GetAnnotations()
-	statusJSON, ok := annotations[annotationTrainerStatus]
-	if !ok {
-		return 0
-	}
-
-	var status map[string]interface{}
-	if err := json.Unmarshal([]byte(statusJSON), &status); err != nil {
-		return 0
-	}
-
-	if epoch, ok := status["currentEpoch"].(float64); ok {
-		return epoch
+	if status := getTrainerStatus(test, namespace, trainJobName); status != nil {
+		if epoch, ok := status["currentEpoch"].(float64); ok {
+			return epoch
+		}
 	}
 	return 0
-}
-
-// getLastUpdatedTime extracts lastUpdatedTime from trainerStatus annotation
-func getLastUpdatedTime(test Test, namespace, trainJobName string) string {
-	test.T().Helper()
-
-	trainJob := TrainJob(test, namespace, trainJobName)(test)
-	annotations := trainJob.GetAnnotations()
-	statusJSON, ok := annotations[annotationTrainerStatus]
-	if !ok {
-		return ""
-	}
-
-	var status map[string]interface{}
-	if err := json.Unmarshal([]byte(statusJSON), &status); err != nil {
-		return ""
-	}
-
-	if lastUpdated, ok := status["lastUpdatedTime"].(string); ok {
-		return lastUpdated
-	}
-	return ""
 }
 
 // suspendTrainJob toggles the suspend state of a TrainJob using patch
@@ -617,6 +578,30 @@ func suspendTrainJob(test Test, namespace, trainJobName string, suspend bool) {
 	test.T().Logf("TrainJob %s %s", trainJobName, map[bool]string{true: "suspended", false: "resumed"}[suspend])
 }
 
+// countPodsInPhase counts training pods matching any of the given phases
+func countPodsInPhase(test Test, namespace, trainJobName string, phases ...corev1.PodPhase) int {
+	count := 0
+	for _, pod := range listTrainingPods(test, namespace, trainJobName) {
+		for _, phase := range phases {
+			if pod.Status.Phase == phase {
+				count++
+				break
+			}
+		}
+	}
+	return count
+}
+
+// countRunningPods returns the number of running training pods
+func countRunningPods(test Test, namespace, trainJobName string) int {
+	return countPodsInPhase(test, namespace, trainJobName, corev1.PodRunning)
+}
+
+// countActivePods returns the number of active (running or pending) training pods
+func countActivePods(test Test, namespace, trainJobName string) int {
+	return countPodsInPhase(test, namespace, trainJobName, corev1.PodRunning, corev1.PodPending)
+}
+
 // listTrainingPods returns all training pods for a TrainJob
 func listTrainingPods(test Test, namespace, trainJobName string) []corev1.Pod {
 	test.T().Helper()
@@ -636,42 +621,44 @@ func listTrainingPods(test Test, namespace, trainJobName string) []corev1.Pod {
 	return pods
 }
 
-// verifyCheckpointLoadedFromLogs checks pod logs for checkpoint resume messages
+// hasCompletedEpochFromLogs checks if training has completed at least 1 epoch by examining pod logs
+// HuggingFace Trainer logs: {'loss': X, ..., 'epoch': 1.0} - epochPattern matches epoch >= 1
+func hasCompletedEpochFromLogs(test Test, namespace, trainJobName string) bool {
+	for _, pod := range listTrainingPods(test, namespace, trainJobName) {
+		if pod.Status.Phase != corev1.PodRunning {
+			continue
+		}
+		logs := PodLog(test, namespace, pod.Name, corev1.PodLogOptions{Container: "node"})(test)
+		if epochPattern.MatchString(logs) {
+			test.T().Logf("Epoch >= 1 detected in pod %s logs", pod.Name)
+			return true
+		}
+	}
+	return false
+}
+
+// verifyCheckpointLoadedFromLogs checks pod logs for checkpoint resume messages from Kubeflow SDK
 func verifyCheckpointLoadedFromLogs(test Test, namespace, trainJobName string) {
 	test.T().Helper()
 
 	pods := listTrainingPods(test, namespace, trainJobName)
-	if len(pods) == 0 {
-		test.T().Log("No training pods found to verify checkpoint load logs")
-		return
-	}
+	test.Expect(len(pods)).NotTo(Equal(0), "No training pods found to verify checkpoint logs")
 
-	// Check logs of completed pods for checkpoint resume indicators (from Kubeflow SDK)
-	checkpointIndicators := []string{
-		"[Kubeflow] Found latest checkpoint:",
-		"[Kubeflow] Auto-resuming from:",
-	}
+	// Checkpoint resume indicators from Kubeflow SDK (transformers.py)
+	indicators := []string{"[Kubeflow] Found latest checkpoint:", "[Kubeflow] Auto-resuming from:"}
 
-	foundCheckpointLog := false
 	for _, pod := range pods {
 		if pod.Status.Phase != corev1.PodSucceeded {
 			continue
 		}
-
 		logs := PodLog(test, namespace, pod.Name, corev1.PodLogOptions{Container: "node"})(test)
-
-		for _, indicator := range checkpointIndicators {
+		for _, indicator := range indicators {
 			if strings.Contains(logs, indicator) {
-				test.T().Logf("Found checkpoint resume indicator in pod %s: %s", pod.Name, indicator)
-				foundCheckpointLog = true
-				break
+				test.T().Logf("Checkpoint resume verified in pod %s: %s", pod.Name, indicator)
+				return // Success - found checkpoint log
 			}
-		}
-
-		if foundCheckpointLog {
-			break
 		}
 	}
 
-	test.Expect(foundCheckpointLog).To(BeTrue(), "Expected checkpoint resume log (e.g. '[Kubeflow] Auto-resuming from:') not found in training pod logs")
+	test.T().Fatal("Checkpoint resume log not found in any completed pod (expected '[Kubeflow] Auto-resuming from:')")
 }

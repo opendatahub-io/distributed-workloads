@@ -40,4 +40,3 @@ func CreateUserClusterRoleBindingForTrainerRuntimes(t Test, userName string) *rb
 	// Bind the role to the user
 	return CreateUserClusterRoleBinding(t, userName, role.Name)
 }
-
