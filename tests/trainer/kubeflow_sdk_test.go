@@ -41,7 +41,7 @@ func TestSftTrainingHubMultiNodeMultiGPU(t *testing.T) {
 	sdktests.RunSftTrainingHubMultiGpuDistributedTraining(t)
 }
 
-func TestRhaiTrainingProgression(t *testing.T) {
+func TestRhaiTrainingProgressionCPU(t *testing.T) {
 	Tags(t, Tier1)
 	sdktests.RunRhaiFeaturesProgressionTest(t)
 }
@@ -51,7 +51,7 @@ func TestRhaiTrainingProgressionGPU(t *testing.T) {
 	sdktests.RunRhaiFeaturesProgressionTestGPU(t)
 }
 
-func TestRhaiJitCheckpointing(t *testing.T) {
+func TestRhaiJitCheckpointingCPU(t *testing.T) {
 	Tags(t, Tier1)
 	sdktests.RunRhaiFeaturesCheckpointTest(t)
 }
@@ -61,7 +61,7 @@ func TestRhaiJitCheckpointingGPU(t *testing.T) {
 	sdktests.RunRhaiFeaturesCheckpointTestGPU(t)
 }
 
-func TestRhaiFeatures(t *testing.T) {
+func TestRhaiFeaturesCPU(t *testing.T) {
 	Tags(t, Tier1)
 	sdktests.RunRhaiFeaturesAllTest(t)
 }
