@@ -147,13 +147,17 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 		selectedContainerResources = SmallContainerResources // Fallback to Small container size
 	}
 
+	// Get the ODH namespace from DSCI
+	odhNamespace, err := GetApplicationsNamespaceFromDSCI(test, DefaultDSCIName)
+	test.Expect(err).NotTo(gomega.HaveOccurred())
+
 	// Read the Notebook CR from resources and perform replacements for custom values using go template
 	notebookProps := NotebookProps{
 		IngressDomain:             GetOpenShiftIngressDomain(test),
 		OpenShiftApiUrl:           GetOpenShiftApiUrl(test),
 		KubernetesUserBearerToken: notebookUserToken,
 		Namespace:                 namespace.Name,
-		OpenDataHubNamespace:      GetOpenDataHubNamespace(test),
+		OpenDataHubNamespace:      odhNamespace,
 		Command:                   strCommand,
 		NotebookImage:             GetNotebookImage(test),
 		NotebookConfigMapName:     jupyterNotebookConfigMapName,

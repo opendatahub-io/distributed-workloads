@@ -25,8 +25,6 @@ import (
 )
 
 const (
-	// The environment variable for namespace where ODH is installed to.
-	odhNamespaceEnvVar = "ODH_NAMESPACE"
 	// Name of the authenticated Notebook user
 	notebookUserName = "NOTEBOOK_USER_NAME"
 	// Token of the authenticated Notebook user
@@ -58,14 +56,6 @@ const (
 var testTiers = []string{tierSmoke, tierSanity, tier1, tier2, tier3, preUpgrade, postUpgrade, kftoCuda, kftoRocm, examplesCuda, examplesRocm}
 
 var testTierParam string
-
-func GetOpenDataHubNamespace(t Test) string {
-	ns, ok := os.LookupEnv(odhNamespaceEnvVar)
-	if !ok {
-		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify namespace where ODH is installed to.", odhNamespaceEnvVar)
-	}
-	return ns
-}
 
 func GetNotebookUserName(t Test) string {
 	name, ok := os.LookupEnv(notebookUserName)
