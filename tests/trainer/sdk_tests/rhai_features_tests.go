@@ -56,75 +56,39 @@ type RhaiFeatureConfig struct {
 	Accelerator               Accelerator // CPU, NVIDIA, or AMD
 }
 
-// RunRhaiFeaturesTest runs the e2e test for RHAI features with progression tracking only (CPU)
-func RunRhaiFeaturesProgressionTest(t *testing.T) {
+// RunRhaiFeaturesProgressionTest runs the e2e test for RHAI features with progression tracking
+func RunRhaiFeaturesProgressionTest(t *testing.T, accelerator Accelerator) {
 	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
 		EnableProgressionTracking: true,
 		EnableJitCheckpoint:       false,
 		CheckpointOutputDir:       "/workspace/checkpoints",
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
-		Accelerator:               CPU,
+		Accelerator:               accelerator,
 	})
 }
 
-// RunRhaiFeaturesProgressionTestGPU runs the e2e test for RHAI features with progression tracking (GPU)
-func RunRhaiFeaturesProgressionTestGPU(t *testing.T) {
-	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
-		EnableProgressionTracking: true,
-		EnableJitCheckpoint:       false,
-		CheckpointOutputDir:       "/workspace/checkpoints",
-		CheckpointSaveStrategy:    "epoch",
-		CheckpointSaveTotalLimit:  "3",
-		Accelerator:               NVIDIA,
-	})
-}
-
-// RunRhaiFeaturesCheckpointTest runs the e2e test for RHAI features with checkpointing only (CPU)
-func RunRhaiFeaturesCheckpointTest(t *testing.T) {
+// RunRhaiFeaturesCheckpointTest runs the e2e test for RHAI features with checkpointing
+func RunRhaiFeaturesCheckpointTest(t *testing.T, accelerator Accelerator) {
 	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
 		EnableProgressionTracking: false,
 		EnableJitCheckpoint:       true,
 		CheckpointOutputDir:       "/workspace/checkpoints",
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
-		Accelerator:               CPU,
+		Accelerator:               accelerator,
 	})
 }
 
-// RunRhaiFeaturesCheckpointTestGPU runs the e2e test for RHAI features with checkpointing (GPU)
-func RunRhaiFeaturesCheckpointTestGPU(t *testing.T) {
-	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
-		EnableProgressionTracking: false,
-		EnableJitCheckpoint:       true,
-		CheckpointOutputDir:       "/workspace/checkpoints",
-		CheckpointSaveStrategy:    "epoch",
-		CheckpointSaveTotalLimit:  "3",
-		Accelerator:               NVIDIA,
-	})
-}
-
-// RunRhaiFeaturesAllTest runs the e2e test for RHAI features with both progression tracking and checkpointing (CPU)
-func RunRhaiFeaturesAllTest(t *testing.T) {
+// RunRhaiFeaturesAllTest runs the e2e test for RHAI features with both progression tracking and checkpointing
+func RunRhaiFeaturesAllTest(t *testing.T, accelerator Accelerator) {
 	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
 		EnableProgressionTracking: true,
 		EnableJitCheckpoint:       true,
 		CheckpointOutputDir:       "/workspace/checkpoints",
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
-		Accelerator:               CPU,
-	})
-}
-
-// RunRhaiFeaturesAllTestGPU runs the e2e test for RHAI features with both features (GPU)
-func RunRhaiFeaturesAllTestGPU(t *testing.T) {
-	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
-		EnableProgressionTracking: true,
-		EnableJitCheckpoint:       true,
-		CheckpointOutputDir:       "/workspace/checkpoints",
-		CheckpointSaveStrategy:    "epoch",
-		CheckpointSaveTotalLimit:  "3",
-		Accelerator:               NVIDIA,
+		Accelerator:               accelerator,
 	})
 }
 
@@ -186,6 +150,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
+			"export IPYTHONDIR='/tmp/.ipython'; "+
 			"export OPENSHIFT_API_URL='%s'; "+
 			"export NOTEBOOK_TOKEN='%s'; "+
 			"export NOTEBOOK_NAMESPACE='%s'; "+
@@ -410,7 +375,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string)
 			}
 		}
 		return runningCount
-	}, TestTimeoutMedium, 5*time.Second).Should(BeNumerically(">", 0), "At least one training pod should be running")
+	}, TestTimeoutLong, 5*time.Second).Should(BeNumerically(">", 0), "At least one training pod should be running")
 	test.T().Log("Training pods are running")
 
 	// Wait for 1st epoch to complete before suspending
@@ -491,19 +456,39 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string)
 	}, TestTimeoutMedium, 5*time.Second).Should(BeNumerically(">", 0), "Training pods should start after resume")
 	test.T().Log("New training pods started")
 
-	// Wait for training to make progress after resume, then capture progress
-	test.T().Log("Waiting for training to make progress after resume...")
-	test.Eventually(func() int {
-		return getProgressPercentage(test, namespace, trainJobName)
-	}, TestTimeoutMedium, 5*time.Second).Should(BeNumerically(">", 0), "Training should show progress after resume")
+	// Capture pre-suspend state for comparison
+	preSuspendEpoch := getCurrentEpoch(test, namespace, trainJobName)
+	preSuspendLastUpdated := getLastUpdatedTime(test, namespace, trainJobName)
+	test.T().Logf("Pre-suspend state: epoch=%.2f, progress=%d%%, lastUpdatedTime=%s", preSuspendEpoch, preSuspendProgress, preSuspendLastUpdated)
 
-	postResumeProgress := getProgressPercentage(test, namespace, trainJobName)
-	test.T().Logf("Progress AFTER resume: %d%%", postResumeProgress)
+	// Wait for new pods to update the annotation (lastUpdatedTime must change)
+	// This ensures we're reading fresh data from resumed pods, not stale pre-suspend data
+	test.T().Log("Waiting for resumed pods to report fresh progress...")
+	test.Eventually(func() bool {
+		newLastUpdated := getLastUpdatedTime(test, namespace, trainJobName)
+		if newLastUpdated != "" && newLastUpdated != preSuspendLastUpdated {
+			test.T().Logf("Fresh progress detected: lastUpdatedTime=%s", newLastUpdated)
+			return true
+		}
+		return false
+	}, TestTimeoutMedium, 5*time.Second).Should(BeTrue(), "Annotation should be updated by resumed pods (lastUpdatedTime should change)")
 
-	// Verify progress after resume is >= progress before suspension (checkpoint worked)
-	test.T().Logf("Checkpoint validation: pre-suspend=%d%%, post-resume=%d%%", preSuspendProgress, postResumeProgress)
-	test.Expect(postResumeProgress).To(BeNumerically(">=", preSuspendProgress),
-		fmt.Sprintf("Progress after resume (%d%%) should be >= before suspend (%d%%) - checkpoint should preserve progress", postResumeProgress, preSuspendProgress))
+	// Now read the fresh values reported by resumed pods
+	initialResumeEpoch := getCurrentEpoch(test, namespace, trainJobName)
+	initialResumeProgress := getProgressPercentage(test, namespace, trainJobName)
+	test.T().Logf("Initial after resume: epoch=%.2f, progress=%d%%", initialResumeEpoch, initialResumeProgress)
+
+	// Epoch after resume should be >= pre-suspend (checkpoint preserves state)
+	test.Expect(initialResumeEpoch).To(BeNumerically(">=", preSuspendEpoch),
+		fmt.Sprintf("Initial epoch after resume (%.2f) should be >= pre-suspend epoch (%.2f) - checkpoint should preserve training state", initialResumeEpoch, preSuspendEpoch))
+
+	// Progress percentage should also be preserved
+	test.Expect(initialResumeProgress).To(BeNumerically(">=", preSuspendProgress),
+		fmt.Sprintf("Initial progress after resume (%d%%) should be >= pre-suspend progress (%d%%) - checkpoint should preserve progress", initialResumeProgress, preSuspendProgress))
+
+	test.T().Log("Checkpoint verification: Training resumed from correct epoch and progress")
+
+	test.T().Log("Waiting for resumed training to complete...")
 
 	// Step 5: Wait for training to complete or fail (to get final state)
 	test.T().Log("Step 5: Waiting for training to complete after resume...")
@@ -567,6 +552,50 @@ func getProgressPercentage(test Test, namespace, trainJobName string) int {
 		return int(progress)
 	}
 	return 0
+}
+
+// getCurrentEpoch extracts currentEpoch from trainerStatus annotation
+func getCurrentEpoch(test Test, namespace, trainJobName string) float64 {
+	test.T().Helper()
+
+	trainJob := TrainJob(test, namespace, trainJobName)(test)
+	annotations := trainJob.GetAnnotations()
+	statusJSON, ok := annotations[annotationTrainerStatus]
+	if !ok {
+		return 0
+	}
+
+	var status map[string]interface{}
+	if err := json.Unmarshal([]byte(statusJSON), &status); err != nil {
+		return 0
+	}
+
+	if epoch, ok := status["currentEpoch"].(float64); ok {
+		return epoch
+	}
+	return 0
+}
+
+// getLastUpdatedTime extracts lastUpdatedTime from trainerStatus annotation
+func getLastUpdatedTime(test Test, namespace, trainJobName string) string {
+	test.T().Helper()
+
+	trainJob := TrainJob(test, namespace, trainJobName)(test)
+	annotations := trainJob.GetAnnotations()
+	statusJSON, ok := annotations[annotationTrainerStatus]
+	if !ok {
+		return ""
+	}
+
+	var status map[string]interface{}
+	if err := json.Unmarshal([]byte(statusJSON), &status); err != nil {
+		return ""
+	}
+
+	if lastUpdated, ok := status["lastUpdatedTime"].(string); ok {
+		return lastUpdated
+	}
+	return ""
 }
 
 // suspendTrainJob toggles the suspend state of a TrainJob using patch
