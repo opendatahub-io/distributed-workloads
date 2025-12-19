@@ -188,7 +188,7 @@ def train_mnist(config):
 if __name__ == "__main__":
     # for early stopping
     sched = AsyncHyperBandScheduler()
-    gpu_value="has to be specified"
+    gpu_value=int("has to be specified")
     resources_per_trial = {"cpu": 1, "gpu": gpu_value}
     tuner = tune.Tuner(
         tune.with_resources(train_mnist, resources=resources_per_trial),
