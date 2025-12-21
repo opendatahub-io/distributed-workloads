@@ -259,8 +259,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		// Verify progress metrics exist and have valid values
 		test.Expect(trainerStatus).To(HaveKey("progressPercentage"))
 		progress := trainerStatus["progressPercentage"].(float64)
-		test.Expect(progress).To(BeNumerically(">=", 0), "Progress should be non-negative")
-		test.Expect(progress).To(BeNumerically("<=", 100), "Progress should not exceed 100%")
+		test.Expect(progress).To(BeNumerically("==", 100), "Progress should be 100% at completion")
 		test.T().Logf("progressPercentage: %.0f%%", progress)
 
 		test.Expect(trainerStatus).To(HaveKey("currentStep"))
@@ -273,7 +272,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 		test.Expect(trainerStatus).To(HaveKey("estimatedRemainingSeconds"))
 		remaining := trainerStatus["estimatedRemainingSeconds"].(float64)
-		test.Expect(remaining).To(BeNumerically(">=", 0), "Remaining time should be non-negative")
+		test.Expect(remaining).To(BeNumerically("==", 0), "Remaining time should be 0 at completion")
 		test.T().Logf("estimatedRemainingSeconds: %.0f", remaining)
 
 		test.T().Log("Progression tracking verification passed!")
@@ -450,10 +449,16 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	var preSuspendProgress int
 	var preSuspendEpoch float64
 	if progressionEnabled {
+		// Wait for operator to poll metrics and update TrainJob annotations
+		// This avoids race condition where job is suspended before progress is tracked
+		test.T().Log("Step 5: Waiting for progress to be tracked in TrainJob...")
+		test.Eventually(func() int {
+			return getProgressPercentage(test, namespace, trainJobName)
+		}, TestTimeoutMedium, 5*time.Second).Should(BeNumerically(">", 0), "Progress should be tracked before suspension")
+
 		preSuspendProgress = getProgressPercentage(test, namespace, trainJobName)
 		preSuspendEpoch = getCurrentEpoch(test, namespace, trainJobName)
 		test.T().Logf("Pre-suspend state: epoch=%.2f, progress=%d%%", preSuspendEpoch, preSuspendProgress)
-		test.Expect(preSuspendProgress).To(BeNumerically(">", 0), "Progress should be > 0 at suspension")
 	}
 
 	// Step 6: Resume the TrainJob
