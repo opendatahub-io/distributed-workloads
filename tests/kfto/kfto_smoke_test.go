@@ -18,11 +18,11 @@ import (
 
 func TestKftoSmoke(t *testing.T) {
 	Tags(t, Smoke)
-	runSmoke(t, "kubeflow-training-operator", "odh-training-operator", "training-operator")
+	runSmoke(t, "kubeflow-training-operator", "odh-training-operator")
 }
 
 // runSmoke runs a smoke test for a given deployment and expected image name.
-func runSmoke(t *testing.T, deploymentName string, rhoaiImage string, odhImage string) {
+func runSmoke(t *testing.T, deploymentName string, expectedImage string) {
 	test := With(t)
 	namespace, err := GetApplicationsNamespaceFromDSCI(test, DefaultDSCIName)
 	test.Expect(err).NotTo(HaveOccurred())
@@ -39,8 +39,8 @@ func runSmoke(t *testing.T, deploymentName string, rhoaiImage string, odhImage s
 
 	test.T().Logf("%s deployment is available", deploymentName)
 
-	// Determine registry based on namespace
-	registryName := GetExpectedRegistry(test, namespace)
+	// Determine registry based on cluster environment
+	registryName := GetExpectedRegistry(test)
 
 	test.T().Logf("Verifying %s container image is referred from expected registry ...", deploymentName)
 
@@ -67,19 +67,8 @@ func runSmoke(t *testing.T, deploymentName string, rhoaiImage string, odhImage s
 		test.T().FailNow()
 	}
 
-	var expectedImage string
-	switch registryName {
-	case "registry.redhat.io":
-		expectedImage = registryName + "/rhoai/" + rhoaiImage
-	case "quay.io":
-		expectedImage = registryName + "/opendatahub/" + odhImage
-	default:
-		test.T().Fatalf("Unexpected registry: %s", registryName)
-	}
-
 	containerImage := matchedPods[0].Spec.Containers[0].Image
-	test.Expect(containerImage).To(ContainSubstring(expectedImage),
-		"Image %s should contain %s", containerImage, expectedImage)
+	test.Expect(containerImage).To(ContainSubstring(registryName + "/rhoai/" + expectedImage))
 	test.T().Logf("%s container image is referred from %s", deploymentName, registryName)
 
 }

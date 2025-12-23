@@ -22,6 +22,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	openshiftclient "github.com/openshift/client-go/config/clientset/versioned"
 )
 
 var ingressConfigResource = schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "ingresses"}
@@ -55,19 +57,18 @@ func GetOpenShiftApiUrl(test Test) string {
 	return openShiftApiUrl
 }
 
-func GetExpectedRegistry(test Test, applicationsNamespace string) string {
-	test.T().Helper()
+func GetExpectedRegistry(test Test) string {
+	configClient, err := openshiftclient.NewForConfig(test.Config())
+	test.Expect(err).NotTo(gomega.HaveOccurred())
 
-	var registryName string
-	switch applicationsNamespace {
-	case "redhat-ods-applications":
-		registryName = "registry.redhat.io"
-	case "opendatahub":
+	infra, err := configClient.ConfigV1().Infrastructures().Get(test.Ctx(), "cluster", metav1.GetOptions{})
+	test.Expect(err).NotTo(gomega.HaveOccurred())
+
+	envType := infra.Labels["hypershift.openshift.io/managed"]
+	registryName := "registry.redhat.io"
+	if envType == "true" {
 		registryName = "quay.io"
-	default:
-		test.T().Fatalf("Unknown namespace: %s. Expected 'redhat-ods-applications' for RHOAI operator or 'opendatahub' ODH operator.", applicationsNamespace)
 	}
 
-	test.T().Logf("Namespace '%s' is using registry: %s", applicationsNamespace, registryName)
 	return registryName
 }
