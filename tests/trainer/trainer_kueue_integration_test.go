@@ -46,6 +46,9 @@ var initialKueueState string
 var initialTrainerState string
 
 func TestMain(m *testing.M) {
+	var code int
+	var setupFailed bool
+
 	// Capture initial Trainer state before running any tests
 	initialTrainerState = captureComponentState("trainer")
 	fmt.Printf("Initial Trainer managementState: %s\n", initialTrainerState)
@@ -57,15 +60,19 @@ func TestMain(m *testing.M) {
 	// Setup Trainer to Managed if not already
 	if initialTrainerState != "Managed" {
 		if err := setupTrainer(); err != nil {
-			fmt.Printf("Setup: Failed to set Trainer managementState to Managed in DataScienceCluster: %v\n", err)
-			os.Exit(1)
+			fmt.Printf("Setup failed: %v\n", err)
+			fmt.Println("Skipping test execution due to setup failure ...")
+			setupFailed = true
+			code = 1
 		}
 	} else {
 		fmt.Println("Setup: Skipping Trainer setup as it is already set to Managed in DataScienceCluster")
 	}
 
-	// Run all tests
-	code := m.Run()
+	// Run all tests only if setup succeeded
+	if !setupFailed {
+		code = m.Run()
+	}
 
 	// TearDown Trainer: Only set to Removed if it was not already Managed before tests
 	if initialTrainerState != "Managed" {
@@ -79,7 +86,7 @@ func TestMain(m *testing.M) {
 	// TearDown Kueue: Only set to Removed if it was not already Unmanaged before tests
 	if initialKueueState != "Unmanaged" {
 		if err := tearDownComponent("kueue"); err != nil {
-			fmt.Printf("TearDown: Failed to set Kueue to Removed : %v\n", err)
+			fmt.Printf("TearDown: Failed to set Kueue to Removed: %v\n", err)
 		}
 	} else {
 		fmt.Println("TearDown: Skipping Kueue teardown as Initial Kueue managementState was Unmanaged in DataScienceCluster")
@@ -124,13 +131,13 @@ func captureComponentState(component string) string {
 func setupTrainer() error {
 	dynamicClient, err := createDynamicClient()
 	if err != nil {
-		return fmt.Errorf("Setup: %w", err)
+		return err
 	}
 
 	fmt.Println("Setup: Setting trainer managementState to Managed in DataScienceCluster...")
 	err = SetComponentStateAndWait(dynamicClient, context.Background(), defaultDSCName, "trainer", "Managed", 2*time.Minute)
 	if err != nil {
-		return fmt.Errorf("Setup: failed to set trainer to Managed: %w", err)
+		return err
 	}
 
 	fmt.Println("Setup: Trainer is set to Managed managementState successfully")
