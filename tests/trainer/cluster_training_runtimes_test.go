@@ -22,6 +22,7 @@ import (
 	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
@@ -141,6 +142,11 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 			Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
 
 		test.T().Logf("TrainJob with ClusterTrainingRuntime '%s' completed successfully", runtime.Name)
+
+		if IsRhoai(test) {
+			// Verify container images in the pods created by the TrainJob
+			verifyPodContainerImages(test, namespace, trainJob.Name)
+		}
 	}
 
 	test.T().Log("All TrainJobs with expected ClusterTrainingRuntimes completed successfully !!!")
@@ -192,4 +198,50 @@ func deleteTrainJob(test Test, namespace, name string) {
 	} else {
 		test.T().Logf("Deleted TrainJob %s/%s successfully", namespace, name)
 	}
+}
+
+func verifyPodContainerImages(test Test, namespace, trainJobName string) {
+	// Determine registry based on cluster environment
+	registryName := GetExpectedRegistry(test)
+
+	product, err := GetProduct(test)
+	test.Expect(err).NotTo(HaveOccurred(), "Failed to get product")
+
+	// Get CSV for the product related images for validation
+	// For cluster wide CSVs we can use the namespace "openshift-operators"
+	csv, err := FindCSVByPrefix(test, "openshift-operators", product.CsvNamePrefix)
+	test.Expect(err).NotTo(HaveOccurred(), "Failed to find Product CSV")
+	test.T().Logf("Found CSV: %s", csv.Name)
+
+	// Get pods for the TrainJob
+	pods := GetPods(test, namespace, metav1.ListOptions{LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJobName})
+	test.Expect(pods).NotTo(BeEmpty(), "No pods found for TrainJob %s", trainJobName)
+
+	// Verify container images in the pods created by the TrainJob
+	for _, pod := range pods {
+		images := getPodContainerImages(pod)
+		test.Expect(images).NotTo(BeEmpty(), "No container images found for Pod %s", pod.Name)
+
+		for _, image := range images {
+			test.Expect(image).To(HavePrefix(registryName), "Image %s should have registry prefix %s", image, registryName)
+			test.Expect(image).To(MatchRegexp(`@sha256:[a-f0-9]{64}$`),
+				"Image %s should be SHA-based with valid digest", image)
+
+			// Verify image is listed in CSV related images
+			test.Expect(csv.Spec.RelatedImages).To(ContainElement(HaveField("Image", Equal(image))),
+				"Image %s is not listed in CSV %s related images", image, csv.Name)
+			test.T().Logf("Image %s is verified in CSV related images", image)
+		}
+	}
+}
+
+func getPodContainerImages(pod corev1.Pod) []string {
+	var images []string
+	for _, container := range pod.Spec.InitContainers {
+		images = append(images, container.Image)
+	}
+	for _, container := range pod.Spec.Containers {
+		images = append(images, container.Image)
+	}
+	return images
 }

@@ -19,6 +19,7 @@ package support
 import (
 	trainerclient "github.com/kubeflow/trainer/v2/pkg/client/clientset/versioned"
 	kubeflowclient "github.com/kubeflow/training-operator/pkg/client/clientset/versioned"
+	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	rayclient "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned"
 
 	"k8s.io/client-go/dynamic"
@@ -51,6 +52,7 @@ type Client interface {
 	Ray() rayclient.Interface
 	Dynamic() dynamic.Interface
 	Storage() storageclient.StorageV1Interface
+	OLM() olmclient.Interface
 }
 
 type testClient struct {
@@ -66,6 +68,7 @@ type testClient struct {
 	ray           rayclient.Interface
 	dynamic       dynamic.Interface
 	storage       storageclient.StorageV1Interface
+	olm           olmclient.Interface
 }
 
 var _ Client = (*testClient)(nil)
@@ -116,6 +119,10 @@ func (t *testClient) Dynamic() dynamic.Interface {
 
 func (t *testClient) Storage() storageclient.StorageV1Interface {
 	return t.storage
+}
+
+func (t *testClient) OLM() olmclient.Interface {
+	return t.olm
 }
 
 func newTestClient(cfg *rest.Config) (Client, *rest.Config, error) {
@@ -190,6 +197,11 @@ func newTestClient(cfg *rest.Config) (Client, *rest.Config, error) {
 		return nil, nil, err
 	}
 
+	olmClient, err := olmclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return &testClient{
 		core:          kubeClient,
 		trainer:       trainerClient,
@@ -203,5 +215,6 @@ func newTestClient(cfg *rest.Config) (Client, *rest.Config, error) {
 		ray:           rayClient,
 		dynamic:       dynamicClient,
 		storage:       storageClient,
+		olm:           olmClient,
 	}, cfg, nil
 }
