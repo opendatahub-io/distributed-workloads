@@ -88,3 +88,35 @@ func TestRhaiFeaturesRocm(t *testing.T) {
 	Tags(t, KftoRocm, MultiNodeGpu(2, support.AMD))
 	sdktests.RunRhaiFeaturesAllTest(t, support.AMD)
 }
+
+// Multi-GPU CUDA tests - 2 nodes, 2 GPUs each (requires 4 total NVIDIA GPUs)
+func TestRhaiTrainingProgressionMultiGpuCuda(t *testing.T) {
+	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 2))
+	sdktests.RunRhaiFeaturesProgressionMultiGpuTest(t, support.NVIDIA, 2, 2)
+}
+
+func TestRhaiJitCheckpointingMultiGpuCuda(t *testing.T) {
+	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 2))
+	sdktests.RunRhaiFeaturesCheckpointMultiGpuTest(t, support.NVIDIA, 2, 2)
+}
+
+func TestRhaiFeaturesMultiGpuCuda(t *testing.T) {
+	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 2))
+	sdktests.RunRhaiFeaturesAllMultiGpuTest(t, support.NVIDIA, 2, 2)
+}
+
+// Multi-GPU ROCm tests - 2 nodes, 2 GPUs each (requires 4 total AMD GPUs)
+func TestRhaiTrainingProgressionMultiGpuRocm(t *testing.T) {
+	Tags(t, KftoRocm, MultiNodeMultiGpu(2, support.AMD, 2))
+	sdktests.RunRhaiFeaturesProgressionMultiGpuTest(t, support.AMD, 2, 2)
+}
+
+func TestRhaiJitCheckpointingMultiGpuRocm(t *testing.T) {
+	Tags(t, KftoRocm, MultiNodeMultiGpu(2, support.AMD, 2))
+	sdktests.RunRhaiFeaturesCheckpointMultiGpuTest(t, support.AMD, 2, 2)
+}
+
+func TestRhaiFeaturesMultiGpuRocm(t *testing.T) {
+	Tags(t, KftoRocm, MultiNodeMultiGpu(2, support.AMD, 2))
+	sdktests.RunRhaiFeaturesAllMultiGpuTest(t, support.AMD, 2, 2)
+}

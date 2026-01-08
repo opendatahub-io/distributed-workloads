@@ -66,6 +66,8 @@ type RhaiFeatureConfig struct {
 	CheckpointSaveStrategy    string
 	CheckpointSaveTotalLimit  string
 	Accelerator               Accelerator // CPU, NVIDIA, or AMD
+	NumNodes                  int         // Number of training nodes (default: 2)
+	NumGpusPerNode            int         // GPUs per node for multi-GPU tests (default: 1)
 }
 
 // RunRhaiFeaturesProgressionTest runs the e2e test for RHAI features with progression tracking
@@ -77,6 +79,8 @@ func RunRhaiFeaturesProgressionTest(t *testing.T, accelerator Accelerator) {
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
 		Accelerator:               accelerator,
+		NumNodes:                  2, // Default: 2 nodes
+		NumGpusPerNode:            1, // Default: 1 GPU per node
 	})
 }
 
@@ -89,6 +93,8 @@ func RunRhaiFeaturesCheckpointTest(t *testing.T, accelerator Accelerator) {
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
 		Accelerator:               accelerator,
+		NumNodes:                  2, // Default: 2 nodes
+		NumGpusPerNode:            1, // Default: 1 GPU per node
 	})
 }
 
@@ -101,6 +107,50 @@ func RunRhaiFeaturesAllTest(t *testing.T, accelerator Accelerator) {
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
 		Accelerator:               accelerator,
+		NumNodes:                  2, // Default: 2 nodes
+		NumGpusPerNode:            1, // Default: 1 GPU per node
+	})
+}
+
+// RunRhaiFeaturesProgressionMultiGpuTest runs multi-GPU test with progression tracking only
+func RunRhaiFeaturesProgressionMultiGpuTest(t *testing.T, accelerator Accelerator, numNodes, numGpusPerNode int) {
+	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
+		EnableProgressionTracking: true,
+		EnableJitCheckpoint:       false,
+		CheckpointOutputDir:       "/workspace/checkpoints",
+		CheckpointSaveStrategy:    "epoch",
+		CheckpointSaveTotalLimit:  "3",
+		Accelerator:               accelerator,
+		NumNodes:                  numNodes,
+		NumGpusPerNode:            numGpusPerNode,
+	})
+}
+
+// RunRhaiFeaturesCheckpointMultiGpuTest runs multi-GPU test with JIT checkpointing only
+func RunRhaiFeaturesCheckpointMultiGpuTest(t *testing.T, accelerator Accelerator, numNodes, numGpusPerNode int) {
+	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
+		EnableProgressionTracking: false,
+		EnableJitCheckpoint:       true,
+		CheckpointOutputDir:       "/workspace/checkpoints",
+		CheckpointSaveStrategy:    "epoch",
+		CheckpointSaveTotalLimit:  "3",
+		Accelerator:               accelerator,
+		NumNodes:                  numNodes,
+		NumGpusPerNode:            numGpusPerNode,
+	})
+}
+
+// RunRhaiFeaturesAllMultiGpuTest runs multi-GPU test with all RHAI features enabled
+func RunRhaiFeaturesAllMultiGpuTest(t *testing.T, accelerator Accelerator, numNodes, numGpusPerNode int) {
+	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
+		EnableProgressionTracking: true,
+		EnableJitCheckpoint:       true,
+		CheckpointOutputDir:       "/workspace/checkpoints",
+		CheckpointSaveStrategy:    "epoch",
+		CheckpointSaveTotalLimit:  "3",
+		Accelerator:               accelerator,
+		NumNodes:                  numNodes,
+		NumGpusPerNode:            numGpusPerNode,
 	})
 }
 
@@ -121,11 +171,20 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
-	// Create ConfigMap with notebook
+	// Create ConfigMap with notebook and install script
 	localPath := rhaiFeaturesNotebookPath
 	nb, err := os.ReadFile(localPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
-	cm := CreateConfigMap(test, namespace.Name, map[string][]byte{rhaiFeaturesNotebookName: nb})
+
+	// Read the kubeflow install helper script
+	installScriptPath := "resources/disconnected_env/install_kubeflow.py"
+	installScript, err := os.ReadFile(installScriptPath)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
+
+	cm := CreateConfigMap(test, namespace.Name, map[string][]byte{
+		rhaiFeaturesNotebookName: nb,
+		"install_kubeflow.py":    installScript,
+	})
 
 	// Create shared RWX PVC for distributed training (HF cache shared across nodes)
 	storageClass, err := GetRWXStorageClass(test)
@@ -152,6 +211,73 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		}
 	}
 
+	// S3/MinIO configuration for disconnected environments (optional)
+	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
+	s3AccessKey, _ := GetStorageBucketAccessKeyId()
+	s3SecretKey, _ := GetStorageBucketSecretKey()
+	s3Bucket, _ := GetStorageBucketName()
+	modelS3Prefix := os.Getenv("MODEL_S3_PREFIX")
+	if modelS3Prefix == "" {
+		modelS3Prefix = "models/distilgpt2"
+	}
+	datasetS3Prefix := os.Getenv("DATASET_S3_PREFIX")
+	if datasetS3Prefix == "" {
+		datasetS3Prefix = "alpaca-cleaned-datasets"
+	}
+
+	// Build S3 export commands (only if configured)
+	s3Exports := ""
+	if s3Endpoint != "" && s3Bucket != "" {
+		test.T().Logf("S3 mode: endpoint=%s, bucket=%s", s3Endpoint, s3Bucket)
+		s3Exports = fmt.Sprintf(
+			"export AWS_DEFAULT_ENDPOINT='%s'; "+
+				"export AWS_ACCESS_KEY_ID='%s'; "+
+				"export AWS_SECRET_ACCESS_KEY='%s'; "+
+				"export AWS_STORAGE_BUCKET='%s'; "+
+				"export MODEL_S3_PREFIX='%s'; "+
+				"export DATASET_S3_PREFIX='%s'; ",
+			s3Endpoint, s3AccessKey, s3SecretKey, s3Bucket, modelS3Prefix, datasetS3Prefix,
+		)
+	} else {
+		test.T().Log("HuggingFace mode: S3 not configured, will download from HF Hub")
+	}
+
+	// PyPI mirror configuration for disconnected environments (optional)
+	pipIndexUrl := os.Getenv("PIP_INDEX_URL")
+	pipExports := ""
+	pipInstallFlags := ""
+	if pipIndexUrl != "" {
+		test.T().Logf("PyPI mirror: %s", pipIndexUrl)
+		// Extract hostname for trusted-host
+		pipTrustedHost := os.Getenv("PIP_TRUSTED_HOST")
+		if pipTrustedHost == "" {
+			// Extract hostname from URL
+			pipTrustedHost = strings.TrimPrefix(strings.TrimPrefix(pipIndexUrl, "https://"), "http://")
+			if idx := strings.Index(pipTrustedHost, ":"); idx > 0 {
+				pipTrustedHost = pipTrustedHost[:idx]
+			} else if idx := strings.Index(pipTrustedHost, "/"); idx > 0 {
+				pipTrustedHost = pipTrustedHost[:idx]
+			}
+		}
+		pipExports = fmt.Sprintf(
+			"export PIP_INDEX_URL='%s'; "+
+				"export PIP_TRUSTED_HOST='%s'; "+
+				"export PYTHONHTTPSVERIFY='0'; ",
+			pipIndexUrl, pipTrustedHost,
+		)
+		pipInstallFlags = fmt.Sprintf("--index-url '%s' --trusted-host '%s' ", pipIndexUrl, pipTrustedHost)
+	}
+
+	// Set defaults for num_nodes and num_gpus_per_node if not specified
+	numNodes := config.NumNodes
+	if numNodes <= 0 {
+		numNodes = 2
+	}
+	numGpusPerNode := config.NumGpusPerNode
+	if numGpusPerNode <= 0 {
+		numGpusPerNode = 1
+	}
+
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
 			"export IPYTHONDIR='/tmp/.ipython'; "+
@@ -166,8 +292,12 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 			"export CHECKPOINT_SAVE_TOTAL_LIMIT='%s'; "+
 			"export GPU_RESOURCE_LABEL='%s'; "+
 			"export TRAINING_RUNTIME='%s'; "+
-			"python -m pip install --quiet --no-cache-dir papermill && "+
-			"python -m pip install --quiet --no-cache-dir git+https://github.com/opendatahub-io/kubeflow-sdk.git@main && "+
+			"export NUM_NODES='%d'; "+
+			"export NUM_GPUS_PER_NODE='%d'; "+
+			"%s"+ // S3 exports (if configured)
+			"%s"+ // PyPI exports (if configured)
+			"python -m pip install --quiet --no-cache-dir %s papermill && "+
+			"python /opt/app-root/notebooks/install_kubeflow.py && "+
 			"python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"sleep infinity",
 		GetOpenShiftApiUrl(test), userToken, namespace.Name, sharedPVC.Name,
@@ -178,10 +308,16 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		config.CheckpointSaveTotalLimit,
 		gpuResourceLabel,
 		trainingRuntime,
+		numNodes,
+		numGpusPerNode,
+		s3Exports,
+		pipExports,
+		pipInstallFlags,
 		rhaiFeaturesNotebookName,
 	)
 
-	test.T().Logf("Feature config: ProgressionTracking=%v, JitCheckpoint=%v, Accelerator=%s", config.EnableProgressionTracking, config.EnableJitCheckpoint, config.Accelerator.Type)
+	test.T().Logf("Feature config: ProgressionTracking=%v, JitCheckpoint=%v, Accelerator=%s, NumNodes=%d, NumGpusPerNode=%d",
+		config.EnableProgressionTracking, config.EnableJitCheckpoint, config.Accelerator.Type, numNodes, numGpusPerNode)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
 	// Create Notebook CR using the RWX PVC
