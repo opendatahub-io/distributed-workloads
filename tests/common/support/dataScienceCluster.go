@@ -63,7 +63,7 @@ func updateDSC(dynamicClient dynamic.Interface, ctx context.Context, dsc *unstru
 	return dynamicClient.Resource(DscGVR).Update(ctx, dsc, metav1.UpdateOptions{})
 }
 
-func GetDSCPhase(dsc *unstructured.Unstructured) string {
+func getDSCPhase(dsc *unstructured.Unstructured) string {
 	phase, found, err := unstructured.NestedString(dsc.Object, "status", "phase")
 	if err != nil || !found {
 		return ""
@@ -71,7 +71,7 @@ func GetDSCPhase(dsc *unstructured.Unstructured) string {
 	return phase
 }
 
-func WaitForDSCReady(dynamicClient dynamic.Interface, ctx context.Context, dscName string) error {
+func waitForDSCReady(dynamicClient dynamic.Interface, ctx context.Context, dscName string) error {
 	var phase string
 
 	for {
@@ -83,7 +83,7 @@ func WaitForDSCReady(dynamicClient dynamic.Interface, ctx context.Context, dscNa
 			if err != nil {
 				return err
 			}
-			phase = GetDSCPhase(dsc)
+			phase = getDSCPhase(dsc)
 			if phase == PhaseReady {
 				return nil
 			}
@@ -106,7 +106,7 @@ func componentReadyCondition(component string) string {
 	return strings.ToUpper(component[:1]) + component[1:] + "Ready"
 }
 
-func GetConditionDetails(dsc *unstructured.Unstructured, conditionType string) ConditionDetails {
+func getConditionDetails(dsc *unstructured.Unstructured, conditionType string) ConditionDetails {
 	details := ConditionDetails{Type: conditionType}
 	conditions, found, err := unstructured.NestedSlice(dsc.Object, "status", "conditions")
 	if err != nil || !found {
@@ -162,7 +162,7 @@ func setComponentState(dynamicClient dynamic.Interface, ctx context.Context, dsc
 	return fmt.Errorf("failed to set component %s state after %d retries due to conflicts", component, maxRetries)
 }
 
-func WaitForComponentReady(dynamicClient dynamic.Interface, ctx context.Context, dscName, component string) error {
+func waitForComponentReady(dynamicClient dynamic.Interface, ctx context.Context, dscName, component string) error {
 	conditionType := componentReadyCondition(component)
 	var condition ConditionDetails
 
@@ -176,7 +176,7 @@ func WaitForComponentReady(dynamicClient dynamic.Interface, ctx context.Context,
 			if err != nil {
 				return err
 			}
-			condition = GetConditionDetails(dsc, conditionType)
+			condition = getConditionDetails(dsc, conditionType)
 
 			if condition.Status == ConditionTrue {
 				return nil
@@ -187,7 +187,7 @@ func WaitForComponentReady(dynamicClient dynamic.Interface, ctx context.Context,
 	}
 }
 
-func WaitForComponentRemoved(dynamicClient dynamic.Interface, ctx context.Context, dscName, component string) error {
+func waitForComponentRemoved(dynamicClient dynamic.Interface, ctx context.Context, dscName, component string) error {
 	conditionType := componentReadyCondition(component)
 	var condition ConditionDetails
 
@@ -201,9 +201,9 @@ func WaitForComponentRemoved(dynamicClient dynamic.Interface, ctx context.Contex
 			if err != nil {
 				return err
 			}
-			condition = GetConditionDetails(dsc, conditionType)
+			condition = getConditionDetails(dsc, conditionType)
 
-			if condition.Status == "False" && condition.Reason == ReasonRemoved {
+			if condition.Status == ConditionFalse && condition.Reason == ReasonRemoved {
 				return nil
 			}
 
@@ -212,10 +212,7 @@ func WaitForComponentRemoved(dynamicClient dynamic.Interface, ctx context.Contex
 	}
 }
 
-// SetComponentStateAndWait sets a component's managementState and waits for completion.
-// It creates a context with timeout that enforces the deadline across all operations.
 func SetComponentStateAndWait(dynamicClient dynamic.Interface, ctx context.Context, dscName, component, state string, timeout time.Duration) error {
-	// Create a context with timeout - this will automatically enforce the deadline
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -223,27 +220,27 @@ func SetComponentStateAndWait(dynamicClient dynamic.Interface, ctx context.Conte
 		return err
 	}
 
-	if state == StateManaged {
-		if err := WaitForComponentReady(dynamicClient, ctx, dscName, component); err != nil {
+	if state == StateManaged || state == StateUnmanaged {
+		if err := waitForComponentReady(dynamicClient, ctx, dscName, component); err != nil {
 			return err
 		}
 	}
 
 	if state == StateRemoved {
-		if err := WaitForComponentRemoved(dynamicClient, ctx, dscName, component); err != nil {
+		if err := waitForComponentRemoved(dynamicClient, ctx, dscName, component); err != nil {
 			return err
 		}
 	}
 
-	return WaitForDSCReady(dynamicClient, ctx, dscName)
+	return waitForDSCReady(dynamicClient, ctx, dscName)
 }
 
 func GetDSC(test Test, name string) (*unstructured.Unstructured, error) {
 	return getDSC(test.Client().Dynamic(), test.Ctx(), name)
 }
 
-func SetComponentToUnmanaged(test Test, dscName string, component string) error {
-	return setComponentState(test.Client().Dynamic(), test.Ctx(), dscName, component, StateUnmanaged)
+func SetComponentState(test Test, dscName, component, state string, timeout time.Duration) error {
+	return SetComponentStateAndWait(test.Client().Dynamic(), test.Ctx(), dscName, component, state, timeout)
 }
 
 func DSCResource(test Test, name string) func(g gomega.Gomega) *unstructured.Unstructured {
