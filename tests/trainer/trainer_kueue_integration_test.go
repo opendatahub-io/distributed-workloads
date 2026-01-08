@@ -135,7 +135,7 @@ func setupTrainer() error {
 	}
 
 	fmt.Println("Setup: Setting trainer managementState to Managed in DataScienceCluster...")
-	err = SetComponentStateAndWait(dynamicClient, context.Background(), defaultDSCName, "trainer", "Managed", 2*time.Minute)
+	err = SetComponentStateAndWait(dynamicClient, context.Background(), defaultDSCName, "trainer", StateManaged, 2*time.Minute)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func tearDownComponent(component string) error {
 	}
 
 	fmt.Printf("TearDown: Setting %s managementState to Removed in DataScienceCluster...\n", component)
-	err = SetComponentStateAndWait(dynamicClient, context.Background(), defaultDSCName, component, "Removed", 2*time.Minute)
+	err = SetComponentStateAndWait(dynamicClient, context.Background(), defaultDSCName, component, StateRemoved, 2*time.Minute)
 	if err != nil {
 		return fmt.Errorf("TearDown: failed to set %s to Removed: %w", component, err)
 	}
@@ -402,7 +402,7 @@ func setupKueue(test Test) {
 	}
 
 	test.T().Log("SetupKueue: Setting kueue to Unmanaged managementState in DataScienceCluster...")
-	err := SetComponentToUnmanaged(test, defaultDSCName, "kueue")
+	err := SetComponentState(test, defaultDSCName, "kueue", StateUnmanaged, 2*time.Minute)
 	test.Expect(err).NotTo(HaveOccurred(), "Should be able to set DSC kueue to Unmanaged")
 
 	// Verify kueue status is Unmanaged and KueueReady condition is True
