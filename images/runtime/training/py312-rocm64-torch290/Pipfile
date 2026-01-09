@@ -1,0 +1,48 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[[source]]
+url = "https://download.pytorch.org/whl/rocm6.4"
+verify_ssl = true
+name = "pytorch-rocm64"
+
+[packages]
+torch = {version = "==2.9.0+rocm6.4", index = "pytorch-rocm64"}
+pytorch-triton-rocm = {version = "==3.5.0", index = "pytorch-rocm64"}
+accelerate = "==1.10.0"
+transformers = "==4.57.1"
+peft = "==0.17.0"
+datasets = "==4.3.0"
+tqdm = "==4.67.1"
+pydantic = "==2.11.7"
+aiofiles = "==24.1.0"
+protobuf = "<6.0.0,>=5.28.0"
+simpleeval = "<1.0,>=0.9.13"
+safetensors = "==0.6.2"
+packaging = "==25.0"
+pyyaml = "==6.0.3"
+py-cpuinfo = "==9.0.0"
+numpy = "<2.0.0,>=1.23.5"
+numba = "==0.62.1"
+rich = "==14.1.0"
+tensorboard = "==2.19.0"
+async-timeout = "==4.0.3"
+sentencepiece = "<0.3,>=0.1.99"
+tokenizers = "==0.22.1"
+liger-kernel = "==0.6.2"
+einops = "==0.8.1"
+kernels = "==0.10.3"
+deepspeed = "==0.14.3"
+instructlab-dolomite = "==0.2.0"
+huggingface-hub = "==0.34.4"
+hf-xet = "==1.1.8"
+training-hub = {version = "==0.4.0", extras = ["lora"]}
+instructlab-training = "==0.12.1"
+rhai-innovation-mini-trainer = "==0.3.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
