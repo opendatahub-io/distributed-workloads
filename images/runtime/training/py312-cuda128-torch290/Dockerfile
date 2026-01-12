@@ -124,6 +124,10 @@ RUN pip install --no-build-isolation --no-cache-dir causal-conv1d==1.5.3.post1 &
     pip install --no-build-isolation --no-cache-dir mamba-ssm==2.2.6.post3 --no-deps && \
     fix-permissions /opt/app-root -P
 
+# Install flash-attn separately (keep out of Pipfile.lock to avoid lock-time builds)
+RUN pip install --no-build-isolation --no-cache-dir flash-attn==2.8.3 && \
+    fix-permissions /opt/app-root -P
+
 # Restore user workspace
 USER 1001
 
