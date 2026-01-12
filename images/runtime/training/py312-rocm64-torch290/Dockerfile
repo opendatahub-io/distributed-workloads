@@ -25,6 +25,13 @@ ARG ROCM_VERSION=6.4.3
 ARG AMDGPU_VERSION=6.4.3
 
 ENV GPU_ARCHS=gfx90a;gfx942
+# ROCm toolchain env (needed for HIP builds like flash-attn)
+ENV ROCM_HOME=/opt/rocm \
+    ROCM_PATH=/opt/rocm \
+    HIP_PATH=/opt/rocm \
+    PATH=/opt/rocm/bin:/opt/rocm/llvm/bin:$PATH \
+    LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:$LD_LIBRARY_PATH \
+    CMAKE_PREFIX_PATH=/opt/rocm
 
 RUN <<EOF
 cat <<EOD > /etc/yum.repos.d/rocm.repo
@@ -47,6 +54,27 @@ EOD
 EOF
 
 RUN dnf install -y cmake rocm-developer-tools rocm-ml-sdk rocm-openmp-sdk rocm-utils && dnf clean all && rm -rf /var/cache/dnf
+
+# HIP / ROCm dev toolchain (aligns with universal image so flash-attn can build)
+RUN dnf install -y --setopt=install_weak_deps=False \
+    rocm-llvm \
+    hipcc \
+    hip-devel \
+    hip-runtime-amd \
+    rocm-device-libs \
+    rocblas-devel \
+    hipblas-devel \
+    hipblaslt-devel \
+    hipsparse-devel \
+    hipfft \
+    rocfft \
+    rocm-cmake \
+    git \
+    gcc \
+    gcc-c++ \
+    make \
+    python3-devel && \
+    dnf clean all && rm -rf /var/cache/dnf/*
 
 # Install Python packages
 
@@ -76,6 +104,10 @@ RUN export TMP_DIR=$(mktemp -d) \
 
 # Reapply write permissions on site‑packages
 RUN chmod -R g+w /opt/app-root/lib/python3.12/site-packages && \
+    fix-permissions /opt/app-root -P
+
+# Install flash-attn (ROCm build) outside Pipfile.lock; requires GPU_ARCHS and ROCm toolchain
+RUN pip install --no-build-isolation --no-cache-dir --no-deps flash-attn==2.8.3 && \
     fix-permissions /opt/app-root -P
 
 # Restore user workspace
