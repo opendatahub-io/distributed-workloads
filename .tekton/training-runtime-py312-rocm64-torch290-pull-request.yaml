@@ -18,6 +18,15 @@ metadata:
   name: py312-rocm64-torch290-on-pull-request
   namespace: open-data-hub-tenant
 spec:
+  taskRunSpecs:
+    - pipelineTaskName: ecosystem-cert-preflight-checks
+      computeResources:
+        requests:
+          cpu: '8'
+          memory: 16Gi
+        limits:
+          cpu: '16'
+          memory: 32Gi
   timeouts:
     pipeline: 100h
     tasks: 90h
