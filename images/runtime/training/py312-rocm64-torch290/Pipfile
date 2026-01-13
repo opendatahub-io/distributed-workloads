@@ -38,7 +38,8 @@ deepspeed = "==0.18.4"
 instructlab-dolomite = "==0.2.0"
 huggingface-hub = "==0.35.3"
 hf-xet = "==1.2.0"
-trl = "==0.26.2"
+trl = "==0.24.0"
+training-hub = {version = "==0.5.0", extras = ["lora"]}
 
 [dev-packages]
 
