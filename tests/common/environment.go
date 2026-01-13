@@ -27,6 +27,8 @@ import (
 )
 
 const (
+	// The environment variable referring to image simulating sleep condition in container
+	sleepImageEnvVar = "SLEEP_IMAGE"
 	// Name of the authenticated Notebook user
 	notebookUserName = "NOTEBOOK_USER_NAME"
 	// Token of the authenticated Notebook user
@@ -152,6 +154,10 @@ func GetHuggingFaceToken(t Test) string {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify HuggingFace token to download models.", huggingfaceTokenEnvVar)
 	}
 	return token
+}
+
+func GetSleepImage() string {
+	return lookupEnvOrDefault(sleepImageEnvVar, "gcr.io/k8s-staging-perf-tests/sleep@sha256:8d91ddf9f145b66475efda1a1b52269be542292891b5de2a7fad944052bab6ea")
 }
 
 func init() {
