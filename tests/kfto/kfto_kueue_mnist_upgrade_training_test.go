@@ -45,7 +45,7 @@ func TestSetupPytorchjob(t *testing.T) {
 	Tags(t, PreUpgrade)
 	test := With(t)
 
-	createOrGetUpgradeTestNamespace(test, namespaceName)
+	CreateOrGetTestNamespaceWithName(test, namespaceName)
 
 	// Create a ConfigMap with training dataset and configuration
 	mnist := readFile(test, "resources/mnist.py")
@@ -297,18 +297,4 @@ func createUpgradePyTorchJob(test Test, namespace, localQueueName string, config
 	test.T().Logf("Created PytorchJob %s/%s successfully", tuningJob.Namespace, tuningJob.Name)
 
 	return tuningJob
-}
-
-func createOrGetUpgradeTestNamespace(test Test, name string, options ...Option[*corev1.Namespace]) (namespace *corev1.Namespace) {
-	// Verify that the namespace really exists and return it, create it if doesn't exist yet
-	namespace, err := test.Client().Core().CoreV1().Namespaces().Get(test.Ctx(), name, metav1.GetOptions{})
-	if err == nil {
-		return
-	} else if errors.IsNotFound(err) {
-		test.T().Logf("%s namespace doesn't exists. Creating ...", name)
-		return CreateTestNamespaceWithName(test, name, options...)
-	} else {
-		test.T().Fatalf("Error retrieving namespace with name `%s`: %v", name, err)
-	}
-	return
 }

@@ -42,7 +42,7 @@ func TestSetupSleepPytorchjob(t *testing.T) {
 	test := With(t)
 
 	// Create a namespace
-	createOrGetUpgradeTestNamespace(test, sleepNamespaceName)
+	CreateOrGetTestNamespaceWithName(test, sleepNamespaceName)
 
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})

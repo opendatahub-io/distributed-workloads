@@ -25,8 +25,6 @@ const (
 	bloomModelImageEnvVar = "BLOOM_MODEL_IMAGE"
 	// The environment variable referring to image containing Stanford Alpaca dataset
 	alpacaDatasetImageEnvVar = "ALPACA_DATASET_IMAGE"
-	// The environment variable referring to image simulating sleep condition in container
-	sleepImageEnvVar = "SLEEP_IMAGE"
 )
 
 func GetBloomModelImage() string {
@@ -35,10 +33,6 @@ func GetBloomModelImage() string {
 
 func GetAlpacaDatasetImage() string {
 	return lookupEnvOrDefault(alpacaDatasetImageEnvVar, "quay.io/ksuta/alpaca-dataset@sha256:2e90f631180c7b2c916f9569b914b336b612e8ae86efad82546adc5c9fcbbb8d")
-}
-
-func GetSleepImage() string {
-	return lookupEnvOrDefault(sleepImageEnvVar, "gcr.io/k8s-staging-perf-tests/sleep@sha256:8d91ddf9f145b66475efda1a1b52269be542292891b5de2a7fad944052bab6ea")
 }
 
 func lookupEnvOrDefault(key, value string) string {

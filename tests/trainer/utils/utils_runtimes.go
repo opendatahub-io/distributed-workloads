@@ -33,6 +33,21 @@ const (
 	DefaultTrainingHubRuntime = "training-hub"
 )
 
+var DefaultClusterTrainingRuntimes = []string{
+	DefaultClusterTrainingRuntime,
+	DefaultClusterTrainingRuntimeROCm,
+	DefaultTrainingHubRuntime,
+}
+
+func IsDefaultRuntime(name string) bool {
+	for _, defaultRuntime := range DefaultClusterTrainingRuntimes {
+		if name == defaultRuntime {
+			return true
+		}
+	}
+	return false
+}
+
 // ExpectedRuntimes is the list of expected ClusterTrainingRuntimes on the cluster
 var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: DefaultClusterTrainingRuntime, RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},

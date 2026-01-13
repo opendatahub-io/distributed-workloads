@@ -22,6 +22,7 @@ import (
 	"github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -83,6 +84,23 @@ func GetNamespaceWithName(t Test, namespaceName string) *corev1.Namespace {
 	namespace, err := t.Client().Core().CoreV1().Namespaces().Get(t.Ctx(), namespaceName, metav1.GetOptions{})
 	t.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to retrieve namespace with name: %s", namespaceName))
 	return namespace
+}
+
+// CreateOrGetTestNamespaceWithName creates a namespace with the given name if it doesn't exist,
+// or returns the existing namespace if it does. This is useful for scenarios where
+// the namespace needs to persist across multiple test phases.
+func CreateOrGetTestNamespaceWithName(t Test, name string, options ...Option[*corev1.Namespace]) *corev1.Namespace {
+	t.T().Helper()
+	namespace, err := t.Client().Core().CoreV1().Namespaces().Get(t.Ctx(), name, metav1.GetOptions{})
+	if err == nil {
+		return namespace
+	} else if errors.IsNotFound(err) {
+		t.T().Logf("%s namespace doesn't exist. Creating ...", name)
+		return CreateTestNamespaceWithName(t, name, options...)
+	} else {
+		t.T().Fatalf("Error retrieving namespace with name `%s`: %v", name, err)
+	}
+	return nil
 }
 
 func DeleteTestNamespace(t Test, namespace *corev1.Namespace) {
