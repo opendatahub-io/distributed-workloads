@@ -117,7 +117,11 @@ func getConditionDetails(dsc *unstructured.Unstructured, conditionType string) C
 		if !ok {
 			continue
 		}
-		if condition["type"] == conditionType {
+		conditionTypeValue, ok := condition["type"].(string)
+		if !ok {
+			continue
+		}
+		if strings.EqualFold(conditionTypeValue, conditionType) {
 			if status, ok := condition["status"].(string); ok {
 				details.Status = status
 			}
@@ -269,7 +273,11 @@ func ComponentConditionStatus(dsc *unstructured.Unstructured, conditionType stri
 		if !ok {
 			continue
 		}
-		if condition["type"] == conditionType {
+		conditionTypeValue, ok := condition["type"].(string)
+		if !ok {
+			continue
+		}
+		if strings.EqualFold(conditionTypeValue, conditionType) {
 			if status, ok := condition["status"].(string); ok {
 				return status
 			}
