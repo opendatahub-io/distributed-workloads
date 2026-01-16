@@ -40,7 +40,7 @@ func ReadFile(t Test, fileName string) []byte {
 	return file
 }
 
-func uploadToS3(test Test, namespace string, pvcName string, storedAssetsPath string) {
+func UploadToS3(test Test, namespace string, pvcName string, storedAssetsPath string) {
 	defaultEndpoint, found := GetStorageBucketDefaultEndpoint()
 	test.Expect(found).To(BeTrue(), "Storage bucket default endpoint needs to be specified for S3 upload")
 	accessKeyId, found := GetStorageBucketAccessKeyId()
@@ -118,7 +118,7 @@ func uploadToS3(test Test, namespace string, pvcName string, storedAssetsPath st
 	test.Expect(GetJob(test, namespace, job.Name)).To(WithTransform(JobConditionCompleted, Equal(corev1.ConditionTrue)), "Job uploading content to S3 bucket failed")
 }
 
-func downloadFromS3(test Test, namespace string, pvcName string, storedAssetsPath string) {
+func DownloadFromS3(test Test, namespace string, pvcName string, storedAssetsPath string) {
 	defaultEndpoint, found := GetStorageBucketDefaultEndpoint()
 	test.Expect(found).To(BeTrue(), "Storage bucket default endpoint needs to be specified for download from S3")
 	accessKeyId, found := GetStorageBucketAccessKeyId()

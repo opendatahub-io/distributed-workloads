@@ -11,7 +11,7 @@ replace (
 )
 
 require (
-	github.com/kubeflow/trainer/v2 v2.0.0
+	github.com/kubeflow/trainer/v2 v2.1.0
 	github.com/kubeflow/training-operator v1.7.0
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/onsi/gomega v1.38.2
@@ -26,7 +26,7 @@ require (
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
 	k8s.io/client-go v0.34.1
-	sigs.k8s.io/jobset v0.9.1
+	sigs.k8s.io/jobset v0.10.1
 	sigs.k8s.io/kueue v0.10.2
 )
 
@@ -79,4 +79,5 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
+	volcano.sh/apis v1.13.1-0.20251028070205-46d20c0699e7 // indirect
 )
