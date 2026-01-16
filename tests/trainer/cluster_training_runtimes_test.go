@@ -35,11 +35,12 @@ type ClusterTrainingRuntime struct {
 }
 
 var expectedRuntimes = []ClusterTrainingRuntime{
-	{Name: "torch-distributed", RHOAIImage: "odh-training-cuda128-torch28-py312-rhel9"},
-	{Name: "torch-distributed-rocm", RHOAIImage: "odh-training-rocm64-torch28-py312-rhel9"},
-	{Name: "torch-distributed-th03-cuda128-torch28-py312", RHOAIImage: "odh-training-cuda128-torch28-py312-rhel9"},
-	{Name: "training-hub", RHOAIImage: "odh-training-cuda128-torch28-py312-rhel9"},
-	{Name: "training-hub03-cuda128-torch28-py312", RHOAIImage: "odh-training-cuda128-torch28-py312-rhel9"},
+	{Name: "torch-distributed", ODHImage: "opendatahub/odh-training-cuda128-torch29-py312", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
+	{Name: "torch-distributed-cuda128-torch29-py312", ODHImage: "opendatahub/odh-training-cuda128-torch29-py312", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
+	{Name: "torch-distributed-rocm", ODHImage: "opendatahub/odh-training-rocm64-torch29-py312", RHOAIImage: "odh-training-rocm64-torch29-py312-rhel9"},
+	{Name: "torch-distributed-rocm64-torch29-py312", ODHImage: "opendatahub/odh-training-rocm64-torch29-py312", RHOAIImage: "odh-training-rocm64-torch29-py312-rhel9"},
+	{Name: "training-hub", ODHImage: "opendatahub/odh-training-cuda128-torch29-py312", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
+	{Name: "training-hub-th05-cuda128-torch29-py312", ODHImage: "opendatahub/odh-training-cuda128-torch29-py312", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
 }
 
 // defaultClusterTrainingRuntime is used across integration tests
@@ -99,7 +100,16 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 		test.T().Logf("Image referred in ClusterTrainingRuntime is %s", foundImage)
 
 		// Verify image based on environment
-		expectedImage := registryName + "/rhoai/" + expectedRuntime.RHOAIImage
+		var expectedImage string
+		switch registryName {
+		case "registry.redhat.io":
+			expectedImage = registryName + "/rhoai/" + expectedRuntime.RHOAIImage
+		case "quay.io":
+			expectedImage = registryName + "/" + expectedRuntime.ODHImage
+		default:
+			test.T().Fatalf("Unexpected registry: %s", registryName)
+		}
+
 		test.Expect(foundImage).To(ContainSubstring(expectedImage),
 			"Image %s should contain %s", foundImage, expectedImage)
 		test.T().Logf("ClusterTrainingRuntime '%s' uses expected image: %s", expectedRuntime.Name, expectedImage)
