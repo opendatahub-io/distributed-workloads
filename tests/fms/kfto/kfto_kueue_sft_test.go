@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fms
+package kfto
 
 import (
 	"bytes"
@@ -30,6 +30,7 @@ import (
 	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
+	"github.com/opendatahub-io/distributed-workloads/tests/fms"
 	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 )
 
@@ -95,12 +96,12 @@ func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string) {
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), outputPvc.Name, metav1.DeleteOptions{})
 
 	// Load training job config file
-	configContent := ReadFile(test, modelConfigFile)
+	configContent := fms.ReadFile(test, modelConfigFile)
 
-	_, bucketDownloadSet := GetStorageBucketDownloadName()
+	_, bucketDownloadSet := fms.GetStorageBucketDownloadName()
 	if bucketDownloadSet {
 		// Download base model to PVC
-		downloadFromS3(test, namespace, baseModelPvc.Name, "model")
+		fms.DownloadFromS3(test, namespace, baseModelPvc.Name, "model")
 
 		// Replace model placeholder with mounted model folder
 		configContent = bytes.Replace(configContent, []byte("<MODEL_PATH_PLACEHOLDER>"), []byte("/mnt/model/model/granite-3b-code-base-2k"), 1)
@@ -136,9 +137,9 @@ func runPytorchjobWithSFTtrainer(t *testing.T, modelConfigFile string) {
 	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), 30*time.Minute).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 
-	_, bucketUploadSet := GetStorageBucketUploadName()
+	_, bucketUploadSet := fms.GetStorageBucketUploadName()
 	if bucketUploadSet {
-		uploadToS3(test, namespace, outputPvc.Name, "model")
+		fms.UploadToS3(test, namespace, outputPvc.Name, "model")
 	}
 }
 
@@ -187,12 +188,12 @@ func TestPytorchjobUsingKueueQuota(t *testing.T) {
 	defer test.Client().Core().CoreV1().PersistentVolumeClaims(namespace).Delete(test.Ctx(), baseModelPvc.Name, metav1.DeleteOptions{})
 
 	// Load training job config file
-	configContent := ReadFile(test, "resources/config.json")
+	configContent := fms.ReadFile(test, "resources/config.json")
 
-	_, bucketDownloadSet := GetStorageBucketDownloadName()
+	_, bucketDownloadSet := fms.GetStorageBucketDownloadName()
 	if bucketDownloadSet {
 		// Download base model to PVC
-		downloadFromS3(test, namespace, baseModelPvc.Name, "model")
+		fms.DownloadFromS3(test, namespace, baseModelPvc.Name, "model")
 
 		// Replace model placeholder with mounted model folder
 		configContent = bytes.Replace(configContent, []byte("<MODEL_PATH_PLACEHOLDER>"), []byte("/mnt/model/model/granite-3b-code-base-2k"), 1)
@@ -285,7 +286,7 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 							Containers: []corev1.Container{
 								{
 									Name:            "pytorch",
-									Image:           GetFmsHfTuningImage(test),
+									Image:           fms.GetFmsHfTuningImage(test),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									Env: []corev1.EnvVar{
 										{

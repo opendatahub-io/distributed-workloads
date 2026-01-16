@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fms
+package kfto
 
 import (
 	"fmt"
@@ -33,6 +33,7 @@ import (
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
+	"github.com/opendatahub-io/distributed-workloads/tests/fms"
 	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 )
 
@@ -146,7 +147,7 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 
 	// Create a ConfigMap with configuration
 	configData := map[string][]byte{
-		"config.json": ReadFile(test, modelConfigFile),
+		"config.json": fms.ReadFile(test, modelConfigFile),
 	}
 	config := CreateConfigMap(test, namespace, configData)
 	defer test.Client().Core().CoreV1().ConfigMaps(namespace).Delete(test.Ctx(), config.Name, *metav1.NewDeleteOptions(0))
@@ -193,9 +194,9 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 	test.Eventually(PyTorchJob(test, namespace, tuningJob.Name), 60*time.Minute).Should(WithTransform(PyTorchJobConditionSucceeded, Equal(corev1.ConditionTrue)))
 	test.T().Logf("PytorchJob %s/%s ran successfully", tuningJob.Namespace, tuningJob.Name)
 
-	_, bucketUploadSet := GetStorageBucketUploadName()
+	_, bucketUploadSet := fms.GetStorageBucketUploadName()
 	if bucketUploadSet {
-		uploadToS3(test, namespace, outputPvc.Name, "model")
+		fms.UploadToS3(test, namespace, outputPvc.Name, "model")
 	}
 }
 
@@ -242,7 +243,7 @@ func createAlpacaPyTorchJob(test Test, namespace string, config corev1.ConfigMap
 							Containers: []corev1.Container{
 								{
 									Name:            "pytorch",
-									Image:           GetFmsHfTuningImage(test),
+									Image:           fms.GetFmsHfTuningImage(test),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									Env: []corev1.EnvVar{
 										{
@@ -379,7 +380,7 @@ func openShiftPrometheusGpuUtil(test Test, namespace string) func(g Gomega) prom
 }
 
 var mountModelVolumeIntoMaster = ErrorOption[*kftov1.PyTorchJob](func(to *kftov1.PyTorchJob) error {
-	pvcName, err := GetGptqModelPvcName()
+	pvcName, err := fms.GetGptqModelPvcName()
 	if err != nil {
 		return err
 	}
