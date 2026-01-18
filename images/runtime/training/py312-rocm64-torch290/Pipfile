@@ -10,6 +10,7 @@ name = "pytorch-rocm64"
 
 [packages]
 torch = {version = "==2.9.0+rocm6.4", index = "pytorch-rocm64"}
+torchvision = {version = "==0.24.0+rocm6.4", index = "pytorch-rocm64"}
 pytorch-triton-rocm = {version = "==3.5.0", index = "pytorch-rocm64"}
 accelerate = "==1.12.0"
 transformers = "==4.57.2"
