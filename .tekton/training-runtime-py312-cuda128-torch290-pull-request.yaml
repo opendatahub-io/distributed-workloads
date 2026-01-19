@@ -21,6 +21,8 @@ spec:
   timeouts:
     pipeline: 100h
     tasks: 90h
+  podTemplate:
+    tmpdirSizeLimit: 40Gi
   params:
   - name: git-url
     value: '{{source_url}}'

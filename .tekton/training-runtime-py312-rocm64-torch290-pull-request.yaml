@@ -18,6 +18,8 @@ metadata:
   name: py312-rocm64-torch290-on-pull-request
   namespace: open-data-hub-tenant
 spec:
+  podTemplate:
+    tmpdirSizeLimit: 40Gi
   taskRunSpecs:
     - pipelineTaskName: ecosystem-cert-preflight-checks
       computeResources:
