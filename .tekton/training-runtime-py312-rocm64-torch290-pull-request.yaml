@@ -9,7 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "main" &&
-      ("images/runtime/training/py312-rocm64-torch290/Dockerfile".pathChanged() || ".tekton/training-runtime-py312-rocm64-torch290-pull-request.yaml".pathChanged()) 
+      ("images/runtime/training/py312-rocm64-torch290/Dockerfile".pathChanged() || "images/runtime/training/py312-rocm64-torch290/Pipfile.lock".pathChanged() || ".tekton/training-runtime-py312-rocm64-torch290-pull-request.yaml".pathChanged()) 
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-training
