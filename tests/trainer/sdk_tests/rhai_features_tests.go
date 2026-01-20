@@ -187,10 +187,10 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	// Create Notebook CR using the RWX PVC
 	common.CreateNotebook(test, namespace, userToken, command, cm.Name, rhaiFeaturesNotebookName, 0, sharedPVC, common.ContainerSizeSmall)
 
-	// Cleanup
+	// Cleanup - use longer timeout due to large runtime images
 	defer func() {
 		common.DeleteNotebook(test, namespace)
-		test.Eventually(common.Notebooks(test, namespace), TestTimeoutLong).Should(HaveLen(0))
+		test.Eventually(common.Notebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
 	}()
 
 	// Wait for the Notebook Pod to be running
@@ -215,10 +215,10 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	// For checkpoint tests, run suspend/resume flow instead of waiting for completion
 	if config.EnableJitCheckpoint {
 		test.T().Log("Running JIT checkpoint suspend/resume test...")
-		verifyCheckpoints(test, namespace.Name, trainJobName, config.CheckpointOutputDir, config.EnableProgressionTracking)
+		verifyCheckpoints(test, namespace.Name, trainJobName, config.CheckpointOutputDir, config.EnableProgressionTracking, TestTimeoutGpuProvisioning)
 	} else {
-		// Wait for TrainJob to complete normally
-		test.Eventually(TrainJob(test, namespace.Name, trainJobName), TestTimeoutLong, 10*time.Second).
+		// Wait for TrainJob to complete normally - use longer timeout due to large runtime images
+		test.Eventually(TrainJob(test, namespace.Name, trainJobName), TestTimeoutGpuProvisioning, 10*time.Second).
 			Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
 		test.T().Logf("TrainJob %s completed successfully", trainJobName)
 	}
@@ -398,14 +398,14 @@ func verifyTerminationMessage(test Test, namespace, trainJobName string) {
 	test.Expect(foundTerminationMessage).To(BeTrue(), "Expected at least one training pod to have a termination message with progress data")
 }
 
-// verifyCheckpointsWithSuspendResume tests JIT checkpoint functionality by:
+// verifyCheckpoints tests JIT checkpoint functionality by:
 // 1. Waiting for training to start and make progress
 // 2. Suspending the TrainJob to trigger checkpoint save
 // 3. Verifying checkpoint was saved
 // 4. Resuming the TrainJob to verify checkpoint restore
 // 5. Verifying training completes successfully
 // When progressionEnabled=true, also verifies progress before/after suspend using annotations
-func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string, progressionEnabled bool) {
+func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string, progressionEnabled bool, timeout time.Duration) {
 	test.T().Helper()
 
 	test.T().Logf("Starting JIT checkpoint verification for TrainJob %s (checkpoint_dir=%s)", trainJobName, checkpointDir)
@@ -414,7 +414,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	test.T().Log("Step 1: Waiting for training pods to start...")
 	test.Eventually(func() int {
 		return countRunningPods(test, namespace, trainJobName)
-	}, TestTimeoutLong, 5*time.Second).Should(Equal(2), "Expected exactly 2 training pods to be running")
+	}, timeout, 5*time.Second).Should(Equal(2), "Expected exactly 2 training pods to be running")
 	test.T().Log("Training pods are running")
 
 	// Wait for training to complete at least 1 epoch (detected from logs)
@@ -501,7 +501,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 		complete := TrainJobConditionComplete(trainJob) == metav1.ConditionTrue
 		failed := TrainJobConditionFailed(trainJob) == metav1.ConditionTrue
 		return complete || failed
-	}, TestTimeoutLong, 10*time.Second).Should(BeTrue(), "TrainJob should reach terminal state after resume")
+	}, timeout, 10*time.Second).Should(BeTrue(), "TrainJob should reach terminal state after resume")
 
 	// Check final status
 	finalJob := TrainJob(test, namespace, trainJobName)(test)
