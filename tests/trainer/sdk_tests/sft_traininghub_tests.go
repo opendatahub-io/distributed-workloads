@@ -104,10 +104,10 @@ func RunSftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 	// For GPU testing, we use a larger container size to ensure sufficient resources
 	common.CreateNotebook(test, namespace, userToken, command, cm.Name, sftNotebookName, 0, rwxPvc, common.ContainerSizeMedium)
 
-	// Cleanup
+	// Cleanup - use longer timeout for GPU tests due to large runtime images
 	defer func() {
 		common.DeleteNotebook(test, namespace)
-		test.Eventually(common.Notebooks(test, namespace), support.TestTimeoutLong).Should(HaveLen(0))
+		test.Eventually(common.Notebooks(test, namespace), support.TestTimeoutGpuProvisioning).Should(HaveLen(0))
 	}()
 
 	// Wait for the Notebook Pod and get pod/container names

@@ -101,10 +101,10 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 	// Create Notebook CR using the RWX PVC
 	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, 0, rwxPvc, common.ContainerSizeSmall)
 
-	// Cleanup
+	// Cleanup - use longer timeout due to large runtime images
 	defer func() {
 		common.DeleteNotebook(test, namespace)
-		test.Eventually(common.Notebooks(test, namespace), support.TestTimeoutLong).Should(HaveLen(0))
+		test.Eventually(common.Notebooks(test, namespace), support.TestTimeoutGpuProvisioning).Should(HaveLen(0))
 	}()
 
 	// Wait for the Notebook Pod and get pod/container names
