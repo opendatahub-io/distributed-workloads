@@ -32,7 +32,7 @@ spec:
     value:
     - linux-extra-fast/amd64
   - name: dockerfile
-    value: Dockerfile.konflux
+    value: Dockerfile
   - name: path-context
     value: images/runtime/training/py312-rocm64-torch290
   pipelineRef:

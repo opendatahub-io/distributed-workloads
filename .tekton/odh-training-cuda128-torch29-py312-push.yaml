@@ -33,7 +33,7 @@ spec:
     value:
     - linux-extra-fast/amd64
   - name: dockerfile
-    value: Dockerfile.konflux
+    value: Dockerfile
   - name: path-context
     value: images/runtime/training/py312-cuda128-torch290
   - name: build-image-index
