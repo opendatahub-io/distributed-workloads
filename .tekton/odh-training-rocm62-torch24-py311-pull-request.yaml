@@ -1,0 +1,59 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+##
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/distributed-workloads?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
+      == "stable" && ( "images/runtime/training/py311-rocm62-torch241/**".pathChanged()
+      || ".tekton/odh-training-rocm62-torch24-py311-pull-request.yaml".pathChanged() )
+  creationTimestamp: null
+  labels:
+    appstudio.openshift.io/application: opendatahub-builds
+    appstudio.openshift.io/component: odh-training-rocm62-torch24-py311-ci
+    pipelines.appstudio.openshift.io/type: build
+  name: odh-training-rocm62-torch24-py311-on-pull-request
+  namespace: open-data-hub-tenant
+spec:
+  timeouts:
+    pipeline: "8h0m0s"
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: output-image
+    value: quay.io/opendatahub/odh-training-rocm62-torch24-py311:odh-pr
+  - name: build-platforms
+    value:
+    - linux-extra-fast/amd64
+  - name: dockerfile
+    value: Dockerfile
+  - name: path-context
+    value: images/runtime/training/py311-rocm62-torch241
+  - name: additional-tags
+    value:
+    - 'odh-pr-{{revision}}'
+  - name: pipeline-type
+    value: pull-request
+  pipelineRef:
+    resolver: git
+    params:
+    - name: url
+      value: https://github.com/opendatahub-io/odh-konflux-central.git
+    - name: revision
+      value: main
+    - name: pathInRepo
+      value: pipeline/multi-arch-container-build.yaml
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-odh-training-rocm62-torch24-py311-poc
+  workspaces:
+  - name: git-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
+status: {}
