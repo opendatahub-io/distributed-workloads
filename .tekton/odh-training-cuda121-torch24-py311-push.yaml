@@ -38,7 +38,7 @@ spec:
     - name: revision
       value: main
     - name: pathInRepo
-      value: pipeline/multoi-arch-container-build.yaml
+      value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
     serviceAccountName: build-pipeline-odh-training-cuda121-torch24-py311-poc
   workspaces:

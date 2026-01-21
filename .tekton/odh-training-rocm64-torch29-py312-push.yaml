@@ -43,7 +43,7 @@ spec:
     - name: revision
       value: main
     - name: pathInRepo
-      value: pipelines/multi-arch-container-build.yaml
+      value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
     serviceAccountName: build-pipeline-odh-training-rocm64-torch29-py312
   workspaces:
