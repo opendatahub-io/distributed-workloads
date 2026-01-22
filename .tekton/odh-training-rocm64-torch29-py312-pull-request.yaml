@@ -13,7 +13,7 @@ metadata:
       || ".tekton/odh-training-rocm64-torch29-py312-pull-request.yaml".pathChanged()
       )
   labels:
-    appstudio.openshift.io/application: rhoai-builds
+    appstudio.openshift.io/application: opendatahub-builds
     appstudio.openshift.io/component: odh-training-rocm64-torch29-py312-ci
     pipelines.appstudio.openshift.io/type: build
   name: odh-training-rocm64-torch29-py312-on-pull-request

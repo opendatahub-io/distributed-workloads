@@ -54,7 +54,7 @@ spec:
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-training-cuda128-torch29-py312
+    serviceAccountName: build-pipeline-odh-training-cuda128-torch29-py312-poc
   workspaces:
   - name: git-auth
     secret:
