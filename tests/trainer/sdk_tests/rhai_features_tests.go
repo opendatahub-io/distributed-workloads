@@ -144,11 +144,11 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	// Determine GPU resource label (empty for CPU) and training runtime
 	gpuResourceLabel := ""
-	trainingRuntime := "torch-distributed" // Default for CPU and NVIDIA
+	trainingRuntime := trainerutils.DefaultClusterTrainingRuntime // Default for CPU and NVIDIA
 	if config.Accelerator.IsGpu() {
 		gpuResourceLabel = config.Accelerator.ResourceLabel
 		if config.Accelerator == AMD {
-			trainingRuntime = "torch-distributed-rocm"
+			trainingRuntime = trainerutils.DefaultClusterTrainingRuntimeROCm
 		}
 	}
 

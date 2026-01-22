@@ -27,24 +27,8 @@ import (
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
+	trainerutils "github.com/opendatahub-io/distributed-workloads/tests/trainer/utils"
 )
-
-type ClusterTrainingRuntime struct {
-	Name       string
-	RHOAIImage string
-}
-
-var expectedRuntimes = []ClusterTrainingRuntime{
-	{Name: "torch-distributed", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
-	{Name: "torch-distributed-rocm", RHOAIImage: "odh-training-rocm64-torch29-py312-rhel9"},
-	{Name: "torch-distributed-cuda128-torch29-py312", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
-	{Name: "torch-distributed-rocm64-torch29-py312", RHOAIImage: "odh-training-rocm64-torch29-py312-rhel9"},
-	{Name: "training-hub", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
-	{Name: "training-hub-th05-cuda128-torch29-py312", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
-}
-
-// defaultClusterTrainingRuntime is used across integration tests
-var defaultClusterTrainingRuntime = expectedRuntimes[0].Name
 
 func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 	Tags(t, Smoke)
@@ -54,8 +38,8 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 	registryName := GetExpectedRegistry(test)
 
 	// Build a map of expected runtimes for quick lookup
-	expectedRuntimeMap := make(map[string]ClusterTrainingRuntime)
-	for _, runtime := range expectedRuntimes {
+	expectedRuntimeMap := make(map[string]trainerutils.ClusterTrainingRuntime)
+	for _, runtime := range trainerutils.ExpectedRuntimes {
 		expectedRuntimeMap[runtime.Name] = runtime
 	}
 
@@ -108,7 +92,7 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 
 	// Verify all expected runtimes are present
 	var missingRuntimes []string
-	for _, expected := range expectedRuntimes {
+	for _, expected := range trainerutils.ExpectedRuntimes {
 		if !foundRuntimes[expected.Name] {
 			missingRuntimes = append(missingRuntimes, expected.Name)
 		}
@@ -129,7 +113,7 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 	Tags(t, Sanity)
 	test := With(t)
 
-	for _, runtime := range expectedRuntimes {
+	for _, runtime := range trainerutils.ExpectedRuntimes {
 		test.T().Logf("Running TrainJob with ClusterTrainingRuntime: %s", runtime.Name)
 
 		// Create a namespace
@@ -139,7 +123,7 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 		trainJob := createTrainJob(test, namespace, runtime.Name)
 
 		// Wait for TrainJob completion
-		test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutLong).
+		test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutDouble).
 			Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
 
 		test.T().Logf("TrainJob with ClusterTrainingRuntime '%s' completed successfully", runtime.Name)

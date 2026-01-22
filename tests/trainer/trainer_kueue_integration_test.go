@@ -34,6 +34,7 @@ import (
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
+	trainerutils "github.com/opendatahub-io/distributed-workloads/tests/trainer/utils"
 )
 
 const (
@@ -145,7 +146,7 @@ func TestKueueDefaultLocalQueueLabelInjection(t *testing.T) {
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
-				Name: defaultClusterTrainingRuntime,
+				Name: trainerutils.DefaultClusterTrainingRuntime,
 			},
 			Trainer: &trainerv1alpha1.Trainer{
 				Command: []string{"echo", "test"},
@@ -223,7 +224,7 @@ func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
-				Name: defaultClusterTrainingRuntime,
+				Name: trainerutils.DefaultClusterTrainingRuntime,
 			},
 			Trainer: &trainerv1alpha1.Trainer{
 				Command: []string{"sleep", "120"},
@@ -305,7 +306,7 @@ func TestKueueWorkloadInadmissibleWithNonExistentLocalQueue(t *testing.T) {
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
-				Name: defaultClusterTrainingRuntime,
+				Name: trainerutils.DefaultClusterTrainingRuntime,
 			},
 			Trainer: &trainerv1alpha1.Trainer{
 				Command: []string{"echo", "test"},
