@@ -8,7 +8,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "main" &&
-      ("images/runtime/training/py312-cuda128-torch290/Dockerfile".pathChanged() || ".tekton/training-runtime-py312-cuda128-torch290-push.yaml".pathChanged())    
+      ("images/runtime/training/py312-cuda128-torch290/Dockerfile".pathChanged() || "images/runtime/training/py312-cuda128-torch290/Pipfile.lock".pathChanged() || ".tekton/training-runtime-py312-cuda128-torch290-push.yaml".pathChanged())    
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-training
