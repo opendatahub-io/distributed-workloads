@@ -91,11 +91,13 @@ func RunSftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 			"export AWS_SECRET_ACCESS_KEY='%s'; "+
 			"export AWS_STORAGE_BUCKET='%s'; "+
 			"export AWS_STORAGE_BUCKET_SFT_DIR='%s'; "+
+			"export TRAINING_RUNTIME='%s'; "+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill boto3==1.34.162 && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
 		endpoint, accessKey, secretKey, bucket, prefix,
+		trainerutils.DefaultTrainingHubRuntime,
 		sftNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
