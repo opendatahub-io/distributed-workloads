@@ -35,11 +35,12 @@ type ClusterTrainingRuntime struct {
 }
 
 var expectedRuntimes = []ClusterTrainingRuntime{
-	{Name: "torch-distributed", RHOAIImage: "odh-training-cuda128-torch28-py312-rhel9"},
-	{Name: "torch-distributed-rocm", RHOAIImage: "odh-training-rocm64-torch28-py312-rhel9"},
-	{Name: "torch-distributed-th03-cuda128-torch28-py312", RHOAIImage: "odh-training-cuda128-torch28-py312-rhel9"},
-	{Name: "training-hub", RHOAIImage: "odh-training-cuda128-torch28-py312-rhel9"},
-	{Name: "training-hub03-cuda128-torch28-py312", RHOAIImage: "odh-training-cuda128-torch28-py312-rhel9"},
+	{Name: "torch-distributed", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
+	{Name: "torch-distributed-rocm", RHOAIImage: "odh-training-rocm64-torch29-py312-rhel9"},
+	{Name: "torch-distributed-cuda128-torch29-py312", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
+	{Name: "torch-distributed-rocm64-torch29-py312", RHOAIImage: "odh-training-rocm64-torch29-py312-rhel9"},
+	{Name: "training-hub", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
+	{Name: "training-hub-th05-cuda128-torch29-py312", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
 }
 
 // defaultClusterTrainingRuntime is used across integration tests
