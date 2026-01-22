@@ -30,6 +30,15 @@ spec:
     value: Dockerfile
   - name: path-context
     value: images/runtime/training/py311-cuda124-torch251
+  taskRunSpecs:
+    - pipelineTaskName: clair-scan
+      computeResources:
+        requests:
+          cpu: '8'
+          memory: 32Gi
+        limits:
+          cpu: '8'
+          memory: 32Gi
   pipelineRef:
     resolver: git
     params:
