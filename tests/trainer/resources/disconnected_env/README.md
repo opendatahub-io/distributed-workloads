@@ -7,17 +7,24 @@ This guide covers setting up and running trainer v2/SDK tests in a disconnected 
 - OpenShift cluster with RHOAI/ODH installed
 - Bastion host with internet access for mirroring
 - MinIO/S3-compatible storage accessible from cluster
-- PyPI mirror (Nexus/DevPI) accessible from cluster
+- PyPI mirror (Nexus/DevPI) accessible from cluster (optional - see note below)
 - Image registry accessible from cluster (e.g., Quay, internal registry)
 - **Go 1.24** (not 1.25+) for running tests
 - **Notebook image with Python 3.9+** (required for kubeflow-trainer-api>=2.0.0)
+
+> **Note on PyPI**: The `kubeflow` package is **not on public PyPI** - it's only available on Red Hat indexes:
+> - CPU: `https://console.redhat.com/api/pypi/public-rhai/rhoai/3.3/cpu-ubi9/simple/`
+> - CUDA: `https://console.redhat.com/api/pypi/public-rhai/rhoai/3.3/cuda12.9-ubi9/simple/`
+> - ROCm: `https://console.redhat.com/api/pypi/public-rhai/rhoai/3.3/rocm6.4-ubi9/simple/`
+>
+> Tests automatically use the correct Red Hat index based on accelerator type. For fully disconnected environments, mirror these indexes or use the S3 wheel fallback.
 
 ## Overview
 
 Disconnected environments require:
 1. **Container images** mirrored to internal registry
 2. **Models/datasets** pre-staged to S3/MinIO
-3. **Python packages** available via PyPI mirror or S3
+3. **Python packages** available via PyPI mirror or S3 (tests auto-use Red Hat indexes when connected)
 4. **Environment variables** configured for tests
 
 ---
@@ -458,12 +465,13 @@ Training completed successfully
 | `NOTEBOOK_USER_NAME` | Yes | OpenShift username |
 | `NOTEBOOK_USER_PASSWORD` | Yes | OpenShift password |
 | `NOTEBOOK_IMAGE` | Yes | Notebook image with digest (must have Python 3.9+) |
-| `AWS_DEFAULT_ENDPOINT` | Yes | S3/MinIO endpoint |
-| `AWS_ACCESS_KEY_ID` | Yes | S3 access key |
-| `AWS_SECRET_ACCESS_KEY` | Yes | S3 secret key |
-| `AWS_STORAGE_BUCKET` | Yes | S3 bucket name |
-| `PIP_INDEX_URL` | Recommended | PyPI mirror URL |
-| `PIP_TRUSTED_HOST` | Recommended | PyPI mirror hostname (for SSL bypass) |
+| `AWS_DEFAULT_ENDPOINT` | Disconnected only | S3/MinIO endpoint (for pre-staged models/datasets) |
+| `AWS_ACCESS_KEY_ID` | Disconnected only | S3 access key |
+| `AWS_SECRET_ACCESS_KEY` | Disconnected only | S3 secret key |
+| `AWS_STORAGE_BUCKET` | Disconnected only | S3 bucket name |
+| `PIP_INDEX_URL` | Optional | Override PyPI URL (default: Red Hat index based on accelerator) |
+| `PIP_TRUSTED_HOST` | Optional | PyPI mirror hostname for SSL bypass (default: console.redhat.com) |
 | `TEST_TIMEOUT_LONG` | Recommended | Test timeout (default 5m, set to 15m) |
 | `VERIFY_SSL` | Optional | Set to "false" for self-signed S3 certs |
+| `GPU_TYPE` | Auto | Auto-detected from test (cpu/nvidia/amd) - selects correct PyPI index |
 
