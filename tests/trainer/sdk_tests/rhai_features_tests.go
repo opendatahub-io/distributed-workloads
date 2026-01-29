@@ -166,13 +166,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	// RBACs setup for user (user token is used by notebook for Trainer API calls)
 	userName := common.GetNotebookUserName(test)
-	// Use NOTEBOOK_USER_TOKEN if set (for SSO users), otherwise generate via password login
-	userToken := os.Getenv("NOTEBOOK_USER_TOKEN")
-	if userToken == "" {
-		userToken = common.GenerateNotebookUserToken(test)
-	} else {
-		test.T().Log("Using NOTEBOOK_USER_TOKEN from environment")
-	}
+	userToken := common.GenerateNotebookUserToken(test)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
