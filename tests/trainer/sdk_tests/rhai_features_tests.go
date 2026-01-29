@@ -166,7 +166,13 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	// RBACs setup for user (user token is used by notebook for Trainer API calls)
 	userName := common.GetNotebookUserName(test)
-	userToken := common.GenerateNotebookUserToken(test)
+	// Use NOTEBOOK_USER_TOKEN if set (for SSO users), otherwise generate via password login
+	userToken := os.Getenv("NOTEBOOK_USER_TOKEN")
+	if userToken == "" {
+		userToken = common.GenerateNotebookUserToken(test)
+	} else {
+		test.T().Log("Using NOTEBOOK_USER_TOKEN from environment")
+	}
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
@@ -242,31 +248,19 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		test.T().Log("HuggingFace mode: S3 not configured, will download from HF Hub")
 	}
 
-	// PyPI mirror configuration for disconnected environments (optional)
-	pipIndexUrl := os.Getenv("PIP_INDEX_URL")
-	pipExports := ""
-	pipInstallFlags := ""
-	if pipIndexUrl != "" {
-		test.T().Logf("PyPI mirror: %s", pipIndexUrl)
-		// Extract hostname for trusted-host
-		pipTrustedHost := os.Getenv("PIP_TRUSTED_HOST")
-		if pipTrustedHost == "" {
-			// Extract hostname from URL
-			pipTrustedHost = strings.TrimPrefix(strings.TrimPrefix(pipIndexUrl, "https://"), "http://")
-			if idx := strings.Index(pipTrustedHost, ":"); idx > 0 {
-				pipTrustedHost = pipTrustedHost[:idx]
-			} else if idx := strings.Index(pipTrustedHost, "/"); idx > 0 {
-				pipTrustedHost = pipTrustedHost[:idx]
-			}
-		}
-		pipExports = fmt.Sprintf(
-			"export PIP_INDEX_URL='%s'; "+
-				"export PIP_TRUSTED_HOST='%s'; "+
-				"export PYTHONHTTPSVERIFY='0'; ",
-			pipIndexUrl, pipTrustedHost,
-		)
-		pipInstallFlags = fmt.Sprintf("--index-url '%s' --trusted-host '%s' ", pipIndexUrl, pipTrustedHost)
+	// Determine GPU type from Accelerator.ResourceLabel (e.g., "nvidia.com/gpu" → "nvidia")
+	gpuType := config.Accelerator.Type // "cpu" or "gpu"
+	if config.Accelerator.ResourceLabel != "" {
+		gpuType = strings.Split(config.Accelerator.ResourceLabel, ".")[0] // "nvidia" or "amd"
 	}
+
+	// kubeflow SDK is only on Red Hat PyPI indexes (not public PyPI)
+	// install_kubeflow.py uses GPU_TYPE to select the correct index (cpu/cuda/rocm)
+	test.T().Logf("Using Red Hat PyPI index for %s (kubeflow not on public PyPI)", gpuType)
+
+	// Build pip exports - GPU_TYPE tells install_kubeflow.py which Red Hat index to use
+	pipExports := fmt.Sprintf("export GPU_TYPE='%s'; ", gpuType)
+	pipInstallFlags := ""
 
 	// Set defaults for num_nodes and num_gpus_per_node if not specified
 	numNodes := config.NumNodes
