@@ -196,7 +196,7 @@ func createAlpacaTrainJob(test Test, namespace, runtimeName string, config corev
 			PodTemplateOverrides: []trainerv1alpha1.PodTemplateOverride{
 				{
 					TargetJobs: []trainerv1alpha1.PodTemplateOverrideTargetJob{
-						{Name: "trainer"},
+						{Name: "node"},
 					},
 					Spec: &trainerv1alpha1.PodTemplateSpecOverride{
 						Tolerations: []corev1.Toleration{
@@ -342,10 +342,10 @@ var mountModelVolumeIntoTrainer = ErrorOption[*trainerv1alpha1.TrainJob](func(to
 		MountPath: "/mnt/model",
 	}
 
-	// Find the trainer pod template override and add the volume and volume mount
+	// Find the trainer/node pod template override and add the volume and volume mount
 	for i := range to.Spec.PodTemplateOverrides {
 		for _, target := range to.Spec.PodTemplateOverrides[i].TargetJobs {
-			if target.Name == "trainer" && to.Spec.PodTemplateOverrides[i].Spec != nil {
+			if target.Name == "node" && to.Spec.PodTemplateOverrides[i].Spec != nil {
 				to.Spec.PodTemplateOverrides[i].Spec.Volumes = append(to.Spec.PodTemplateOverrides[i].Spec.Volumes, modelVolume)
 
 				// Find the node container and add the volume mount
@@ -387,15 +387,15 @@ func createMultiGpuTrainingRuntime(test Test, namespace string, numberOfGpus int
 				Spec: jobsetv1alpha2.JobSetSpec{
 					ReplicatedJobs: []jobsetv1alpha2.ReplicatedJob{
 						{
-							Name: "trainer",
+							Name: "node",
 							Template: batchv1.JobTemplateSpec{
+								ObjectMeta: metav1.ObjectMeta{
+									Labels: map[string]string{
+										"trainer.kubeflow.org/trainjob-ancestor-step": "trainer",
+									},
+								},
 								Spec: batchv1.JobSpec{
 									Template: corev1.PodTemplateSpec{
-										ObjectMeta: metav1.ObjectMeta{
-											Labels: map[string]string{
-												"trainer.kubeflow.org/trainjob-ancestor-step": "trainer",
-											},
-										},
 										Spec: corev1.PodSpec{
 											Tolerations: []corev1.Toleration{
 												{
