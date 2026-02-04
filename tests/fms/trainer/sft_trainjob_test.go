@@ -232,7 +232,7 @@ func createSftTrainJob(test Test, namespace, runtimeName, localQueueName string,
 			PodTemplateOverrides: []trainerv1alpha1.PodTemplateOverride{
 				{
 					TargetJobs: []trainerv1alpha1.PodTemplateOverrideTargetJob{
-						{Name: "trainer"},
+						{Name: "node"},
 					},
 					Spec: &trainerv1alpha1.PodTemplateSpecOverride{
 						Tolerations: []corev1.Toleration{
@@ -357,15 +357,15 @@ func createSingleGpuTrainingRuntime(test Test, namespace string) *trainerv1alpha
 				Spec: jobsetv1alpha2.JobSetSpec{
 					ReplicatedJobs: []jobsetv1alpha2.ReplicatedJob{
 						{
-							Name: "trainer",
+							Name: "node",
 							Template: batchv1.JobTemplateSpec{
+								ObjectMeta: metav1.ObjectMeta{
+									Labels: map[string]string{
+										"trainer.kubeflow.org/trainjob-ancestor-step": "trainer",
+									},
+								},
 								Spec: batchv1.JobSpec{
 									Template: corev1.PodTemplateSpec{
-										ObjectMeta: metav1.ObjectMeta{
-											Labels: map[string]string{
-												"trainer.kubeflow.org/trainjob-ancestor-step": "trainer",
-											},
-										},
 										Spec: corev1.PodSpec{
 											Tolerations: []corev1.Toleration{
 												{
