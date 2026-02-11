@@ -54,6 +54,7 @@ var (
 
 func TestSetupUpgradeTrainJob(t *testing.T) {
 	// Skip due to issue RHOAIENG-48867
+	t.Skip("Skip due to issue RHOAIENG-48867")
 	//Tags(t, PreUpgrade)
 	test := With(t)
 	setupKueue(test)
@@ -121,6 +122,7 @@ func TestSetupUpgradeTrainJob(t *testing.T) {
 }
 
 func TestRunUpgradeTrainJob(t *testing.T) {
+	t.Skip("Skip due to issue RHOAIENG-48867")
 	// Skip due to issue RHOAIENG-48867
 	//Tags(t, PostUpgrade)
 	test := With(t)
