@@ -4,12 +4,17 @@
 # - Build tools are isolated in intermediate stage
 # - Final image contains only runtime dependencies
 # - Uses pip install (additive) to preserve base image packages
+#
+# Build Modes:
+# - Midstream (default): DOWNSTREAM=false - installs system packages
+# - Downstream: DOWNSTREAM=true - skips midstream-only sections (base image has them)
 
 ################################################################################
 # Build Arguments
 ################################################################################
 ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cpu-py312-ubi9:3.4_ea1-v1.41
 ARG PYTHON_VERSION=3.12
+ARG DOWNSTREAM=false
 
 ################################################################################
 # Build Stage - Install Python Dependencies
@@ -62,16 +67,22 @@ WORKDIR /opt/app-root/src
 
 ################################################################################
 # MIDSTREAM ONLY: System packages
-# These DNF installs are only needed for midstream builds where the base image
-# doesn't include these packages. In downstream (Konflux), these come from the
-# certified base image and this section should be removed.
+# Controlled by ARG DOWNSTREAM (default: false)
+# - DOWNSTREAM=false (midstream): Installs system packages
+# - DOWNSTREAM=true: Skips this section (AIPCC base image has everything pre-configured)
 ################################################################################
-RUN dnf install -y --setopt=install_weak_deps=False \
-    # Core OS packages
-    perl \
-    mesa-libGL \
-    skopeo && \
-    dnf clean all && rm -rf /var/cache/dnf/*
+ARG DOWNSTREAM
+
+RUN if [ "${DOWNSTREAM}" != "true" ]; then \
+    echo "MIDSTREAM BUILD: Installing system packages..." && \
+    dnf install -y --setopt=install_weak_deps=False \
+        perl \
+        mesa-libGL \
+        skopeo && \
+    dnf clean all && rm -rf /var/cache/dnf/*; \
+else \
+    echo "DOWNSTREAM BUILD: Skipping system packages (provided by base image)"; \
+fi
 ################################################################################
 # END MIDSTREAM ONLY
 ################################################################################

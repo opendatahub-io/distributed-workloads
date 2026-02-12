@@ -6,24 +6,20 @@ These images are structured to support **hermetic builds** in downstream Konflux
 
 ### Midstream vs Downstream
 
-The Dockerfiles contain sections marked `# MIDSTREAM ONLY` that should be **removed** for downstream builds:
+The same Dockerfile works for both builds using the `DOWNSTREAM` build argument:
 
-```dockerfile
-################################################################################
-# MIDSTREAM ONLY: Environment variables and system packages
-# ...
-################################################################################
-ENV ...
-RUN dnf install ...
-################################################################################
-# END MIDSTREAM ONLY
-################################################################################
+```bash
+# Midstream build (default) - installs system packages and sets env vars
+podman build -t <tag> .
+
+# Downstream build - skips midstream-only sections (base image has them)
+podman build --build-arg DOWNSTREAM=true -t <tag> .
 ```
 
-**What to remove for downstream:**
-- Environment variables (ENV block) - AIPCC base images have these pre-configured
-- DNF package installations - AIPCC base images include all required system packages
-- Repository files (`cuda.repo`, `rocm.repo`, `mellanox.repo`) - not needed with AIPCC base images
+When `DOWNSTREAM=true`:
+- DNF package installations are skipped (AIPCC base images include all required system packages)
+- Repo files are copied but not used
+- Environment variables are still set (safe, may be overridden by downstream base image)
 
 **Downstream base images** (from Notebook with AIPCC base) already include:
 - CUDA/ROCm development tools and libraries
@@ -159,6 +155,13 @@ cd <image-directory>
 podman build -t <tag> .
 ```
 
+### Downstream Build (Konflux)
+
+```bash
+cd <image-directory>
+podman build --build-arg DOWNSTREAM=true --build-arg BASE_IMAGE=<aipcc-base-image> -t <tag> .
+```
+
 ### Regenerate Requirements with Hashes
 
 ```bash
@@ -197,7 +200,7 @@ ENV ROCM_HOME=/opt/rocm \
     CPATH=/opt/rocm/include:${CPATH}
 ```
 
-**Note:** These are only needed for midstream. AIPCC base images have these pre-configured.
+**Note:** These environment variables are set in both midstream and downstream builds (they're safe defaults). AIPCC base images may override these with optimized values.
 
 ---
 
@@ -205,12 +208,12 @@ ENV ROCM_HOME=/opt/rocm \
 
 ```
 <image-directory>/
-├── Dockerfile              # Multi-stage build with MIDSTREAM ONLY sections
+├── Dockerfile              # Multi-stage build with DOWNSTREAM arg for conditional sections
 ├── pyproject.toml          # Python dependencies (what we add on top of base)
 ├── requirements.txt        # Locked dependencies with hashes (from AIPCC)
 ├── entrypoint-universal.sh # Dual-mode entrypoint (workbench/runtime)
 ├── LICENSE.md              # License file
-├── cuda.repo               # CUDA DNF repo (midstream only, CUDA images)
-├── rocm.repo               # ROCm DNF repo (midstream only, ROCm images)
-└── mellanox.repo           # RDMA DNF repo (midstream only, CUDA/ROCm images)
+├── cuda.repo               # CUDA DNF repo (used only when DOWNSTREAM!=true, CUDA images)
+├── rocm.repo               # ROCm DNF repo (used only when DOWNSTREAM!=true, ROCm images)
+└── mellanox.repo           # RDMA DNF repo (used only when DOWNSTREAM!=true, CUDA/ROCm images)
 ```
