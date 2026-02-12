@@ -4,12 +4,17 @@
 # - Build tools are isolated in intermediate stage
 # - Final image contains only runtime dependencies
 # - Uses pip install (additive) to preserve base image packages
+#
+# Build Modes:
+# - Midstream (default): DOWNSTREAM=false - installs system packages and sets env vars
+# - Downstream: DOWNSTREAM=true - skips midstream-only sections (base image has them)
 
 ################################################################################
 # Build Arguments
 ################################################################################
 ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-rocm-py312-ubi9:3.4_ea1-v1.41
 ARG PYTHON_VERSION=3.12
+ARG DOWNSTREAM=false
 
 ################################################################################
 # Build Stage - Install Python Dependencies
@@ -63,51 +68,50 @@ WORKDIR /opt/app-root/src
 
 ################################################################################
 # MIDSTREAM ONLY: Environment variables and system packages
-# These are only needed for midstream builds where the base image doesn't include
-# ROCm environment setup. In downstream (Konflux), the AIPCC base image already
-# has all ROCm/HIP environment variables set and this section should be removed.
+# Controlled by ARG DOWNSTREAM (default: false)
+# - DOWNSTREAM=false (midstream): Installs ROCm dev tools, RDMA packages, sets env vars
+# - DOWNSTREAM=true: Skips this section (AIPCC base image has everything pre-configured)
 ################################################################################
+ARG DOWNSTREAM
 
-# Environment variables for ROCm/HIP (MIDSTREAM ONLY)
-# - ROCM_HOME: Standard ROCm installation path
-# - HIP_PATH: HIP installation path (same as ROCM_HOME)
-# - PATH: Include ROCm binaries (hipcc, etc.) for Triton JIT compilation
-# - LD_LIBRARY_PATH: ROCm libraries
-# - CPATH: C include path for gcc to find HIP headers (needed by Triton)
+# Environment variables for ROCm/HIP
+# These are safe to set in both modes - they define standard paths
+# In downstream, the base image may override these appropriately
 ENV ROCM_HOME=/opt/rocm \
     HIP_PATH=/opt/rocm \
     PATH=/opt/rocm/bin:${PATH} \
     LD_LIBRARY_PATH=/opt/rocm/lib:${LD_LIBRARY_PATH} \
     CPATH=/opt/rocm/include:${CPATH}
 
-# System packages (MIDSTREAM ONLY)
-# Add repos for ROCm and RDMA packages
+# System packages (MIDSTREAM ONLY - skipped when DOWNSTREAM=true)
+# Repo files for ROCm and RDMA packages
 COPY rocm.repo mellanox.repo /etc/yum.repos.d/
 
-RUN dnf install -y --setopt=install_weak_deps=False \
-    # Core OS packages
-    perl \
-    mesa-libGL \
-    skopeo \
-    # RDMA/InfiniBand packages (for multi-node training)
-    libibverbs-utils \
-    infiniband-diags \
-    libibumad \
-    librdmacm \
-    librdmacm-utils \
-    rdma-core \
-    # ROCm development tools (needed for Triton JIT compilation at runtime)
-    rocm-llvm \
-    hipcc \
-    hip-devel \
-    hip-runtime-amd \
-    rocm-device-libs && \
-    dnf clean all && rm -rf /var/cache/dnf/*
-
-# Fix /opt/rocm symlink if needed
-RUN if [ -L /opt/rocm ] && [ "$(readlink /opt/rocm)" != "/opt/rocm-6.4.3" ]; then \
+RUN if [ "${DOWNSTREAM}" != "true" ]; then \
+    echo "MIDSTREAM BUILD: Installing system packages..." && \
+    dnf install -y --setopt=install_weak_deps=False \
+        perl \
+        mesa-libGL \
+        skopeo \
+        libibverbs-utils \
+        infiniband-diags \
+        libibumad \
+        librdmacm \
+        librdmacm-utils \
+        rdma-core \
+        rocm-llvm \
+        hipcc \
+        hip-devel \
+        hip-runtime-amd \
+        rocm-device-libs && \
+    dnf clean all && rm -rf /var/cache/dnf/* && \
+    # Fix /opt/rocm symlink if needed
+    if [ -L /opt/rocm ] && [ "$(readlink /opt/rocm)" != "/opt/rocm-6.4.3" ]; then \
         rm -f /opt/rocm && ln -sf /opt/rocm-6.4.3 /opt/rocm; \
-    fi
+    fi; \
+else \
+    echo "DOWNSTREAM BUILD: Skipping system packages (provided by base image)"; \
+fi
 ################################################################################
 # END MIDSTREAM ONLY
 ################################################################################

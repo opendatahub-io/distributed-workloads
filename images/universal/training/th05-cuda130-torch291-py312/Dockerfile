@@ -5,12 +5,17 @@
 # - Final image contains only runtime dependencies
 # - OpenSSL FIPS mode supported via base image
 # - Uses pip install (additive) to preserve base image packages
+#
+# Build Modes:
+# - Midstream (default): DOWNSTREAM=false - installs system packages and sets env vars
+# - Downstream: DOWNSTREAM=true - skips midstream-only sections (base image has them)
 
 ################################################################################
 # Build Arguments
 ################################################################################
 ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cuda-py312-ubi9:3.4_ea1-v1.41
 ARG PYTHON_VERSION=3.12
+ARG DOWNSTREAM=false
 
 ################################################################################
 # Build Stage - Install Python Dependencies
@@ -63,19 +68,15 @@ WORKDIR /opt/app-root/src
 
 ################################################################################
 # MIDSTREAM ONLY: Environment variables and system packages
-# These are only needed for midstream builds where the base image doesn't include
-# CUDA environment setup. In downstream (Konflux), the AIPCC base image already
-# has all CUDA/Triton environment variables set and this section should be removed.
+# Controlled by ARG DOWNSTREAM (default: false)
+# - DOWNSTREAM=false (midstream): Installs CUDA dev tools, RDMA packages, sets env vars
+# - DOWNSTREAM=true: Skips this section (AIPCC base image has everything pre-configured)
 ################################################################################
+ARG DOWNSTREAM
 
-# Environment variables for NVIDIA and CUDA (MIDSTREAM ONLY)
-# - CUDA_HOME: Standard CUDA installation path
-# - PATH: Include CUDA binaries (nvcc, ptxas, etc.) for Triton JIT compilation
-# - LD_LIBRARY_PATH: CUDA libraries
-# - CPATH: C include path for gcc to find cuda.h (needed by Triton)
-# - TRITON_*_PATH: Explicit paths for Triton JIT compilation tools
-# - TORCH_CUDA_ARCH_LIST: GPU architectures to compile for
-# - XLA_FLAGS: XLA CUDA data directory
+# Environment variables for NVIDIA and CUDA
+# These are safe to set in both modes - they define standard paths
+# In downstream, the base image may override these appropriately
 ENV NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility \
     CUDA_HOME=/usr/local/cuda \
@@ -88,26 +89,28 @@ ENV NVIDIA_VISIBLE_DEVICES=all \
     TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0" \
     XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
 
-# System packages (MIDSTREAM ONLY)
-# Add repos for CUDA and RDMA packages
+# System packages (MIDSTREAM ONLY - skipped when DOWNSTREAM=true)
+# Repo files for CUDA and RDMA packages
 COPY cuda.repo mellanox.repo /etc/yum.repos.d/
 
-RUN dnf install -y --setopt=install_weak_deps=False \
-    # Core OS packages
-    perl \
-    mesa-libGL \
-    skopeo \
-    # RDMA/InfiniBand packages (for multi-node training)
-    libibverbs-utils \
-    infiniband-diags \
-    libibumad \
-    librdmacm \
-    librdmacm-utils \
-    rdma-core \
-    # CUDA development tools (needed for Triton JIT compilation at runtime)
-    cuda-cudart-devel-13-0 \
-    cuda-nvcc-13-0 && \
-    dnf clean all && rm -rf /var/cache/dnf/*
+RUN if [ "${DOWNSTREAM}" != "true" ]; then \
+    echo "MIDSTREAM BUILD: Installing system packages..." && \
+    dnf install -y --setopt=install_weak_deps=False \
+        perl \
+        mesa-libGL \
+        skopeo \
+        libibverbs-utils \
+        infiniband-diags \
+        libibumad \
+        librdmacm \
+        librdmacm-utils \
+        rdma-core \
+        cuda-cudart-devel-13-0 \
+        cuda-nvcc-13-0 && \
+    dnf clean all && rm -rf /var/cache/dnf/*; \
+else \
+    echo "DOWNSTREAM BUILD: Skipping system packages (provided by base image)"; \
+fi
 ################################################################################
 # END MIDSTREAM ONLY
 ################################################################################
