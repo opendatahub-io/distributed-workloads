@@ -1,5 +1,0 @@
-[mlnx_ofed_24.10-1.1.4.0_base]
-name=Mellanox OFED Repository 24.10-1.1.4.0
-baseurl=https://linux.mellanox.com/public/repo/mlnx_ofed/24.10-1.1.4.0/rhel9.5/x86_64
-enabled=1
-gpgcheck=0
