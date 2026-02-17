@@ -82,7 +82,7 @@ func TestPyTorchDDPMultiNodeMultiGPUWithTorchRocm(t *testing.T) {
 
 func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, baseImage string, requirementsFile string, numNodes, numProcPerNode int32) {
 	test := With(t)
-	setupKueue(test)
+	SetupKueue(test, initialKueueState, TrainJobFramework)
 
 	// Create a namespace with Kueue labeled
 	namespace := test.NewTestNamespace(WithKueueManaged()).Name

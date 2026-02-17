@@ -41,8 +41,11 @@ func TestSetupSleepPytorchjob(t *testing.T) {
 	Tags(t, PreUpgrade)
 	test := With(t)
 
-	// Create a namespace
-	CreateOrGetTestNamespaceWithName(test, sleepNamespaceName)
+	SetupKueue(test, initialKueueState, PyTorchJobFramework)
+
+	// Create a namespace with Kueue labeled
+	CreateOrGetTestNamespaceWithName(test, sleepNamespaceName, WithKueueManaged())
+	test.T().Logf("Created Kueue-managed namespace: %s", sleepNamespaceName)
 
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})

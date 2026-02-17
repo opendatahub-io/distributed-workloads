@@ -155,8 +155,11 @@ func TestPyTorchJobMultiNodeMultiGpuWithROCmPyTorch28(t *testing.T) {
 func runKFTOPyTorchJob(t *testing.T, image string, gpu Accelerator, numGpus, numberOfWorkerNodes int) {
 	test := With(t)
 
-	// Create a namespace
-	namespace := test.CreateOrGetTestNamespace().Name
+	SetupKueue(test, initialKueueState, PyTorchJobFramework)
+
+	// Create a namespace with Kueue labeled
+	namespace := test.CreateOrGetTestNamespace(WithKueueManaged()).Name
+	test.T().Logf("Created Kueue-managed namespace: %s", namespace)
 
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})

@@ -51,8 +51,11 @@ func TestKftoSftLlmLlama3_1_8BInstructWithROCmPyTorch251(t *testing.T) {
 func kftoSftLlm(t *testing.T, image string, gpu Accelerator, modelName string) {
 	test := With(t)
 
-	// Create a namespace
-	namespace := test.NewTestNamespace()
+	SetupKueue(test, initialKueueState, PyTorchJobFramework)
+
+	// Create a namespace with Kueue labeled
+	namespace := test.NewTestNamespace(WithKueueManaged())
+	test.T().Logf("Created Kueue-managed namespace: %s", namespace.Name)
 	var workingDirectory, err = os.Getwd()
 	test.Expect(err).ToNot(HaveOccurred())
 

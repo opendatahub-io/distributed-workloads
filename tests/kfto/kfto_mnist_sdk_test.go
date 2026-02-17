@@ -52,8 +52,12 @@ func TestMnistSDKPyTorch28(t *testing.T) {
 
 func runMnistSDK(t *testing.T, trainingImage string) {
 	test := With(t)
-	// Create a namespace
-	namespace := test.NewTestNamespace()
+
+	SetupKueue(test, initialKueueState, PyTorchJobFramework)
+
+	// Create a namespace with Kueue labeled
+	namespace := test.NewTestNamespace(WithKueueManaged())
+	test.T().Logf("Created Kueue-managed namespace: %s", namespace.Name)
 	userName := GetNotebookUserName(test)
 	userToken := generateNotebookUserToken(test)
 

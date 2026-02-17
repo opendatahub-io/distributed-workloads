@@ -38,8 +38,11 @@ func TestPyTorchJobFailureWithROCmPyTorch251(t *testing.T) {
 func runFailedPyTorchJobTest(t *testing.T, image string) {
 	test := With(t)
 
-	// Create a namespace
-	namespace := test.NewTestNamespace()
+	SetupKueue(test, initialKueueState, PyTorchJobFramework)
+
+	// Create a namespace with Kueue labeled
+	namespace := test.NewTestNamespace(WithKueueManaged())
+	test.T().Logf("Created Kueue-managed namespace: %s", namespace.Name)
 
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
