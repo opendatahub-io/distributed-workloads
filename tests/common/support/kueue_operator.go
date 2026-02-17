@@ -17,12 +17,21 @@ limitations under the License.
 package support
 
 import (
+	"time"
+
 	"github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	kueueoperatorv1 "github.com/openshift/kueue-operator/pkg/apis/kueueoperator/v1"
+)
+
+const (
+	KueueCRName         = "cluster"
+	PyTorchJobFramework = "PyTorchJob"
+	TrainJobFramework   = "TrainJob"
 )
 
 func GetKueueCR(t Test, name string) (*kueueoperatorv1.Kueue, error) {
@@ -78,4 +87,54 @@ func KueueCRFrameworks(kueue *kueueoperatorv1.Kueue) []string {
 		frameworks = append(frameworks, string(f))
 	}
 	return frameworks
+}
+
+func SetupKueue(test Test, initialKueueState string, expectedFrameworks ...string) {
+	if initialKueueState == "Unmanaged" {
+		test.T().Log("SetupKueue: Kueue managementState was already Unmanaged, next verify status of 'Kueue CR'")
+		VerifyKueueReady(test, expectedFrameworks...)
+		return
+	}
+
+	test.T().Log("SetupKueue: Setting kueue to Unmanaged managementState in DataScienceCluster...")
+	err := SetComponentState(test, DefaultDSCName, "kueue", StateUnmanaged, 2*time.Minute)
+	test.Expect(err).NotTo(gomega.HaveOccurred(), "Should be able to set DSC kueue to Unmanaged")
+
+	// Verify kueue status is Unmanaged and KueueReady condition is True
+	test.Eventually(DSCResource(test, DefaultDSCName), TestTimeoutShort).Should(gomega.And(
+		gomega.WithTransform(func(dsc *unstructured.Unstructured) string {
+			return ComponentStatusManagementState(dsc, "kueue")
+		}, gomega.Equal("Unmanaged")),
+		gomega.WithTransform(func(dsc *unstructured.Unstructured) string {
+			return ComponentConditionStatus(dsc, "KueueReady")
+		}, gomega.Equal("True")),
+	))
+	test.T().Log("SetupKueue: Kueue is set to Unmanaged managementState successfully")
+
+	VerifyKueueReady(test, expectedFrameworks...)
+}
+
+func VerifyKueueReady(test Test, expectedFrameworks ...string) {
+	test.Eventually(KueueCRExists(test, KueueCRName), TestTimeoutMedium).Should(
+		gomega.BeTrue(),
+		"Kueue CR should be created when kueue is set to Unmanaged in DataScienceCluster",
+	)
+	test.T().Logf("Kueue CR '%s' exists", KueueCRName)
+
+	test.T().Log("Waiting for Kueue CR to be ready...")
+	test.Eventually(KueueCR(test, KueueCRName), TestTimeoutLong).Should(
+		gomega.And(
+			gomega.WithTransform(KueueCRConditionAvailable, gomega.Equal(metav1.ConditionTrue)),
+			gomega.WithTransform(KueueCRConditionCertManagerAvailable, gomega.Equal(metav1.ConditionTrue)),
+		),
+	)
+	test.T().Log("Kueue CR is ready")
+
+	for _, framework := range expectedFrameworks {
+		test.T().Logf("Verifying %s framework is present in Kueue CR...", framework)
+		test.Eventually(KueueCR(test, KueueCRName), TestTimeoutShort).Should(
+			gomega.WithTransform(KueueCRFrameworks, gomega.ContainElement(framework)),
+		)
+		test.T().Logf("%s framework is present in Kueue CR", framework)
+	}
 }

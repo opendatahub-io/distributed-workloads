@@ -13,30 +13,27 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/tools/clientcmd"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
-const (
-	defaultDSCName = "default-dsc"
+var (
+	initialTrainingOperatorState string
+	initialKueueState            string
 )
-
-var initialTrainingOperatorState string
 
 func TestMain(m *testing.M) {
 	var code int
 	var setupFailed bool
 
 	// Capture initial TrainingOperator state before running any tests
-	initialTrainingOperatorState = captureComponentState("trainingoperator")
+	initialTrainingOperatorState = CaptureComponentState(DefaultDSCName, "trainingoperator")
 	fmt.Printf("Initial TrainingOperator managementState: %s\n", initialTrainingOperatorState)
 
 	// Setup TrainingOperator to Managed if not already
 	if initialTrainingOperatorState != "Managed" {
-		if err := setupTrainingOperator(); err != nil {
+		if err := SetupComponent(DefaultDSCName, "trainingoperator", StateManaged); err != nil {
 			fmt.Printf("Setup failed: %v\n", err)
 			fmt.Println("Skipping test execution due to setup failure ...")
 			setupFailed = true
@@ -46,6 +43,10 @@ func TestMain(m *testing.M) {
 		fmt.Println("Setup: Skipping TrainingOperator setup as it is already set to Managed in DataScienceCluster")
 	}
 
+	// Capture initial Kueue state before running any tests
+	initialKueueState = CaptureComponentState(DefaultDSCName, "kueue")
+	fmt.Printf("Initial Kueue managementState: %s\n", initialKueueState)
+
 	// Run all tests only if setup succeeded
 	if !setupFailed {
 		code = m.Run()
@@ -53,79 +54,23 @@ func TestMain(m *testing.M) {
 
 	// TearDown TrainingOperator: Only set to Removed if it was not already Managed before tests
 	if initialTrainingOperatorState != "Managed" {
-		if err := tearDownComponent("trainingoperator"); err != nil {
+		if err := TearDownComponent(DefaultDSCName, "trainingoperator"); err != nil {
 			fmt.Printf("TearDown: Failed to set TrainingOperator to Removed in DataScienceCluster: %v\n", err)
 		}
 	} else {
 		fmt.Println("TearDown: Skipping TrainingOperator teardown as Initial TrainingOperator managementState was Managed in DataScienceCluster")
 	}
 
+	// TearDown Kueue: Only set to Removed if it was not already Unmanaged before tests
+	if initialKueueState != "Unmanaged" {
+		if err := TearDownComponent(DefaultDSCName, "kueue"); err != nil {
+			fmt.Printf("TearDown: Failed to set Kueue to Removed: %v\n", err)
+		}
+	} else {
+		fmt.Println("TearDown: Skipping Kueue teardown as Initial Kueue managementState was Unmanaged in DataScienceCluster")
+	}
+
 	os.Exit(code)
-}
-
-func createDynamicClient() (dynamic.Interface, error) {
-	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		clientcmd.NewDefaultClientConfigLoadingRules(),
-		&clientcmd.ConfigOverrides{},
-	).ClientConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
-	}
-
-	return dynamicClient, nil
-}
-
-func captureComponentState(component string) string {
-	dynamicClient, err := createDynamicClient()
-	if err != nil {
-		fmt.Printf("Warning: %v\n", err)
-		return ""
-	}
-
-	dsc, err := dynamicClient.Resource(DscGVR).Get(context.Background(), defaultDSCName, metav1.GetOptions{})
-	if err != nil {
-		fmt.Printf("Warning: Failed to get DSC: %v\n", err)
-		return ""
-	}
-
-	return ComponentStatusManagementState(dsc, component)
-}
-
-func setupTrainingOperator() error {
-	dynamicClient, err := createDynamicClient()
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Setup: Setting trainingoperator managementState to Managed in DataScienceCluster...")
-	err = SetComponentStateAndWait(dynamicClient, context.Background(), defaultDSCName, "trainingoperator", StateManaged, 2*time.Minute)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Setup: TrainingOperator is set to Managed managementState successfully")
-	return nil
-}
-
-func tearDownComponent(component string) error {
-	dynamicClient, err := createDynamicClient()
-	if err != nil {
-		return fmt.Errorf("TearDown: %w", err)
-	}
-
-	fmt.Printf("TearDown: Setting %s managementState to Removed in DataScienceCluster...\n", component)
-	err = SetComponentStateAndWait(dynamicClient, context.Background(), defaultDSCName, component, StateRemoved, 2*time.Minute)
-	if err != nil {
-		return fmt.Errorf("TearDown: failed to set %s to Removed: %w", component, err)
-	}
-
-	fmt.Printf("TearDown: %s is set to Removed managementState successfully\n", component)
-	return nil
 }
 
 func TestKftoSmoke(t *testing.T) {
