@@ -60,6 +60,7 @@ const (
 	storageBucketFashionMnistDir = "AWS_STORAGE_BUCKET_FASHION_MNIST_DIR"
 	storageBucketOsftDir         = "AWS_STORAGE_BUCKET_OSFT_DIR"
 	storageBucketSftDir          = "AWS_STORAGE_BUCKET_SFT_DIR"
+	storageBucketLoraDir         = "AWS_STORAGE_BUCKET_LORA_DIR"
 
 	// Name of existing namespace to be used for test
 	testNamespaceNameEnvVar = "TEST_NAMESPACE_NAME"
@@ -190,6 +191,11 @@ func GetStorageBucketFashionMnistDir() (string, bool) {
 func GetStorageBucketOsftDir() (string, bool) {
 	storage_bucket_osft_dir, exists := os.LookupEnv(storageBucketOsftDir)
 	return storage_bucket_osft_dir, exists
+}
+
+func GetStorageBucketLoraDir() (string, bool) {
+	storage_bucket_lora_dir, exists := os.LookupEnv(storageBucketLoraDir)
+	return storage_bucket_lora_dir, exists
 }
 
 func GetStorageBucketSftDir() (string, bool) {
