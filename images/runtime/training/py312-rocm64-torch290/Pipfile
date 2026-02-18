@@ -41,6 +41,8 @@ huggingface-hub = "==0.35.3"
 hf-xet = "==1.2.0"
 trl = "==0.24.0"
 training-hub = {version = "==0.5.0", extras = ["lora"]}
+fsspec = ">=2025.3.0"
+s3fs = ">=2025.3.0"
 
 [dev-packages]
 
