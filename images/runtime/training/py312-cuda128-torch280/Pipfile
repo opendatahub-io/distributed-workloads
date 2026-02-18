@@ -38,6 +38,8 @@ aiohttp = ">=3.13.3"
 hf-xet = "==1.1.8"
 huggingface-hub = "==0.34.4"
 psutil = "==7.0.0"
+fsspec = ">=2025.3.0"
+s3fs = ">=2025.3.0"
 
 [dev-packages]
 
