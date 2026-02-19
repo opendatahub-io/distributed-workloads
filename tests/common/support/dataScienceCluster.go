@@ -29,10 +29,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // DSC constants
 const (
+	DefaultDSCName = "default-dsc"
+
 	// Phase values
 	PhaseReady = "Ready"
 
@@ -284,4 +287,69 @@ func ComponentConditionStatus(dsc *unstructured.Unstructured, conditionType stri
 		}
 	}
 	return ""
+}
+
+func CreateDynamicClient() (dynamic.Interface, error) {
+	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		clientcmd.NewDefaultClientConfigLoadingRules(),
+		&clientcmd.ConfigOverrides{},
+	).ClientConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	return dynamicClient, nil
+}
+
+func CaptureComponentState(dscName, component string) string {
+	dynamicClient, err := CreateDynamicClient()
+	if err != nil {
+		fmt.Printf("Warning: %v\n", err)
+		return ""
+	}
+
+	dsc, err := dynamicClient.Resource(DscGVR).Get(context.Background(), dscName, metav1.GetOptions{})
+	if err != nil {
+		fmt.Printf("Warning: Failed to get DSC: %v\n", err)
+		return ""
+	}
+
+	return ComponentStatusManagementState(dsc, component)
+}
+
+func SetupComponent(dscName, component, desiredState string) error {
+	dynamicClient, err := CreateDynamicClient()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Setup: Setting %s managementState to %s in DataScienceCluster...\n", component, desiredState)
+	err = SetComponentStateAndWait(dynamicClient, context.Background(), dscName, component, desiredState, 2*time.Minute)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Setup: %s is set to %s managementState successfully\n", component, desiredState)
+	return nil
+}
+
+func TearDownComponent(dscName, component string) error {
+	dynamicClient, err := CreateDynamicClient()
+	if err != nil {
+		return fmt.Errorf("TearDown: %w", err)
+	}
+
+	fmt.Printf("TearDown: Setting %s managementState to Removed in DataScienceCluster...\n", component)
+	err = SetComponentStateAndWait(dynamicClient, context.Background(), dscName, component, StateRemoved, 2*time.Minute)
+	if err != nil {
+		return fmt.Errorf("TearDown: failed to set %s to Removed: %w", component, err)
+	}
+
+	fmt.Printf("TearDown: %s is set to Removed managementState successfully\n", component)
+	return nil
 }

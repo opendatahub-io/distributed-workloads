@@ -57,11 +57,11 @@ func TestSetupUpgradeTrainJob(t *testing.T) {
 	t.Skip("Skip due to issue RHOAIENG-48867")
 	//Tags(t, PreUpgrade)
 	test := With(t)
-	setupKueue(test)
+	SetupKueue(test, initialKueueState, TrainJobFramework)
 
 	// Create a namespace with Kueue label
 	CreateOrGetTestNamespaceWithName(test, upgradeNamespaceName, WithKueueManaged())
-	test.T().Logf("Created/retrieved namespace with kueue label: %s", upgradeNamespaceName)
+	test.T().Logf("Created Kueue-managed namespace: %s", upgradeNamespaceName)
 
 	// Create Kueue resources with StopPolicy
 	resourceFlavor := kueueacv1beta1.ResourceFlavor(resourceFlavorName)
@@ -126,7 +126,7 @@ func TestRunUpgradeTrainJob(t *testing.T) {
 	// Skip due to issue RHOAIENG-48867
 	//Tags(t, PostUpgrade)
 	test := With(t)
-	setupKueue(test)
+	SetupKueue(test, initialKueueState, TrainJobFramework)
 	namespace := GetNamespaceWithName(test, upgradeNamespaceName)
 
 	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavorName, metav1.DeleteOptions{})
@@ -160,7 +160,7 @@ func TestRunUpgradeTrainJob(t *testing.T) {
 func TestSetupSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 	Tags(t, PreUpgrade)
 	test := With(t)
-	setupKueue(test)
+	SetupKueue(test, initialKueueState, TrainJobFramework)
 
 	// Find a specific ClusterTrainingRuntime
 	specificRuntime := findSpecificRuntime(test)
@@ -172,7 +172,7 @@ func TestSetupSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 
 	// Create namespace with Kueue label
 	CreateOrGetTestNamespaceWithName(test, specificRuntimeNamespaceName, WithKueueManaged())
-	test.T().Logf("Created/retrieved namespace with kueue label: %s", specificRuntimeNamespaceName)
+	test.T().Logf("Created Kueue-managed namespace: %s", specificRuntimeNamespaceName)
 
 	// Store the runtime name in ConfigMap for post-upgrade verification
 	storeSpecificRuntimeInConfigMap(test, specificRuntime)
@@ -240,7 +240,7 @@ func TestSetupSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 func TestRunSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 	Tags(t, PostUpgrade)
 	test := With(t)
-	setupKueue(test)
+	SetupKueue(test, initialKueueState, TrainJobFramework)
 
 	// Get the specific runtime name from ConfigMap
 	specificRuntime := getSpecificRuntimeFromConfigMap(test)

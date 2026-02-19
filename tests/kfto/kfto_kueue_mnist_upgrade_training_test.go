@@ -45,7 +45,11 @@ func TestSetupPytorchjob(t *testing.T) {
 	Tags(t, PreUpgrade)
 	test := With(t)
 
-	CreateOrGetTestNamespaceWithName(test, namespaceName)
+	SetupKueue(test, initialKueueState, PyTorchJobFramework)
+
+	// Create a namespace with Kueue labeled
+	CreateOrGetTestNamespaceWithName(test, namespaceName, WithKueueManaged())
+	test.T().Logf("Created Kueue-managed namespace: %s", namespaceName)
 
 	// Create a ConfigMap with training dataset and configuration
 	mnist := readFile(test, "resources/mnist.py")

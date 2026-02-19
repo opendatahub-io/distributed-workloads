@@ -101,8 +101,11 @@ func TestPyTorchJobMnistMultiNodeMultiGpuWithROCmPyTorch28(t *testing.T) {
 func runKFTOPyTorchMnistJob(t *testing.T, accelerator Accelerator, image string, requirementsFile string, workerReplicas, numProcPerNode int) {
 	test := With(t)
 
-	// Create a namespace
-	namespace := test.NewTestNamespace()
+	SetupKueue(test, initialKueueState, PyTorchJobFramework)
+
+	// Create a namespace with Kueue labeled
+	namespace := test.NewTestNamespace(WithKueueManaged())
+	test.T().Logf("Created Kueue-managed namespace: %s", namespace.Name)
 
 	mnist := readFile(test, "resources/mnist.py")
 	download_mnist_dataset := readFile(test, "resources/download_mnist_datasets.py")
