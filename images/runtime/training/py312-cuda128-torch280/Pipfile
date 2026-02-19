@@ -27,7 +27,7 @@ numba = ">=0.61.2"
 rich = "==14.1.0"
 bitsandbytes = ">=0.45.3"
 liger-kernel = ">=0.5.10"
-sentencepiece = "<0.3,>=0.1.99"
+sentencepiece = "<0.3,>=0.2.1"
 tokenizers = ">=0.21.4"
 training-hub = {version = "==0.3.0", extras = ["cuda"]}
 trl = "==0.21.0"
@@ -38,6 +38,7 @@ aiohttp = ">=3.13.3"
 hf-xet = "==1.1.8"
 huggingface-hub = "==0.34.4"
 psutil = "==7.0.0"
+wheel = ">=0.46.2"
 
 [dev-packages]
 
