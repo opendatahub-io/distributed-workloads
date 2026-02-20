@@ -72,52 +72,14 @@ RUN yum install -y \
 # Set this flag so that libraries can find the location of CUDA
 ENV XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
 
-# Install CUDA devel from:
-# https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.1.1/ubi9/devel/Dockerfile
-ENV NV_CUDA_LIB_VERSION=12.1.1-1
-ENV NV_NVPROF_VERSION=12.1.105-1
-ENV NV_NVPROF_DEV_PACKAGE=cuda-nvprof-12-1-${NV_NVPROF_VERSION}
-ENV NV_CUDA_CUDART_DEV_VERSION=12.1.105-1
-ENV NV_NVML_DEV_VERSION=12.1.105-1
-ENV NV_LIBCUBLAS_DEV_VERSION=12.1.3.1-1
-ENV NV_LIBNPP_DEV_VERSION=12.1.0.40-1
-ENV NV_LIBNPP_DEV_PACKAGE=libnpp-devel-12-1-${NV_LIBNPP_DEV_VERSION}
-ENV NV_LIBNCCL_DEV_PACKAGE_NAME=libnccl-devel
-ENV NV_LIBNCCL_DEV_PACKAGE_VERSION=2.17.1-1
-ENV NCCL_VERSION=2.17.1
-ENV NV_LIBNCCL_DEV_PACKAGE=${NV_LIBNCCL_DEV_PACKAGE_NAME}-${NV_LIBNCCL_DEV_PACKAGE_VERSION}+cuda12.1
-ENV NV_CUDA_NSIGHT_COMPUTE_VERSION=12.1.1-1
-ENV NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE=cuda-nsight-compute-12-1-${NV_CUDA_NSIGHT_COMPUTE_VERSION}
-
-RUN yum install -y \
-    make \
-    findutils \
-    cuda-command-line-tools-12-1-${NV_CUDA_LIB_VERSION} \
-    cuda-libraries-devel-12-1-${NV_CUDA_LIB_VERSION} \
-    cuda-minimal-build-12-1-${NV_CUDA_LIB_VERSION} \
-    cuda-cudart-devel-12-1-${NV_CUDA_CUDART_DEV_VERSION} \
-    ${NV_NVPROF_DEV_PACKAGE} \
-    cuda-nvml-devel-12-1-${NV_NVML_DEV_VERSION} \
-    libcublas-devel-12-1-${NV_LIBCUBLAS_DEV_VERSION} \
-    ${NV_LIBNPP_DEV_PACKAGE} \
-    ${NV_LIBNCCL_DEV_PACKAGE} \
-    ${NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE} \
-    && yum clean all \
-    && rm -rf /var/cache/yum/*
-
-ENV LIBRARY_PATH=/usr/local/cuda/lib64/stubs
-
-# Install CUDA devel cudnn8 from:
-# https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.1.1/ubi9/devel/cudnn8/Dockerfile
+# Install CUDA runtime cudnn from:
+# https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.8.0/ubi9/runtime/cudnn/Dockerfile
 ENV NV_CUDNN_VERSION=8.9.0.131-1
 ENV NV_CUDNN_PACKAGE=libcudnn8-${NV_CUDNN_VERSION}.cuda12.1
-ENV NV_CUDNN_PACKAGE_DEV=libcudnn8-devel-${NV_CUDNN_VERSION}.cuda12.1
 
 LABEL com.nvidia.cudnn.version="${NV_CUDNN_VERSION}"
 
-RUN yum install -y \
-    ${NV_CUDNN_PACKAGE} \
-    ${NV_CUDNN_PACKAGE_DEV} \
+RUN yum install -y ${NV_CUDNN_PACKAGE} \
     && yum clean all \
     && rm -rf /var/cache/yum/*
 
@@ -129,7 +91,12 @@ RUN pip install --no-cache-dir -U "micropipenv[toml]"
 # Install Python dependencies from Pipfile.lock file
 COPY Pipfile.lock ./
 
-RUN micropipenv install && rm -f ./Pipfile.lock
+RUN micropipenv install && rm -f ./Pipfile.lock && \
+    # Cleanup Python cache and debug symbols
+    find /opt/app-root/lib/python3.11/site-packages -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true && \
+    find /opt/app-root/lib/python3.11/site-packages -name "*.pyc" -delete 2>/dev/null || true && \
+    find /opt/app-root/lib/python3.11/site-packages -name "*.pyo" -delete 2>/dev/null || true && \
+    find /opt/app-root/lib/python3.11/site-packages -name "*.so" -exec strip --strip-debug {} \; 2>/dev/null || true
 
 # Restore user workspace
 USER 1001
