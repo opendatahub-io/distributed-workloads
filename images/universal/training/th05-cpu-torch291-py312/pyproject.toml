@@ -1,0 +1,66 @@
+# CPU Training Image Python Dependencies
+#
+# To regenerate requirements.txt:
+#   uv pip compile --python-platform=linux --python-version=3.12 \
+#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA1/cpu-ubi9/simple/ \
+#     -o requirements.txt pyproject.toml
+
+[project]
+name = "cpu-training-image"
+version = "0.1.0"
+requires-python = "==3.12.*"
+
+dependencies = [
+    # ===================================================================
+    # ML/AI DEPENDENCIES (added on top of base image)
+    # Base image deps are NOT listed here - pip install is additive
+    # Strict AIPCC-only: all packages must be available in AIPCC index
+    # ===================================================================
+    
+    # PyTorch CPU version
+    "torch==2.9.1",
+    
+    # ML Training and Inference Libraries
+    "peft==0.18.1",
+    "datasets>=4.1.0",
+    "transformers>=4.57.0",
+    "accelerate==1.12.0",
+    "trl>=0.24.0",
+    
+    # Deep Learning Utilities (CPU-compatible)
+    "einops>=0.8",
+    "numba>=0.61.2",
+    
+    # Tokenization
+    "sentencepiece>=0.1.99",
+    "tokenizers>=0.22.0",
+    
+    # Core Dependencies
+    "numpy>=2.0.0",
+    "tqdm>=4.67.1",
+    "pydantic>=2.11.7",
+    "protobuf>=3.20.0",
+    "simpleeval>=0.9.13",
+    "safetensors==0.7.0",
+    "py-cpuinfo>=9.0.0",
+    "rich>=13.9.4",
+    "aiofiles==25.1.0",
+    "async-timeout==5.0.1",
+    "tensorboard==2.20.0",
+    
+    # Training Frameworks
+    "training_hub==0.5.0",
+    
+    # Note: GPU-specific packages are NOT included:
+    # - flash-attn (requires CUDA/ROCm)
+    # - bitsandbytes (GPU-focused)
+    # - liger-kernel (GPU-focused)
+    # - deepspeed (primarily for GPU training)
+    # - causal-conv1d, mamba-ssm (require CUDA)
+]
+
+[tool.uv]
+environments = [
+    "sys_platform == 'linux' and implementation_name == 'cpython'",
+]
+index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA1/cpu-ubi9/simple/"
