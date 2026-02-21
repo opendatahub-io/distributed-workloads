@@ -30,6 +30,8 @@ deepspeed = ">=0.14.3"
 aiofiles = ">=23.2.1"
 async-timeout = "==4.0.3"
 tensorboard = "2.19.0"
+fsspec = ">=2025.3.0"
+s3fs = ">=2025.3.0"
 
 [dev-packages]
 
