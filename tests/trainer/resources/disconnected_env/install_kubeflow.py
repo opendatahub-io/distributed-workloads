@@ -183,7 +183,31 @@ def install_from_s3():
         return False
 
 
+def install_from_git():
+    """Install kubeflow from git repo (for unreleased versions not yet on Red Hat PyPI)."""
+    git_url = os.environ.get(
+        "KUBEFLOW_GIT_URL",
+        "kubeflow @ git+https://github.com/opendatahub-io/kubeflow-sdk.git"
+    )
+    print(f"Installing kubeflow from git: {git_url}")
+    cmd = [
+        sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir", git_url
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode == 0:
+        print("Successfully installed kubeflow from git")
+        return True
+    print(f"Git install failed: {result.stderr}")
+    return False
+
+
 def main():
+    # If KUBEFLOW_INSTALL_FROM_GIT is set, install from git (for unreleased versions)
+    if os.environ.get("KUBEFLOW_INSTALL_FROM_GIT", "").lower() == "true":
+        if install_from_git():
+            return 0
+        print("WARNING: Git install failed, falling back to PyPI/S3")
+
     # Try PyPI first
     if install_from_pypi():
         return 0

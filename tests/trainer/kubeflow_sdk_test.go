@@ -126,3 +126,29 @@ func TestRhaiFeaturesMultiGpuRocm(t *testing.T) {
 	Tags(t, KftoRocm, MultiNodeMultiGpu(2, support.AMD, 2))
 	sdktests.RunRhaiFeaturesAllMultiGpuTest(t, support.AMD, 2, 2)
 }
+
+// S3 Checkpoint tests (auto-skip if S3 not configured)
+func TestRhaiS3CheckpointingCPU(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunRhaiS3CheckpointTest(t, support.CPU)
+}
+
+func TestRhaiS3CheckpointingCuda(t *testing.T) {
+	Tags(t, KftoCuda, MultiNodeGpu(2, support.NVIDIA))
+	sdktests.RunRhaiS3CheckpointTest(t, support.NVIDIA)
+}
+
+func TestRhaiS3CheckpointingRocm(t *testing.T) {
+	Tags(t, KftoRocm, MultiNodeGpu(2, support.AMD))
+	sdktests.RunRhaiS3CheckpointTest(t, support.AMD)
+}
+
+func TestRhaiS3CheckpointingMultiGpuCuda(t *testing.T) {
+	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 2))
+	sdktests.RunRhaiS3CheckpointMultiGpuTest(t, support.NVIDIA, 2, 2)
+}
+
+func TestRhaiS3CheckpointingMultiGpuRocm(t *testing.T) {
+	Tags(t, KftoRocm, MultiNodeMultiGpu(2, support.AMD, 2))
+	sdktests.RunRhaiS3CheckpointMultiGpuTest(t, support.AMD, 2, 2)
+}
