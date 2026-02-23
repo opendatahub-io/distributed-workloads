@@ -21,8 +21,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -114,28 +112,18 @@ func GetS3Provider() (*S3Provider, error) {
 			return
 		}
 
-		// Parse endpoint
+		// Parse endpoint to determine protocol (HTTP vs HTTPS)
 		secure := !strings.HasPrefix(endpoint, "http://")
 		endpoint = strings.TrimPrefix(strings.TrimPrefix(endpoint, "https://"), "http://")
 
-		// Configure TLS verification based on environment variable
-		// CHECKPOINT_VERIFY_SSL can be set to "true" to enable certificate verification
-		// Defaults to false to support test environments with self-signed certificates
-		verifySSL := false
-		if verifySSLEnv := os.Getenv("CHECKPOINT_VERIFY_SSL"); verifySSLEnv != "" {
-			if val, err := strconv.ParseBool(verifySSLEnv); err == nil {
-				verifySSL = val
-			}
-		}
-
-		var transport *http.Transport
-		if !verifySSL {
-			// Skip TLS verification for test environments with self-signed certificates
-			transport = &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			}
+		// Configure TLS transport to skip certificate verification
+		// Why: S3-compatible storage (AWS S3, MinIO, Ceph, etc.) in test environments typically uses self-signed certificates
+		// Without this: HTTPS requests fail with "x509: certificate signed by unknown authority"
+		// Security: This is test-only code - production should use properly signed certificates
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, // Skip cert verification for test environments
+			},
 		}
 
 		// Create client ONCE and reuse it

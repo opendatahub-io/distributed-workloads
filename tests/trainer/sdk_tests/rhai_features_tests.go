@@ -158,14 +158,21 @@ func runS3CheckpointTest(t *testing.T, accelerator Accelerator, numNodes, numGpu
 
 	// Get S3 provider (validates credentials internally)
 	provider, err := trainerutils.GetS3Provider()
-	if err != nil {
-		t.Fatalf("S3 configuration required. Please set AWS_DEFAULT_ENDPOINT, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY: %v", err)
-	}
+	test.Expect(err).NotTo(HaveOccurred(), "S3 configuration required. Please set AWS_DEFAULT_ENDPOINT, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY")
 
 	// Create test bucket
-	if err := provider.CreateBucket(test.Ctx(), trainerutils.ConstantBucketName); err != nil {
-		t.Fatalf("Failed to create test bucket: %v", err)
-	}
+	err = provider.CreateBucket(test.Ctx(), trainerutils.ConstantBucketName)
+	test.Expect(err).NotTo(HaveOccurred(), "Failed to create test bucket")
+
+	// Schedule cleanup to run when function exits (ensures bucket is deleted even if test fails)
+	defer func() {
+		if err := provider.DeleteBucket(test.Ctx(), trainerutils.ConstantBucketName); err != nil {
+			test.T().Logf("Warning: failed to delete test bucket: %v", err)
+		} else {
+			test.T().Logf("Test bucket deleted: %s (all checkpoints cleaned)", trainerutils.ConstantBucketName)
+		}
+	}()
+
 	test.T().Logf("Test bucket ready: %s", trainerutils.ConstantBucketName)
 
 	// Generate unique timestamp-based prefix
@@ -184,14 +191,9 @@ func runS3CheckpointTest(t *testing.T, accelerator Accelerator, numNodes, numGpu
 	})
 }
 
-// RunRhaiS3CheckpointTest runs the e2e test for S3 checkpoint storage
+// RunRhaiS3CheckpointTest runs the e2e test for S3 checkpoint storage (CPU only, 2 nodes)
 func RunRhaiS3CheckpointTest(t *testing.T, accelerator Accelerator) {
 	runS3CheckpointTest(t, accelerator, 2, 1)
-}
-
-// RunRhaiS3CheckpointMultiGpuTest runs multi-GPU test for S3 checkpoint storage
-func RunRhaiS3CheckpointMultiGpuTest(t *testing.T, accelerator Accelerator, numNodes, numGpusPerNode int) {
-	runS3CheckpointTest(t, accelerator, numNodes, numGpusPerNode)
 }
 
 // runRhaiFeaturesTestWithConfig runs the e2e test with the given feature configuration
@@ -206,7 +208,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	// RBACs setup for user (user token is used by notebook for Trainer API calls)
 	userName := common.GetNotebookUserName(test)
-	userToken := common.GenerateNotebookUserToken(test)
+	userToken := common.GetNotebookUserToken(test)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
@@ -326,7 +328,6 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 		dataConnectionExports = fmt.Sprintf(
 			"export DATA_CONNECTION_NAME='%s'; "+
-				"export CHECKPOINT_VERIFY_SSL='false'; "+
 				"export KUBEFLOW_INSTALL_FROM_GIT='true'; ",
 			secret.Name,
 		)
@@ -412,20 +413,6 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		// Clean up Kubernetes resources
 		common.DeleteNotebook(test, namespace)
 		test.Eventually(common.Notebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
-
-		// Clean up S3 bucket if using cloud storage (deletes entire bucket with all prefixes)
-		if trainerutils.ParseCloudURI(config.CheckpointOutputDir) != nil {
-			provider, err := trainerutils.GetS3Provider()
-			if err != nil {
-				test.T().Logf("Warning: failed to get S3 provider: %v", err)
-				return
-			}
-			if err := provider.DeleteBucket(test.Ctx(), trainerutils.ConstantBucketName); err != nil {
-				test.T().Logf("Warning: failed to delete test bucket: %v", err)
-			} else {
-				test.T().Logf("Test bucket deleted: %s (all checkpoints cleaned)", trainerutils.ConstantBucketName)
-			}
-		}
 	}()
 
 	// Wait for the Notebook Pod to be running
