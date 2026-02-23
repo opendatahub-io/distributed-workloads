@@ -132,3 +132,27 @@ func TestRhaiS3CheckpointingCPU(t *testing.T) {
 	Tags(t, Tier1)
 	sdktests.RunRhaiS3CheckpointTest(t, support.CPU)
 }
+
+// FSDP Full State Checkpoint tests (CPU only, auto-skip if S3 not configured)
+func TestRhaiFsdpFullStateCheckpointingCPU(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunRhaiFsdpFullStateTest(t, support.CPU)
+}
+
+// FSDP Shared State Checkpoint tests (CPU only, auto-skip if S3 not configured)
+func TestRhaiFsdpSharedStateCheckpointingCPU(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunRhaiFsdpSharedStateTest(t, support.CPU)
+}
+
+// DeepSpeed Stage 0 Checkpoint tests (ZeRO Stage 0 - no sharding, CPU only, auto-skip if S3 not configured)
+func TestRhaiDeepspeedStage0CheckpointingCPU(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunRhaiDeepspeedStage0Test(t, support.CPU)
+}
+
+// DeepSpeed Stage 3 Checkpoint tests (ZeRO Stage 3 - full sharding, CPU only, auto-skip if S3 not configured)
+func TestRhaiDeepspeedStage3CheckpointingCPU(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunRhaiDeepspeedStage3Test(t, support.CPU)
+}

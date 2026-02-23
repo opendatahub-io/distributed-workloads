@@ -38,8 +38,16 @@ import (
 )
 
 const (
-	rhaiFeaturesNotebookName = "rhai_features.ipynb"
-	rhaiFeaturesNotebookPath = "resources/" + rhaiFeaturesNotebookName
+	rhaiFeaturesNotebookName           = "rhai_features.ipynb"
+	rhaiFeaturesNotebookPath           = "resources/" + rhaiFeaturesNotebookName
+	rhaiFsdpFullStateNotebookName      = "rhai_features_fsdp_full_state.ipynb"
+	rhaiFsdpFullStateNotebookPath      = "resources/" + rhaiFsdpFullStateNotebookName
+	rhaiFsdpSharedStateNotebookName    = "rhai_features_fsdp_shared_state.ipynb"
+	rhaiFsdpSharedStateNotebookPath    = "resources/" + rhaiFsdpSharedStateNotebookName
+	rhaiDeepspeedStage0NotebookName    = "rhai_features_deepspeed_stage0.ipynb"
+	rhaiDeepspeedStage0NotebookPath    = "resources/" + rhaiDeepspeedStage0NotebookName
+	rhaiDeepspeedStage3NotebookName    = "rhai_features_deepspeed_stage3.ipynb"
+	rhaiDeepspeedStage3NotebookPath    = "resources/" + rhaiDeepspeedStage3NotebookName
 
 	// Annotation keys for progression tracking (must match SDK/training-operator constants)
 	annotationProgressionTracking = "trainer.opendatahub.io/progression-tracking"
@@ -66,6 +74,8 @@ type RhaiFeatureConfig struct {
 	Accelerator               Accelerator // CPU, NVIDIA, or AMD
 	NumNodes                  int         // Number of training nodes (default: 2)
 	NumGpusPerNode            int         // GPUs per node for multi-GPU tests (default: 1)
+	NotebookPath              string      // Path to notebook file (default: rhai_features.ipynb)
+	NotebookName              string      // Name of notebook file (default: rhai_features.ipynb)
 }
 
 // RunRhaiFeaturesProgressionTest runs the e2e test for RHAI features with progression tracking
@@ -152,8 +162,8 @@ func RunRhaiFeaturesAllMultiGpuTest(t *testing.T, accelerator Accelerator, numNo
 	})
 }
 
-// runS3CheckpointTest is a helper that sets up S3 storage and runs the checkpoint test
-func runS3CheckpointTest(t *testing.T, accelerator Accelerator, numNodes, numGpusPerNode int) {
+// runS3CheckpointTestWithNotebook is a generic helper that sets up S3 storage and runs the checkpoint test with a custom notebook
+func runS3CheckpointTestWithNotebook(t *testing.T, accelerator Accelerator, numNodes, numGpusPerNode int, notebookPath, notebookName string) {
 	test := With(t)
 
 	// Get S3 provider (validates credentials internally)
@@ -188,7 +198,14 @@ func runS3CheckpointTest(t *testing.T, accelerator Accelerator, numNodes, numGpu
 		Accelerator:               accelerator,
 		NumNodes:                  numNodes,
 		NumGpusPerNode:            numGpusPerNode,
+		NotebookPath:              notebookPath,
+		NotebookName:              notebookName,
 	})
+}
+
+// runS3CheckpointTest is a helper that sets up S3 storage and runs the checkpoint test
+func runS3CheckpointTest(t *testing.T, accelerator Accelerator, numNodes, numGpusPerNode int) {
+	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numGpusPerNode, "", "")
 }
 
 // RunRhaiS3CheckpointTest runs the e2e test for S3 checkpoint storage (CPU only, 2 nodes)
@@ -196,6 +213,25 @@ func RunRhaiS3CheckpointTest(t *testing.T, accelerator Accelerator) {
 	runS3CheckpointTest(t, accelerator, 2, 1)
 }
 
+// RunRhaiFsdpFullStateTest runs the e2e test for FSDP full state checkpoint (CPU only, 2 nodes)
+func RunRhaiFsdpFullStateTest(t *testing.T, accelerator Accelerator) {
+	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFsdpFullStateNotebookPath, rhaiFsdpFullStateNotebookName)
+}
+
+// RunRhaiFsdpSharedStateTest runs the e2e test for FSDP shared state checkpoint (CPU only, 2 nodes)
+func RunRhaiFsdpSharedStateTest(t *testing.T, accelerator Accelerator) {
+	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFsdpSharedStateNotebookPath, rhaiFsdpSharedStateNotebookName)
+}
+
+// RunRhaiDeepspeedStage0Test runs the e2e test for DeepSpeed Stage 0 checkpoint (CPU only, 2 nodes)
+func RunRhaiDeepspeedStage0Test(t *testing.T, accelerator Accelerator) {
+	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiDeepspeedStage0NotebookPath, rhaiDeepspeedStage0NotebookName)
+}
+
+// RunRhaiDeepspeedStage3Test runs the e2e test for DeepSpeed Stage 3 checkpoint (CPU only, 2 nodes)
+func RunRhaiDeepspeedStage3Test(t *testing.T, accelerator Accelerator) {
+	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiDeepspeedStage3NotebookPath, rhaiDeepspeedStage3NotebookName)
+}
 // runRhaiFeaturesTestWithConfig runs the e2e test with the given feature configuration
 func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test := With(t)
@@ -208,13 +244,22 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	// RBACs setup for user (user token is used by notebook for Trainer API calls)
 	userName := common.GetNotebookUserName(test)
-	userToken := common.GenerateNotebookUserToken(test)
+	userToken := common.GetNotebookUserToken(test)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
 	// Create ConfigMap with notebook and install script
+	// Use custom notebook if specified, otherwise default to rhai_features.ipynb
 	localPath := rhaiFeaturesNotebookPath
+	notebookName := rhaiFeaturesNotebookName
+	if config.NotebookPath != "" {
+		localPath = config.NotebookPath
+	}
+	if config.NotebookName != "" {
+		notebookName = config.NotebookName
+	}
+
 	nb, err := os.ReadFile(localPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
 
@@ -224,8 +269,8 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
 
 	cmData := map[string][]byte{
-		rhaiFeaturesNotebookName: nb,
-		"install_kubeflow.py":    installScript,
+		notebookName:           nb,
+		"install_kubeflow.py": installScript,
 	}
 	cm := CreateConfigMap(test, namespace.Name, cmData)
 
@@ -398,15 +443,15 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		dataConnectionExports,
 		pipExports,
 		pipInstallFlags,
-		rhaiFeaturesNotebookName,
+		notebookName,
 	)
 
-	test.T().Logf("Feature config: ProgressionTracking=%v, JitCheckpoint=%v, Accelerator=%s, NumNodes=%d, NumGpusPerNode=%d",
-		config.EnableProgressionTracking, config.EnableJitCheckpoint, config.Accelerator.Type, numNodes, numGpusPerNode)
+	test.T().Logf("Feature config: ProgressionTracking=%v, JitCheckpoint=%v, Accelerator=%s, NumNodes=%d, NumGpusPerNode=%d, Notebook=%s",
+		config.EnableProgressionTracking, config.EnableJitCheckpoint, config.Accelerator.Type, numNodes, numGpusPerNode, notebookName)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
 	// Create Notebook CR using the RWX PVC
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, rhaiFeaturesNotebookName, 0, sharedPVC, common.ContainerSizeSmall)
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, 0, sharedPVC, common.ContainerSizeSmall)
 
 	// Cleanup - use longer timeout due to large runtime images
 	defer func() {
