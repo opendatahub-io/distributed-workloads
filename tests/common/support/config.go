@@ -22,8 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	openshiftclient "github.com/openshift/client-go/config/clientset/versioned"
 )
 
 var ingressConfigResource = schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "ingresses"}
@@ -58,17 +56,5 @@ func GetOpenShiftApiUrl(test Test) string {
 }
 
 func GetExpectedRegistry(test Test) string {
-	configClient, err := openshiftclient.NewForConfig(test.Config())
-	test.Expect(err).NotTo(gomega.HaveOccurred())
-
-	infra, err := configClient.ConfigV1().Infrastructures().Get(test.Ctx(), "cluster", metav1.GetOptions{})
-	test.Expect(err).NotTo(gomega.HaveOccurred())
-
-	envType := infra.Labels["hypershift.openshift.io/managed"]
-	registryName := "registry.redhat.io"
-	if envType == "true" {
-		registryName = "quay.io"
-	}
-
-	return registryName
+	return "registry.redhat.io"
 }
