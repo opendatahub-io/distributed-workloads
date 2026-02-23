@@ -232,6 +232,7 @@ func RunRhaiDeepspeedStage0Test(t *testing.T, accelerator Accelerator) {
 func RunRhaiDeepspeedStage3Test(t *testing.T, accelerator Accelerator) {
 	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiDeepspeedStage3NotebookPath, rhaiDeepspeedStage3NotebookName)
 }
+
 // runRhaiFeaturesTestWithConfig runs the e2e test with the given feature configuration
 func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test := With(t)
