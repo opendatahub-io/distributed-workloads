@@ -213,24 +213,45 @@ func RunRhaiS3CheckpointTest(t *testing.T, accelerator Accelerator) {
 	runS3CheckpointTest(t, accelerator, 2, 1)
 }
 
-// RunRhaiFsdpFullStateTest runs the e2e test for FSDP full state checkpoint (CPU only, 2 nodes)
-func RunRhaiFsdpFullStateTest(t *testing.T, accelerator Accelerator) {
+// RunRhaiS3FsdpFullStateTest runs the e2e test for FSDP full state checkpoint (CPU only, 2 nodes)
+func RunRhaiS3FsdpFullStateTest(t *testing.T, accelerator Accelerator) {
 	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFsdpFullStateNotebookPath, rhaiFsdpFullStateNotebookName)
 }
 
-// RunRhaiFsdpSharedStateTest runs the e2e test for FSDP shared state checkpoint (CPU only, 2 nodes)
-func RunRhaiFsdpSharedStateTest(t *testing.T, accelerator Accelerator) {
+// RunRhaiS3FsdpFullStateMultiProcessTest runs the e2e test for FSDP full state checkpoint with multi-process per node
+func RunRhaiS3FsdpFullStateMultiProcessTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
+	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiFsdpFullStateNotebookPath, rhaiFsdpFullStateNotebookName)
+}
+
+// RunRhaiS3FsdpSharedStateTest runs the e2e test for FSDP shared state checkpoint (CPU only, 2 nodes)
+func RunRhaiS3FsdpSharedStateTest(t *testing.T, accelerator Accelerator) {
 	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFsdpSharedStateNotebookPath, rhaiFsdpSharedStateNotebookName)
 }
 
-// RunRhaiDeepspeedStage0Test runs the e2e test for DeepSpeed Stage 0 checkpoint (CPU only, 2 nodes)
-func RunRhaiDeepspeedStage0Test(t *testing.T, accelerator Accelerator) {
+// RunRhaiS3FsdpSharedStateMultiProcessTest runs the e2e test for FSDP shared state checkpoint with multi-process per node
+func RunRhaiS3FsdpSharedStateMultiProcessTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
+	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiFsdpSharedStateNotebookPath, rhaiFsdpSharedStateNotebookName)
+}
+
+// RunRhaiS3DeepspeedStage0Test runs the e2e test for DeepSpeed Stage 0 checkpoint (CPU only, 2 nodes)
+func RunRhaiS3DeepspeedStage0Test(t *testing.T, accelerator Accelerator) {
 	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiDeepspeedStage0NotebookPath, rhaiDeepspeedStage0NotebookName)
 }
 
-// RunRhaiDeepspeedStage3Test runs the e2e test for DeepSpeed Stage 3 checkpoint (CPU only, 2 nodes)
-func RunRhaiDeepspeedStage3Test(t *testing.T, accelerator Accelerator) {
+// RunRhaiS3DeepspeedStage3Test runs the e2e test for DeepSpeed Stage 3 checkpoint (CPU only, 2 nodes)
+func RunRhaiS3DeepspeedStage3Test(t *testing.T, accelerator Accelerator) {
 	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiDeepspeedStage3NotebookPath, rhaiDeepspeedStage3NotebookName)
+}
+
+
+// RunRhaiS3DeepspeedStage0MultiProcessTest runs the e2e test for DeepSpeed Stage 0 checkpoint with multi-process per node
+func RunRhaiS3DeepspeedStage0MultiProcessTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
+	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiDeepspeedStage0NotebookPath, rhaiDeepspeedStage0NotebookName)
+}
+
+// RunRhaiS3DeepspeedStage3MultiProcessTest runs the e2e test for DeepSpeed Stage 3 checkpoint with multi-process per node
+func RunRhaiS3DeepspeedStage3MultiProcessTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
+	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiDeepspeedStage3NotebookPath, rhaiDeepspeedStage3NotebookName)
 }
 
 // runRhaiFeaturesTestWithConfig runs the e2e test with the given feature configuration
@@ -245,7 +266,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	// RBACs setup for user (user token is used by notebook for Trainer API calls)
 	userName := common.GetNotebookUserName(test)
-	userToken := common.GenerateNotebookUserToken(test)
+	userToken := common.GetNotebookUserToken(test)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)

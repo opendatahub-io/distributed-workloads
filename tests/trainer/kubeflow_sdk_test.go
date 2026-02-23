@@ -134,25 +134,49 @@ func TestRhaiS3CheckpointingCPU(t *testing.T) {
 }
 
 // FSDP Full State Checkpoint tests (CPU only, auto-skip if S3 not configured)
-func TestRhaiFsdpFullStateCheckpointingCPU(t *testing.T) {
+func TestRhaiS3FsdpFullStateCheckpointingCPU(t *testing.T) {
 	Tags(t, Tier1)
-	sdktests.RunRhaiFsdpFullStateTest(t, support.CPU)
+	sdktests.RunRhaiS3FsdpFullStateTest(t, support.CPU)
+}
+
+// FSDP Full State Checkpoint tests (2 nodes, 2 processes per node)
+func TestRhaiS3FsdpFullStateCheckpointingMultiProcess(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunRhaiS3FsdpFullStateMultiProcessTest(t, support.CPU, 2, 2)
 }
 
 // FSDP Shared State Checkpoint tests (CPU only, auto-skip if S3 not configured)
-func TestRhaiFsdpSharedStateCheckpointingCPU(t *testing.T) {
+func TestRhaiS3FsdpSharedStateCheckpointingCPU(t *testing.T) {
 	Tags(t, Tier1)
-	sdktests.RunRhaiFsdpSharedStateTest(t, support.CPU)
+	sdktests.RunRhaiS3FsdpSharedStateTest(t, support.CPU)
+}
+
+// FSDP Shared State Checkpoint tests (2 nodes, 2 processes per node)
+func TestRhaiS3FsdpSharedStateCheckpointingMultiProcess(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunRhaiS3FsdpSharedStateMultiProcessTest(t, support.CPU, 2, 2)
 }
 
 // DeepSpeed Stage 0 Checkpoint tests (ZeRO Stage 0 - no sharding, CPU only, auto-skip if S3 not configured)
-func TestRhaiDeepspeedStage0CheckpointingCPU(t *testing.T) {
+func TestRhaiS3DeepspeedStage0CheckpointingCPU(t *testing.T) {
 	Tags(t, Tier1)
-	sdktests.RunRhaiDeepspeedStage0Test(t, support.CPU)
+	sdktests.RunRhaiS3DeepspeedStage0Test(t, support.CPU)
+}
+
+// DeepSpeed Stage 0 Checkpoint tests (2 nodes, 2 processes per node)
+func TestRhaiS3DeepspeedStage0CheckpointingMultiProcess(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunRhaiS3DeepspeedStage0MultiProcessTest(t, support.CPU, 2, 2)
 }
 
 // DeepSpeed Stage 3 Checkpoint tests (ZeRO Stage 3 - full sharding, CPU only, auto-skip if S3 not configured)
-func TestRhaiDeepspeedStage3CheckpointingCPU(t *testing.T) {
+func TestRhaiS3DeepspeedStage3CheckpointingCPU(t *testing.T) {
 	Tags(t, Tier1)
-	sdktests.RunRhaiDeepspeedStage3Test(t, support.CPU)
+	sdktests.RunRhaiS3DeepspeedStage3Test(t, support.CPU)
+}
+
+// DeepSpeed Stage 3 Checkpoint tests (2 nodes, 2 processes per node)
+func TestRhaiS3DeepspeedStage3CheckpointingMultiProcess(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunRhaiS3DeepspeedStage3MultiProcessTest(t, support.CPU, 2, 2)
 }
