@@ -23,6 +23,10 @@ import (
 	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 )
 
+const (
+	KueueDefaultQueueName = "default"
+)
+
 func CreateKueueResourceFlavor(t Test, resourceFlavorSpec kueuev1beta1.ResourceFlavorSpec) *kueuev1beta1.ResourceFlavor {
 	t.T().Helper()
 
