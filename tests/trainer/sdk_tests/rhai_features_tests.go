@@ -203,14 +203,9 @@ func runS3CheckpointTestWithNotebook(t *testing.T, accelerator Accelerator, numN
 	})
 }
 
-// runS3CheckpointTest is a helper that sets up S3 storage and runs the checkpoint test
-func runS3CheckpointTest(t *testing.T, accelerator Accelerator, numNodes, numGpusPerNode int) {
-	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numGpusPerNode, "", "")
-}
-
 // RunRhaiS3CheckpointTest runs the e2e test for S3 checkpoint storage (CPU only, 2 nodes)
 func RunRhaiS3CheckpointTest(t *testing.T, accelerator Accelerator) {
-	runS3CheckpointTest(t, accelerator, 2, 1)
+	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFeaturesNotebookPath, rhaiFeaturesNotebookName)
 }
 
 // RunRhaiS3FsdpFullStateTest runs the e2e test for FSDP full state checkpoint (CPU only, 2 nodes)
@@ -265,24 +260,14 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	// RBACs setup for user (user token is used by notebook for Trainer API calls)
 	userName := common.GetNotebookUserName(test)
-	userToken := common.GenerateNotebookUserToken(test)
+	userToken := common.GetNotebookUserToken(test)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
 	// Create ConfigMap with notebook and install script
-	// Use custom notebook if specified, otherwise default to rhai_features.ipynb
-	localPath := rhaiFeaturesNotebookPath
-	notebookName := rhaiFeaturesNotebookName
-	if config.NotebookPath != "" {
-		localPath = config.NotebookPath
-	}
-	if config.NotebookName != "" {
-		notebookName = config.NotebookName
-	}
-
-	nb, err := os.ReadFile(localPath)
-	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
+	nb, err := os.ReadFile(config.NotebookPath)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", config.NotebookPath))
 
 	// Read the kubeflow install helper script
 	installScriptPath := "resources/disconnected_env/install_kubeflow.py"
@@ -290,7 +275,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
 
 	cmData := map[string][]byte{
-		notebookName:          nb,
+		config.NotebookName:   nb,
 		"install_kubeflow.py": installScript,
 	}
 	cm := CreateConfigMap(test, namespace.Name, cmData)
@@ -464,15 +449,15 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		dataConnectionExports,
 		pipExports,
 		pipInstallFlags,
-		notebookName,
+		config.NotebookName,
 	)
 
 	test.T().Logf("Feature config: ProgressionTracking=%v, JitCheckpoint=%v, Accelerator=%s, NumNodes=%d, NumGpusPerNode=%d, Notebook=%s",
-		config.EnableProgressionTracking, config.EnableJitCheckpoint, config.Accelerator.Type, numNodes, numGpusPerNode, notebookName)
+		config.EnableProgressionTracking, config.EnableJitCheckpoint, config.Accelerator.Type, numNodes, numGpusPerNode, config.NotebookName)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
 	// Create Notebook CR using the RWX PVC
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, 0, sharedPVC, common.ContainerSizeSmall)
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, config.NotebookName, 0, sharedPVC, common.ContainerSizeSmall)
 
 	// Cleanup - use longer timeout due to large runtime images
 	defer func() {
