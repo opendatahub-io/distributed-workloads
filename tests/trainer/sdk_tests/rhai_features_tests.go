@@ -38,16 +38,16 @@ import (
 )
 
 const (
-	rhaiFeaturesNotebookName           = "rhai_features.ipynb"
-	rhaiFeaturesNotebookPath           = "resources/" + rhaiFeaturesNotebookName
-	rhaiFsdpFullStateNotebookName      = "rhai_features_fsdp_full_state.ipynb"
-	rhaiFsdpFullStateNotebookPath      = "resources/" + rhaiFsdpFullStateNotebookName
-	rhaiFsdpSharedStateNotebookName    = "rhai_features_fsdp_shared_state.ipynb"
-	rhaiFsdpSharedStateNotebookPath    = "resources/" + rhaiFsdpSharedStateNotebookName
-	rhaiDeepspeedStage0NotebookName    = "rhai_features_deepspeed_stage0.ipynb"
-	rhaiDeepspeedStage0NotebookPath    = "resources/" + rhaiDeepspeedStage0NotebookName
-	rhaiDeepspeedStage3NotebookName    = "rhai_features_deepspeed_stage3.ipynb"
-	rhaiDeepspeedStage3NotebookPath    = "resources/" + rhaiDeepspeedStage3NotebookName
+	rhaiFeaturesNotebookName        = "rhai_features.ipynb"
+	rhaiFeaturesNotebookPath        = "resources/" + rhaiFeaturesNotebookName
+	rhaiFsdpFullStateNotebookName   = "rhai_features_fsdp_full_state.ipynb"
+	rhaiFsdpFullStateNotebookPath   = "resources/" + rhaiFsdpFullStateNotebookName
+	rhaiFsdpSharedStateNotebookName = "rhai_features_fsdp_shared_state.ipynb"
+	rhaiFsdpSharedStateNotebookPath = "resources/" + rhaiFsdpSharedStateNotebookName
+	rhaiDeepspeedStage0NotebookName = "rhai_features_deepspeed_stage0.ipynb"
+	rhaiDeepspeedStage0NotebookPath = "resources/" + rhaiDeepspeedStage0NotebookName
+	rhaiDeepspeedStage3NotebookName = "rhai_features_deepspeed_stage3.ipynb"
+	rhaiDeepspeedStage3NotebookPath = "resources/" + rhaiDeepspeedStage3NotebookName
 
 	// Annotation keys for progression tracking (must match SDK/training-operator constants)
 	annotationProgressionTracking = "trainer.opendatahub.io/progression-tracking"
@@ -243,7 +243,6 @@ func RunRhaiS3DeepspeedStage3Test(t *testing.T, accelerator Accelerator) {
 	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiDeepspeedStage3NotebookPath, rhaiDeepspeedStage3NotebookName)
 }
 
-
 // RunRhaiS3DeepspeedStage0MultiProcessTest runs the e2e test for DeepSpeed Stage 0 checkpoint with multi-process per node
 func RunRhaiS3DeepspeedStage0MultiProcessTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
 	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiDeepspeedStage0NotebookPath, rhaiDeepspeedStage0NotebookName)
@@ -291,7 +290,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
 
 	cmData := map[string][]byte{
-		notebookName:           nb,
+		notebookName:          nb,
 		"install_kubeflow.py": installScript,
 	}
 	cm := CreateConfigMap(test, namespace.Name, cmData)
