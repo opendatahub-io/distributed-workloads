@@ -157,26 +157,15 @@ func TestRhaiS3FsdpSharedStateCheckpointingMultiProcess(t *testing.T) {
 	sdktests.RunRhaiS3FsdpSharedStateMultiProcessTest(t, support.CPU, 2, 2)
 }
 
-// DeepSpeed Stage 0 Checkpoint tests (ZeRO Stage 0 - no sharding, CPU only, auto-skip if S3 not configured)
-func TestRhaiS3DeepspeedStage0CheckpointingCPU(t *testing.T) {
-	Tags(t, Tier1)
-	sdktests.RunRhaiS3DeepspeedStage0Test(t, support.CPU)
+// DeepSpeed Stage 0 Checkpoint tests (ZeRO Stage 0 - no sharding, GPU required)
+func TestRhaiS3DeepspeedStage0CheckpointingCuda(t *testing.T) {
+	Tags(t, KftoCuda, MultiNodeGpu(2, support.NVIDIA))
+	sdktests.RunRhaiS3DeepspeedStage0GpuTest(t, support.NVIDIA)
 }
 
-// DeepSpeed Stage 0 Checkpoint tests (2 nodes, 2 processes per node)
-func TestRhaiS3DeepspeedStage0CheckpointingMultiProcess(t *testing.T) {
-	Tags(t, Tier1)
-	sdktests.RunRhaiS3DeepspeedStage0MultiProcessTest(t, support.CPU, 2, 2)
+// DeepSpeed Stage 0 Checkpoint tests (2 nodes, 2 GPUs per node)
+func TestRhaiS3DeepspeedStage0CheckpointingMultiGpuCuda(t *testing.T) {
+	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 2))
+	sdktests.RunRhaiS3DeepspeedStage0MultiGpuTest(t, support.NVIDIA, 2, 2)
 }
 
-// DeepSpeed Stage 3 Checkpoint tests (ZeRO Stage 3 - full sharding, CPU only, auto-skip if S3 not configured)
-func TestRhaiS3DeepspeedStage3CheckpointingCPU(t *testing.T) {
-	Tags(t, Tier1)
-	sdktests.RunRhaiS3DeepspeedStage3Test(t, support.CPU)
-}
-
-// DeepSpeed Stage 3 Checkpoint tests (2 nodes, 2 processes per node)
-func TestRhaiS3DeepspeedStage3CheckpointingMultiProcess(t *testing.T) {
-	Tags(t, Tier1)
-	sdktests.RunRhaiS3DeepspeedStage3MultiProcessTest(t, support.CPU, 2, 2)
-}

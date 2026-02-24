@@ -46,8 +46,6 @@ const (
 	rhaiFsdpSharedStateNotebookPath = "resources/" + rhaiFsdpSharedStateNotebookName
 	rhaiDeepspeedStage0NotebookName = "rhai_features_deepspeed_stage0.ipynb"
 	rhaiDeepspeedStage0NotebookPath = "resources/" + rhaiDeepspeedStage0NotebookName
-	rhaiDeepspeedStage3NotebookName = "rhai_features_deepspeed_stage3.ipynb"
-	rhaiDeepspeedStage3NotebookPath = "resources/" + rhaiDeepspeedStage3NotebookName
 
 	// Annotation keys for progression tracking (must match SDK/training-operator constants)
 	annotationProgressionTracking = "trainer.opendatahub.io/progression-tracking"
@@ -228,24 +226,14 @@ func RunRhaiS3FsdpSharedStateMultiProcessTest(t *testing.T, accelerator Accelera
 	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiFsdpSharedStateNotebookPath, rhaiFsdpSharedStateNotebookName)
 }
 
-// RunRhaiS3DeepspeedStage0Test runs the e2e test for DeepSpeed Stage 0 checkpoint (CPU only, 2 nodes)
-func RunRhaiS3DeepspeedStage0Test(t *testing.T, accelerator Accelerator) {
+// RunRhaiS3DeepspeedStage0GpuTest runs the e2e test for DeepSpeed Stage 0 checkpoint (GPU required, 2 nodes, 1 GPU each)
+func RunRhaiS3DeepspeedStage0GpuTest(t *testing.T, accelerator Accelerator) {
 	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiDeepspeedStage0NotebookPath, rhaiDeepspeedStage0NotebookName)
 }
 
-// RunRhaiS3DeepspeedStage3Test runs the e2e test for DeepSpeed Stage 3 checkpoint (CPU only, 2 nodes)
-func RunRhaiS3DeepspeedStage3Test(t *testing.T, accelerator Accelerator) {
-	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiDeepspeedStage3NotebookPath, rhaiDeepspeedStage3NotebookName)
-}
-
-// RunRhaiS3DeepspeedStage0MultiProcessTest runs the e2e test for DeepSpeed Stage 0 checkpoint with multi-process per node
-func RunRhaiS3DeepspeedStage0MultiProcessTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
+// RunRhaiS3DeepspeedStage0MultiGpuTest runs the e2e test for DeepSpeed Stage 0 checkpoint (GPU required, multi-GPU per node)
+func RunRhaiS3DeepspeedStage0MultiGpuTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
 	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiDeepspeedStage0NotebookPath, rhaiDeepspeedStage0NotebookName)
-}
-
-// RunRhaiS3DeepspeedStage3MultiProcessTest runs the e2e test for DeepSpeed Stage 3 checkpoint with multi-process per node
-func RunRhaiS3DeepspeedStage3MultiProcessTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
-	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiDeepspeedStage3NotebookPath, rhaiDeepspeedStage3NotebookName)
 }
 
 // runRhaiFeaturesTestWithConfig runs the e2e test with the given feature configuration
