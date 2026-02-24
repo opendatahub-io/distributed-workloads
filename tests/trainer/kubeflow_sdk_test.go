@@ -168,4 +168,3 @@ func TestRhaiS3DeepspeedStage0CheckpointingMultiGpuCuda(t *testing.T) {
 	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 2))
 	sdktests.RunRhaiS3DeepspeedStage0MultiGpuTest(t, support.NVIDIA, 2, 2)
 }
-
