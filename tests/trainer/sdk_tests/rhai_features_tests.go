@@ -216,13 +216,13 @@ func RunRhaiS3FsdpFullStateMultiProcessTest(t *testing.T, accelerator Accelerato
 	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiFsdpFullStateNotebookPath, rhaiFsdpFullStateNotebookName)
 }
 
-// RunRhaiS3FsdpSharedStateTest runs the e2e test for FSDP shared state checkpoint (CPU only, 2 nodes)
-func RunRhaiS3FsdpSharedStateTest(t *testing.T, accelerator Accelerator) {
+// RunRhaiS3FsdpSharedStateGpuTest runs the e2e test for FSDP shared state checkpoint (GPU required, 2 nodes, 1 GPU each)
+func RunRhaiS3FsdpSharedStateGpuTest(t *testing.T, accelerator Accelerator) {
 	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFsdpSharedStateNotebookPath, rhaiFsdpSharedStateNotebookName)
 }
 
-// RunRhaiS3FsdpSharedStateMultiProcessTest runs the e2e test for FSDP shared state checkpoint with multi-process per node
-func RunRhaiS3FsdpSharedStateMultiProcessTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
+// RunRhaiS3FsdpSharedStateMultiGpuTest runs the e2e test for FSDP shared state checkpoint (GPU required, multi-GPU per node)
+func RunRhaiS3FsdpSharedStateMultiGpuTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
 	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiFsdpSharedStateNotebookPath, rhaiFsdpSharedStateNotebookName)
 }
 
@@ -248,7 +248,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	// RBACs setup for user (user token is used by notebook for Trainer API calls)
 	userName := common.GetNotebookUserName(test)
-	userToken := common.GenerateNotebookUserToken(test)
+	userToken := common.GetNotebookUserToken(test)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
@@ -740,7 +740,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 					return false
 				}
 				// Check at least one checkpoint was uploaded to cloud storage (from logs)
-				if strings.Contains(logs, "[Kubeflow] Upload complete:") {
+				if strings.Contains(logs, "Upload complete") {
 					test.T().Log("Cloud checkpoint upload confirmed in pod logs")
 					return true
 				}
@@ -748,9 +748,9 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 			return false
 		}, TestTimeoutMedium, 5*time.Second).Should(BeTrue(),
 			"Cloud checkpoint upload not detected in training pod logs. "+
-				"Expected '[Kubeflow] Upload complete:' after epoch completion. "+
+				"Expected 'Upload complete' after epoch completion. "+
 				"This usually means the SDK's checkpoint config override (save_strategy, output_dir) "+
-				"was not applied to the Trainer. Check full training pod logs for '[Kubeflow]' messages.")
+				"was not applied to the Trainer.")
 		test.T().Log("Cloud checkpoint upload verified in logs - verifying checkpoints exist in S3...")
 
 		// Verify checkpoints actually exist in S3 (not just logs)
@@ -1011,9 +1011,9 @@ func verifyCheckpointLoadedFromLogs(test Test, namespace, trainJobName, checkpoi
 	test.Expect(len(pods)).NotTo(Equal(0), "No training pods found to verify checkpoint logs")
 
 	// Checkpoint resume indicators from Kubeflow SDK (transformers.py)
-	indicators := []string{"[Kubeflow] Found latest checkpoint:", "[Kubeflow] Auto-resuming from:"}
+	indicators := []string{"Found latest checkpoint:", "Auto-resuming from:"}
 	if strings.Contains(checkpointDir, "://") {
-		indicators = []string{"[Kubeflow] Downloading checkpoint:", "[Kubeflow] Download complete"}
+		indicators = []string{"Download complete"}
 	}
 
 	for _, pod := range pods {
