@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -34,7 +33,7 @@ import (
 const (
 	// ConstantBucketName is the bucket name used for all test cases
 	// This ensures consistent bucket reuse across tests, even if cleanup fails
-	ConstantBucketName = "test-checkpoints"
+	ConstantBucketName = "training-kubeflow"
 )
 
 // CloudURI represents a parsed cloud storage URI
@@ -76,8 +75,8 @@ func ParseCloudURI(uri string) *CloudURI {
 // CloudStorageProvider defines the interface for cloud storage operations.
 // Easy to extend: implement for Azure, GCS, etc.
 type CloudStorageProvider interface {
-	// CreateBucket creates a new bucket if it doesn't exist
-	CreateBucket(ctx context.Context, bucketName string) error
+	// CreateBucket creates a new bucket with the specified region
+	CreateBucket(ctx context.Context, bucketName, region string) error
 	// DeleteBucket deletes a bucket and all its contents
 	DeleteBucket(ctx context.Context, bucketName string) error
 	// BucketExists checks if a bucket exists
@@ -177,25 +176,23 @@ func (p *S3Provider) CheckpointExists(ctx context.Context, uri string) bool {
 	return false // No checkpoints found
 }
 
-// CreateBucket creates a new S3 bucket if it doesn't exist
-func (p *S3Provider) CreateBucket(ctx context.Context, bucketName string) error {
+// CreateBucket creates a new S3 bucket in the specified region
+// Assumes bucket name is unique (e.g., with timestamp) and doesn't already exist
+func (p *S3Provider) CreateBucket(ctx context.Context, bucketName, region string) error {
 	if bucketName == "" {
 		return fmt.Errorf("bucket name cannot be empty")
 	}
 
-	// Check if bucket already exists
-	exists, err := p.client.BucketExists(ctx, bucketName)
-	if err != nil {
-		return fmt.Errorf("failed to check if bucket exists: %w", err)
+	// Default to us-east-1 if no region specified
+	if region == "" {
+		region = "us-east-1"
 	}
 
-	if exists {
-		return nil // Bucket already exists, no need to create
-	}
-
-	// Create the bucket
-	if err := p.client.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{}); err != nil {
-		return fmt.Errorf("failed to create bucket %s: %w", bucketName, err)
+	// Create the bucket with region
+	if err := p.client.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{
+		Region: region,
+	}); err != nil {
+		return fmt.Errorf("failed to create bucket %s in region %s: %w", bucketName, region, err)
 	}
 
 	return nil
@@ -251,13 +248,4 @@ func (p *S3Provider) BucketExists(ctx context.Context, bucketName string) (bool,
 	}
 
 	return exists, nil
-}
-
-// GenerateCheckpointPrefix generates a unique timestamp-based prefix for checkpoints.
-// Format: <timestamp>-checkpoints (e.g., 1234567890-checkpoints)
-// This ensures each test run uses a unique prefix, avoiding conflicts even if
-// bucket cleanup fails from a previous test.
-func GenerateCheckpointPrefix() string {
-	timestamp := time.Now().Unix()
-	return fmt.Sprintf("%d-checkpoints", timestamp)
 }

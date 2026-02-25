@@ -168,29 +168,35 @@ func runS3CheckpointTestWithNotebook(t *testing.T, accelerator Accelerator, numN
 	provider, err := trainerutils.GetS3Provider()
 	test.Expect(err).NotTo(HaveOccurred(), "S3 configuration required. Please set AWS_DEFAULT_ENDPOINT, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY")
 
+	// Create unique bucket name using Unix timestamp for parallel test execution
+	bucketName := fmt.Sprintf("%s-%d", trainerutils.ConstantBucketName, time.Now().Unix())
+
+	// Get region from environment (CreateBucket will default to us-east-1 if empty)
+	region, _ := GetStorageBucketDefaultRegion()
+
 	// Create test bucket
-	err = provider.CreateBucket(test.Ctx(), trainerutils.ConstantBucketName)
+	err = provider.CreateBucket(test.Ctx(), bucketName, region)
 	test.Expect(err).NotTo(HaveOccurred(), "Failed to create test bucket")
 
 	// Schedule cleanup to run when function exits (ensures bucket is deleted even if test fails)
 	defer func() {
-		if err := provider.DeleteBucket(test.Ctx(), trainerutils.ConstantBucketName); err != nil {
+		if err := provider.DeleteBucket(test.Ctx(), bucketName); err != nil {
 			test.T().Logf("Warning: failed to delete test bucket: %v", err)
 		} else {
-			test.T().Logf("Test bucket deleted: %s (all checkpoints cleaned)", trainerutils.ConstantBucketName)
+			test.T().Logf("Test bucket deleted: %s (all checkpoints cleaned)", bucketName)
 		}
 	}()
 
-	test.T().Logf("Test bucket ready: %s", trainerutils.ConstantBucketName)
-
-	// Generate unique timestamp-based prefix
-	checkpointPrefix := trainerutils.GenerateCheckpointPrefix()
-	t.Logf("Using bucket: %s, prefix: %s", trainerutils.ConstantBucketName, checkpointPrefix)
+	if region != "" {
+		test.T().Logf("Test bucket ready: %s (region: %s)", bucketName, region)
+	} else {
+		test.T().Logf("Test bucket ready: %s (region: us-east-1, default)", bucketName)
+	}
 
 	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
 		EnableProgressionTracking: false,
 		EnableJitCheckpoint:       true,
-		CheckpointOutputDir:       fmt.Sprintf("s3://%s/%s", trainerutils.ConstantBucketName, checkpointPrefix),
+		CheckpointOutputDir:       fmt.Sprintf("s3://%s/checkpoints", bucketName),
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
 		Accelerator:               accelerator,
