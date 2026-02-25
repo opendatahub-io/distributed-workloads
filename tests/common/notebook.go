@@ -184,6 +184,18 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 	notebookCR := &unstructured.Unstructured{}
 	err = yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(parsedNotebookTemplate), 8192).Decode(notebookCR)
 	test.Expect(err).NotTo(gomega.HaveOccurred())
+
+	// If namespace is Kueue-managed, inject the kueue queue-name label on the Notebook CR
+	if namespace.Labels["kueue.openshift.io/managed"] == "true" {
+		labels := notebookCR.GetLabels()
+		if labels == nil {
+			labels = map[string]string{}
+		}
+		labels["kueue.x-k8s.io/queue-name"] = KueueDefaultQueueName
+		notebookCR.SetLabels(labels)
+		test.T().Log("Injected kueue.x-k8s.io/queue-name=default label on Notebook CR for Kueue-managed namespace")
+	}
+
 	_, err = test.Client().Dynamic().Resource(notebookResource).Namespace(namespace.Name).Create(test.Ctx(), notebookCR, metav1.CreateOptions{})
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 }
