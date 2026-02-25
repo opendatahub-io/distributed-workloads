@@ -240,6 +240,14 @@ func RunRhaiS3DeepspeedStage0MultiGpuTest(t *testing.T, accelerator Accelerator,
 func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test := With(t)
 
+	// Set defaults for notebook path/name if not specified
+	if config.NotebookPath == "" {
+		config.NotebookPath = rhaiFeaturesNotebookPath
+	}
+	if config.NotebookName == "" {
+		config.NotebookName = rhaiFeaturesNotebookName
+	}
+
 	// Create a new test namespace
 	namespace := test.NewTestNamespace()
 
