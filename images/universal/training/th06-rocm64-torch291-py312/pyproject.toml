@@ -39,6 +39,8 @@ dependencies = [
     "einops>=0.8",
     "numba>=0.61.2",
     "deepspeed>=0.18.4",
+    "kernels==0.12.1",
+    "liger-kernel==0.7.0",
     
     # Tokenization
     "sentencepiece>=0.1.99,<0.3",
