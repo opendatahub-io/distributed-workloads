@@ -1,15 +1,12 @@
-# ROCm Universal Image Python Dependencies
-#
-# Strict AIPCC-only builds - ensures consistency with downstream hermetic builds.
-# If a package is missing from AIPCC, request it be added rather than using fallback indexes.
+# TH06 CPU Universal Image Python Dependencies
 #
 # To regenerate requirements.txt:
 #   uv pip compile --python-platform=linux --python-version=3.12 \
-#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA1/rocm6.4-ubi9-test/simple/ \
+#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cpu-ubi9-test/simple/ \
 #     -o requirements.txt pyproject.toml
 
 [project]
-name = "rocm-image"
+name = "th06-cpu-universal-image"
 version = "0.1.0"
 requires-python = "==3.12.*"
 
@@ -17,25 +14,28 @@ dependencies = [
     # ===================================================================
     # ML/AI DEPENDENCIES (added on top of base image)
     # Base image deps are NOT listed here - pip install is additive
+    # Strict AIPCC-only: all packages must be available in AIPCC index
     # ===================================================================
     
-    # PyTorch
+    # PyTorch CPU version
     "torch==2.9.1",
+    
+    # Triton (CPU compatible for JIT compilation)
+    "triton==3.5.1",
     
     # ML Training and Inference Libraries
     "peft==0.18.1",
-    "datasets>=4.1.0",
-    "transformers>=4.57.0",
+    "datasets==4.3.0",
+    "transformers==4.57.6",
     "accelerate==1.12.0",
-    "trl>=0.24.0",
+    "trl==0.24.0",
     
-    # Deep Learning Utilities
+    # Deep Learning Utilities (CPU-compatible)
     "einops>=0.8",
     "numba>=0.61.2",
-    "deepspeed>=0.18.4",
     
     # Tokenization
-    "sentencepiece>=0.1.99,<0.3",
+    "sentencepiece>=0.1.99",
     "tokenizers>=0.22.0",
     
     # Core Dependencies
@@ -45,23 +45,28 @@ dependencies = [
     "protobuf>=3.20.0",
     "simpleeval>=0.9.13",
     "safetensors==0.7.0",
-    "py-cpuinfo==9.0.0",
+    "py-cpuinfo>=9.0.0",
     "rich>=13.9.4",
     "aiofiles==25.1.0",
     "async-timeout==5.0.1",
     "tensorboard==2.20.0",
     
     # Training Frameworks
-    "training_hub[lora]==0.5.0",
+    "training_hub==0.5.0",
     
-    # Flash Attention (pre-built wheel from AIPCC)
-    "flash-attn==2.8.3",
+    # Kubeflow SDK
+    "kubeflow==0.3.0+rhai0",
+    
+    # Note: GPU-specific packages are NOT included:
+    # - flash-attn (requires CUDA/ROCm)
+    # - bitsandbytes (GPU-focused)
+    # - liger-kernel (GPU-focused)
+    # - deepspeed (primarily for GPU training)
+    # - causal-conv1d, mamba-ssm (require CUDA)
 ]
 
 [tool.uv]
 environments = [
     "sys_platform == 'linux' and implementation_name == 'cpython'",
 ]
-# Strict AIPCC-only - no fallback indexes
-# If a package is missing, request it be added to AIPCC
-index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA1/rocm6.4-ubi9-test/simple/"
+index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cpu-ubi9-test/simple/"
