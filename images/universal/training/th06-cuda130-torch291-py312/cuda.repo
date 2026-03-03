@@ -2,5 +2,6 @@
 name=CUDA Repository for RHEL9 x86_64
 baseurl=https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64
 enabled=1
-gpgcheck=0
+gpgcheck=1
+gpgkey=https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/D42D0685.pub
 
