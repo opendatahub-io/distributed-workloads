@@ -2,6 +2,6 @@
 name=Mellanox OFED Repository 24.10-1.1.4.0
 baseurl=https://linux.mellanox.com/public/repo/mlnx_ofed/24.10-1.1.4.0/rhel9.5/x86_64
 enabled=1
-gpgcheck=0
-# GPG key URL no longer available: https://linux.mellanox.com/public/keys/GPG-KEY-Mellanox.pub
+gpgcheck=1
+gpgkey=https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox
 
