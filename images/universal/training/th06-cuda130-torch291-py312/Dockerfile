@@ -1,8 +1,9 @@
-# ROCm Image Dockerfile
+# Universal Image Dockerfile
 #
 # FIPS-friendly Features:
 # - Build tools are isolated in intermediate stage
 # - Final image contains only runtime dependencies
+# - OpenSSL FIPS mode supported via base image
 # - Uses pip install (additive) to preserve base image packages
 #
 # Build Modes:
@@ -12,7 +13,7 @@
 ################################################################################
 # Build Arguments
 ################################################################################
-ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-rocm-py312-ubi9:3.4_ea1-v1.41
+ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cuda-py312-ubi9:3.4_ea2-v1.42
 ARG PYTHON_VERSION=3.12
 ARG DOWNSTREAM=false
 
@@ -32,16 +33,10 @@ USER 1001
 WORKDIR /opt/app-root/src
 
 # Install main dependencies from AIPCC index
-# All packages (including flash-attn) are pre-built wheels in AIPCC
-# Strict AIPCC-only - no fallback indexes (request missing packages be added to AIPCC)
+# All packages (including flash-attn, mamba-ssm) are pre-built wheels in AIPCC
 RUN uv pip install --no-cache-dir --require-hashes \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA1/rocm6.4-ubi9-test/simple/ \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9-test/simple/ \
     -r /tmp/deps/requirements.txt
-
-# Install kubeflow-sdk from Git (not in AIPCC index yet)
-# TODO: use aipcc index when available
-RUN pip install --retries 5 --timeout 300 --no-cache-dir \
-    "git+https://github.com/opendatahub-io/kubeflow-sdk@main"
 
 # Fix permissions for OpenShift
 ARG PYTHON_VERSION
@@ -57,11 +52,11 @@ RUN rm -rf /tmp/deps
 ################################################################################
 FROM ${BASE_IMAGE} AS final
 
-LABEL name="rocm:py312-rocm64-torch291" \
-      summary="ROCm 6.4 Python 3.12 image with PyTorch 2.9.1" \
-      description="ROCm image combining minimal Jupyter workbench and runtime ML stack (ROCm 6.4, PyTorch 2.9.1) on UBI9" \
-      io.k8s.display-name="ROCm 6.4 Python 3.12 (Workbench + Runtime)" \
-      io.k8s.description="ROCm image: Jupyter workbench by default; runtime when command provided."
+LABEL name="universal:th06-cuda130-py312-torch291" \
+      summary="TH06 CUDA 13.0 Python 3.12 image with PyTorch 2.9.1" \
+      description="Universal image combining minimal Jupyter workbench and runtime ML stack (CUDA 13.0, PyTorch 2.9.1, FlashAttention 2.8.3) on UBI9" \
+      io.k8s.display-name="TH06 CUDA 13.0 Python 3.12 (Workbench + Runtime)" \
+      io.k8s.description="Universal image: Jupyter workbench by default; runtime when command provided."
 
 USER 0
 WORKDIR /opt/app-root/src
@@ -69,23 +64,29 @@ WORKDIR /opt/app-root/src
 ################################################################################
 # MIDSTREAM ONLY: Environment variables and system packages
 # Controlled by ARG DOWNSTREAM (default: false)
-# - DOWNSTREAM=false (midstream): Installs ROCm dev tools, RDMA packages, sets env vars
+# - DOWNSTREAM=false (midstream): Installs CUDA dev tools, RDMA packages, sets env vars
 # - DOWNSTREAM=true: Skips this section (AIPCC base image has everything pre-configured)
 ################################################################################
 ARG DOWNSTREAM
 
-# Environment variables for ROCm/HIP
+# Environment variables for NVIDIA and CUDA
 # These are safe to set in both modes - they define standard paths
 # In downstream, the base image may override these appropriately
-ENV ROCM_HOME=/opt/rocm \
-    HIP_PATH=/opt/rocm \
-    PATH=/opt/rocm/bin:${PATH} \
-    LD_LIBRARY_PATH=/opt/rocm/lib:${LD_LIBRARY_PATH} \
-    CPATH=/opt/rocm/include:${CPATH}
+ENV NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    CUDA_HOME=/usr/local/cuda \
+    PATH=/usr/local/cuda/bin:${PATH} \
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH} \
+    CPATH=/usr/local/cuda/include:${CPATH} \
+    TRITON_PTXAS_PATH=/usr/local/cuda/bin/ptxas \
+    TRITON_CUOBJDUMP_PATH=/usr/local/cuda/bin/cuobjdump \
+    TRITON_NVDISASM_PATH=/usr/local/cuda/bin/nvdisasm \
+    TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0" \
+    XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
 
 # System packages (MIDSTREAM ONLY - skipped when DOWNSTREAM=true)
-# Repo files for ROCm and RDMA packages
-COPY rocm.repo mellanox.repo /etc/yum.repos.d/
+# Repo files for CUDA and RDMA packages
+COPY cuda.repo mellanox.repo /etc/yum.repos.d/
 
 RUN if [ "${DOWNSTREAM}" != "true" ]; then \
     echo "MIDSTREAM BUILD: Installing system packages..." && \
@@ -99,16 +100,9 @@ RUN if [ "${DOWNSTREAM}" != "true" ]; then \
         librdmacm \
         librdmacm-utils \
         rdma-core \
-        rocm-llvm \
-        hipcc \
-        hip-devel \
-        hip-runtime-amd \
-        rocm-device-libs && \
-    dnf clean all && rm -rf /var/cache/dnf/* && \
-    # Fix /opt/rocm symlink if needed
-    if [ -L /opt/rocm ] && [ "$(readlink /opt/rocm)" != "/opt/rocm-6.4.3" ]; then \
-        rm -f /opt/rocm && ln -sf /opt/rocm-6.4.3 /opt/rocm; \
-    fi; \
+        cuda-cudart-devel-13-0 \
+        cuda-nvcc-13-0 && \
+    dnf clean all && rm -rf /var/cache/dnf/*; \
 else \
     echo "DOWNSTREAM BUILD: Skipping system packages (provided by base image)"; \
 fi
@@ -126,7 +120,7 @@ COPY --from=builder /opt/app-root/bin /opt/app-root/bin
 RUN rm -f /opt/app-root/bin/uv
 
 # Copy license file
-COPY LICENSE.md /licenses/rocm-license.md
+COPY LICENSE.md /licenses/cuda-license.md
 
 # Copy entrypoint
 COPY --chmod=0755 entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
