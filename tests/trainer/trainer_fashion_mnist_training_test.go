@@ -37,27 +37,27 @@ import (
 
 func TestPyTorchDDPMultiNodeMultiCPUWithTorchCuda28(t *testing.T) {
 	Tags(t, Tier1, MultiNode(2))
-	runPyTorchDDPMultiNodeJob(t, CPU, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 2, 2)
+	runPyTorchDDPMultiNodeJob(t, CPU, GetTrainingCudaPyTorch28Image(), "resources/requirements-cpu.txt", 2, 2)
 }
 
 func TestPyTorchDDPSingleNodeSingleGPUWithTorchCuda(t *testing.T) {
 	Tags(t, KftoCuda)
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 1, 1)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements-cuda.txt", 1, 1)
 }
 
 func TestPyTorchDDPSingleNodeMultiGPUWithTorchCuda(t *testing.T) {
 	Tags(t, KftoCuda)
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 1, 2)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements-cuda.txt", 1, 2)
 }
 
 func TestPyTorchDDPMultiNodeSingleGPUWithTorchCuda(t *testing.T) {
 	Tags(t, KftoCuda)
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 2, 1)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements-cuda.txt", 2, 1)
 }
 
 func TestPyTorchDDPMultiNodeMultiGPUWithTorchCuda(t *testing.T) {
 	Tags(t, KftoCuda)
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 2, 2)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements-cuda.txt", 2, 2)
 }
 
 func TestPyTorchDDPSingleNodeSingleGPUWithTorchRocm(t *testing.T) {
@@ -405,6 +405,10 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 															MountPath: "/mnt/scripts",
 															ReadOnly:  true,
 														},
+														{
+															Name:      "dshm",
+															MountPath: "/dev/shm",
+														},
 													},
 												},
 											},
@@ -424,6 +428,14 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 															LocalObjectReference: corev1.LocalObjectReference{
 																Name: configMapName,
 															},
+														},
+													},
+												},
+												{
+													Name: "dshm",
+													VolumeSource: corev1.VolumeSource{
+														EmptyDir: &corev1.EmptyDirVolumeSource{
+															Medium: corev1.StorageMediumMemory,
 														},
 													},
 												},
