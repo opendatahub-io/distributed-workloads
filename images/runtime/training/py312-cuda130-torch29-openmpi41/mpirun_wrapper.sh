@@ -18,4 +18,5 @@ if ! getent passwd "$(id -u)" > /dev/null 2>&1; then
     exit 1
   fi
 fi
-exec "$@"
+
+exec /usr/lib64/openmpi/bin/mpirun "$@"
