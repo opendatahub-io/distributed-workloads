@@ -33,55 +33,58 @@ import (
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
+	trainerutils "github.com/opendatahub-io/distributed-workloads/tests/trainer/utils"
 )
 
 func TestPyTorchDDPMultiNodeMultiCPUWithTorchCuda28(t *testing.T) {
 	Tags(t, Tier1, MultiNode(2))
-	runPyTorchDDPMultiNodeJob(t, CPU, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 2, 2)
+	runPyTorchDDPMultiNodeJob(t, CPU, trainerutils.DefaultClusterTrainingRuntimeCPU, "resources/requirements-cpu.txt", 2, 2)
 }
 
 func TestPyTorchDDPSingleNodeSingleGPUWithTorchCuda(t *testing.T) {
 	Tags(t, KftoCuda)
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 1, 1)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, "resources/requirements-cuda.txt", 1, 1)
 }
 
 func TestPyTorchDDPSingleNodeMultiGPUWithTorchCuda(t *testing.T) {
 	Tags(t, KftoCuda)
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 1, 2)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, "resources/requirements-cuda.txt", 1, 2)
 }
 
 func TestPyTorchDDPMultiNodeSingleGPUWithTorchCuda(t *testing.T) {
 	Tags(t, KftoCuda)
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 2, 1)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, "resources/requirements-cuda.txt", 2, 1)
 }
 
 func TestPyTorchDDPMultiNodeMultiGPUWithTorchCuda(t *testing.T) {
 	Tags(t, KftoCuda)
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements.txt", 2, 2)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, "resources/requirements-cuda.txt", 2, 2)
 }
 
 func TestPyTorchDDPSingleNodeSingleGPUWithTorchRocm(t *testing.T) {
 	Tags(t, KftoRocm)
-	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 1, 1)
+	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 1, 1)
 }
 
 func TestPyTorchDDPSingleNodeMultiGPUWithTorchRocm(t *testing.T) {
 	Tags(t, KftoRocm)
-	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 1, 2)
+	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 1, 2)
 }
 
 func TestPyTorchDDPMultiNodeSingleGPUWithTorchRocm(t *testing.T) {
 	Tags(t, KftoRocm)
-	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 2, 1)
+	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 2, 1)
 }
 
 func TestPyTorchDDPMultiNodeMultiGPUWithTorchRocm(t *testing.T) {
 	Tags(t, KftoRocm)
-	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 2, 2)
+	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 2, 2)
 }
 
-func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, baseImage string, requirementsFile string, numNodes, numProcPerNode int32) {
+func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, clusterRuntimeName string, requirementsFile string, numNodes, numProcPerNode int32) {
 	test := With(t)
+	baseImage, err := trainerutils.GetImageFromClusterTrainingRuntime(test, clusterRuntimeName)
+	test.Expect(err).ToNot(HaveOccurred(), "Failed to get image from ClusterTrainingRuntime: %v", err)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 
 	// Create a namespace with Kueue labeled
@@ -118,11 +121,11 @@ func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, baseImage 
 						Resources: []v1beta1.ResourceQuota{
 							{
 								Name:         corev1.ResourceCPU,
-								NominalQuota: resource.MustParse("8"),
+								NominalQuota: resource.MustParse("10"),
 							},
 							{
 								Name:         corev1.ResourceMemory,
-								NominalQuota: resource.MustParse("36Gi"),
+								NominalQuota: resource.MustParse("40Gi"),
 							},
 						},
 					},
@@ -132,7 +135,7 @@ func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, baseImage 
 	}
 
 	if accelerator.IsGpu() {
-		numGpus := numNodes * numProcPerNode
+		numGpus := numNodes*numProcPerNode + 1 // +1 for dataset-initializer
 		cqSpec.ResourceGroups[0].CoveredResources = append(
 			cqSpec.ResourceGroups[0].CoveredResources,
 			corev1.ResourceName(accelerator.ResourceLabel),
@@ -279,16 +282,7 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 
 														echo "Dataset initialization completed!"
 													`},
-													Resources: corev1.ResourceRequirements{
-														Requests: corev1.ResourceList{
-															corev1.ResourceCPU:    resource.MustParse("1"),
-															corev1.ResourceMemory: resource.MustParse("2Gi"),
-														},
-														Limits: corev1.ResourceList{
-															corev1.ResourceCPU:    resource.MustParse("2"),
-															corev1.ResourceMemory: resource.MustParse("4Gi"),
-														},
-													},
+													Resources: datasetInitializerResources(accelerator),
 													VolumeMounts: []corev1.VolumeMount{
 														{
 															Name:      "workspace",
@@ -520,6 +514,24 @@ func createFashionMNISTTrainJob(test Test, namespace, runtimeName string, accele
 	test.T().Logf("Created TrainJob %s/%s", createTrainJob.Namespace, createTrainJob.Name)
 
 	return createTrainJob
+}
+
+func datasetInitializerResources(accelerator Accelerator) corev1.ResourceRequirements {
+	resources := corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("1"),
+			corev1.ResourceMemory: resource.MustParse("2Gi"),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("2"),
+			corev1.ResourceMemory: resource.MustParse("4Gi"),
+		},
+	}
+	if accelerator.IsGpu() {
+		resources.Requests[corev1.ResourceName(accelerator.ResourceLabel)] = resource.MustParse("1")
+		resources.Limits[corev1.ResourceName(accelerator.ResourceLabel)] = resource.MustParse("1")
+	}
+	return resources
 }
 
 func buildResourceRequirements(accelerator Accelerator, numProcPerNode int32) corev1.ResourceRequirements {
