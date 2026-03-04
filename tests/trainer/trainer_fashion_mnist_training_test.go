@@ -33,55 +33,58 @@ import (
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
+	trainerutils "github.com/opendatahub-io/distributed-workloads/tests/trainer/utils"
 )
 
 func TestPyTorchDDPMultiNodeMultiCPUWithTorchCuda28(t *testing.T) {
 	Tags(t, Tier1, MultiNode(2))
-	runPyTorchDDPMultiNodeJob(t, CPU, GetTrainingCudaPyTorch28Image(), "resources/requirements-cpu.txt", 2, 2)
+	runPyTorchDDPMultiNodeJob(t, CPU, trainerutils.DefaultClusterTrainingRuntime, "resources/requirements-cpu.txt", 2, 2)
 }
 
 func TestPyTorchDDPSingleNodeSingleGPUWithTorchCuda(t *testing.T) {
 	Tags(t, KftoCuda)
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements-cuda.txt", 1, 1)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntime, "resources/requirements-cuda.txt", 1, 1)
 }
 
 func TestPyTorchDDPSingleNodeMultiGPUWithTorchCuda(t *testing.T) {
 	Tags(t, KftoCuda)
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements-cuda.txt", 1, 2)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntime, "resources/requirements-cuda.txt", 1, 2)
 }
 
 func TestPyTorchDDPMultiNodeSingleGPUWithTorchCuda(t *testing.T) {
 	Tags(t, KftoCuda)
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements-cuda.txt", 2, 1)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntime, "resources/requirements-cuda.txt", 2, 1)
 }
 
 func TestPyTorchDDPMultiNodeMultiGPUWithTorchCuda(t *testing.T) {
 	Tags(t, KftoCuda)
-	runPyTorchDDPMultiNodeJob(t, NVIDIA, GetTrainingCudaPyTorch28Image(), "resources/requirements-cuda.txt", 2, 2)
+	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntime, "resources/requirements-cuda.txt", 2, 2)
 }
 
 func TestPyTorchDDPSingleNodeSingleGPUWithTorchRocm(t *testing.T) {
 	Tags(t, KftoRocm)
-	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 1, 1)
+	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 1, 1)
 }
 
 func TestPyTorchDDPSingleNodeMultiGPUWithTorchRocm(t *testing.T) {
 	Tags(t, KftoRocm)
-	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 1, 2)
+	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 1, 2)
 }
 
 func TestPyTorchDDPMultiNodeSingleGPUWithTorchRocm(t *testing.T) {
 	Tags(t, KftoRocm)
-	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 2, 1)
+	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 2, 1)
 }
 
 func TestPyTorchDDPMultiNodeMultiGPUWithTorchRocm(t *testing.T) {
 	Tags(t, KftoRocm)
-	runPyTorchDDPMultiNodeJob(t, AMD, GetTrainingRocmPyTorch28Image(), "resources/requirements-rocm.txt", 2, 2)
+	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 2, 2)
 }
 
-func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, baseImage string, requirementsFile string, numNodes, numProcPerNode int32) {
+func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, clusterRuntimeName string, requirementsFile string, numNodes, numProcPerNode int32) {
 	test := With(t)
+	baseImage, err := trainerutils.GetImageFromClusterTrainingRuntime(test, clusterRuntimeName)
+	test.Expect(err).ToNot(HaveOccurred(), "Failed to get image from ClusterTrainingRuntime: %v", err)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 
 	// Create a namespace with Kueue labeled

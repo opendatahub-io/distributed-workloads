@@ -16,6 +16,15 @@ limitations under the License.
 
 package trainer
 
+import (
+	"errors"
+	"fmt"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/opendatahub-io/distributed-workloads/tests/common/support"
+)
+
 // ClusterTrainingRuntime represents a ClusterTrainingRuntime with its expected RHOAI image
 type ClusterTrainingRuntime struct {
 	Name       string
@@ -56,4 +65,26 @@ var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: "torch-distributed-rocm64-torch29-py312", RHOAIImage: "odh-training-rocm64-torch29-py312-rhel9"},
 	{Name: DefaultTrainingHubRuntime, RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
 	{Name: "training-hub-th05-cuda128-torch29-py312", RHOAIImage: "odh-training-cuda128-torch29-py312-rhel9"},
+}
+
+// GetImageFromClusterTrainingRuntime retrieves the container image from the named ClusterTrainingRuntime
+// on the cluster. Fails the test if the runtime is not found or has no image defined.
+func GetImageFromClusterTrainingRuntime(test support.Test, runtimeName string) (string, error) {
+	runtime, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(
+		test.Ctx(),
+		runtimeName,
+		metav1.GetOptions{},
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to get ClusterTrainingRuntime %q: %w", runtimeName, err)
+	}
+	for _, replicatedJob := range runtime.Spec.Template.Spec.ReplicatedJobs {
+		for _, container := range replicatedJob.Template.Spec.Template.Spec.Containers {
+			if container.Image != "" {
+				test.T().Logf("Using image from ClusterTrainingRuntime %q: %s", runtimeName, container.Image)
+				return container.Image, nil
+			}
+		}
+	}
+	return "", errors.New("no container image found in ClusterTrainingRuntime " + runtimeName)
 }
