@@ -27,7 +27,7 @@ spec:
   - name: output-image
     value: quay.io/opendatahub/odh-training-cuda121-torch24-py311:odh-stable
   - name: dockerfile
-    value: Dockerfile.odh
+    value: Dockerfile
   - name: path-context
     value: images/runtime/training/py311-cuda121-torch241
   pipelineRef:
