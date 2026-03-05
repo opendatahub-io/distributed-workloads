@@ -1,0 +1,96 @@
+# ROCm MPI Training Runtime
+# Mirrors CUDA MPI (PR #642): AIPCC base + OpenMPI + SSH + micropipenv Python stack.
+FROM quay.io/aipcc/base-images/rocm-6.4-el9.6:3.4.0-ea.1-1772615238
+
+ARG SSH_PORT=2222
+
+LABEL name="training:py312-rocm64-torch29-openmpi41" \
+      summary="ROCm 6.4 Python 3.12 PyTorch 2.9.1 OpenMPI 4.1 image based on UBI9 for Training" \
+      description="ROCm 6.4 Python 3.12 PyTorch 2.9.1 OpenMPI 4.1 image based on UBI9 for Training" \
+      io.k8s.display-name="ROCm 6.4 Python 3.12 PyTorch 2.9.1 OpenMPI 4.1 base image for Training" \
+      io.k8s.description="ROCm 6.4 Python 3.12 PyTorch 2.9.1 OpenMPI 4.1 image based on UBI9 for Training" \
+      authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
+
+USER 0
+
+RUN dnf install -y openssh-server && dnf clean all
+
+# Create symlinks for OpenMPI binaries in /usr/bin so they're in default SSH PATH
+RUN ln -s /usr/lib64/openmpi/bin/orted /usr/bin/orted \
+    && ln -s /usr/lib64/openmpi/bin/mpirun /usr/bin/mpirun \
+    && ln -s /usr/lib64/openmpi/bin/mpiexec /usr/bin/mpiexec
+
+# Wrapper script so python is reachable in SSH sessions AND the virtualenv is activated.
+# A symlink won't work: Python uses argv[0] to locate pyvenv.cfg, and /usr/local/bin/python
+# has no venv in its parent chain. The wrapper execs /opt/app-root/bin/python, which does.
+RUN printf '#!/bin/sh\nexec /opt/app-root/bin/python "$@"\n' > /usr/local/bin/python \
+    && chmod +x /usr/local/bin/python
+
+# Set LD_LIBRARY_PATH in /etc/environment for SSH sessions (loaded by PAM, not inherited from container).
+# ROCm and OpenMPI libs need explicit entry for SSH-spawned processes.
+RUN echo "LD_LIBRARY_PATH=/usr/lib64/openmpi/lib" >> /etc/environment
+
+RUN mkdir -p /var/run/sshd
+
+# SSH client config
+RUN sed -i "s/[ #]\(.*StrictHostKeyChecking \).*/ \1no/g" /etc/ssh/ssh_config \
+    && echo "    UserKnownHostsFile /dev/null" >> /etc/ssh/ssh_config \
+    && echo "    Port ${SSH_PORT}" >> /etc/ssh/ssh_config \
+    && echo "    SendEnv PATH LD_LIBRARY_PATH" >> /etc/ssh/ssh_config
+
+# SSH server config
+RUN sed -i "s/#\(StrictModes \).*/\1no/g" /etc/ssh/sshd_config \
+    && sed -i "s/#\(Port \).*/\1${SSH_PORT}/g" /etc/ssh/sshd_config \
+    && echo "StrictModes no" >> /etc/ssh/sshd_config \
+    && echo "Port ${SSH_PORT}" >> /etc/ssh/sshd_config
+
+# Install InfiniBand and RDMA user-space libraries for multi-node (RoCE/RDMA)
+RUN dnf install -y \
+    rdma-core \
+    libibverbs \
+    librdmacm \
+    libibumad \
+    libmlx5 \
+    infiniband-diags \
+    && dnf clean all
+
+# User-level sshd config for running as non-root
+# OpenMPI MCA params: mtl=^ofi disables OFI MTL (SIGBUS without InfiniBand hardware)
+RUN mkdir -p /home/mpiuser /home/mpiuser/.openmpi && \
+    echo "PidFile /tmp/sshd.pid" > /home/mpiuser/.sshd_config && \
+    echo "HostKey /home/mpiuser/.ssh/id_rsa" >> /home/mpiuser/.sshd_config && \
+    echo "StrictModes no" >> /home/mpiuser/.sshd_config && \
+    echo "Port ${SSH_PORT}" >> /home/mpiuser/.sshd_config && \
+    echo "AcceptEnv PATH LD_LIBRARY_PATH" >> /home/mpiuser/.sshd_config && \
+    echo "mtl = ^ofi" > /home/mpiuser/.openmpi/mca-params.conf
+
+# Install micropipenv to deploy packages from requirements.txt
+RUN pip install --no-cache-dir -U "micropipenv[toml]"
+
+# Install Python dependencies from requirements.txt (AIPCC hermetic)
+WORKDIR /opt/app-root/bin
+COPY requirements.txt ./
+
+RUN micropipenv install -- --no-cache-dir && \
+    rm -f ./requirements.txt && \
+    pip install --no-cache-dir --no-deps s3fs==2026.1.0 && \
+    chmod -R g+w /opt/app-root/lib/python3.12/site-packages
+
+# OpenShift GID 0 pattern: give root group same permissions as owner.
+# OpenShift random UIDs always have GID 0 as primary group.
+RUN chgrp -R 0 /home/mpiuser && chmod -R g=u /home/mpiuser
+
+# Allow uid_entrypoint to add random UID to /etc/passwd at runtime
+RUN chmod g=u /etc/passwd
+
+# uid_entrypoint: register the OpenShift random UID in /etc/passwd so that
+# getpwuid() calls (used by Python getpass, PyTorch cache dirs, etc.) succeed.
+COPY uid_entrypoint.sh /usr/local/bin/uid_entrypoint.sh
+RUN chmod +x /usr/local/bin/uid_entrypoint.sh
+
+WORKDIR /home/mpiuser
+ENV HOME=/home/mpiuser
+ENV PATH=/usr/lib64/openmpi/bin:$HOME/.local/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:${LD_LIBRARY_PATH}
+ENTRYPOINT ["/usr/local/bin/uid_entrypoint.sh"]
+USER 1001
