@@ -17,8 +17,14 @@ RUN dnf install -y openssh-server && dnf clean all
 
 # Create symlinks for OpenMPI binaries in /usr/bin so they're in default SSH PATH
 RUN ln -s /usr/lib64/openmpi/bin/orted /usr/bin/orted \
-    && ln -s /usr/lib64/openmpi/bin/mpirun /usr/bin/mpirun \
     && ln -s /usr/lib64/openmpi/bin/mpiexec /usr/bin/mpiexec
+
+# mpirun wrapper: registers the OpenShift random UID in /etc/passwd before launching mpirun.
+# This is needed because the SDK overrides the container entrypoint, bypassing uid_entrypoint.sh.
+# Placed in /usr/local/bin (not /usr/bin) so it takes precedence over the real mpirun in
+# /usr/lib64/openmpi/bin, which the base image puts before /usr/bin in PATH.
+COPY mpirun_wrapper.sh /usr/local/bin/mpirun
+RUN chmod +x /usr/local/bin/mpirun
 
 # Wrapper script so python is reachable in SSH sessions AND the virtualenv is activated.
 # A symlink won't work: Python uses argv[0] to locate pyvenv.cfg, and /usr/local/bin/python
@@ -55,7 +61,9 @@ RUN dnf install -y \
     && dnf clean all
 
 # User-level sshd config for running as non-root
-# OpenMPI MCA params: mtl=^ofi disables OFI MTL (SIGBUS without InfiniBand hardware)
+# OpenMPI MCA params file: read by every OpenMPI process regardless of environment variables,
+# so this reliably applies to orted and worker processes launched via SSH.
+# mtl=^ofi disables OFI MTL (SIGBUS without InfiniBand hardware).
 RUN mkdir -p /home/mpiuser /home/mpiuser/.openmpi && \
     echo "PidFile /tmp/sshd.pid" > /home/mpiuser/.sshd_config && \
     echo "HostKey /home/mpiuser/.ssh/id_rsa" >> /home/mpiuser/.sshd_config && \
@@ -64,15 +72,15 @@ RUN mkdir -p /home/mpiuser /home/mpiuser/.openmpi && \
     echo "AcceptEnv PATH LD_LIBRARY_PATH" >> /home/mpiuser/.sshd_config && \
     echo "mtl = ^ofi" > /home/mpiuser/.openmpi/mca-params.conf
 
-# Install micropipenv to deploy packages from requirements.txt
+# Install micropipenv to deploy packages from Pipfile.lock
 RUN pip install --no-cache-dir -U "micropipenv[toml]"
 
-# Install Python dependencies from requirements.txt (AIPCC hermetic)
+# Install Python dependencies from Pipfile.lock file
 WORKDIR /opt/app-root/bin
-COPY requirements.txt ./
+COPY Pipfile.lock ./
 
 RUN micropipenv install -- --no-cache-dir && \
-    rm -f ./requirements.txt && \
+    rm -f ./Pipfile.lock && \
     pip install --no-cache-dir --no-deps s3fs==2026.1.0 && \
     chmod -R g+w /opt/app-root/lib/python3.12/site-packages
 
@@ -90,7 +98,7 @@ RUN chmod +x /usr/local/bin/uid_entrypoint.sh
 
 WORKDIR /home/mpiuser
 ENV HOME=/home/mpiuser
-ENV PATH=/usr/lib64/openmpi/bin:$HOME/.local/bin:$PATH
+ENV PATH=/usr/local/bin:$PATH:$HOME/.local/bin
 ENV LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:${LD_LIBRARY_PATH}
 ENTRYPOINT ["/usr/local/bin/uid_entrypoint.sh"]
 USER 1001
