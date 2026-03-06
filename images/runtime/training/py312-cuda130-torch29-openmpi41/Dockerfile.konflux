@@ -1,4 +1,4 @@
-FROM quay.io/aipcc/base-images/cuda-13.0-el9.6:3.3.0-1771879618
+FROM quay.io/aipcc/base-images/cuda-13.0-el9.6:3.4.0-ea.1-1772615323
 
 ARG SSH_PORT=2222
 
@@ -15,8 +15,14 @@ RUN dnf install -y openssh-server && dnf clean all
 
 # Create symlinks for OpenMPI binaries in /usr/bin so they're in default SSH PATH
 RUN ln -s /usr/lib64/openmpi/bin/orted /usr/bin/orted \
-    && ln -s /usr/lib64/openmpi/bin/mpirun /usr/bin/mpirun \
     && ln -s /usr/lib64/openmpi/bin/mpiexec /usr/bin/mpiexec
+
+# mpirun wrapper: registers the OpenShift random UID in /etc/passwd before launching mpirun.
+# This is needed because the SDK overrides the container entrypoint, bypassing uid_entrypoint.sh.
+# Placed in /usr/local/bin (not /usr/bin) so it takes precedence over the real mpirun in
+# /usr/lib64/openmpi/bin, which the base image puts before /usr/bin in PATH.
+COPY mpirun_wrapper.sh /usr/local/bin/mpirun
+RUN chmod +x /usr/local/bin/mpirun
 
 # Wrapper script so python is reachable in SSH sessions AND the virtualenv is activated.
 # A symlink won't work: Python uses argv[0] to locate pyvenv.cfg, and /usr/local/bin/python
@@ -92,7 +98,7 @@ RUN chmod +x /usr/local/bin/uid_entrypoint.sh
 
 WORKDIR /home/mpiuser
 ENV HOME=/home/mpiuser
-ENV PATH=/usr/lib64/openmpi/bin:$HOME/.local/bin:$PATH
+ENV PATH=/usr/local/bin:$PATH:$HOME/.local/bin
 ENV LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:${LD_LIBRARY_PATH}
 ENTRYPOINT ["/usr/local/bin/uid_entrypoint.sh"]
 USER 1001
