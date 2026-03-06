@@ -46,7 +46,7 @@ spec:
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-th06-rocm64-torch291-py312
+    serviceAccountName: build-pipeline-odh-th06-rocm64-torch291-py312-ci
   workspaces:
   - name: git-auth
     secret:
