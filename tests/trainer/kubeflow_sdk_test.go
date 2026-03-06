@@ -134,6 +134,18 @@ func TestRhaiFeaturesMultiGpuRocm(t *testing.T) {
 	sdktests.RunRhaiFeaturesAllMultiGpuTest(t, support.AMD, 2, 2)
 }
 
+// Training Failure Scenarios (CPU only) — verifies failures are properly propagated
+func TestTrainingFailureScenarios(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunTrainingFailureScenariosTest(t)
+}
+
+// Torchrun Training Failure (GPU) — verifies OOM during forward pass is propagated via SDK
+func TestTorchrunTrainingFailure(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunTorchrunTrainingFailureTest(t)
+}
+
 // S3 Checkpoint tests (CPU only, auto-skip if S3 not configured)
 func TestRhaiS3CheckpointingCPU(t *testing.T) {
 	Tags(t, Tier1)
