@@ -19,6 +19,9 @@ metadata:
   name: odh-th06-rocm64-torch291-py312-ci-on-push
   namespace: open-data-hub-tenant
 spec:
+  timeouts:
+    pipeline: 10h
+    tasks: 8h
   params:
   - name: git-url
     value: '{{source_url}}'
@@ -30,6 +33,9 @@ spec:
     value: Dockerfile
   - name: path-context
     value: images/universal/training/th06-rocm64-torch291-py312
+  - name: build-platforms
+    value:
+    - linux-extra-fast/amd64
   pipelineRef:
     resolver: git
     params:
