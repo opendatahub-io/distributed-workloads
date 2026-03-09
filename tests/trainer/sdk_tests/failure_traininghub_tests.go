@@ -100,7 +100,7 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
 
 	// Poll logs — each scenario polls until the expected error appears in logs
-	// and at least one container restart is confirmed, typically ~2 minutes each
+	// and failure is confirmed via get_job()/get_job_events(), typically ~1 minute each
 	err = trainerutils.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
 	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 }
