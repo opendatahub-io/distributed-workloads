@@ -38,10 +38,6 @@ RUN uv pip install --no-cache-dir --require-hashes \
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9-test/simple/ \
     -r /tmp/deps/requirements.txt
 
-# TODO: Remove once s3fs is available in AIPCC with compatible fsspec version
-# Installing without deps since fsspec is already installed from AIPCC
-RUN pip install --no-cache-dir --no-deps s3fs
-
 # Fix permissions for OpenShift
 ARG PYTHON_VERSION
 USER 0
