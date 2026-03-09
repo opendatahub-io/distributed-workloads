@@ -61,7 +61,7 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
 	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{failureNotebookName: nb})
 
-	// Create RWX PVC for shared volume mount (training pods need a PVC even though data is intentionally missing)
+	// Create RWX PVC required by the notebook pod template
 	storageClass, err := support.GetRWXStorageClass(test)
 	test.Expect(err).NotTo(HaveOccurred(), "Failed to find an RWX supporting StorageClass")
 	rwxPvc := support.CreatePersistentVolumeClaim(
@@ -76,12 +76,11 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 		"set -e; "+
 			"export OPENSHIFT_API_URL='%s'; export NOTEBOOK_USER_TOKEN='%s'; "+
 			"export NOTEBOOK_NAMESPACE='%s'; "+
-			"export SHARED_PVC_NAME='%s'; "+
 			"export TRAINING_RUNTIME='%s'; "+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
+		support.GetOpenShiftApiUrl(test), userToken, namespace.Name,
 		trainerutils.DefaultTrainingHubRuntime,
 		failureNotebookName,
 	)
