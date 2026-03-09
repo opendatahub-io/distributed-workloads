@@ -64,20 +64,29 @@ dependencies = [
     # Networking
     "async-timeout==5.0.1",
     
-    # Model Management
+    # HuggingFace
     "hf-xet>=1.1.8",
     "huggingface-hub>=0.34.4",
     # TODO: re-add mlflow when AIPCC has a version compatible with training-hub
     # mlflow==3.10.0+rhai1 requires kubernetes<35, which requires urllib3<2.4
-    # training-hub==0.5.0 requires urllib3>=2.4 - conflict!
+    # training-hub==0.6.0 requires urllib3>=2.4 - conflict!
+    
+    # Storage
+    "s3fs==2025.9.0",
     
     # Training Frameworks
-    "training_hub[lora]==0.5.0",
+    "training_hub[lora]==0.6.0",
     "instructlab-training==0.14.2",
     "rhai-innovation-mini-trainer==0.6.1",
+    "unsloth==2026.3.3",
     
     # Kubeflow SDK
     "kubeflow==0.3.0+rhai0",
+    "kubeflow_spark_api==2.4.0",
+    "pyspark_connect==4.0.1",
+    
+    # Model Management
+    "model_registry==0.3.7",
     
     # Flash Attention (pre-built wheel from AIPCC)
     "flash-attn==2.8.3",

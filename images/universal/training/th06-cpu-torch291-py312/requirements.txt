@@ -2,14 +2,17 @@
 #    uv pip compile --generate-hashes --python-platform=linux --python-version=3.12 -o requirements.txt pyproject.toml
 absl-py==2.4.0 \
     --hash=sha256:f81ffbf92152dbdafb5b904c7e558437bded64fa4c6a72b7411d470be21155ab
-# via tensorboard
+    # via tensorboard
 accelerate==1.12.0 \
     --hash=sha256:2cc9c0dc2806a02ca621f0ff212873861406335bffc766f81ff4e29abe863542
-# via
+    # via
     #   th06-cpu-universal-image (pyproject.toml)
     #   peft
     #   training-hub
     #   trl
+aiobotocore==2.26.0 \
+    --hash=sha256:f40bc7dd26363986b3e4d4c7fd349a8ce83d900f377e37fc8ef216e7bc1d0ec4
+    # via s3fs
 aiofiles==25.1.0 \
     --hash=sha256:66b8b3be2f27c34e16709368f0fbfc0cedc3a47064f8c79da3d559513046cd25
     # via
@@ -19,15 +22,28 @@ aiofiles==25.1.0 \
     #   training-hub
 aiohappyeyeballs==2.6.1 \
     --hash=sha256:c6a86408878a5b6b76ae6cd305f79ac9f690a38b21af183e00c150ef3f569d29
-# via aiohttp
+    # via aiohttp
 aiohttp==3.13.3 \
-    --hash=sha256:1b0433c52ce2bc5fa58a6905b0bb09fd9e0824d267e0e723a9ad02ef9a19b3eb
-# via
+    --hash=sha256:1b0433c52ce2bc5fa58a6905b0bb09fd9e0824d267e0e723a9ad02ef9a19b3eb \
+    --hash=sha256:5d87989e585b0bfb8ae5d768eebf4e391b1314bb754160e5c4641e8ae96a23fc \
+    --hash=sha256:6f7678ffb1d442355c7a521ce0b3216e743a4237b9c78fc5f08d63233a875f31 \
+    --hash=sha256:92f523cdce332133d8373b7fff256c2e948c46b44549149f0121b5725843f23f
+    # via
+    #   aiobotocore
+    #   aiohttp-retry
     #   fsspec
+    #   model-registry
+    #   s3fs
     #   training-hub
+aiohttp-retry==2.9.1 \
+    --hash=sha256:b4c2c7b93efb1186b3718e4054b2827e24746dafc46bb285233cec50caaaed91
+    # via model-registry
+aioitertools==0.13.0 \
+    --hash=sha256:bfb652d26638ce7316efcc2646940b05ad24a7beaa5b2e92f0e8078722bb8d48
+    # via aiobotocore
 aiosignal==1.4.0 \
     --hash=sha256:0894850b54c871dd0365925589ad5dfa70e673059596187e7097e076ea571b1d
-# via aiohttp
+    # via aiohttp
 annotated-doc==0.0.4 \
     --hash=sha256:7efd1fef196515821249f7376bb0d7ba66dcbab04a506376c4fd3582b94ec653
     # via typer
@@ -36,29 +52,41 @@ annotated-types==0.7.0 \
     # via pydantic
 anyio==4.12.1 \
     --hash=sha256:25e9d0b65019de0c6b5f3f321cbb955a5fcc7d3fa07ee76c18a0ce847625172f
-# via httpx
+    # via httpx
 async-timeout==5.0.1 \
     --hash=sha256:a782f78ba4d924bf92a3f6287c39246e67c171633e52bc9ab811dc89c3346848
-# via th06-cpu-universal-image (pyproject.toml)
+    # via th06-cpu-universal-image (pyproject.toml)
 attr==0.3.2 \
     --hash=sha256:8cae4669a9f7bf8b6a897b032eea666980db0721bea62c8b253a750e103a4f46
     # via training-hub
 attrs==25.4.0 \
     --hash=sha256:e1dc38a2bc0bd08b70d628566c13bd92a68a9ebb82553a20ea4c7f9d6a8c5597
-# via aiohttp
+    # via aiohttp
+botocore==1.41.5 \
+    --hash=sha256:cf1e946709ae4f4e9c719b25813d4bfbf6178b209a2a4818c07493637c2635fc
+    # via aiobotocore
 certifi==2026.1.4 \
     --hash=sha256:f9e69398cb4d05e32cb2bd1800227cf75ada6059f7dc02b326898025db810c68
-# via
+    # via
     #   httpcore
     #   httpx
     #   kubernetes
     #   requests
 charset-normalizer==3.4.4 \
     --hash=sha256:721fb3ed2c6f90288765ed68d5cc0329a2b4de9705ca4e8a5c2923078b8c710e
-# via requests
+    # via requests
 click==8.3.1 \
     --hash=sha256:fc4b7221f8596a07f18ab65bea809c463f1c4e2319e1a9799818c40826edc8f6
-# via typer
+    # via typer
+contourpy==1.3.3 \
+    --hash=sha256:282d24135ba742e56d396d0c665ee04e1b3abde59fc831963079ca7a877d1352 \
+    --hash=sha256:4f721b5435875e1a87101cb91a56f6f3101b5361093d9e90de6a86fd5bd0df4c \
+    --hash=sha256:940b3c928ba1f0782908ff8da16ec25f9bd2a34e7ed47d53da4e7f7c54973d09 \
+    --hash=sha256:f76890a69d4d27c8107cc94aba6160672e2d3790c04a5cd877c6463c6eddf747
+    # via matplotlib
+cycler==0.12.1 \
+    --hash=sha256:84979e5992653f28df02c64dbc030dba0e8de063d95af2246757aba3c7999ffa
+    # via matplotlib
 datasets==4.3.0 \
     --hash=sha256:70731cc5dd632e477ffc1e943d74ce7ac698460f188cbe2935fbbb1ce515c22c
     # via
@@ -69,10 +97,10 @@ datasets==4.3.0 \
     #   trl
 deprecated==1.3.1 \
     --hash=sha256:5eebcd88bef174227737f8d4862afe62c2397037080b9eaa14a19895ff3f00fb
-# via rhai-innovation-mini-trainer
+    # via rhai-innovation-mini-trainer
 dill==0.4.0 \
     --hash=sha256:ae1b12750dbe9326f15327fab9886ff328c4d96d0105832931299e025e16d169
-# via
+    # via
     #   datasets
     #   multiprocess
 durationpy==0.10 \
@@ -80,18 +108,24 @@ durationpy==0.10 \
     # via kubernetes
 einops==0.8.2 \
     --hash=sha256:e14c8f0f96254e435bb5c38dcc1661f1ea10f60865f7deaabb023e5b6127b539
-# via th06-cpu-universal-image (pyproject.toml)
+    # via th06-cpu-universal-image (pyproject.toml)
 filelock==3.20.3 \
     --hash=sha256:97621780cbf4d152f1dc04974e8b23cc6ced6a00cf88d6a1fdd0e14818afa14e
-# via
+    # via
     #   datasets
     #   huggingface-hub
     #   torch
     #   training-hub
     #   transformers
+fonttools==4.61.1 \
+    --hash=sha256:c45d987b139ef820cb9861c34a54cf2af8969ef509727ed0b86e53621086b0d4
+    # via matplotlib
 frozenlist==1.8.0 \
-    --hash=sha256:38fc5ff1cc2847d7b36cc48253868269dfbaabed631c3a71e2d5bcb26cc5ff03
-# via
+    --hash=sha256:0aa8fc161fbfe3dd6730357dff925e39fe4bde07d1694ed5f26235a8cb225ab4 \
+    --hash=sha256:38fc5ff1cc2847d7b36cc48253868269dfbaabed631c3a71e2d5bcb26cc5ff03 \
+    --hash=sha256:8735b812251aed24e97acb3d98c8b98b0a3d6cb98bc47ebc1a744ce9cb93205f \
+    --hash=sha256:bacc478cc32f63619aa33aedbe6451fa09904a96808942352c99094c7ea0986d
+    # via
     #   aiohttp
     #   aiosignal
     #   training-hub
@@ -100,26 +134,41 @@ fsspec==2025.9.0 \
     # via
     #   datasets
     #   huggingface-hub
+    #   s3fs
     #   torch
     #   training-hub
+googleapis-common-protos==1.73.0 \
+    --hash=sha256:a2abe1c34d079d8fefb05ba82f82b5850e918a207685568caac8ff7bc297a6db
+    # via
+    #   grpcio-status
+    #   pyspark-connect
 grpcio==1.78.1 \
     --hash=sha256:3adaf0c45814c8babb0376a6ff5b13d672f5144915692472d2e73724d2c68e0e \
     --hash=sha256:5daf3ec9d1c6791d0f4348a393ab208d1b139d7698e63c88f46e1e902ca528e9 \
     --hash=sha256:a8555a9173860f587ea94093123c0d1a82ab99838fa8c358e05a0dc00c47ab58 \
     --hash=sha256:c5894ee2540754043e3ae98be7bfe27067f1341be4f4f8993969fb194b687fe5
-    # via tensorboard
+    # via
+    #   grpcio-status
+    #   pyspark-connect
+    #   tensorboard
+grpcio-status==1.78.1 \
+    --hash=sha256:16cc60eceb2e9bd666b0a606a6ea9b2e23ff9a2fc77cb983a901f80693d4dd19
+    # via pyspark-connect
 h11==0.16.0 \
     --hash=sha256:1f57db4e6320f74869f695cb33197f9a2e956128932c4e3221ada214bafa383b
-# via httpcore
+    # via httpcore
 hf-xet==1.2.0 \
-    --hash=sha256:30e5ca8bd2fd37189f07724ef717fee839cc208ea60d3cda10fccff69635b58a
-# via huggingface-hub
+    --hash=sha256:30e5ca8bd2fd37189f07724ef717fee839cc208ea60d3cda10fccff69635b58a \
+    --hash=sha256:4db1eb1413eb5705c77c5fd51f0eca195ed2342864ecf69719df54eb361b3660 \
+    --hash=sha256:54fbaf533d03d0ddf2094b49d01f323c80ef3ec29f82e59cc32304a7c5952533 \
+    --hash=sha256:e42cb8b5a480329f3eeaf2527a106c89dba3ebb5af73f88892685a8c15eca7ee
+    # via huggingface-hub
 httpcore==1.0.9 \
     --hash=sha256:73b78c918fb6667168af94c14dcc34e864767cbaad55e25d5cdb4692bedee3e4
-# via httpx
+    # via httpx
 httpx==0.28.1 \
     --hash=sha256:6e201f022d2d08ff4ad5e08aaed0ba369851ecc696a4f8ecc59bf30140aa439e
-# via datasets
+    # via datasets
 huggingface-hub==0.36.2 \
     --hash=sha256:766833eaa1ecd2b0390295b916475ad8f32090c08dda1ad3706c37f5dd316744
     # via
@@ -130,37 +179,54 @@ huggingface-hub==0.36.2 \
     #   transformers
 idna==3.11 \
     --hash=sha256:f49cfba12c88423b9da3ddee7c73978947fd1d85fdd6f64e4c7dda2f5b3c83a1
-# via
+    # via
     #   anyio
     #   httpx
     #   requests
     #   yarl
 iniconfig==2.3.0 \
     --hash=sha256:c2582a9248e5443ec3cd4c5e5c2703fb9d92bcdf44b7fef5b8b14e7d55551edc
-# via pytest
+    # via pytest
 instructlab-training==0.14.2 \
     --hash=sha256:3fa6d835cab775922f4077591bae70f429e97107a265f015aee633c2a26eda37
     # via training-hub
 jinja2==3.1.6 \
     --hash=sha256:61b4b68331c4f1900566fe55e09f6a7ca849ce0a90cd070935b4f6ecefa3b86e
-# via
+    # via
     #   torch
     #   training-hub
+jmespath==1.1.0 \
+    --hash=sha256:5e3529fe01f3870f16072dd7c38dad104c3d13b51e2c1b9e2256e8af56553a3b
+    # via
+    #   aiobotocore
+    #   botocore
+kiwisolver==1.4.9 \
+    --hash=sha256:220b778cd567dcb1429618e19be1be4cdadb81f39f4cb6ea8602c32d8de01169 \
+    --hash=sha256:6b8d47ed9e7058c657e3d768b30f68ba2c6da43c18fe52f77c6da5a016bf2b3a \
+    --hash=sha256:8bdea8292fb12ea12596bd6cd83dfe6858841e183d87fc937589bca6fa2ecd57 \
+    --hash=sha256:93eeac87f3a28da46bc0856704f04308d2ee0d7b2eef065df670780a4d3c6f2b
+    # via matplotlib
 kubeflow==0.3.0+rhai0 \
     --hash=sha256:c08d79a90a059e7571a2f745b1412bfcb71fe5307644cd79fc1920fb83ca7e8f
     # via th06-cpu-universal-image (pyproject.toml)
 kubeflow-katib-api==0.19.0 \
     --hash=sha256:834c0df55743307e1b5fc398bd10fcbf0e6e656899e7db7e0f128d1d41e69fc0
     # via kubeflow
+kubeflow-spark-api==2.4.0 \
+    --hash=sha256:ced1700e025df863e8d67f632520f4b8f445950a561d3eb1b2bbb3ac256c4b7b
+    # via th06-cpu-universal-image (pyproject.toml)
 kubeflow-trainer-api==2.1.0 \
     --hash=sha256:008fb6268d23fa8b2dc287f4c07172e1b2a51f840a0e63d0afbf8e6a69264a2e
     # via kubeflow
 kubernetes==35.0.0 \
     --hash=sha256:9f8dfdaf76cb2b36b2cff1b2f4e65ab0b329f7ac4b7d48525595c3bceb6ae24f
-# via kubeflow
+    # via kubeflow
 llvmlite==0.46.0 \
-    --hash=sha256:2df2f5ad375d257f9388758c3e279a09f47bdf0d685a07f03ba29d499128fa68
-# via
+    --hash=sha256:1355c9a4f992ed8646d31ca88898b689ced46ddeef881e8b689f46d6edabcb9d \
+    --hash=sha256:2df2f5ad375d257f9388758c3e279a09f47bdf0d685a07f03ba29d499128fa68 \
+    --hash=sha256:97cd8ff9c8a5acb560bf45cbf523d7cbc675db12b41d24b0282c1936df6a65b4 \
+    --hash=sha256:99e77a9a55119725c85b62b3a85d5e21852a7b8d30735cb048c6a5b328a6ae59
+    # via
     #   numba
     #   training-hub
 markdown==3.10.2 \
@@ -168,33 +234,52 @@ markdown==3.10.2 \
     # via tensorboard
 markdown-it-py==4.0.0 \
     --hash=sha256:624c197772eb1a233f7ed73f75944710e95584bbcee7bde630c37743a13f139a
-# via rich
+    # via rich
 markupsafe==3.0.3 \
-    --hash=sha256:10c0e3022c2cead724cb6e31b1cc368b423b2995a9461d3ab844f1eb894b6ed1
-# via
+    --hash=sha256:10c0e3022c2cead724cb6e31b1cc368b423b2995a9461d3ab844f1eb894b6ed1 \
+    --hash=sha256:3e5e2eda8f7612f1e59c261040e824f4a7a80872df58731ca46f248646d6356b \
+    --hash=sha256:97fe9c23dd487fc38ca7d1a2fda800d04572d3130f104aa18c3a50b0acd692f1 \
+    --hash=sha256:a73e6ce86103522eb00e69c9095720f7628d4b3269a3ae2ba310e0af72fe7f04
+    # via
     #   jinja2
     #   werkzeug
+matplotlib==3.10.8 \
+    --hash=sha256:2ce85afbdbbeda26527b71350802542b4fff6583771d332ad7f04e3b09cf4e38 \
+    --hash=sha256:65c9860e92d8373845415ceee99920a9ade48b0cb77a456368bce3d166518cbc \
+    --hash=sha256:91f0f88a54cea266ade47edae4836cd6b5ef1bcf367f4579a030bd822c2523fe \
+    --hash=sha256:f3671ea9cd9c761d94e17d174dbea1e2cf44471180116d510bfb313271a84c2f
+    # via training-hub
 mdurl==0.1.2 \
     --hash=sha256:6d8be534d152bbbbd9e3866e8addbacae1fb09801f0436469909c7295ae89f6e
-# via markdown-it-py
+    # via markdown-it-py
+model-registry==0.3.7 \
+    --hash=sha256:30077e13fadbb9f0579de6478bcc52c45faf806167763151136e2cd8da4e55ed
+    # via th06-cpu-universal-image (pyproject.toml)
 mpmath==1.3.0 \
     --hash=sha256:3f99b96490a257d46c5213e4477034871c604571ed7bee5904aea43983838862
-# via
+    # via
     #   sympy
     #   training-hub
 multidict==6.7.1 \
-    --hash=sha256:913435ce2a574e3a9d9b360051667fd45dcc9bf618daa700a5782bf4209b31f8
-# via
+    --hash=sha256:10baf21a3391c03a4064c51e1bd4929de589f86f3808744f4aeda5a88f39a345 \
+    --hash=sha256:5f645a9892670ea5fbac5ce9a377b9fd6b117d93d14cb0c12df81e30363f5fd9 \
+    --hash=sha256:913435ce2a574e3a9d9b360051667fd45dcc9bf618daa700a5782bf4209b31f8 \
+    --hash=sha256:a766fc0f1f94611bc017d974934fb695e34060abef44371f283c776713654739
+    # via
+    #   aiobotocore
     #   aiohttp
     #   yarl
 multiprocess==0.70.16 \
     --hash=sha256:9e6258d8ce50f14643ec82b24ffa9956ac93e2ae79560582a707b0d1844b8666
-# via
+    # via
     #   datasets
     #   training-hub
+nest-asyncio2==1.7.2 \
+    --hash=sha256:28227cf70d1545fe5d4190587a093d4af549139b418b61d86d7471a80271c62b
+    # via model-registry
 networkx==3.6.1 \
     --hash=sha256:d76ca8a5294909e27b386d2150b4f6da6b5bd6fdc8142f7161949522b3eee35b
-# via
+    # via
     #   torch
     #   training-hub
 ninja==1.11.1.4 \
@@ -211,15 +296,21 @@ numba==0.64.0 \
     #   rhai-innovation-mini-trainer
     #   training-hub
 numpy==2.3.5 \
-    --hash=sha256:076f7d4be8aee972794b040029e028267d2743781b51295c16ba94df2896e9e7
-# via
+    --hash=sha256:076f7d4be8aee972794b040029e028267d2743781b51295c16ba94df2896e9e7 \
+    --hash=sha256:2a878aabc7740ab22c5085e69e44ac1958acda3782cc309d8e19df8e96641bcf \
+    --hash=sha256:6b8b95d9db3c0348dc3de505ffe7af316580cc2bc468cf0263f7b2ad96c81d34 \
+    --hash=sha256:7eba9dae956a460a0882478a1d9b034ca7cfe908ec9a59c008bcd7f3d91a87b8
+    # via
     #   th06-cpu-universal-image (pyproject.toml)
     #   accelerate
+    #   contourpy
     #   datasets
     #   instructlab-training
+    #   matplotlib
     #   numba
     #   pandas
     #   peft
+    #   pyspark-connect
     #   rhai-innovation-mini-trainer
     #   tensorboard
     #   training-hub
@@ -229,11 +320,12 @@ oauthlib==3.3.1 \
     # via requests-oauthlib
 packaging==26.0 \
     --hash=sha256:3d88de7604ff5eef52df30fd9803c8cf1565e6da3bd3c8c3f4e7d7f18c11069c
-# via
+    # via
     #   accelerate
     #   datasets
     #   huggingface-hub
     #   instructlab-training
+    #   matplotlib
     #   peft
     #   pytest
     #   tensorboard
@@ -247,10 +339,11 @@ pandas==3.0.1 \
     --hash=sha256:a87db2bcbe73acefb4e0bf9c4297e9e261b7ed3fa927f3833c0cbb532af94550
     # via
     #   datasets
+    #   pyspark-connect
     #   training-hub
 peft==0.18.1 \
     --hash=sha256:318cb7ea5a6cb9e9a0a074d4aefd80214048a616bf656071508714e06ca6b36e
-# via
+    # via
     #   th06-cpu-universal-image (pyproject.toml)
     #   instructlab-training
     #   training-hub
@@ -259,68 +352,106 @@ pillow==12.1.1 \
     --hash=sha256:bfc7c1a6b86ad42ce5d4b62c1a1b1f2e95ad87d83a8e15c3eede0f4c29f2754e \
     --hash=sha256:ec7b20dda1f973efea5afbf90d5d1875ab71ad711b36e09e2a764e027a6a8c42 \
     --hash=sha256:fa23810c7f8c9caddaf510d78a213fdea5b4916c567e7eaa65bf20d8f90a1290
-    # via tensorboard
+    # via
+    #   matplotlib
+    #   tensorboard
 pluggy==1.6.0 \
     --hash=sha256:984df28329611bee51530a6c39a6b3267a07abc257ea752a83b40146e1923b87
-# via pytest
+    # via pytest
 propcache==0.4.1 \
+    --hash=sha256:1955055eba219e004f89186671c0d61b9055d7c4e6d6c093f0e1ffe0dd022e54 \
+    --hash=sha256:2c44e59f67229ce44cd71d778fc1c3c2ada5d98f0e3a383eb65129bbddab6755 \
+    --hash=sha256:4657d3d4759ff3b277a0e4d0a40f589987697ae9bf98aae1eb98657a8a074731 \
     --hash=sha256:c926067c28febdef60d1d3eb7992c9ab7a9e14631411492e335a9f6c08c7379a
-# via
+    # via
     #   aiohttp
     #   yarl
 protobuf==6.33.5 \
-    --hash=sha256:8bcf60a75dc286cf4d9410de1a2c90c55648a157e12e760bbec2820dfbb8e0d3
-# via
+    --hash=sha256:5a31841ea2079fdfef6821f75b8955847201488945db2049e652aee8fcce77f5 \
+    --hash=sha256:8bcf60a75dc286cf4d9410de1a2c90c55648a157e12e760bbec2820dfbb8e0d3 \
+    --hash=sha256:acb45f1a2e516c8d7a44cfbc9046d832d3aa8730e20dd389be3bc0f6f63079cb \
+    --hash=sha256:ca63597a67b36a20819a198590452bb386312d530de4703472a16e88e159975e
+    # via
     #   th06-cpu-universal-image (pyproject.toml)
+    #   googleapis-common-protos
+    #   grpcio-status
     #   tensorboard
 psutil==7.2.2 \
+    --hash=sha256:31011347be10c63329b503f9fd148f9e29d9d06a2b1a468e07b6bf8b61f526df \
+    --hash=sha256:6949aa1674e6fedbf75a00ab891e6f29de5d4d346c32b4c0a0d2ad962a2d1d93 \
+    --hash=sha256:ead730f5194d50ca6ddcfb93d4e771a74b71ca5217c7fafc3f9264735416eb93 \
     --hash=sha256:fa7af6bad048d2c4f8af0f0ab2ed2857ff650a963e90bd3cacb394962ccb5803
-# via
+    # via
     #   accelerate
     #   peft
     #   training-hub
 py-cpuinfo==9.0.0 \
     --hash=sha256:bad42022328dc58f5c6511d40df9809449de9b61d6157900dabd9571c47e3fb5
-# via
+    # via
     #   th06-cpu-universal-image (pyproject.toml)
     #   instructlab-training
+py4j==0.10.9.9 \
+    --hash=sha256:9d28ccc833a9a99abee95569452f7782cec39cd1d57e872577e8216aa1abbc48
+    # via pyspark
 pyarrow==23.0.1 \
     --hash=sha256:586f08c129ddf7b39041396a6e532d3a8230bb8b7f51e627ae6b10ef557f3cc5 \
     --hash=sha256:74159bd221074ba9137e85a4346e19efae57aab9f0f5b7e8612bef79117f9a38 \
     --hash=sha256:b27820345f00dcfe4def2b5b8ab07e2011e040c9f9524665a1b977eb997e4b51 \
     --hash=sha256:bf3645d82beb80bfd97657c534d22ffebc503c8dce52a5ad36f2d996a769536b
-    # via datasets
+    # via
+    #   datasets
+    #   pyspark-connect
 pydantic==2.12.5 \
     --hash=sha256:d2702548c09eee4c25a61749330438903901576d32bbf7aa2ce8f6667ee97ae1
-# via
+    # via
     #   th06-cpu-universal-image (pyproject.toml)
     #   instructlab-training
     #   kubeflow
     #   kubeflow-katib-api
+    #   kubeflow-spark-api
     #   kubeflow-trainer-api
+    #   model-registry
     #   training-hub
 pydantic-core==2.41.5 \
-    --hash=sha256:58224aa20706107ee7c03a10531224f0e5c6527f86f7ce6813d60c689bdb05f0
-# via pydantic
+    --hash=sha256:4ebc1cb5d4115e15647443fc7135a0e2b829f401baa05c781077d7b3a5702dba \
+    --hash=sha256:58224aa20706107ee7c03a10531224f0e5c6527f86f7ce6813d60c689bdb05f0 \
+    --hash=sha256:b7aa6bdc0f74754a52ba530fbd84d73da6e0ef61e954ddc2cccdb73f3a8a5217 \
+    --hash=sha256:c8f2dac40e8d5b18f92c6bcd1820a0834c99cca4bb4b5b469b1c59a2f3eb099e
+    # via pydantic
 pygments==2.19.2 \
     --hash=sha256:377dd756e82d894e0324cfb1566e34aaa00e4207f81c453997aefacf21703267
-# via
+    # via
     #   pytest
     #   rich
 pyparsing==3.3.2 \
     --hash=sha256:4fb4ea2103bc5ee9bc3949f973fde987a9d3a8d2d88865cee7293bdb00d00bf3
-# via training-hub
+    # via
+    #   matplotlib
+    #   training-hub
+pyspark==4.0.1 \
+    --hash=sha256:8bf840d087f100df7910b3f44d5b83899b5b63812274856d7c83c2d13ebac62a
+    # via pyspark-connect
+pyspark-connect==4.0.1 \
+    --hash=sha256:080e3110490d0e7190c401ad89e58e570672ff297a2c5da09795fce7ae79f50c
+    # via th06-cpu-universal-image (pyproject.toml)
 pytest==9.0.2 \
     --hash=sha256:71762638337425fdb42dd66b8b25de283a4aa6c51861d4cfa42662a669dab631
-# via training-hub
+    # via training-hub
 python-dateutil==2.9.0.post0 \
     --hash=sha256:89e5d6f444e51ac0a18370406b265fa1f51c88824476fd08c56db669dd317775
-# via
+    # via
+    #   aiobotocore
+    #   botocore
     #   kubernetes
+    #   matplotlib
+    #   model-registry
     #   pandas
 pyyaml==6.0.3 \
+    --hash=sha256:62d61b1a5a6b7b9da8136582e111cd8e3991ddfb5d1e96e491aac5db15658588 \
+    --hash=sha256:bc86d036b894d19df854a1c7cfc840aab27a6c6ccc27956256d91ce7b003847d \
+    --hash=sha256:e647b656314603fe964279e192001153683e6a5574a3011f6c4efa6f821a416c \
     --hash=sha256:fc30b3ff55268f3ae334b94073d189f32cded01ccbcd177b7537dff511fbe54b
-# via
+    # via
     #   accelerate
     #   datasets
     #   huggingface-hub
@@ -338,7 +469,7 @@ regex==2026.2.19 \
     #   transformers
 requests==2.32.5 \
     --hash=sha256:af6aa2bee8c69065be96492f10319117e4e5e637f57c559e6938e23b34f5c402
-# via
+    # via
     #   datasets
     #   huggingface-hub
     #   kubernetes
@@ -359,36 +490,45 @@ rich==14.3.3 \
     #   rhai-innovation-mini-trainer
     #   training-hub
     #   typer
+s3fs==2025.9.0 \
+    --hash=sha256:ec810d0b24daef0f81da2c1ccb572357c51d778a619d8651d60f8b187907fad0
+    # via th06-cpu-universal-image (pyproject.toml)
 safetensors==0.7.0 \
+    --hash=sha256:1095ea5c68972e6530a73c1ad9d003c3644c77794f7cb348be8b2c21c167abf5 \
+    --hash=sha256:8c460d137ae97b008304970788bc8c627a920a38a1cf4da7a4592caab834e86d \
+    --hash=sha256:943a660f6907ac284da16951bfe672efd7c8fdc2281debcecf16d5ea67a2bcc2 \
     --hash=sha256:a2d4e90fbba3b892e81d77a8add3404d9a2111cc084d89805e296ce535f57363
-# via
+    # via
     #   th06-cpu-universal-image (pyproject.toml)
     #   accelerate
     #   peft
     #   transformers
 sentencepiece==0.2.1 \
+    --hash=sha256:14c4286738ce3581ea3a0a0d4de733b496a6422a02db511f36718d7a922a42b7 \
+    --hash=sha256:73154123c231a446e659ee0fd4d120ca8da6d8fbb71de7dfd4611f25ae504b70 \
+    --hash=sha256:a0b4d4e72c33350cc0132475adc27dab923e4502b4e460bbe9e9e073c293b6c8 \
     --hash=sha256:e40ed199a9096dab8cd0c50eee59c33db7a52f24126bc1af8f49cd2391687328
-# via th06-cpu-universal-image (pyproject.toml)
+    # via th06-cpu-universal-image (pyproject.toml)
 setuptools==80.9.0 \
     --hash=sha256:76229ec78da40e908a24ef1f23e8e81d47da7ef05dcca002ff237a40bf764595
-# via
+    # via
     #   tensorboard
     #   torch
     #   training-hub
 shellingham==1.5.4 \
     --hash=sha256:1d8fcda93b78926bb91867c60ef1dd91eaccb73695420bdab7c220e2360ca2c6
-# via typer
+    # via typer
 simpleeval==1.0.3 \
     --hash=sha256:db9ba0a2a037ad5b96810e49fe687b72560bf593bb09a4259a26467e80cc6eda
-# via th06-cpu-universal-image (pyproject.toml)
+    # via th06-cpu-universal-image (pyproject.toml)
 six==1.17.0 \
     --hash=sha256:be25bf700236019335048807404f5f0a00b67b20ce1091ccb7bbd42b7beded23
-# via
+    # via
     #   kubernetes
     #   python-dateutil
 sympy==1.14.0 \
     --hash=sha256:925c516e987e5ca517a490e7aa022d6e11ddb5f2c208f8aedcd3a4be9db7b389
-# via
+    # via
     #   torch
     #   training-hub
 tensorboard==2.20.0 \
@@ -398,13 +538,19 @@ tensorboard-data-server==0.7.2 \
     --hash=sha256:7e0610d205889588983836ec05dc098e80f97b7e7bbff7e994ebb78f578d0ddb
     # via tensorboard
 tokenizers==0.22.2 \
+    --hash=sha256:138ce3a665aab86bc88125000954bc3dfb504afc6d282389b4642b18497a4a2e \
+    --hash=sha256:1d65c6f9704bc7a0764b5b5b6ec010a4a54a5afa15d7a6573ba564eb77b01c56 \
+    --hash=sha256:337c3eb7f4dd2e807616cc1d44ec4e3ef969820df494beec12cd57603fa3c3cf \
     --hash=sha256:b9f7cca0fb1d65e2c714c7d296cd6a0e82719826af31a67fdaef33289bab3d27
-# via
+    # via
     #   th06-cpu-universal-image (pyproject.toml)
     #   transformers
 torch==2.9.1 \
-    --hash=sha256:224d4f8d195b7a7a93248f683cc651b99496325e1a8b44b505aeaf8929c60f69
-# via
+    --hash=sha256:224d4f8d195b7a7a93248f683cc651b99496325e1a8b44b505aeaf8929c60f69 \
+    --hash=sha256:6a6102f3383e2fd1713c79e7d6dec32e176d8afc713f6cb24fd43b9936c73f90 \
+    --hash=sha256:d78c03dc675255655064294c249baf735a94096df8a1930cb7f783e211d73e82 \
+    --hash=sha256:eeb02da79237f0d377a7fd056e45b1c80900bfc0e12fb3a8ff09975413636f68
+    # via
     #   th06-cpu-universal-image (pyproject.toml)
     #   accelerate
     #   instructlab-training
@@ -419,9 +565,9 @@ tqdm==4.67.3 \
     #   huggingface-hub
     #   peft
     #   transformers
-training-hub==0.5.0 \
-    --hash=sha256:ab6fc37ca2710b4cc27e9e1a743ccc051026cf1de14e4cbba11b753be77a0fb9
-# via th06-cpu-universal-image (pyproject.toml)
+training-hub==0.6.0 \
+    --hash=sha256:2a24299f6f89a24d4063490a5252cb177b1aef84bf5f8179110c92b718ec343a
+    # via th06-cpu-universal-image (pyproject.toml)
 transformers==4.57.6 \
     --hash=sha256:309aefe66cbb37efa2e1d3c7d80a021dd679492620dee9145761e25c51885dc9
     # via
@@ -432,8 +578,10 @@ transformers==4.57.6 \
     #   training-hub
     #   trl
 triton==3.5.1 \
-    --hash=sha256:7af3a0404381649645cbf97ddf3d51e717fd6383a686b1d1711715439e212a8b
-# via
+    --hash=sha256:78185f3e35bd8c1cefcfefe3cbf77803a92bbd961d4bc0f21bd99848fb64fc0c \
+    --hash=sha256:7af3a0404381649645cbf97ddf3d51e717fd6383a686b1d1711715439e212a8b \
+    --hash=sha256:abe1b9770c0666f568e465eaa52f633c964108d9587cf9723d165476f03cf6bc
+    # via
     #   th06-cpu-universal-image (pyproject.toml)
     #   torch
 trl==0.24.0 \
@@ -446,21 +594,23 @@ typer==0.24.1 \
     # via rhai-innovation-mini-trainer
 typing-extensions==4.15.0 \
     --hash=sha256:429f20623a355887563afc68041e782f059f26031a5e00e2dd302d37799f672c
-# via
+    # via
     #   aiosignal
     #   anyio
     #   grpcio
     #   huggingface-hub
+    #   model-registry
     #   pydantic
     #   pydantic-core
     #   torch
     #   typing-inspection
 typing-inspection==0.4.2 \
     --hash=sha256:14def1455626f831da791382c9c46592418e10462b296b3521ec30c1d28b4d75
-# via pydantic
+    # via pydantic
 urllib3==2.6.3 \
     --hash=sha256:e0260bcb8dc9a00766b1263632d4cea3d51ce498787c24062ef187f6ce351fdc
-# via
+    # via
+    #   botocore
     #   kubernetes
     #   requests
     #   training-hub
@@ -472,20 +622,28 @@ werkzeug==3.1.6 \
     # via tensorboard
 wheel==0.46.3 \
     --hash=sha256:70ed432fbcd9b7d938edc4be7ac57478e1f48a6b165494deb7e6e1c81a34a15c
-# via
+    # via
     #   instructlab-training
     #   training-hub
-wrapt==2.1.1 \
-    --hash=sha256:45cc24ab59667bd46e58cad773366d399fc65bd639e5cad61d970cc2f71c1ada \
-    --hash=sha256:53f05e8298751730ab5b4e0475036a2b1012d8c5e223f7f49bf52bcebf10b1ee \
-    --hash=sha256:8159bf19374c57cce989881bf5d48d96ebda56181e2769fa8f221b7e270c59ab \
-    --hash=sha256:c8b8b4ce14508c01eb9daa766fa0e5a3b8808f8277b6c44f9f03da5e6aaffcf3
-    # via deprecated
+wrapt==1.17.3 \
+    --hash=sha256:2afaf5e1a04cf553b91ae936a2c18e78aacbfb9643c7506993d2e1a27a73fdef \
+    --hash=sha256:6068917402863d0edfdc7e11d8a1da007da471e0817d45ad0fad6175125628a0 \
+    --hash=sha256:73cbe345787e767b7576aa8bdee71f67c6d38fafcb31be0d17c5ca64d7e12f63 \
+    --hash=sha256:f0238d74791b9b24b629186860892acf3bf6bcc75fb0cd78bb527bf9a96657cb
+    # via
+    #   aiobotocore
+    #   deprecated
 xxhash==3.6.0 \
-    --hash=sha256:c7948e01ae9e33b691c9531409ecaf7c36f143764ab10171c7c0833c58588a3f
-# via
+    --hash=sha256:19484b6ecd6b2e1dc84de2a7106c0e2a5c00d6364a1332b052584a0ecda7b30e \
+    --hash=sha256:c03a08fd89c01fc60763cfe92f93a4b14ec05e110577c2e41640942e504aee38 \
+    --hash=sha256:c7948e01ae9e33b691c9531409ecaf7c36f143764ab10171c7c0833c58588a3f \
+    --hash=sha256:fac2745bb0e0d492efe9c8694e0763313e0c49c06452892a5822aaec94c11687
+    # via
     #   datasets
     #   training-hub
 yarl==1.22.0 \
-    --hash=sha256:0d99bfe1f9941aaf9ded995ba7ebd8775be89674c3e365e4213782376056a63f
-# via aiohttp
+    --hash=sha256:0d99bfe1f9941aaf9ded995ba7ebd8775be89674c3e365e4213782376056a63f \
+    --hash=sha256:2d248e697c071c0897043b0efb9b5b283bf8aa25241fefe88cd9ff1796a4694f \
+    --hash=sha256:5475c93efeb62cb1ad148ea6df3dbd2b386ea9bcfbc396b7aca5b0cda0ffc17d \
+    --hash=sha256:dd1f3e9fcf87e4fa829b7e35013570f98e6e5f0662b41668e2d408bfe6f210e7
+    # via aiohttp
