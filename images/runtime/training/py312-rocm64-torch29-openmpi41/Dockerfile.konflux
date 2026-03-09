@@ -1,5 +1,4 @@
 # ROCm MPI Training Runtime
-# Mirrors CUDA MPI (PR #642): AIPCC base + OpenMPI + SSH + micropipenv Python stack.
 FROM quay.io/aipcc/base-images/rocm-6.4-el9.6:3.4.0-ea.1-1772615238
 
 ARG SSH_PORT=2222
