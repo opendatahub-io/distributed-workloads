@@ -60,16 +60,12 @@ RUN dnf install -y \
     && dnf clean all
 
 # User-level sshd config for running as non-root
-# OpenMPI MCA params file: read by every OpenMPI process regardless of environment variables,
-# so this reliably applies to orted and worker processes launched via SSH.
-# mtl=^ofi disables OFI MTL (SIGBUS without InfiniBand hardware).
 RUN mkdir -p /home/mpiuser /home/mpiuser/.openmpi && \
     echo "PidFile /tmp/sshd.pid" > /home/mpiuser/.sshd_config && \
     echo "HostKey /home/mpiuser/.ssh/id_rsa" >> /home/mpiuser/.sshd_config && \
     echo "StrictModes no" >> /home/mpiuser/.sshd_config && \
     echo "Port ${SSH_PORT}" >> /home/mpiuser/.sshd_config && \
-    echo "AcceptEnv PATH LD_LIBRARY_PATH" >> /home/mpiuser/.sshd_config && \
-    echo "mtl = ^ofi" > /home/mpiuser/.openmpi/mca-params.conf
+    echo "AcceptEnv PATH LD_LIBRARY_PATH" >> /home/mpiuser/.sshd_config
 
 # Install micropipenv to deploy packages from Pipfile.lock
 RUN pip install --no-cache-dir -U "micropipenv[toml]"
