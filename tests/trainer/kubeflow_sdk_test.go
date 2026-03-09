@@ -149,6 +149,10 @@ func TestRhaiS3FsdpFullStateCheckpointingCPU(t *testing.T) {
 // FSDP Full State Checkpoint tests (2 nodes, 2 processes per node)
 func TestRhaiS3FsdpFullStateCheckpointingMultiProcess(t *testing.T) {
 	Tags(t, Tier1)
+	t.Skip("Skipping: torchrun's hardcoded 30s shutdown timeout interrupts checkpoint saves (>30s for FSDP), " +
+		"leaving .incomplete markers that cause training to restart from scratch. " +
+		"Fix merged (configurable shutdown timeout) but awaiting PyTorch release. " +
+		"See: https://github.com/pytorch/pytorch/pull/172596")
 	sdktests.RunRhaiS3FsdpFullStateMultiProcessTest(t, support.CPU, 2, 2)
 }
 

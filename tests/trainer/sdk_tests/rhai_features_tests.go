@@ -742,18 +742,32 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	checkpointURI := trainerutils.ParseCloudURI(checkpointDir)
 	if checkpointURI != nil && checkpointURI.Scheme == "s3" && checkpointURI.Bucket != "" {
 		test.T().Log("Step 1b: Verifying cloud checkpoint upload is working...")
+
+		// Check SDK applied the save_strategy override (monkey-patch working)
 		test.Eventually(func() bool {
 			for _, pod := range listTrainingPods(test, namespace, trainJobName) {
 				if pod.Status.Phase != corev1.PodRunning {
 					continue
 				}
 				logs := PodLog(test, namespace, pod.Name, corev1.PodLogOptions{Container: "node"})(test)
-				// Check SDK applied the save_strategy override (monkey-patch working)
-				if !strings.Contains(logs, "[Kubeflow] Applied save_strategy:") {
-					test.T().Log("Waiting for SDK save_strategy override to appear in logs...")
-					return false
+				if strings.Contains(logs, "Applied save_strategy:") {
+					test.T().Log("SDK save_strategy override confirmed in pod logs")
+					return true
 				}
-				// Check at least one checkpoint was uploaded to cloud storage (from logs)
+			}
+			return false
+		}, TestTimeoutMedium, 5*time.Second).Should(BeTrue(),
+			"SDK save_strategy override not detected in training pod logs. "+
+				"Expected 'Applied save_strategy:' message. "+
+				"This usually means the SDK's checkpoint config override was not applied to the Trainer.")
+
+		// Check at least one checkpoint was uploaded to cloud storage (from logs)
+		test.Eventually(func() bool {
+			for _, pod := range listTrainingPods(test, namespace, trainJobName) {
+				if pod.Status.Phase != corev1.PodRunning {
+					continue
+				}
+				logs := PodLog(test, namespace, pod.Name, corev1.PodLogOptions{Container: "node"})(test)
 				if strings.Contains(logs, "Upload complete") {
 					test.T().Log("Cloud checkpoint upload confirmed in pod logs")
 					return true
@@ -762,9 +776,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 			return false
 		}, TestTimeoutMedium, 5*time.Second).Should(BeTrue(),
 			"Cloud checkpoint upload not detected in training pod logs. "+
-				"Expected 'Upload complete' after epoch completion. "+
-				"This usually means the SDK's checkpoint config override (save_strategy, output_dir) "+
-				"was not applied to the Trainer.")
+				"Expected 'Upload complete' after epoch completion.")
 		test.T().Log("Cloud checkpoint upload verified in logs - verifying checkpoints exist in S3...")
 
 		// Verify checkpoints actually exist in S3 (not just logs)
