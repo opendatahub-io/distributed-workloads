@@ -2,7 +2,7 @@
 #
 # To regenerate requirements.txt:
 #   uv pip compile --python-platform=linux --python-version=3.12 \
-#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cpu-ubi9-test/simple/ \
+#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9-test/simple/ \
 #     -o requirements.txt pyproject.toml
 
 [project]
@@ -77,4 +77,4 @@ dependencies = [
 environments = [
     "sys_platform == 'linux' and implementation_name == 'cpython'",
 ]
-index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cpu-ubi9-test/simple/"
+index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9-test/simple/"
