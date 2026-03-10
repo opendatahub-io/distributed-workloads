@@ -78,4 +78,7 @@ environments = [
     "sys_platform == 'linux' and implementation_name == 'cpython'",
 ]
 index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9-test/simple/"
+# SECURITY: extra-index-url required for causal-conv1d and mamba-ssm (not yet in AIPCC ROCm index).
+# Mitigation: uv pip install uses --require-hashes; requirements.txt pins SHA256 hashes per package.
+# TODO: Remove when AIPCC adds these packages to rocm6.4-ubi9-test index.
 extra-index-url = ["https://pypi.org/simple"]

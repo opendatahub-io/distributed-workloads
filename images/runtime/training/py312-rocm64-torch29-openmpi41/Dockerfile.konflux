@@ -82,7 +82,6 @@ RUN uv pip install --no-cache --require-hashes \
     --extra-index-url=https://pypi.org/simple \
     --python /opt/app-root/bin/python3.12 \
     -r requirements.txt && \
-    pip install --no-cache-dir --no-deps s3fs==2026.1.0 && \
     rm -f ./requirements.txt && \
     chmod -R g+w /opt/app-root/lib/python3.12/site-packages
 
