@@ -59,11 +59,20 @@ dependencies = [
     "async-timeout==5.0.1",
     "tensorboard==2.20.0",
     
+    # Storage
+    "s3fs==2025.9.0",
+    
     # Training Frameworks
-    "training_hub[lora]==0.5.0",
+    "training_hub[lora]==0.6.0",
+    "unsloth==2026.3.3",
     
     # Kubeflow SDK
     "kubeflow==0.3.0+rhai0",
+    "kubeflow_spark_api==2.4.0",
+    "pyspark_connect==4.0.1",
+    
+    # Model Management
+    "model_registry==0.3.7",
     
     # Flash Attention (pre-built wheel from AIPCC)
     "flash-attn==2.8.3",

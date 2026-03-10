@@ -134,6 +134,18 @@ func TestRhaiFeaturesMultiGpuRocm(t *testing.T) {
 	sdktests.RunRhaiFeaturesAllMultiGpuTest(t, support.AMD, 2, 2)
 }
 
+// Training Failure Scenarios (CPU only) — verifies failures are properly propagated
+func TestTrainingFailureScenarios(t *testing.T) {
+	Tags(t, Tier1)
+	sdktests.RunTrainingFailureScenariosTest(t)
+}
+
+// Torchrun Training Failure (GPU) — verifies OOM during forward pass is propagated via SDK
+func TestTorchrunTrainingFailure(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunTorchrunTrainingFailureTest(t)
+}
+
 // S3 Checkpoint tests (CPU only, auto-skip if S3 not configured)
 func TestRhaiS3CheckpointingCPU(t *testing.T) {
 	Tags(t, Tier1)
@@ -149,6 +161,10 @@ func TestRhaiS3FsdpFullStateCheckpointingCPU(t *testing.T) {
 // FSDP Full State Checkpoint tests (2 nodes, 2 processes per node)
 func TestRhaiS3FsdpFullStateCheckpointingMultiProcess(t *testing.T) {
 	Tags(t, Tier1)
+	t.Skip("Skipping: torchrun's hardcoded 30s shutdown timeout interrupts checkpoint saves (>30s for FSDP), " +
+		"leaving .incomplete markers that cause training to restart from scratch. " +
+		"Fix merged (configurable shutdown timeout) but awaiting PyTorch release. " +
+		"See: https://github.com/pytorch/pytorch/pull/172596")
 	sdktests.RunRhaiS3FsdpFullStateMultiProcessTest(t, support.CPU, 2, 2)
 }
 

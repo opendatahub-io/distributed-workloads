@@ -2,7 +2,7 @@
 #
 # To regenerate requirements.txt:
 #   uv pip compile --python-platform=linux --python-version=3.12 \
-#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cpu-ubi9-test/simple/ \
+#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9-test/simple/ \
 #     -o requirements.txt pyproject.toml
 
 [project]
@@ -51,11 +51,19 @@ dependencies = [
     "async-timeout==5.0.1",
     "tensorboard==2.20.0",
     
+    # Storage
+    "s3fs==2025.9.0",
+    
     # Training Frameworks
-    "training_hub==0.5.0",
+    "training_hub==0.6.0",
     
     # Kubeflow SDK
     "kubeflow==0.3.0+rhai0",
+    "kubeflow_spark_api==2.4.0",
+    "pyspark_connect==4.0.1",
+    
+    # Model Management
+    "model_registry==0.3.7",
     
     # Note: GPU-specific packages are NOT included:
     # - flash-attn (requires CUDA/ROCm)
@@ -69,4 +77,4 @@ dependencies = [
 environments = [
     "sys_platform == 'linux' and implementation_name == 'cpython'",
 ]
-index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cpu-ubi9-test/simple/"
+index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9-test/simple/"
