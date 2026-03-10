@@ -1,4 +1,4 @@
-FROM quay.io/aipcc/base-images/cuda-13.0-el9.6:3.4.0-ea.1-1772615323
+FROM quay.io/aipcc/base-images/cuda-13.0-el9.6:3.4.0-ea.2-1772829888
 
 ARG SSH_PORT=2222
 
@@ -72,16 +72,14 @@ RUN mkdir -p /home/mpiuser /home/mpiuser/.openmpi && \
     echo "Port ${SSH_PORT}" >> /home/mpiuser/.sshd_config && \
     echo "AcceptEnv PATH LD_LIBRARY_PATH" >> /home/mpiuser/.sshd_config
 
-# Install micropipenv to deploy packages from Pipfile.lock
-RUN pip install --no-cache-dir -U "micropipenv[toml]"
-
-# Install Python dependencies from Pipfile.lock file
+# Install Python dependencies from requirements.txt
 WORKDIR /opt/app-root/bin
-COPY Pipfile.lock ./
+COPY requirements.txt ./
 
-RUN micropipenv install -- --no-cache-dir && \
-    rm -f ./Pipfile.lock && \
-    pip install --no-cache-dir --no-deps s3fs==2026.1.0 && \
+RUN uv pip install --no-cache --require-hashes \
+        --python /opt/app-root/bin/python3.12 \
+        -r requirements.txt && \
+    rm -f ./requirements.txt && \
     chmod -R g+w /opt/app-root/lib/python3.12/site-packages
 
 # OpenShift GID 0 pattern: give root group same permissions as owner.

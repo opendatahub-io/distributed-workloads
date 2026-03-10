@@ -139,16 +139,15 @@ RUN mkdir -p /home/mpiuser /home/mpiuser/.openmpi && \
     echo "Port ${SSH_PORT}" >> /home/mpiuser/.sshd_config && \
     echo "AcceptEnv PATH LD_LIBRARY_PATH" >> /home/mpiuser/.sshd_config
 
-# Install micropipenv to deploy packages from Pipfile.lock
-RUN pip install --no-cache-dir -U "micropipenv[toml]"
-
-# Install Python dependencies from Pipfile.lock file
+# Install Python dependencies from requirements.txt
 WORKDIR /opt/app-root/bin
-COPY Pipfile.lock ./
+COPY requirements.txt ./
 
-RUN micropipenv install -- --no-cache-dir && \
-    rm -f ./Pipfile.lock && \
-    pip install --no-cache-dir --no-deps s3fs==2026.1.0 && \
+RUN UV_CONFIG_FILE=/dev/null uv pip install --no-cache --require-hashes \
+        --python /opt/app-root/bin/python3.12 \
+        --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9/simple/ \
+        -r requirements.txt && \
+    rm -f ./requirements.txt && \
     # The C9S base image ships numpy, scipy, pyarrow, and pillow compiled against
     # system libraries that are not present in the C9S repos (libopenblasp.so.0,
     # libthrift-0.15.0.so, libre2.so.9).  Reinstall from manylinux wheels, which

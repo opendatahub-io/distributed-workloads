@@ -1,0 +1,85 @@
+# CUDA 13.0 Training Image Python Dependencies
+#
+# To regenerate requirements.txt:
+#   uv pip compile --generate-hashes --python-platform=linux --python-version=3.12 \
+#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9/simple/ \
+#     -o requirements.txt pyproject.toml
+
+[project]
+name = "py312-cuda130-torch29-openmpi41"
+version = "0.1.0"
+requires-python = "==3.12.*"
+
+dependencies = [
+    # PyTorch with CUDA 13.0
+    "torch==2.9.1",
+
+    # Triton (GPU kernel compiler)
+    "triton==3.5.1",
+
+    # xformers (efficient transformers)
+    "xformers==0.0.33.post2",
+
+    # ML Training and Inference Libraries
+    "accelerate==1.12.0",
+    "transformers==4.57.6",
+    "peft==0.18.1",
+    "datasets==4.3.0",
+    "trl==0.24.0",
+
+    # Core Dependencies
+    "tqdm>=4.67.1",
+    "pydantic>=2.11.7",
+    "aiofiles==25.1.0",
+    "async-timeout==5.0.1",
+    "deprecated>=1.2.18",
+    "typer>=0.19.2",
+    "protobuf>=3.20.0",
+    "simpleeval>=0.9.13",
+    "safetensors==0.7.0",
+    "py-cpuinfo>=9.0.0",
+    "aiohttp==3.13.3",
+
+    # Deep Learning Utilities
+    "numba>=0.61.2",
+    "numpy>=1.26.4,<2.0.0",
+    "rich>=13.9.4",
+    "tensorboard==2.20.0",
+    "bitsandbytes>=0.48.1",
+    "liger-kernel>=0.6.2",
+    "einops>=0.8.1",
+    "kernels>=0.10.3",
+
+    # Tokenization
+    "sentencepiece>=0.1.99",
+    "tokenizers>=0.22.0",
+
+    # Training
+    "deepspeed>=0.18.4",
+
+    # HuggingFace
+    "hf-xet>=1.1.8",
+    "huggingface-hub>=0.34.4",
+    "mlflow>=3.8.1",
+
+    # Storage
+    "s3fs==2025.9.0",
+
+    # Training Frameworks
+    "training_hub[lora]==0.6.0",
+    "instructlab-training==0.14.2",
+    "rhai-innovation-mini-trainer==0.6.1",
+
+    # Flash Attention (pre-built wheel from AIPCC)
+    "flash-attn==2.8.3",
+
+    # Mamba dependencies (pre-built wheels from AIPCC)
+    "causal-conv1d>=1.5.3",
+    "mamba-ssm>=2.2.6",
+]
+
+[tool.uv]
+environments = [
+    "sys_platform == 'linux' and implementation_name == 'cpython'",
+]
+index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9/simple/"
