@@ -1,4 +1,4 @@
-# ROCm MPI Training Runtime
+# ROCm MPI Training Runtime - AIPCC base, UV for deps
 FROM quay.io/aipcc/base-images/rocm-6.4-el9.6:3.4.0-ea.1-1772615238
 
 ARG SSH_PORT=2222
@@ -32,7 +32,7 @@ RUN printf '#!/bin/sh\nexec /opt/app-root/bin/python "$@"\n' > /usr/local/bin/py
     && chmod +x /usr/local/bin/python
 
 # Set LD_LIBRARY_PATH in /etc/environment for SSH sessions (loaded by PAM, not inherited from container).
-# ROCm and OpenMPI libs need explicit entry for SSH-spawned processes.
+# ROCm is registered in ldconfig; only OpenMPI lib needs an explicit entry.
 RUN echo "LD_LIBRARY_PATH=/usr/lib64/openmpi/lib" >> /etc/environment
 
 RUN mkdir -p /var/run/sshd
@@ -49,7 +49,11 @@ RUN sed -i "s/#\(StrictModes \).*/\1no/g" /etc/ssh/sshd_config \
     && echo "StrictModes no" >> /etc/ssh/sshd_config \
     && echo "Port ${SSH_PORT}" >> /etc/ssh/sshd_config
 
-# Install InfiniBand and RDMA user-space libraries for multi-node (RoCE/RDMA)
+# Install InfiniBand and Mellanox RDMA user-space libraries.
+# libibverbs/librdmacm: base RDMA verbs and connection management.
+# libibumad: user MAD library required by some OpenMPI components.
+# libmlx5: Mellanox ConnectX-4/5/6/7 provider; activates rc_mlx5/dc_mlx5 UCX transports.
+# infiniband-diags: diagnostic tools (ibstat, ibstatus, iblinkinfo) for debugging IB connectivity.
 RUN dnf install -y \
     rdma-core \
     libibverbs \
@@ -60,6 +64,8 @@ RUN dnf install -y \
     && dnf clean all
 
 # User-level sshd config for running as non-root
+# OpenMPI MCA params file: read by every OpenMPI process regardless of environment variables,
+# so this reliably applies to orted and worker processes launched via SSH.
 RUN mkdir -p /home/mpiuser /home/mpiuser/.openmpi && \
     echo "PidFile /tmp/sshd.pid" > /home/mpiuser/.sshd_config && \
     echo "HostKey /home/mpiuser/.ssh/id_rsa" >> /home/mpiuser/.sshd_config && \
@@ -67,16 +73,17 @@ RUN mkdir -p /home/mpiuser /home/mpiuser/.openmpi && \
     echo "Port ${SSH_PORT}" >> /home/mpiuser/.sshd_config && \
     echo "AcceptEnv PATH LD_LIBRARY_PATH" >> /home/mpiuser/.sshd_config
 
-# Install micropipenv to deploy packages from Pipfile.lock
-RUN pip install --no-cache-dir -U "micropipenv[toml]"
-
-# Install Python dependencies from Pipfile.lock file
+# Install Python dependencies from requirements.txt
 WORKDIR /opt/app-root/bin
-COPY Pipfile.lock ./
+COPY requirements.txt ./
 
-RUN micropipenv install -- --no-cache-dir && \
-    rm -f ./Pipfile.lock && \
+RUN uv pip install --no-cache --require-hashes \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9-test/simple/ \
+    --extra-index-url=https://pypi.org/simple \
+    --python /opt/app-root/bin/python3.12 \
+    -r requirements.txt && \
     pip install --no-cache-dir --no-deps s3fs==2026.1.0 && \
+    rm -f ./requirements.txt && \
     chmod -R g+w /opt/app-root/lib/python3.12/site-packages
 
 # OpenShift GID 0 pattern: give root group same permissions as owner.
