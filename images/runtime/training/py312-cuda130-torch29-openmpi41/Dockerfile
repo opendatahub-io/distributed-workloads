@@ -2,9 +2,9 @@ FROM quay.io/opendatahub/odh-midstream-cuda-base-13-0:268a2d4baec5ed3c3ae09a6cce
 
 ARG SSH_PORT=2222
 ARG OPENMPI_VERSION=4.1.6
-ARG UCX_VERSION=1.20.0
+ARG UCX_VERSION=1.19.1
 # SHA256 checksums for supply-chain integrity verification.
-ARG UCX_SHA256=2c15df0e7ae297997480793489292f272b108a8fec6c9be0b1c3d3c06fc15cb1
+ARG UCX_SHA256=0fe68f2592b7b378bdac7ccb78331e9e8c5be250f40be118edb1795e94c60209
 ARG OPENMPI_SHA256=44da277b8cdc234e71c62473305a09d63f4dcca292ca40335aab7c4bf0e6a566
 
 LABEL name="training:py312-cuda130-torch29-openmpi41" \
@@ -26,8 +26,8 @@ USER 0
 # build step to avoid dnf clean_requirements_on_remove sweeping them out.
 RUN dnf install -y openssh-server libjpeg-turbo libpng libwebp && dnf clean all
 
-# Install UCX 1.20.0 prebuilt RPMs (BSD-3-Clause licensed — fully redistributable).
-# Built against MOFED 24.10 + CUDA 13 — first UCX release with CUDA 13 support.
+# Install UCX 1.19.1 prebuilt RPMs (BSD-3-Clause licensed — fully redistributable).
+# Built against MOFED 24.10 + CUDA 13 — aligns with the UCX version in the downstream base image.
 # Runtime packages (ucx, ucx-cuda, ucx-ib, ucx-ib-mlx5, ucx-rdmacm) are kept in
 # the image; ucx-devel (headers) is removed after OpenMPI is built against it.
 # UCX transport plugins are dlopen'd at runtime: ucx-ib-mlx5 gracefully skips
