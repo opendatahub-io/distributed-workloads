@@ -12,7 +12,10 @@
 ################################################################################
 # Build Arguments
 ################################################################################
-ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-rocm-py312-ubi9:3.4_ea1-v1.41
+# Although this image looks like 1.43 GA it was built from 1.42 EA2 state.
+# Notebook team releases ODH via main branch and 1.43 EA2 image failed to build.
+# For 1.43 GA this image will most likely stay as is.
+ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-rocm-py312-ubi9:3.4-v1.43
 ARG PYTHON_VERSION=3.12
 ARG DOWNSTREAM=false
 
@@ -35,7 +38,7 @@ WORKDIR /opt/app-root/src
 # All packages (including flash-attn) are pre-built wheels in AIPCC
 # Strict AIPCC-only - no fallback indexes (request missing packages be added to AIPCC)
 RUN uv pip install --no-cache-dir --require-hashes \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9-test/simple/ \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9/simple/ \
     -r /tmp/deps/requirements.txt
 
 # Fix permissions for OpenShift
