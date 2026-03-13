@@ -261,8 +261,8 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	trainerutils.EnsureNotebookServiceAccount(t, test, namespace.Name)
 
 	// RBACs setup for user (user token is used by notebook for Trainer API calls)
-	userName := common.GetNotebookUserName(test)
-	userToken := common.GenerateNotebookUserToken(test)
+	userToken := common.GetNotebookUserTokenFromEnv(test)
+	userName := common.GetNotebookUserNameFromEnv(test, userToken)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
@@ -379,11 +379,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		secret := CreateSecret(test, namespace.Name, secretData)
 		test.T().Logf("Created Data Connection secret: %s for cloud checkpoint storage", secret.Name)
 
-		dataConnectionExports = fmt.Sprintf(
-			"export DATA_CONNECTION_NAME='%s'; "+
-				"export KUBEFLOW_INSTALL_FROM_GIT='true'; ",
-			secret.Name,
-		)
+		dataConnectionExports = fmt.Sprintf("export DATA_CONNECTION_NAME='%s'; ", secret.Name)
 		test.T().Logf("Data Connection configured for cloud checkpointing: %s", config.CheckpointOutputDir)
 	} else if checkpointURI != nil {
 		test.T().Logf("Warning: Cloud storage URI detected (%s) but Data Connection not created (credentials may be missing or unsupported scheme)", config.CheckpointOutputDir)
@@ -401,6 +397,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	// Build pip exports - GPU_TYPE tells install_kubeflow.py which Red Hat index to use
 	pipExports := fmt.Sprintf("export GPU_TYPE='%s'; ", gpuType)
+	sdkInstallExports := buildKubeflowInstallExports()
 	pipInstallFlags := ""
 
 	// Set defaults for num_nodes and num_gpus_per_node if not specified
@@ -431,6 +428,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 			"export NUM_GPUS_PER_NODE='%d'; "+
 			"%s"+ // S3 exports (if configured)
 			"%s"+ // Data Connection exports (if configured)
+			"%s"+ // SDK install exports (git/version/index override)
 			"%s"+ // PyPI/GPU_TYPE exports
 			"python -m pip install --quiet --no-cache-dir %s papermill ipykernel boto3==1.34.162 && "+
 			"python /opt/app-root/notebooks/install_kubeflow.py && "+
@@ -449,6 +447,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		numGpusPerNode,
 		s3Exports,
 		dataConnectionExports,
+		sdkInstallExports,
 		pipExports,
 		pipInstallFlags,
 		config.NotebookName,
