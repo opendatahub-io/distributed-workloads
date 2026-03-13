@@ -35,7 +35,7 @@ WORKDIR /opt/app-root/src
 # Install main dependencies from AIPCC index
 # All packages (including flash-attn, mamba-ssm) are pre-built wheels in AIPCC
 RUN uv pip install --no-cache-dir --require-hashes \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9-test/simple/ \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9/simple/ \
     -r /tmp/deps/requirements.txt
 
 # Fix permissions for OpenShift

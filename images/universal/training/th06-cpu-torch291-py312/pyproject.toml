@@ -2,7 +2,7 @@
 #
 # To regenerate requirements.txt:
 #   uv pip compile --python-platform=linux --python-version=3.12 \
-#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9-test/simple/ \
+#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9/simple/ \
 #     -o requirements.txt pyproject.toml
 
 [project]
@@ -58,7 +58,7 @@ dependencies = [
     "training_hub==0.6.0",
     
     # Kubeflow SDK
-    "kubeflow==0.3.0+rhai0",
+    "kubeflow==0.3.0+rhaiv.1",
     "kubeflow_spark_api==2.4.0",
     "pyspark_connect==4.0.1",
     
@@ -77,4 +77,4 @@ dependencies = [
 environments = [
     "sys_platform == 'linux' and implementation_name == 'cpython'",
 ]
-index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9-test/simple/"
+index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9/simple/"
