@@ -28,7 +28,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-th06-cuda130-torch291-py312:odh-3.4-ea2
+    value: quay.io/opendatahub/odh-th06-cuda130-torch291-py312:3.4-ea.2
   - name: dockerfile
     value: Dockerfile
   - name: path-context
