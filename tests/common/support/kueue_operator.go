@@ -17,6 +17,9 @@ limitations under the License.
 package support
 
 import (
+	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -132,9 +135,72 @@ func VerifyKueueReady(test Test, expectedFrameworks ...string) {
 
 	for _, framework := range expectedFrameworks {
 		test.T().Logf("Verifying %s framework is present in Kueue CR...", framework)
-		test.Eventually(KueueCR(test, KueueCRName), TestTimeoutShort).Should(
-			gomega.WithTransform(KueueCRFrameworks, gomega.ContainElement(framework)),
+		// Capture baseline diagnostics before framework check polling starts.
+		dumpKueueDiagnostics(test, "before-framework-check", framework)
+		test.Eventually(func(g gomega.Gomega) bool {
+			kueue, err := GetKueueCR(test, KueueCRName)
+			g.Expect(err).NotTo(gomega.HaveOccurred())
+			frameworks := KueueCRFrameworks(kueue)
+			if !containsString(frameworks, framework) {
+				// Update snapshot while polling so failures leave a concrete artifact.
+				dumpKueueDiagnostics(test, "framework-missing", framework)
+				return false
+			}
+			return true
+		}, TestTimeoutShort).Should(
+			gomega.BeTrue(),
+			"Expected framework '%s' to be present in Kueue CR",
+			framework,
 		)
 		test.T().Logf("%s framework is present in Kueue CR", framework)
 	}
+}
+
+func dumpKueueDiagnostics(test Test, stage string, expectedFramework string) {
+	test.T().Helper()
+
+	kueue, err := GetKueueCR(test, KueueCRName)
+	if err != nil {
+		WriteToOutputDir(
+			test,
+			fmt.Sprintf("kueue-diagnostics-%s", sanitizeFilePart(stage)),
+			Log,
+			[]byte(fmt.Sprintf("failed to get Kueue CR '%s': %v", KueueCRName, err)),
+		)
+		return
+	}
+
+	payload := map[string]any{
+		"stage":               stage,
+		"expected_framework":  expectedFramework,
+		"actual_frameworks":   KueueCRFrameworks(kueue),
+		"available_condition": KueueCRConditionAvailable(kueue),
+		"cert_condition":      KueueCRConditionCertManagerAvailable(kueue),
+		"name":                kueue.GetName(),
+		"namespace":           kueue.GetNamespace(),
+	}
+
+	data, marshalErr := json.MarshalIndent(payload, "", "  ")
+	if marshalErr != nil {
+		data = []byte(fmt.Sprintf("failed to marshal diagnostics: %v", marshalErr))
+	}
+	WriteToOutputDir(
+		test,
+		fmt.Sprintf("kueue-diagnostics-%s", sanitizeFilePart(stage)),
+		Log,
+		data,
+	)
+}
+
+func sanitizeFilePart(value string) string {
+	return strings.ReplaceAll(strings.TrimSpace(value), " ", "-")
+}
+
+func containsString(items []string, target string) bool {
+	for _, item := range items {
+		if item == target {
+			return true
+		}
+	}
+	return false
 }

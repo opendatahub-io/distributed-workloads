@@ -69,12 +69,30 @@ func GetNotebookUserName(t Test) string {
 	return name
 }
 
+// GetNotebookUserNameFromEnv returns NOTEBOOK_USER_NAME when provided.
+// Otherwise it falls back to resolving the user identity from the provided token.
+func GetNotebookUserNameFromEnv(t Test, token string) string {
+	if name, ok := os.LookupEnv(notebookUserName); ok && strings.TrimSpace(name) != "" {
+		return name
+	}
+	return GenerateNotebookUserNameFromToken(t, token)
+}
+
 func GetNotebookUserToken(t Test) string {
 	token, ok := os.LookupEnv(notebookUserToken)
 	if !ok {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify token of the authenticated Notebook user.", notebookUserToken)
 	}
 	return token
+}
+
+// GetNotebookUserTokenFromEnv returns NOTEBOOK_USER_TOKEN when provided.
+// Otherwise it falls back to generating a token from username/password.
+func GetNotebookUserTokenFromEnv(t Test) string {
+	if token, ok := os.LookupEnv(notebookUserToken); ok && strings.TrimSpace(token) != "" {
+		return token
+	}
+	return GenerateNotebookUserToken(t)
 }
 
 func GetNotebookUserPassword(t Test) string {
@@ -85,7 +103,7 @@ func GetNotebookUserPassword(t Test) string {
 	return password
 }
 
-// GenerateNotebookUserToken generates an OpenShift token using oc login with username and password
+// GenerateNotebookUserToken generates an OpenShift token using oc login with username and password.
 func GenerateNotebookUserToken(t Test) string {
 	userName := GetNotebookUserName(t)
 	password := GetNotebookUserPassword(t)
@@ -128,12 +146,39 @@ func GenerateNotebookUserToken(t Test) string {
 	return strings.TrimSpace(string(out))
 }
 
+// GenerateNotebookUserNameFromToken resolves the username bound to a bearer token.
+func GenerateNotebookUserNameFromToken(t Test, token string) string {
+	if strings.TrimSpace(token) == "" {
+		t.T().Fatalf("Cannot resolve Notebook username from token: token is empty")
+	}
+
+	cmd := exec.Command(
+		"oc", "whoami",
+		"--token="+token,
+		"--server="+GetOpenShiftApiUrl(t),
+		"--insecure-skip-tls-verify=true",
+	)
+	out, err := cmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			t.T().Logf("Error running 'oc whoami' command: %v\n", exitError)
+			t.T().Logf("Output: %s\n", out)
+			t.T().Logf("Error output: %s\n", exitError.Stderr)
+		} else {
+			t.T().Logf("Error running 'oc whoami' command: %v\n", err)
+		}
+		t.T().FailNow()
+	}
+
+	return strings.TrimSpace(string(out))
+}
+
 func GetNotebookImage(t Test) string {
-	notebook_image, ok := os.LookupEnv(notebookImage)
-	if !ok {
+	notebookImageValue, ok := os.LookupEnv(notebookImage)
+	if !ok || strings.TrimSpace(notebookImageValue) == "" {
 		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify image of the Notebook.", notebookImage)
 	}
-	return notebook_image
+	return notebookImageValue
 }
 
 func GetTestTier(t Test) (string, bool) {
