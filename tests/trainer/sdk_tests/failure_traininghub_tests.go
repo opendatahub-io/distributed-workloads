@@ -81,7 +81,7 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name,
-		trainerutils.DefaultTrainingHubRuntime,
+		trainerutils.DefaultTrainingHubRuntimeCPU,
 		failureNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
