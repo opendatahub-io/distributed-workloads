@@ -60,6 +60,23 @@ func IsDefaultRuntime(name string) bool {
 	return false
 }
 
+// TrainingHubToDefaultClusterRuntime maps each Training Hub and pinned torch-distributed
+// runtime (th06) to its corresponding DefaultClusterTrainingRuntime. Both runtimes in
+// each pair are expected to have identical CTR specs (only metadata differs).
+var TrainingHubToDefaultClusterRuntime = map[string]string{
+	// Default (floating) runtimes
+	DefaultTrainingHubRuntimeCUDA: DefaultClusterTrainingRuntimeCUDA,
+	DefaultTrainingHubRuntimeCPU:  DefaultClusterTrainingRuntimeCPU,
+	DefaultTrainingHubRuntimeROCm: DefaultClusterTrainingRuntimeROCm,
+	// Pinned th06 runtimes (map to default runtimes; same image, identical spec)
+	"training-hub-th06-cuda130-torch291-py312": DefaultClusterTrainingRuntimeCUDA,
+	"training-hub-th06-cpu-torch291-py312":     DefaultClusterTrainingRuntimeCPU,
+	"training-hub-th06-rocm64-torch291-py312":  DefaultClusterTrainingRuntimeROCm,
+	"torch-distributed-cuda130-torch291-py312": DefaultClusterTrainingRuntimeCUDA,
+	"torch-distributed-cpu-torch291-py312":     DefaultClusterTrainingRuntimeCPU,
+	"torch-distributed-rocm64-torch291-py312":  DefaultClusterTrainingRuntimeROCm,
+}
+
 // ExpectedRuntimes is the list of expected ClusterTrainingRuntimes on the cluster
 var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: DefaultClusterTrainingRuntimeCUDA, RHOAIImage: "odh-th06-cuda130-torch291-py312"},
