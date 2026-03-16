@@ -86,7 +86,7 @@ func TestKueueDefaultLocalQueueLabelInjection(t *testing.T) {
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
-				Name: trainerutils.DefaultClusterTrainingRuntime,
+				Name: trainerutils.DefaultClusterTrainingRuntimeCUDA,
 			},
 			Trainer: &trainerv1alpha1.Trainer{
 				Command: []string{"echo", "test"},
@@ -164,7 +164,7 @@ func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
-				Name: trainerutils.DefaultClusterTrainingRuntime,
+				Name: trainerutils.DefaultClusterTrainingRuntimeCUDA,
 			},
 			Trainer: &trainerv1alpha1.Trainer{
 				Command: []string{"sleep", "120"},
@@ -246,7 +246,7 @@ func TestKueueWorkloadInadmissibleWithNonExistentLocalQueue(t *testing.T) {
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
-				Name: trainerutils.DefaultClusterTrainingRuntime,
+				Name: trainerutils.DefaultClusterTrainingRuntimeCUDA,
 			},
 			Trainer: &trainerv1alpha1.Trainer{
 				Command: []string{"echo", "test"},

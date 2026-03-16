@@ -100,7 +100,7 @@ func TestSetupUpgradeTrainJob(t *testing.T) {
 	test.T().Logf("Applied Kueue LocalQueue %s/%s successfully", appliedLocalQueue.Namespace, appliedLocalQueue.Name)
 
 	// Create TrainJob
-	trainJob := createUpgradeTrainJob(test, upgradeNamespaceName, appliedLocalQueue.Name, upgradeTrainJobName, trainerutils.DefaultClusterTrainingRuntime)
+	trainJob := createUpgradeTrainJob(test, upgradeNamespaceName, appliedLocalQueue.Name, upgradeTrainJobName, trainerutils.DefaultClusterTrainingRuntimeCUDA)
 
 	// Verify Kueue Workload is Inadmissible
 	var workloadName string
