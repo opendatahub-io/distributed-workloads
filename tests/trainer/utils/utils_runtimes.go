@@ -23,14 +23,14 @@ type ClusterTrainingRuntime struct {
 }
 
 const (
-	// DefaultClusterTrainingRuntime is the default runtime for CUDA accelerators
-	DefaultClusterTrainingRuntime = "torch-distributed"
+	// DefaultClusterTrainingRuntimeCUDA is the default runtime for CUDA accelerators
+	DefaultClusterTrainingRuntimeCUDA = "torch-distributed"
 
 	// DefaultClusterTrainingRuntimeROCm is the default runtime for AMD/ROCm accelerators
 	DefaultClusterTrainingRuntimeROCm = "torch-distributed-rocm"
 
-	// DefaultTrainingHubRuntime is the default runtime for SFT/OSFT workloads
-	DefaultTrainingHubRuntime = "training-hub"
+	// DefaultTrainingHubRuntimeCUDA is the default CUDA runtime for training hub workloads
+	DefaultTrainingHubRuntimeCUDA = "training-hub"
 
 	// DefaultTrainingHubRuntimeCPU is the CPU-only runtime for training hub workloads
 	DefaultTrainingHubRuntimeCPU = "training-hub-cpu"
@@ -43,10 +43,10 @@ const (
 )
 
 var DefaultClusterTrainingRuntimes = []string{
-	DefaultClusterTrainingRuntime,
+	DefaultClusterTrainingRuntimeCUDA,
 	DefaultClusterTrainingRuntimeROCm,
 	DefaultClusterTrainingRuntimeCPU,
-	DefaultTrainingHubRuntime,
+	DefaultTrainingHubRuntimeCUDA,
 	DefaultTrainingHubRuntimeCPU,
 	DefaultTrainingHubRuntimeROCm,
 }
@@ -62,7 +62,7 @@ func IsDefaultRuntime(name string) bool {
 
 // ExpectedRuntimes is the list of expected ClusterTrainingRuntimes on the cluster
 var ExpectedRuntimes = []ClusterTrainingRuntime{
-	{Name: DefaultClusterTrainingRuntime, RHOAIImage: "odh-th06-cuda130-torch291-py312"},
+	{Name: DefaultClusterTrainingRuntimeCUDA, RHOAIImage: "odh-th06-cuda130-torch291-py312"},
 	{Name: DefaultClusterTrainingRuntimeROCm, RHOAIImage: "odh-th06-rocm64-torch291-py312"},
 	{Name: DefaultClusterTrainingRuntimeCPU, RHOAIImage: "odh-th06-cpu-torch291-py312"},
 	{Name: "torch-distributed-cuda128-torch29-py312", RHOAIImage: "odh-training-cuda128-torch29-py312"},
@@ -70,7 +70,7 @@ var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: "torch-distributed-cuda130-torch291-py312", RHOAIImage: "odh-th06-cuda130-torch291-py312"},
 	{Name: "torch-distributed-rocm64-torch291-py312", RHOAIImage: "odh-th06-rocm64-torch291-py312"},
 	{Name: "torch-distributed-cpu-torch291-py312", RHOAIImage: "odh-th06-cpu-torch291-py312"},
-	{Name: DefaultTrainingHubRuntime, RHOAIImage: "odh-th06-cuda130-torch291-py312"},
+	{Name: DefaultTrainingHubRuntimeCUDA, RHOAIImage: "odh-th06-cuda130-torch291-py312"},
 	{Name: DefaultTrainingHubRuntimeCPU, RHOAIImage: "odh-th06-cpu-torch291-py312"},
 	{Name: DefaultTrainingHubRuntimeROCm, RHOAIImage: "odh-th06-rocm64-torch291-py312"},
 	{Name: "training-hub-th05-cuda128-torch29-py312", RHOAIImage: "odh-training-cuda128-torch29-py312"},

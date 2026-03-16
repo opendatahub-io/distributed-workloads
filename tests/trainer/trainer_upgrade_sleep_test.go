@@ -94,7 +94,7 @@ func createSleepTrainJob(test Test, namespace string) *trainerv1alpha1.TrainJob 
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
-				Name: trainerutils.DefaultClusterTrainingRuntime,
+				Name: trainerutils.DefaultClusterTrainingRuntimeCUDA,
 			},
 			Trainer: &trainerv1alpha1.Trainer{
 				Image:   Ptr(GetSleepImage()),

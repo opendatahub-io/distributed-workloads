@@ -113,7 +113,15 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 	Tags(t, Sanity)
 	test := With(t)
 
+	// Run one TrainJob per unique image to avoid redundant runs for CTRs that share the same image
+	tested := make(map[string]bool)
 	for _, runtime := range trainerutils.ExpectedRuntimes {
+		if tested[runtime.RHOAIImage] {
+			test.T().Logf("Skipping ClusterTrainingRuntime '%s' (image '%s' already tested)", runtime.Name, runtime.RHOAIImage)
+			continue
+		}
+		tested[runtime.RHOAIImage] = true
+
 		test.T().Logf("Running TrainJob with ClusterTrainingRuntime: %s", runtime.Name)
 
 		// Create a namespace

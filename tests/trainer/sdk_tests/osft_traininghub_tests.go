@@ -97,7 +97,7 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
 		endpoint, accessKey, secretKey, bucket, prefix,
-		trainerutils.DefaultTrainingHubRuntime,
+		trainerutils.DefaultTrainingHubRuntimeCUDA,
 		osftNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}

@@ -299,7 +299,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	// Determine GPU resource label (empty for CPU) and training runtime
 	gpuResourceLabel := ""
-	trainingRuntime := trainerutils.DefaultClusterTrainingRuntime // Default for CPU and NVIDIA
+	trainingRuntime := trainerutils.DefaultClusterTrainingRuntimeCUDA // Default for CPU and NVIDIA
 	if config.Accelerator.IsGpu() {
 		gpuResourceLabel = config.Accelerator.ResourceLabel
 		if config.Accelerator == AMD {
