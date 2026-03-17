@@ -31,9 +31,8 @@ import (
 )
 
 const (
-	// ConstantBucketName is the bucket name used for all test cases
-	// This ensures consistent bucket reuse across tests, even if cleanup fails
-	ConstantBucketName = "training-kubeflow"
+	// ConstantBucketName is the dedicated bucket used for all test cases
+	ConstantBucketName = "training-kubeflow-e2e"
 )
 
 // CloudURI represents a parsed cloud storage URI
@@ -75,10 +74,8 @@ func ParseCloudURI(uri string) *CloudURI {
 // CloudStorageProvider defines the interface for cloud storage operations.
 // Easy to extend: implement for Azure, GCS, etc.
 type CloudStorageProvider interface {
-	// CreateBucket creates a new bucket with the specified region
-	CreateBucket(ctx context.Context, bucketName, region string) error
-	// DeleteBucket deletes a bucket and all its contents
-	DeleteBucket(ctx context.Context, bucketName string) error
+	// DeleteFolder deletes all objects under the given prefix in a bucket
+	DeleteFolder(ctx context.Context, bucketName, prefix string) error
 	// BucketExists checks if a bucket exists
 	BucketExists(ctx context.Context, bucketName string) (bool, error)
 	// CheckpointExists verifies at least one checkpoint exists at the URI
@@ -176,46 +173,23 @@ func (p *S3Provider) CheckpointExists(ctx context.Context, uri string) bool {
 	return false // No checkpoints found
 }
 
-// CreateBucket creates a new S3 bucket in the specified region
-// Assumes bucket name is unique (e.g., with timestamp) and doesn't already exist
-func (p *S3Provider) CreateBucket(ctx context.Context, bucketName, region string) error {
+// DeleteFolder deletes all objects under the given prefix in a bucket.
+// The bucket itself is left intact.
+func (p *S3Provider) DeleteFolder(ctx context.Context, bucketName, prefix string) error {
 	if bucketName == "" {
 		return fmt.Errorf("bucket name cannot be empty")
 	}
-
-	// Default to us-east-1 if no region specified
-	if region == "" {
-		region = "us-east-1"
+	if prefix == "" {
+		return fmt.Errorf("prefix cannot be empty")
 	}
 
-	// Create the bucket with region
-	if err := p.client.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{
-		Region: region,
-	}); err != nil {
-		return fmt.Errorf("failed to create bucket %s in region %s: %w", bucketName, region, err)
+	// Ensure prefix ends with "/" so we only delete objects under this folder
+	if !strings.HasSuffix(prefix, "/") {
+		prefix += "/"
 	}
 
-	return nil
-}
-
-// DeleteBucket deletes an S3 bucket and all its contents
-func (p *S3Provider) DeleteBucket(ctx context.Context, bucketName string) error {
-	if bucketName == "" {
-		return fmt.Errorf("bucket name cannot be empty")
-	}
-
-	// Check if bucket exists
-	exists, err := p.client.BucketExists(ctx, bucketName)
-	if err != nil {
-		return fmt.Errorf("failed to check if bucket exists: %w", err)
-	}
-
-	if !exists {
-		return nil // Bucket doesn't exist, nothing to delete
-	}
-
-	// Delete all objects in the bucket first
 	objectsCh := p.client.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+		Prefix:    prefix,
 		Recursive: true,
 	})
 
@@ -226,11 +200,6 @@ func (p *S3Provider) DeleteBucket(ctx context.Context, bucketName string) error 
 		if err := p.client.RemoveObject(ctx, bucketName, object.Key, minio.RemoveObjectOptions{}); err != nil {
 			return fmt.Errorf("failed to delete object %s: %w", object.Key, err)
 		}
-	}
-
-	// Delete the bucket
-	if err := p.client.RemoveBucket(ctx, bucketName); err != nil {
-		return fmt.Errorf("failed to delete bucket %s: %w", bucketName, err)
 	}
 
 	return nil
