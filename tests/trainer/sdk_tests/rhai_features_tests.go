@@ -168,35 +168,30 @@ func runS3CheckpointTestWithNotebook(t *testing.T, accelerator Accelerator, numN
 	provider, err := trainerutils.GetS3Provider()
 	test.Expect(err).NotTo(HaveOccurred(), "S3 configuration required. Please set AWS_DEFAULT_ENDPOINT, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY")
 
-	// Create unique bucket name using Unix timestamp for parallel test execution
-	bucketName := fmt.Sprintf("%s-%d", trainerutils.ConstantBucketName, time.Now().Unix())
+	// Use a unique folder prefix within the dedicated bucket to isolate parallel test runs
+	sanitizedTestName := strings.NewReplacer("/", "-", " ", "-").Replace(t.Name())
+	folderPrefix := fmt.Sprintf("checkpoints-%s-%d", sanitizedTestName, time.Now().UTC().UnixNano())
+	bucketName := trainerutils.ConstantBucketName
 
-	// Get region from environment (CreateBucket will default to us-east-1 if empty)
-	region, _ := GetStorageBucketDefaultRegion()
+	exists, err := provider.BucketExists(test.Ctx(), bucketName)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to verify S3 bucket %s", bucketName))
+	test.Expect(exists).To(BeTrue(), fmt.Sprintf("S3 bucket %q does not exist. This bucket must be pre-created in the S3 storage before running checkpoint tests.", bucketName))
 
-	// Create test bucket
-	err = provider.CreateBucket(test.Ctx(), bucketName, region)
-	test.Expect(err).NotTo(HaveOccurred(), "Failed to create test bucket")
-
-	// Schedule cleanup to run when function exits (ensures bucket is deleted even if test fails)
+	// Schedule cleanup to delete only the test folder when the function exits
 	defer func() {
-		if err := provider.DeleteBucket(test.Ctx(), bucketName); err != nil {
-			test.T().Logf("Warning: failed to delete test bucket: %v", err)
+		if err := provider.DeleteFolder(test.Ctx(), bucketName, folderPrefix); err != nil {
+			test.T().Logf("Warning: failed to delete test folder %s/%s: %v", bucketName, folderPrefix, err)
 		} else {
-			test.T().Logf("Test bucket deleted: %s (all checkpoints cleaned)", bucketName)
+			test.T().Logf("Test folder deleted: s3://%s/%s", bucketName, folderPrefix)
 		}
 	}()
 
-	if region != "" {
-		test.T().Logf("Test bucket ready: %s (region: %s)", bucketName, region)
-	} else {
-		test.T().Logf("Test bucket ready: %s (region: us-east-1, default)", bucketName)
-	}
+	test.T().Logf("Using folder s3://%s/%s for checkpoints", bucketName, folderPrefix)
 
 	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
 		EnableProgressionTracking: false,
 		EnableJitCheckpoint:       true,
-		CheckpointOutputDir:       fmt.Sprintf("s3://%s/checkpoints", bucketName),
+		CheckpointOutputDir:       fmt.Sprintf("s3://%s/%s/checkpoints", bucketName, folderPrefix),
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
 		Accelerator:               accelerator,
