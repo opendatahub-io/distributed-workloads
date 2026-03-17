@@ -108,11 +108,17 @@ func Raw(t Test, obj runtime.Object) runtime.RawExtension {
 	}
 }
 
+func Pods(t Test, namespace string, options metav1.ListOptions) func(g gomega.Gomega) []corev1.Pod {
+	return func(g gomega.Gomega) []corev1.Pod {
+		pods, err := t.Client().Core().CoreV1().Pods(namespace).List(t.Ctx(), options)
+		g.Expect(err).NotTo(gomega.HaveOccurred())
+		return pods.Items
+	}
+}
+
 func GetPods(t Test, namespace string, options metav1.ListOptions) []corev1.Pod {
 	t.T().Helper()
-	pods, err := t.Client().Core().CoreV1().Pods(namespace).List(t.Ctx(), options)
-	t.Expect(err).NotTo(gomega.HaveOccurred())
-	return pods.Items
+	return Pods(t, namespace, options)(t)
 }
 
 func PodLog(t Test, namespace, name string, options corev1.PodLogOptions) func(g gomega.Gomega) string {

@@ -47,7 +47,7 @@ func TestSetupSleepTrainJob(t *testing.T) {
 	createSleepTrainJob(test, sleepNamespaceName)
 
 	// Make sure the TrainJob pod is running, waiting for Trainer upgrade
-	test.Eventually(GetPods(test, sleepNamespaceName, metav1.ListOptions{}), TestTimeoutDouble).
+	test.Eventually(Pods(test, sleepNamespaceName, metav1.ListOptions{}), TestTimeoutDouble).
 		Should(
 			And(
 				HaveLen(1),
