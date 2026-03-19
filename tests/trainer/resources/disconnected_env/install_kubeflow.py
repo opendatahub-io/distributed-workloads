@@ -10,14 +10,14 @@ falls back to S3 wheel if PyPI fails.
 
 Environment variables:
     - GPU_TYPE: Accelerator type (cpu, nvidia/cuda, amd/rocm) - determines which Red Hat PyPI index to use
-    - KUBEFLOW_REQUIRED_VERSION: Required version (default: 0.2.1+rhai2)
+    - KUBEFLOW_REQUIRED_VERSION: Required version (default: 0.3.0+rhaiv.1)
 
 S3 fallback env vars:
     - AWS_DEFAULT_ENDPOINT
     - AWS_ACCESS_KEY_ID
     - AWS_SECRET_ACCESS_KEY
     - AWS_STORAGE_BUCKET
-    - KUBEFLOW_WHEEL_S3_KEY (optional, default: wheels/kubeflow-0.2.1+rhai2-py3-none-any.whl)
+    - KUBEFLOW_WHEEL_S3_KEY (optional, default: wheels/kubeflow-0.3.0+rhaiv.1-py3-none-any.whl)
 """
 
 import subprocess
@@ -36,7 +36,7 @@ warnings.filterwarnings("ignore", message=".*InsecureRequestWarning.*")
 
 def get_required_version():
     """Get required kubeflow version from env or use default."""
-    return os.environ.get("KUBEFLOW_REQUIRED_VERSION", "0.2.1+rhai2")
+    return os.environ.get("KUBEFLOW_REQUIRED_VERSION", "0.3.0+rhaiv.1")
 
 
 def get_rhai_pypi_index() -> str:
@@ -44,12 +44,12 @@ def get_rhai_pypi_index() -> str:
     Get the appropriate Red Hat PyPI index URL based on accelerator type.
     
     kubeflow package is NOT on public PyPI - only on Red Hat indexes:
-    - CPU: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.3/cpu-ubi9/simple/
-    - CUDA: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.3/cuda12.9-ubi9/simple/
-    - ROCm: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.3/rocm6.4-ubi9/simple/
+    - CPU: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cpu-ubi9/simple/
+    - CUDA: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda12.9-ubi9/simple/
+    - ROCm: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9/simple/
     """
     gpu_type = os.environ.get("GPU_TYPE", "cpu").lower()
-    base = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.3"
+    base = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2"
     
     if "nvidia" in gpu_type or "cuda" in gpu_type:
         return f"{base}/cuda12.9-ubi9/simple/"
@@ -155,7 +155,7 @@ def install_from_s3():
         # Get wheel path from env var or use default
         wheel_key = os.environ.get(
             "KUBEFLOW_WHEEL_S3_KEY",
-            "wheels/kubeflow-0.2.1+rhai2-py3-none-any.whl"
+            "wheels/kubeflow-0.3.0+rhaiv.1-py3-none-any.whl"
         )
         # Preserve original wheel filename (pip requires valid wheel name)
         wheel_filename = wheel_key.split("/")[-1]
