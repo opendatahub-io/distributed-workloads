@@ -62,6 +62,21 @@ func boolStr(b bool) string {
 	return "false"
 }
 
+// buildKubeflowInstallExports forwards optional disconnected-install overrides
+// into the notebook shell so install_kubeflow.py can use a staged wheel.
+func buildKubeflowInstallExports() string {
+	var exports strings.Builder
+
+	if value, ok := os.LookupEnv("KUBEFLOW_REQUIRED_VERSION"); ok && value != "" {
+		exports.WriteString(fmt.Sprintf("export KUBEFLOW_REQUIRED_VERSION='%s'; ", value))
+	}
+	if value, ok := os.LookupEnv("KUBEFLOW_WHEEL_S3_KEY"); ok && value != "" {
+		exports.WriteString(fmt.Sprintf("export KUBEFLOW_WHEEL_S3_KEY='%s'; ", value))
+	}
+
+	return exports.String()
+}
+
 // RhaiFeatureConfig holds configuration for RHAI feature tests
 type RhaiFeatureConfig struct {
 	EnableProgressionTracking bool
@@ -399,8 +414,9 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	// install_kubeflow.py uses GPU_TYPE to select the correct index (cpu/cuda/rocm)
 	test.T().Logf("Using Red Hat PyPI index for %s (kubeflow not on public PyPI)", gpuType)
 
-	// Build pip exports - GPU_TYPE tells install_kubeflow.py which Red Hat index to use
-	pipExports := fmt.Sprintf("export GPU_TYPE='%s'; ", gpuType)
+	// Build pip exports - GPU_TYPE tells install_kubeflow.py which Red Hat index to use.
+	// Optional KUBEFLOW_* exports let disconnected runs point at a staged wheel.
+	pipExports := fmt.Sprintf("export GPU_TYPE='%s'; %s", gpuType, buildKubeflowInstallExports())
 	pipInstallFlags := ""
 
 	// Set defaults for num_nodes and num_gpus_per_node if not specified
@@ -733,7 +749,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	test.T().Log("Waiting for training to complete at least 2 epochs (checking logs)...")
 	test.Eventually(func() bool {
 		return hasCompletedEpochFromLogs(test, namespace, trainJobName, 2)
-	}, TestTimeoutMedium, 5*time.Second).Should(BeTrue(), "Training should complete at least 2 epochs before suspension")
+	}, timeout, 5*time.Second).Should(BeTrue(), "Training should complete at least 2 epochs before suspension")
 	test.T().Log("At least 2 epochs completed - ready to suspend")
 
 	// Verify cloud checkpoint upload is working (only for cloud storage mode, not PVC)
