@@ -52,11 +52,19 @@ func RunLoraTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
-	// Create ConfigMap with notebook
+	// Create ConfigMap with notebook and install script
 	localPath := loraNotebookPath
 	nb, err := os.ReadFile(localPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
-	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{loraNotebookName: nb})
+
+	installScriptPath := "resources/disconnected_env/install_kubeflow.py"
+	installScript, err := os.ReadFile(installScriptPath)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
+
+	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{
+		loraNotebookName:      nb,
+		"install_kubeflow.py": installScript,
+	})
 
 	// Build command with parameters and pinned deps, and print definitive status line to logs
 	endpoint, endpointOK := support.GetStorageBucketDefaultEndpoint()
@@ -84,6 +92,7 @@ func RunLoraTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
+			"export IPYTHONDIR='/tmp/.ipython'; "+
 			"export OPENSHIFT_API_URL='%s'; export NOTEBOOK_USER_TOKEN='%s'; "+
 			"export NOTEBOOK_NAMESPACE='%s'; "+
 			"export SHARED_PVC_NAME='%s'; "+
@@ -92,7 +101,10 @@ func RunLoraTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 			"export AWS_STORAGE_BUCKET='%s'; "+
 			"export AWS_STORAGE_BUCKET_LORA_DIR='%s'; "+
 			"export TRAINING_RUNTIME='%s'; "+
+			"export GPU_TYPE='nvidia'; "+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill boto3==1.34.162 && "+
+			"python /opt/app-root/notebooks/install_kubeflow.py && "+
+			"python -m ipykernel install --user --name=python3 && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,

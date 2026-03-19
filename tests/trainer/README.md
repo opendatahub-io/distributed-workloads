@@ -63,3 +63,7 @@ go test ./tests/trainer/ -v
 go test ./tests/trainer -run TestCustomTrainingRuntimesAvailable -v
 ```
 
+## GPU Requirements
+
+> **Note:** The TrainingHub SDK tests (`TestOsftTrainingHubMultiNodeMultiGPU`, `TestLoraTrainingHubMultiNodeMultiGPU`, `TestSftTrainingHubMultiNodeMultiGPU`) require **NVIDIA Ampere or newer GPUs** (e.g. A100, H100). The training runtime image (`odh-training-cuda128-torch29-py312-rhel9`, referenced as `DefaultTrainingHubRuntimeCUDA` in [`tests/trainer/utils/utils_runtimes.go`](utils/utils_runtimes.go)) ships with `flash_attn==2.8.3`, which requires compute capability >= 8.0. These tests will not work on pre-Ampere GPUs such as T4 or V100.
+

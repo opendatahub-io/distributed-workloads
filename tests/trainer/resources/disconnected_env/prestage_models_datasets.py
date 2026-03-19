@@ -77,14 +77,24 @@ PRESETS: Dict[str, Dict[str, List[str]]] = {
         "datasets": ["LipengCS/Table-GPT:table-gpt-data"],  # Same dataset as SFT
         "description": "OSFT Training test - Qwen model + Table-GPT dataset",
     },
+    "lora": {
+        "models": [
+            "Qwen/Qwen2.5-1.5B-Instruct:models/Qwen2.5-1.5B-Instruct",
+            "unsloth/qwen2.5-1.5b-instruct-unsloth-bnb-4bit:models/qwen2.5-1.5b-instruct-unsloth-bnb-4bit",
+        ],
+        "datasets": ["b-mc2/sql-create-context:txt-sql-data"],
+        "description": "LoRA Training test - Qwen model + Unsloth 4-bit variant + sql-create-context dataset",
+    },
     "all": {
         "models": [
             "distilgpt2:models/distilgpt2",
             "Qwen/Qwen2.5-1.5B-Instruct:models/Qwen2.5-1.5B-Instruct",
+            "unsloth/qwen2.5-1.5b-instruct-unsloth-bnb-4bit:models/qwen2.5-1.5b-instruct-unsloth-bnb-4bit",
         ],
         "datasets": [
             "yahma/alpaca-cleaned:alpaca-cleaned-datasets",
             "LipengCS/Table-GPT:table-gpt-data",
+            "b-mc2/sql-create-context:txt-sql-data",
         ],
         "description": "All models and datasets for trainer tests",
     },
