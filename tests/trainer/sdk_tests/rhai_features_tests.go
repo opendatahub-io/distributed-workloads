@@ -267,13 +267,12 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", config.NotebookPath))
 
 	// Read the kubeflow install helper script
-	installScriptPath := "resources/disconnected_env/install_kubeflow.py"
 	installScript, err := os.ReadFile(installScriptPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
 
 	cmData := map[string][]byte{
 		config.NotebookName:   nb,
-		"install_kubeflow.py": installScript,
+		installKubeflowScript: installScript,
 	}
 	cm := CreateConfigMap(test, namespace.Name, cmData)
 
@@ -408,6 +407,8 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		numGpusPerNode = 1
 	}
 
+	sdkInstallExports := buildKubeflowInstallExports()
+
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
 			"export IPYTHONDIR='/tmp/.ipython'; "+
@@ -427,8 +428,9 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 			"%s"+ // S3 exports (if configured)
 			"%s"+ // Data Connection exports (if configured)
 			"%s"+ // PyPI/GPU_TYPE exports
+			"%s"+ // SDK install exports
 			"python -m pip install --quiet --no-cache-dir %s papermill ipykernel boto3==1.34.162 && "+
-			"python /opt/app-root/notebooks/install_kubeflow.py && "+
+			"python /opt/app-root/notebooks/%s && "+
 			"python -m ipykernel install --user --name=python3 && "+
 			"python -m papermill /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"sleep infinity",
@@ -445,7 +447,9 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		s3Exports,
 		dataConnectionExports,
 		pipExports,
+		sdkInstallExports,
 		pipInstallFlags,
+		installKubeflowScript,
 		config.NotebookName,
 	)
 

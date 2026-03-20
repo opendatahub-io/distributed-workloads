@@ -52,11 +52,16 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
-	// Create ConfigMap with notebook
+	// Create ConfigMap with notebook and kubeflow install script
 	localPath := osftNotebookPath
 	nb, err := os.ReadFile(localPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
-	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{osftNotebookName: nb})
+	installScript, err := os.ReadFile(installScriptPath)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
+	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{
+		osftNotebookName:      nb,
+		installKubeflowScript: installScript,
+	})
 
 	// Build command with parameters and pinned deps, and print definitive status line to logs
 	endpoint, endpointOK := support.GetStorageBucketDefaultEndpoint()
@@ -82,6 +87,7 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 		support.StorageClassName(storageClass.Name),
 	)
 
+	sdkInstallExports := buildKubeflowInstallExports()
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
 			"export OPENSHIFT_API_URL='%s'; export NOTEBOOK_USER_TOKEN='%s'; "+
@@ -92,12 +98,16 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 			"export AWS_STORAGE_BUCKET='%s'; "+
 			"export AWS_STORAGE_BUCKET_OSFT_DIR='%s'; "+
 			"export TRAINING_RUNTIME='%s'; "+
+			"%s"+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill boto3==1.34.162 && "+
+			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
 		endpoint, accessKey, secretKey, bucket, prefix,
 		trainerutils.DefaultTrainingHubRuntimeCUDA,
+		sdkInstallExports,
+		installKubeflowScript,
 		osftNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
