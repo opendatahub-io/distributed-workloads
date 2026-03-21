@@ -59,7 +59,12 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 	localPath := failureNotebookPath
 	nb, err := os.ReadFile(localPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
-	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{failureNotebookName: nb})
+	installScript, err := os.ReadFile(installScriptPath)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
+	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{
+		failureNotebookName:   nb,
+		installKubeflowScript: installScript,
+	})
 
 	// Create RWX PVC required by the notebook pod template
 	storageClass, err := support.GetRWXStorageClass(test)
@@ -72,16 +77,21 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 		support.StorageClassName(storageClass.Name),
 	)
 
+	sdkInstallExports := buildKubeflowInstallExports()
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
 			"export OPENSHIFT_API_URL='%s'; export NOTEBOOK_USER_TOKEN='%s'; "+
 			"export NOTEBOOK_NAMESPACE='%s'; "+
 			"export TRAINING_RUNTIME='%s'; "+
+			"%s"+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill && "+
+			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name,
 		trainerutils.DefaultTrainingHubRuntimeCPU,
+		sdkInstallExports,
+		installKubeflowScript,
 		failureNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
@@ -126,7 +136,12 @@ func RunTorchrunTrainingFailureTest(t *testing.T) {
 	localPath := torchrunFailureNotebookPath
 	nb, err := os.ReadFile(localPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
-	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{torchrunFailureNotebookName: nb})
+	installScript, err := os.ReadFile(installScriptPath)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
+	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{
+		torchrunFailureNotebookName: nb,
+		installKubeflowScript:       installScript,
+	})
 
 	// S3 configuration for model and dataset download
 	endpoint, endpointOK := support.GetStorageBucketDefaultEndpoint()
@@ -152,6 +167,7 @@ func RunTorchrunTrainingFailureTest(t *testing.T) {
 		support.StorageClassName(storageClass.Name),
 	)
 
+	sdkInstallExports := buildKubeflowInstallExports()
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
 			"export OPENSHIFT_API_URL='%s'; export NOTEBOOK_USER_TOKEN='%s'; "+
@@ -162,12 +178,16 @@ func RunTorchrunTrainingFailureTest(t *testing.T) {
 			"export AWS_STORAGE_BUCKET='%s'; "+
 			"export AWS_STORAGE_BUCKET_SFT_DIR='%s'; "+
 			"export TRAINING_RUNTIME='%s'; "+
+			"%s"+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill boto3==1.34.162 && "+
+			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
 		endpoint, accessKey, secretKey, bucket, prefix,
 		trainerutils.DefaultTrainingHubRuntimeCUDA,
+		sdkInstallExports,
+		installKubeflowScript,
 		torchrunFailureNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
