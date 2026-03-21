@@ -56,6 +56,16 @@ Disconnected environments require:
 | `TestRhaiJitCheckpointingMultiGpuRocm` | Multi-GPU checkpoint (AMD) | 2 nodes, 2 GPUs each |
 | `TestRhaiFeaturesMultiGpuRocm` | All features multi-GPU (AMD) | 2 nodes, 2 GPUs each |
 
+### TrainingHub SDK Tests
+
+> **Note:** These tests require **NVIDIA Ampere or newer GPUs** (e.g. A100, H100). The training runtime image (`odh-training-cuda128-torch29-py312-rhel9`, referenced as `DefaultTrainingHubRuntimeCUDA` in [`tests/trainer/utils/utils_runtimes.go`](../../utils/utils_runtimes.go)) ships with `flash_attn==2.8.3`, which requires compute capability >= 8.0. These tests will not work on pre-Ampere GPUs such as T4 or V100.
+
+| Test Name | Description | Resources |
+|-----------|-------------|-----------|
+| `TestOsftTrainingHubMultiNodeMultiGPU` | OSFT training via TrainingHubTrainer | 2 nodes, 1 GPU each |
+| `TestLoraTrainingHubMultiNodeMultiGPU` | LoRA training via TrainingHubTrainer | 2 nodes, 1 GPU each |
+| `TestSftTrainingHubMultiNodeMultiGPU` | SFT training via TrainingHubTrainer | 2 nodes, 1 GPU each |
+
 ---
 
 ## Step 1: Mirror Container Images
@@ -128,6 +138,14 @@ python3 prestage_models_datasets.py --list-presets
 # Pre-stage for RHAI tests (distilgpt2 + alpaca-cleaned)
 python3 prestage_models_datasets.py --preset rhai
 
+# Pre-stage for TrainingHub SDK tests
+python3 prestage_models_datasets.py --preset osft   # Qwen2.5-1.5B + Table-GPT
+python3 prestage_models_datasets.py --preset sft    # Qwen2.5-1.5B + Table-GPT
+python3 prestage_models_datasets.py --preset lora   # Qwen2.5-1.5B + Unsloth 4-bit + sql-create-context
+
+# Pre-stage everything at once
+python3 prestage_models_datasets.py --preset all
+
 # Pre-stage custom model/dataset
 python3 prestage_models_datasets.py \
   --model "distilgpt2" \
@@ -165,19 +183,33 @@ The prestage script creates this structure:
 ```
 <bucket>/
 ├── models/
-│   └── distilgpt2/
+│   ├── distilgpt2/                              # RHAI tests
+│   │   ├── config.json
+│   │   ├── model.safetensors
+│   │   ├── tokenizer.json
+│   │   └── ...
+│   ├── Qwen2.5-1.5B-Instruct/                   # SFT, OSFT, LoRA tests
+│   │   ├── config.json
+│   │   ├── model.safetensors
+│   │   ├── tokenizer.json
+│   │   └── ...
+│   └── qwen2.5-1.5b-instruct-unsloth-bnb-4bit/  # LoRA test (Unsloth 4-bit)
 │       ├── config.json
 │       ├── model.safetensors
-│       ├── tokenizer.json
-│       ├── vocab.json
 │       └── ...
-├── alpaca-cleaned-datasets/
+├── alpaca-cleaned-datasets/                      # RHAI tests
 │   ├── train/
 │   │   └── data-*.arrow
 │   ├── dataset_dict.json
 │   └── dataset_info.json
+├── table-gpt-data/                               # SFT, OSFT tests
+│   └── train/
+│       └── train_All_100.jsonl
+├── txt-sql-data/                                 # LoRA test
+│   └── train/
+│       └── train_All_100.jsonl
 └── wheels/
-    └── kubeflow-0.2.1+rhai0-py3-none-any.whl  # See Step 3
+    └── kubeflow-0.2.1+rhai0-py3-none-any.whl     # See Step 3
 ```
 
 ---
@@ -246,9 +278,15 @@ export TEST_TIMEOUT_LONG="15m"
 ### 4.2 Optional Variables
 
 ```bash
-# Model/dataset S3 paths (defaults shown)
+# RHAI test - Model/dataset S3 paths (defaults shown)
 export MODEL_S3_PREFIX="models/distilgpt2"
 export DATASET_S3_PREFIX="alpaca-cleaned-datasets"
+
+# TrainingHub SDK tests - S3 directory prefixes
+# These are passed to the notebooks via the Go test harness
+export AWS_STORAGE_BUCKET_OSFT_DIR="osft-data"    # OSFT test
+export AWS_STORAGE_BUCKET_LORA_DIR="lora-data"    # LoRA test
+export AWS_STORAGE_BUCKET_SFT_DIR="sft-data"      # SFT test
 
 # Kubeflow wheel S3 path (default shown)
 export KUBEFLOW_WHEEL_S3_KEY="wheels/kubeflow-0.2.1+rhai0-py3-none-any.whl"
@@ -290,13 +328,23 @@ PIP_TRUSTED_HOST="<pypi-mirror-hostname>" \
 go test -v ./tests/trainer -run TestRhaiTrainingProgressionCPU -timeout 30m
 ```
 
-### 5.3 All Trainer Tests
+### 5.3 TrainingHub SDK Tests (Ampere+ GPUs required)
+
+Uses the same environment variables from Step 4.1.
+
+```bash
+go test -v ./tests/trainer -run TestOsftTrainingHubMultiNodeMultiGPU -timeout 60m
+go test -v ./tests/trainer -run TestLoraTrainingHubMultiNodeMultiGPU -timeout 60m
+go test -v ./tests/trainer -run TestSftTrainingHubMultiNodeMultiGPU -timeout 60m
+```
+
+### 5.4 All Trainer Tests
 
 ```bash
 go test -v ./tests/trainer/... -timeout 60m
 ```
 
-### 5.4 Monitor Test Progress
+### 5.5 Monitor Test Progress
 
 While tests are running, monitor pods in another terminal:
 
@@ -457,8 +505,14 @@ Training completed successfully
 |-----------|----------|-------|
 | Prestage script | `tests/trainer/resources/disconnected_env/prestage_models_datasets.py` | Run on bastion |
 | Kubeflow install | `tests/trainer/resources/disconnected_env/install_kubeflow.py` | Used by notebook |
-| RHAI notebook | `tests/trainer/resources/rhai_features.ipynb` | Main test notebook |
-| Go test | `tests/trainer/sdk_tests/rhai_features_tests.go` | Test runner |
+| RHAI notebook | `tests/trainer/resources/rhai_features.ipynb` | RHAI features test notebook |
+| OSFT notebook | `tests/trainer/resources/osft.ipynb` | OSFT training test notebook |
+| LoRA notebook | `tests/trainer/resources/lora.ipynb` | LoRA training test notebook |
+| SFT notebook | `tests/trainer/resources/sft.ipynb` | SFT training test notebook |
+| Go test (RHAI) | `tests/trainer/sdk_tests/rhai_features_tests.go` | RHAI test runner |
+| Go test (OSFT) | `tests/trainer/sdk_tests/osft_traininghub_tests.go` | OSFT test runner |
+| Go test (LoRA) | `tests/trainer/sdk_tests/lora_traininghub_tests.go` | LoRA test runner |
+| Go test (SFT) | `tests/trainer/sdk_tests/sft_traininghub_tests.go` | SFT test runner |
 
 | Env Variable | Required | Description |
 |--------------|----------|-------------|
