@@ -91,23 +91,26 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 		support.StorageClassName(storageClass.Name),
 	)
 
+	sdkInstallExports := buildKubeflowInstallExports()
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
-			"export OPENSHIFT_API_URL='%s'; export NOTEBOOK_TOKEN='%s'; "+
-			"export NOTEBOOK_NAMESPACE='%s'; "+
-			"export SHARED_PVC_NAME='%s'; "+
-			"export AWS_DEFAULT_ENDPOINT='%s'; export AWS_ACCESS_KEY_ID='%s'; "+
-			"export AWS_SECRET_ACCESS_KEY='%s'; export AWS_STORAGE_BUCKET='%s'; "+
-			"export AWS_STORAGE_BUCKET_MNIST_DIR='%s'; "+
-			"export TRAINING_RUNTIME='%s'; "+
+			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_TOKEN=%s; "+
+			"export NOTEBOOK_NAMESPACE=%s; "+
+			"export SHARED_PVC_NAME=%s; "+
+			"export AWS_DEFAULT_ENDPOINT=%s; export AWS_ACCESS_KEY_ID=%s; "+
+			"export AWS_SECRET_ACCESS_KEY=%s; export AWS_STORAGE_BUCKET=%s; "+
+			"export AWS_STORAGE_BUCKET_MNIST_DIR=%s; "+
+			"export TRAINING_RUNTIME=%s; "+
 			"export GPU_TYPE='cpu'; "+
-			"python -m pip install --quiet --no-cache-dir ipykernel papermill boto3==1.34.162 && "+
+			"%s"+
+			"python -m pip install --quiet --no-cache-dir ipykernel papermill kubernetes boto3==1.34.162 && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
-		endpoint, accessKey, secretKey, bucket, prefix,
-		trainerutils.DefaultClusterTrainingRuntimeCUDA,
+		shellQuote(support.GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(rwxPvc.Name),
+		shellQuote(endpoint), shellQuote(accessKey), shellQuote(secretKey), shellQuote(bucket), shellQuote(prefix),
+		shellQuote(trainerutils.DefaultClusterTrainingRuntimeCUDA),
+		sdkInstallExports,
 		installKubeflowScript,
 		notebookName,
 	)
@@ -218,25 +221,28 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 		support.StorageClassName(storageClass.Name),
 	)
 
+	sdkInstallExports := buildKubeflowInstallExports()
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
-			"export OPENSHIFT_API_URL='%s'; export NOTEBOOK_TOKEN='%s'; "+
-			"export NOTEBOOK_NAMESPACE='%s'; "+
-			"export SHARED_PVC_NAME='%s'; "+
-			"export AWS_DEFAULT_ENDPOINT='%s'; export AWS_ACCESS_KEY_ID='%s'; "+
-			"export AWS_SECRET_ACCESS_KEY='%s'; export AWS_STORAGE_BUCKET='%s'; "+
-			"export AWS_STORAGE_BUCKET_MNIST_DIR='%s'; "+
-			"export TRAINING_RUNTIME='%s'; "+
+			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_TOKEN=%s; "+
+			"export NOTEBOOK_NAMESPACE=%s; "+
+			"export SHARED_PVC_NAME=%s; "+
+			"export AWS_DEFAULT_ENDPOINT=%s; export AWS_ACCESS_KEY_ID=%s; "+
+			"export AWS_SECRET_ACCESS_KEY=%s; export AWS_STORAGE_BUCKET=%s; "+
+			"export AWS_STORAGE_BUCKET_MNIST_DIR=%s; "+
+			"export TRAINING_RUNTIME=%s; "+
 			"export GPU_TYPE='cpu'; "+
-			"export KUEUE_QUEUE_NAME='%s'; "+
-			"python -m pip install --quiet --no-cache-dir ipykernel papermill boto3==1.34.162 && "+
+			"export KUEUE_QUEUE_NAME=%s; "+
+			"%s"+
+			"python -m pip install --quiet --no-cache-dir ipykernel papermill kubernetes boto3==1.34.162 && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
-		endpoint, accessKey, secretKey, bucket, prefix,
-		trainerutils.DefaultClusterTrainingRuntimeCUDA,
-		customLocalQueue.Name,
+		shellQuote(support.GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(rwxPvc.Name),
+		shellQuote(endpoint), shellQuote(accessKey), shellQuote(secretKey), shellQuote(bucket), shellQuote(prefix),
+		shellQuote(trainerutils.DefaultClusterTrainingRuntimeCUDA),
+		shellQuote(customLocalQueue.Name),
+		sdkInstallExports,
 		installKubeflowScript,
 		notebookName,
 	)
