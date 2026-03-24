@@ -1,0 +1,28 @@
+name: Go vet
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.go'
+      - '**go.mod'
+      - '**go.sum'
+  pull_request:
+    paths:
+      - '**.go'
+      - '**go.mod'
+      - '**go.sum'
+jobs:
+  build:
+    name: Go vet
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: './go.mod'
+    - name: Vet
+      run: go vet ./...
