@@ -57,13 +57,12 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T, nnodes int) {
 	nb, err := os.ReadFile(localPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
 
-	installScriptPath := "resources/disconnected_env/install_kubeflow.py"
 	installScript, err := os.ReadFile(installScriptPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
 
 	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{
 		osftNotebookName:      nb,
-		"install_kubeflow.py": installScript,
+		installKubeflowScript: installScript,
 	})
 
 	// Build command with parameters and pinned deps, and print definitive status line to logs
@@ -90,27 +89,31 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T, nnodes int) {
 		support.StorageClassName(storageClass.Name),
 	)
 
+	sdkInstallExports := buildKubeflowInstallExports()
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
 			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL='%s'; export NOTEBOOK_USER_TOKEN='%s'; "+
-			"export NOTEBOOK_NAMESPACE='%s'; "+
-			"export SHARED_PVC_NAME='%s'; "+
-			"export AWS_DEFAULT_ENDPOINT='%s'; export AWS_ACCESS_KEY_ID='%s'; "+
-			"export AWS_SECRET_ACCESS_KEY='%s'; "+
-			"export AWS_STORAGE_BUCKET='%s'; "+
-			"export AWS_STORAGE_BUCKET_OSFT_DIR='%s'; "+
-			"export TRAINING_RUNTIME='%s'; "+
+			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_USER_TOKEN=%s; "+
+			"export NOTEBOOK_NAMESPACE=%s; "+
+			"export SHARED_PVC_NAME=%s; "+
+			"export AWS_DEFAULT_ENDPOINT=%s; export AWS_ACCESS_KEY_ID=%s; "+
+			"export AWS_SECRET_ACCESS_KEY=%s; "+
+			"export AWS_STORAGE_BUCKET=%s; "+
+			"export AWS_STORAGE_BUCKET_OSFT_DIR=%s; "+
+			"export TRAINING_RUNTIME=%s; "+
 			"export NNODES='%d'; "+
 			"export GPU_TYPE='nvidia'; "+
-			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill boto3==1.34.162 && "+
-			"python /opt/app-root/notebooks/install_kubeflow.py && "+
+			"%s"+
+			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
+			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
-		endpoint, accessKey, secretKey, bucket, prefix,
-		trainerutils.DefaultTrainingHubRuntimeCUDA,
+		shellQuote(support.GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(rwxPvc.Name),
+		shellQuote(endpoint), shellQuote(accessKey), shellQuote(secretKey), shellQuote(bucket), shellQuote(prefix),
+		shellQuote(trainerutils.DefaultTrainingHubRuntimeCUDA),
 		nnodes,
+		sdkInstallExports,
+		installKubeflowScript,
 		osftNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
