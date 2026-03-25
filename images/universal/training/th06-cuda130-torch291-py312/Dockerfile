@@ -13,7 +13,7 @@
 ################################################################################
 # Build Arguments
 ################################################################################
-ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cuda-py312-ubi9:3.4_ea2-v1.42
+ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cuda-py312-ubi9:3.4-v1.43
 ARG PYTHON_VERSION=3.12
 ARG DOWNSTREAM=false
 
@@ -35,7 +35,7 @@ WORKDIR /opt/app-root/src
 # Install main dependencies from AIPCC index
 # All packages (including flash-attn, mamba-ssm) are pre-built wheels in AIPCC
 RUN uv pip install --no-cache-dir --require-hashes \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9/simple/ \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/cuda13.0-ubi9/simple/ \
     -r /tmp/deps/requirements.txt
 
 # Fix permissions for OpenShift
