@@ -34,30 +34,44 @@ aioitertools==0.13.0
     # via aiobotocore
 aiosignal==1.4.0
     # via aiohttp
+alembic==1.18.4
+    # via mlflow
 annotated-doc==0.0.4
-    # via typer
+    # via
+    #   fastapi
+    #   typer
 annotated-types==0.7.0
     # via pydantic
 anyio==4.12.1
-    # via httpx
+    # via
+    #   httpx
+    #   starlette
 async-timeout==5.0.1
     # via th06-cpu-universal-image (pyproject.toml)
 attr==0.3.2
     # via training-hub
 attrs==25.4.0
     # via aiohttp
+blinker==1.9.0
+    # via flask
 botocore==1.41.5
     # via aiobotocore
-certifi==2026.1.4
-    # via
-    #   httpcore
-    #   httpx
-    #   kubernetes
-    #   requests
+cffi==2.0.0
+    # via cryptography
 click==8.3.1
-    # via typer
+    # via
+    #   flask
+    #   mlflow-skinny
+    #   typer
+    #   uvicorn
+cloudpickle==3.1.2
+    # via mlflow-skinny
 contourpy==1.3.3
     # via matplotlib
+cryptography==46.0.5
+    # via
+    #   google-auth
+    #   mlflow
 cycler==0.12.1
     # via matplotlib
 datasets==4.3.0
@@ -73,10 +87,18 @@ dill==0.4.0
     # via
     #   datasets
     #   multiprocess
+docker==7.1.0
+    # via mlflow
 durationpy==0.10
     # via kubernetes
 einops==0.8.2
     # via th06-cpu-universal-image (pyproject.toml)
+flask==3.1.3
+    # via
+    #   flask-cors
+    #   mlflow
+flask-cors==6.0.2
+    # via mlflow
 frozenlist==1.8.0
     # via
     #   aiohttp
@@ -89,6 +111,16 @@ fsspec==2025.9.0
     #   s3fs
     #   torch
     #   training-hub
+gitdb==4.0.12
+    # via gitpython
+gitpython==3.1.46
+    # via mlflow-skinny
+graphene==3.4.3
+    # via mlflow
+graphql-relay==3.2.0
+    # via graphene
+greenlet==3.3.2
+    # via sqlalchemy
 grpcio==1.78.1
     # via
     #   grpcio-status
@@ -96,12 +128,18 @@ grpcio==1.78.1
     #   tensorboard
 grpcio-status==1.78.1
     # via pyspark-connect
+gunicorn==25.1.0
+    # via mlflow
 h11==0.16.0
-    # via httpcore
+    # via
+    #   httpcore
+    #   uvicorn
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via datasets
+huey==2.6.0
+    # via mlflow
 huggingface-hub==0.36.2
     # via
     #   accelerate
@@ -115,16 +153,25 @@ idna==3.11
     #   httpx
     #   requests
     #   yarl
+importlib-metadata==8.7.1
+    # via
+    #   mlflow-skinny
+    #   opentelemetry-api
 iniconfig==2.3.0
     # via pytest
+itsdangerous==2.2.0
+    # via flask
 jinja2==3.1.6
     # via
+    #   flask
     #   torch
     #   training-hub
 jmespath==1.1.0
     # via
     #   aiobotocore
     #   botocore
+joblib==1.5.3
+    # via scikit-learn
 kubeflow-katib-api==0.19.0
     # via kubeflow
 kubeflow-trainer-api==2.1.0
@@ -135,16 +182,22 @@ llvmlite==0.46.0
     # via
     #   numba
     #   training-hub
+mako==1.3.10
+    # via alembic
 markdown==3.10.2
     # via tensorboard
 markdown-it-py==4.0.0
     # via rich
 markupsafe==3.0.3
     # via
+    #   flask
     #   jinja2
+    #   mako
     #   werkzeug
 matplotlib==3.10.8
-    # via training-hub
+    # via
+    #   mlflow
+    #   training-hub
 mdurl==0.1.2
     # via markdown-it-py
 mpmath==1.3.0
@@ -180,18 +233,23 @@ packaging==26.0
     # via
     #   accelerate
     #   datasets
+    #   gunicorn
     #   huggingface-hub
     #   instructlab-training
     #   matplotlib
+    #   mlflow-skinny
+    #   mlflow-tracing
     #   peft
     #   pytest
+    #   skops
     #   tensorboard
     #   training-hub
     #   transformers
     #   wheel
-pandas==3.0.1
+pandas==2.3.3
     # via
     #   datasets
+    #   mlflow
     #   pyspark-connect
     #   training-hub
 peft==0.18.1
@@ -205,6 +263,8 @@ pillow==12.1.1
     #   tensorboard
 pluggy==1.6.0
     # via pytest
+prettytable==3.17.0
+    # via skops
 propcache==0.4.1
     # via
     #   aiohttp
@@ -212,8 +272,12 @@ propcache==0.4.1
 protobuf==6.33.5
     # via
     #   th06-cpu-universal-image (pyproject.toml)
+    #   databricks-sdk
     #   googleapis-common-protos
     #   grpcio-status
+    #   mlflow-skinny
+    #   mlflow-tracing
+    #   opentelemetry-proto
     #   tensorboard
 psutil==7.2.2
     # via
@@ -229,15 +293,23 @@ py4j==0.10.9.9
 pyarrow==23.0.1
     # via
     #   datasets
+    #   mlflow
     #   pyspark-connect
+pyasn1-modules==0.4.2
+    # via google-auth
+pycparser==3.0
+    # via cffi
 pydantic==2.12.5
     # via
     #   th06-cpu-universal-image (pyproject.toml)
+    #   fastapi
     #   instructlab-training
     #   kubeflow
     #   kubeflow-katib-api
     #   kubeflow-spark-api
     #   kubeflow-trainer-api
+    #   mlflow-skinny
+    #   mlflow-tracing
     #   model-registry
     #   training-hub
 pydantic-core==2.41.5
@@ -256,6 +328,7 @@ python-dateutil==2.9.0.post0
     # via
     #   aiobotocore
     #   botocore
+    #   graphene
     #   kubernetes
     #   matplotlib
     #   model-registry
@@ -267,13 +340,17 @@ pyyaml==6.0.3
     #   huggingface-hub
     #   instructlab-training
     #   kubernetes
+    #   mlflow-skinny
     #   peft
     #   transformers
 requests==2.32.5
     # via
+    #   databricks-sdk
     #   datasets
+    #   docker
     #   huggingface-hub
     #   kubernetes
+    #   mlflow-skinny
     #   requests-oauthlib
     #   training-hub
     #   transformers
@@ -294,6 +371,15 @@ safetensors==0.7.0
     #   accelerate
     #   peft
     #   transformers
+scikit-learn==1.8.0
+    # via
+    #   mlflow
+    #   skops
+scipy==1.17.1
+    # via
+    #   mlflow
+    #   scikit-learn
+    #   skops
 sentencepiece==0.2.1
     # via th06-cpu-universal-image (pyproject.toml)
 setuptools==80.10.2
@@ -309,6 +395,10 @@ six==1.17.0
     # via
     #   kubernetes
     #   python-dateutil
+skops==0.13.0
+    # via mlflow
+sqlparse==0.5.5
+    # via mlflow-skinny
 sympy==1.14.0
     # via
     #   torch
@@ -317,6 +407,8 @@ tensorboard==2.20.0
     # via th06-cpu-universal-image (pyproject.toml)
 tensorboard-data-server==0.7.2
     # via tensorboard
+threadpoolctl==3.6.0
+    # via scikit-learn
 tokenizers==0.22.2
     # via
     #   th06-cpu-universal-image (pyproject.toml)
@@ -357,26 +449,45 @@ typer==0.24.1
 typing-extensions==4.15.0
     # via
     #   aiosignal
+    #   alembic
     #   anyio
+    #   fastapi
+    #   graphene
     #   grpcio
     #   huggingface-hub
+    #   mlflow-skinny
     #   model-registry
+    #   opentelemetry-api
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
     #   pydantic
     #   pydantic-core
+    #   sqlalchemy
+    #   starlette
     #   torch
     #   typing-inspection
 typing-inspection==0.4.2
-    # via pydantic
+    # via
+    #   fastapi
+    #   pydantic
+tzdata==2025.3
+    # via pandas
 urllib3==2.6.3
     # via
     #   botocore
+    #   docker
     #   kubernetes
     #   requests
     #   training-hub
+wcwidth==0.6.0
+    # via prettytable
 websocket-client==1.9.0
     # via kubernetes
 werkzeug==3.1.6
-    # via tensorboard
+    # via
+    #   flask
+    #   flask-cors
+    #   tensorboard
 wheel==0.46.3
     # via
     #   instructlab-training
@@ -389,3 +500,5 @@ xxhash==3.6.0
     # via
     #   datasets
     #   training-hub
+zipp==3.23.0
+    # via importlib-metadata

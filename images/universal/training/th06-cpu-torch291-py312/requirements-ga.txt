@@ -1,0 +1,123 @@
+--index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/cpu-ubi9/simple/
+
+cachetools==7.0.5
+    # via
+    #   mlflow-skinny
+    #   mlflow-tracing
+certifi==2026.2.25
+    # via
+    #   httpcore
+    #   httpx
+    #   kubernetes
+    #   requests
+charset-normalizer==3.4.5
+    # via requests
+databricks-sdk==0.102.0
+    # via
+    #   mlflow-skinny
+    #   mlflow-tracing
+fastapi==0.135.2
+    # via mlflow-skinny
+filelock==3.25.1
+    # via
+    #   datasets
+    #   huggingface-hub
+    #   torch
+    #   training-hub
+    #   transformers
+fonttools==4.62.0
+    # via matplotlib
+google-auth==2.49.1
+    # via databricks-sdk
+googleapis-common-protos==1.73.0
+    # via
+    #   grpcio-status
+    #   pyspark-connect
+graphql-core==3.2.8
+    # via
+    #   graphene
+    #   graphql-relay
+hf-xet==1.4.2
+    # via huggingface-hub
+instructlab-training==0.15.0
+    # via training-hub
+kiwisolver==1.5.0
+    # via matplotlib
+kubeflow==0.3.0+rhaiv.1
+    # via th06-cpu-universal-image (pyproject.toml)
+kubeflow-spark-api==2.4.0
+    # via th06-cpu-universal-image (pyproject.toml)
+mlflow==3.10.1+rhaiv.2
+    # via th06-cpu-universal-image (pyproject.toml)
+mlflow-skinny==3.10.1+rhaiv.2
+    # via mlflow
+mlflow-tracing==3.10.1+rhaiv.2
+    # via mlflow
+model-registry==0.3.7
+    # via th06-cpu-universal-image (pyproject.toml)
+numpy==2.4.3
+    # via
+    #   th06-cpu-universal-image (pyproject.toml)
+    #   accelerate
+    #   contourpy
+    #   datasets
+    #   instructlab-training
+    #   matplotlib
+    #   mlflow
+    #   numba
+    #   pandas
+    #   peft
+    #   pyspark-connect
+    #   rhai-innovation-mini-trainer
+    #   scikit-learn
+    #   scipy
+    #   skops
+    #   tensorboard
+    #   training-hub
+    #   transformers
+opentelemetry-api==1.40.0
+    # via
+    #   mlflow-skinny
+    #   mlflow-tracing
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
+opentelemetry-proto==1.40.0
+    # via
+    #   mlflow-skinny
+    #   mlflow-tracing
+opentelemetry-sdk==1.40.0
+    # via
+    #   mlflow-skinny
+    #   mlflow-tracing
+opentelemetry-semantic-conventions==0.61b0
+    # via opentelemetry-sdk
+pyasn1==0.6.3
+    # via pyasn1-modules
+pyspark==4.0.1
+    # via pyspark-connect
+pyspark-connect==4.0.1
+    # via th06-cpu-universal-image (pyproject.toml)
+python-dotenv==1.2.2
+    # via mlflow-skinny
+pytz==2026.1.post1
+    # via pandas
+regex==2026.2.28
+    # via
+    #   training-hub
+    #   transformers
+rhai-innovation-mini-trainer==0.7.0
+    # via training-hub
+smmap==5.0.3
+    # via gitdb
+sqlalchemy==2.0.48
+    # via
+    #   alembic
+    #   mlflow
+starlette==1.0.0
+    # via fastapi
+training-hub==0.6.0
+    # via th06-cpu-universal-image (pyproject.toml)
+uvicorn==0.42.0
+    # via mlflow-skinny
+yarl==1.23.0
+    # via aiohttp

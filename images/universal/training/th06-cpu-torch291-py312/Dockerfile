@@ -12,7 +12,7 @@
 ################################################################################
 # Build Arguments
 ################################################################################
-ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cpu-py312-ubi9:3.4_ea2-v1.42
+ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cpu-py312-ubi9:3.4-v1.43
 ARG PYTHON_VERSION=3.12
 ARG DOWNSTREAM=false
 
@@ -25,7 +25,7 @@ USER 0
 WORKDIR /tmp/deps
 
 # Copy requirements files
-COPY --chown=1001:0 pyproject.toml requirements.txt requirements-ea2.txt ./
+COPY --chown=1001:0 pyproject.toml requirements.txt requirements-ga.txt ./
 
 # Switch to user 1001 for pip installations
 USER 1001
@@ -38,8 +38,8 @@ RUN uv pip install --no-cache \
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA1/cpu-ubi9/simple/ \
     -r /tmp/deps/requirements.txt \
  && uv pip install --no-cache \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cpu-ubi9/simple/ \
-    -r /tmp/deps/requirements-ea2.txt
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/cpu-ubi9/simple/ \
+    -r /tmp/deps/requirements-ga.txt
 
 # Fix permissions for OpenShift
 ARG PYTHON_VERSION
