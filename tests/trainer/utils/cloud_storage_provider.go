@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -32,9 +31,8 @@ import (
 )
 
 const (
-	// ConstantBucketName is the bucket name used for all test cases
-	// This ensures consistent bucket reuse across tests, even if cleanup fails
-	ConstantBucketName = "test-checkpoints"
+	// ConstantBucketName is the dedicated bucket used for all test cases
+	ConstantBucketName = "training-kubeflow-e2e"
 )
 
 // CloudURI represents a parsed cloud storage URI
@@ -76,10 +74,8 @@ func ParseCloudURI(uri string) *CloudURI {
 // CloudStorageProvider defines the interface for cloud storage operations.
 // Easy to extend: implement for Azure, GCS, etc.
 type CloudStorageProvider interface {
-	// CreateBucket creates a new bucket if it doesn't exist
-	CreateBucket(ctx context.Context, bucketName string) error
-	// DeleteBucket deletes a bucket and all its contents
-	DeleteBucket(ctx context.Context, bucketName string) error
+	// DeleteFolder deletes all objects under the given prefix in a bucket
+	DeleteFolder(ctx context.Context, bucketName, prefix string) error
 	// BucketExists checks if a bucket exists
 	BucketExists(ctx context.Context, bucketName string) (bool, error)
 	// CheckpointExists verifies at least one checkpoint exists at the URI
@@ -177,48 +173,23 @@ func (p *S3Provider) CheckpointExists(ctx context.Context, uri string) bool {
 	return false // No checkpoints found
 }
 
-// CreateBucket creates a new S3 bucket if it doesn't exist
-func (p *S3Provider) CreateBucket(ctx context.Context, bucketName string) error {
+// DeleteFolder deletes all objects under the given prefix in a bucket.
+// The bucket itself is left intact.
+func (p *S3Provider) DeleteFolder(ctx context.Context, bucketName, prefix string) error {
 	if bucketName == "" {
 		return fmt.Errorf("bucket name cannot be empty")
 	}
-
-	// Check if bucket already exists
-	exists, err := p.client.BucketExists(ctx, bucketName)
-	if err != nil {
-		return fmt.Errorf("failed to check if bucket exists: %w", err)
+	if prefix == "" {
+		return fmt.Errorf("prefix cannot be empty")
 	}
 
-	if exists {
-		return nil // Bucket already exists, no need to create
+	// Ensure prefix ends with "/" so we only delete objects under this folder
+	if !strings.HasSuffix(prefix, "/") {
+		prefix += "/"
 	}
 
-	// Create the bucket
-	if err := p.client.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{}); err != nil {
-		return fmt.Errorf("failed to create bucket %s: %w", bucketName, err)
-	}
-
-	return nil
-}
-
-// DeleteBucket deletes an S3 bucket and all its contents
-func (p *S3Provider) DeleteBucket(ctx context.Context, bucketName string) error {
-	if bucketName == "" {
-		return fmt.Errorf("bucket name cannot be empty")
-	}
-
-	// Check if bucket exists
-	exists, err := p.client.BucketExists(ctx, bucketName)
-	if err != nil {
-		return fmt.Errorf("failed to check if bucket exists: %w", err)
-	}
-
-	if !exists {
-		return nil // Bucket doesn't exist, nothing to delete
-	}
-
-	// Delete all objects in the bucket first
 	objectsCh := p.client.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+		Prefix:    prefix,
 		Recursive: true,
 	})
 
@@ -229,11 +200,6 @@ func (p *S3Provider) DeleteBucket(ctx context.Context, bucketName string) error 
 		if err := p.client.RemoveObject(ctx, bucketName, object.Key, minio.RemoveObjectOptions{}); err != nil {
 			return fmt.Errorf("failed to delete object %s: %w", object.Key, err)
 		}
-	}
-
-	// Delete the bucket
-	if err := p.client.RemoveBucket(ctx, bucketName); err != nil {
-		return fmt.Errorf("failed to delete bucket %s: %w", bucketName, err)
 	}
 
 	return nil
@@ -251,13 +217,4 @@ func (p *S3Provider) BucketExists(ctx context.Context, bucketName string) (bool,
 	}
 
 	return exists, nil
-}
-
-// GenerateCheckpointPrefix generates a unique timestamp-based prefix for checkpoints.
-// Format: <timestamp>-checkpoints (e.g., 1234567890-checkpoints)
-// This ensures each test run uses a unique prefix, avoiding conflicts even if
-// bucket cleanup fails from a previous test.
-func GenerateCheckpointPrefix() string {
-	timestamp := time.Now().Unix()
-	return fmt.Sprintf("%d-checkpoints", timestamp)
 }

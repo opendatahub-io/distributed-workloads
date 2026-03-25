@@ -107,7 +107,7 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
 		endpoint, accessKey, secretKey, bucket, prefix,
-		trainerutils.DefaultClusterTrainingRuntime,
+		trainerutils.DefaultClusterTrainingRuntimeCUDA,
 		installKubeflowScript,
 		notebookName,
 	)
@@ -235,7 +235,7 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
 		endpoint, accessKey, secretKey, bucket, prefix,
-		trainerutils.DefaultClusterTrainingRuntime,
+		trainerutils.DefaultClusterTrainingRuntimeCUDA,
 		customLocalQueue.Name,
 		installKubeflowScript,
 		notebookName,

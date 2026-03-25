@@ -1,0 +1,108 @@
+# TH06 CPU Universal Image Dockerfile
+#
+# FIPS-friendly Features:
+# - Build tools are isolated in intermediate stage
+# - Final image contains only runtime dependencies
+# - Uses pip install (additive) to preserve base image packages
+#
+# Build Modes:
+# - Midstream (default): DOWNSTREAM=false - installs system packages
+# - Downstream: DOWNSTREAM=true - skips midstream-only sections (base image has them)
+
+################################################################################
+# Build Arguments
+################################################################################
+ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cpu-py312-ubi9:3.4_ea2-v1.42
+ARG PYTHON_VERSION=3.12
+ARG DOWNSTREAM=false
+
+################################################################################
+# Build Stage - Install Python Dependencies
+################################################################################
+FROM ${BASE_IMAGE} AS builder
+
+USER 0
+WORKDIR /tmp/deps
+
+# Copy requirements files
+COPY --chown=1001:0 pyproject.toml requirements.txt ./
+
+# Switch to user 1001 for pip installations
+USER 1001
+WORKDIR /opt/app-root/src
+
+# Install main dependencies from AIPCC index
+# Strict AIPCC-only - no fallback indexes (request missing packages be added to AIPCC)
+RUN uv pip install --no-cache --require-hashes \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9/simple/ \
+    -r /tmp/deps/requirements.txt
+
+# Fix permissions for OpenShift
+ARG PYTHON_VERSION
+USER 0
+RUN chmod -R g+w /opt/app-root/lib/python${PYTHON_VERSION}/site-packages \
+ && fix-permissions /opt/app-root -P
+
+# Clean up
+RUN rm -rf /tmp/deps
+
+################################################################################
+# Final Stage - FIPS-friendly Runtime
+################################################################################
+FROM ${BASE_IMAGE} AS final
+
+LABEL name="universal:th06-cpu-py312-torch291" \
+      summary="TH06 CPU Python 3.12 image with PyTorch 2.9.1" \
+      description="Universal CPU image combining minimal Jupyter workbench and runtime ML stack (PyTorch 2.9.1) on UBI9" \
+      io.k8s.display-name="TH06 CPU Python 3.12 (Workbench + Runtime)" \
+      io.k8s.description="Universal CPU image: Jupyter workbench by default; runtime when command provided."
+
+USER 0
+WORKDIR /opt/app-root/src
+
+################################################################################
+# MIDSTREAM ONLY: System packages
+# Controlled by ARG DOWNSTREAM (default: false)
+# - DOWNSTREAM=false (midstream): Installs system packages
+# - DOWNSTREAM=true: Skips this section (AIPCC base image has everything pre-configured)
+################################################################################
+ARG DOWNSTREAM
+
+RUN if [ "${DOWNSTREAM}" != "true" ]; then \
+    echo "MIDSTREAM BUILD: Installing system packages..." && \
+    dnf install -y --setopt=install_weak_deps=False \
+        perl \
+        mesa-libGL \
+        skopeo && \
+    dnf clean all && rm -rf /var/cache/dnf/*; \
+else \
+    echo "DOWNSTREAM BUILD: Skipping system packages (provided by base image)"; \
+fi
+################################################################################
+# END MIDSTREAM ONLY
+################################################################################
+
+# Copy Python site-packages and CLI entry points from builder stage
+# This excludes any build artifacts (FIPS friendly)
+ARG PYTHON_VERSION
+COPY --from=builder /opt/app-root/lib/python${PYTHON_VERSION}/site-packages /opt/app-root/lib/python${PYTHON_VERSION}/site-packages
+COPY --from=builder /opt/app-root/bin /opt/app-root/bin
+
+# Remove uv from final image (inherited from base image, not needed at runtime)
+RUN rm -f /opt/app-root/bin/uv
+
+# Copy license file
+COPY LICENSE.md /licenses/cpu-license.md
+
+# Copy entrypoint
+COPY --chmod=0755 entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
+
+# Fix permissions for OpenShift (final stage)
+RUN fix-permissions /opt/app-root -P \
+ && chmod -R g+w /opt/app-root/lib/python${PYTHON_VERSION}/site-packages
+
+USER 1001
+WORKDIR /opt/app-root/src
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-universal.sh"]
+CMD ["start-notebook.sh"]

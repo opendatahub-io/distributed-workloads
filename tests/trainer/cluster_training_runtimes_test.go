@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
@@ -109,11 +110,56 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 	test.T().Log("All ClusterTrainingRuntimes verified successfully!")
 }
 
+// TestDefaultTrainingHubRuntimesMatchDefaultClusterRuntimes is a smoke test that verifies
+// Training Hub and pinned torch-distributed CTR resources (th06) have exactly the same
+// spec as their corresponding DefaultClusterTrainingRuntime resources.
+func TestDefaultTrainingHubRuntimesMatchDefaultClusterRuntimes(t *testing.T) {
+	Tags(t, Smoke)
+	test := With(t)
+
+	runtimeList, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().List(
+		test.Ctx(),
+		metav1.ListOptions{},
+	)
+	test.Expect(err).NotTo(HaveOccurred(), "Failed to list ClusterTrainingRuntimes")
+
+	runtimesByName := make(map[string]trainerv1alpha1.ClusterTrainingRuntime)
+	for _, r := range runtimeList.Items {
+		runtimesByName[r.Name] = r
+	}
+
+	for runtimeName, defaultClusterName := range trainerutils.TrainingHubToDefaultClusterRuntime {
+		runtime, ok := runtimesByName[runtimeName]
+		test.Expect(ok).To(BeTrue(), "CTR %q not found on cluster", runtimeName)
+
+		defaultCluster, ok := runtimesByName[defaultClusterName]
+		test.Expect(ok).To(BeTrue(), "DefaultClusterTrainingRuntime %q not found on cluster", defaultClusterName)
+
+		// Compare specs - they must be identical (only metadata differs)
+		if !equality.Semantic.DeepEqual(runtime.Spec, defaultCluster.Spec) {
+			test.T().Errorf("CTR %q spec differs from DefaultClusterTrainingRuntime %q. "+
+				"Training Hub and pinned runtimes must have identical CTR specs to their defaults.",
+				runtimeName, defaultClusterName)
+		}
+		test.T().Logf("CTR %q matches DefaultClusterTrainingRuntime %q", runtimeName, defaultClusterName)
+	}
+
+	test.T().Log("All CTRs match their DefaultClusterTrainingRuntime counterparts!")
+}
+
 func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 	Tags(t, Sanity)
 	test := With(t)
 
+	// Run one TrainJob per unique image to avoid redundant runs for CTRs that share the same image
+	tested := make(map[string]bool)
 	for _, runtime := range trainerutils.ExpectedRuntimes {
+		if tested[runtime.RHOAIImage] {
+			test.T().Logf("Skipping ClusterTrainingRuntime '%s' (image '%s' already tested)", runtime.Name, runtime.RHOAIImage)
+			continue
+		}
+		tested[runtime.RHOAIImage] = true
+
 		test.T().Logf("Running TrainJob with ClusterTrainingRuntime: %s", runtime.Name)
 
 		// Create a namespace

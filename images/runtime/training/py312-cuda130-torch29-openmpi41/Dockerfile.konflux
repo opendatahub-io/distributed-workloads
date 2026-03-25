@@ -1,0 +1,102 @@
+FROM quay.io/aipcc/base-images/cuda-13.0-el9.6:3.4.0-ea.2-1772829888
+
+ARG SSH_PORT=2222
+
+LABEL name="training:py312-cuda130-torch29-openmpi41" \
+      summary="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 image based on UBI9 for Training" \
+      description="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 image based on UBI9 for Training" \
+      io.k8s.display-name="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 base image for Training" \
+      io.k8s.description="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 image based on UBI9 for Training" \
+      authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
+
+USER 0
+
+RUN dnf install -y openssh-server && dnf clean all
+
+# Create symlinks for OpenMPI binaries in /usr/bin so they're in default SSH PATH
+RUN ln -s /usr/lib64/openmpi/bin/orted /usr/bin/orted \
+    && ln -s /usr/lib64/openmpi/bin/mpiexec /usr/bin/mpiexec
+
+# mpirun wrapper: registers the OpenShift random UID in /etc/passwd before launching mpirun.
+# This is needed because the SDK overrides the container entrypoint, bypassing uid_entrypoint.sh.
+# Placed in /usr/local/bin (not /usr/bin) so it takes precedence over the real mpirun in
+# /usr/lib64/openmpi/bin, which the base image puts before /usr/bin in PATH.
+COPY mpirun_wrapper.sh /usr/local/bin/mpirun
+RUN chmod +x /usr/local/bin/mpirun
+
+# Wrapper script so python is reachable in SSH sessions AND the virtualenv is activated.
+# A symlink won't work: Python uses argv[0] to locate pyvenv.cfg, and /usr/local/bin/python
+# has no venv in its parent chain. The wrapper execs /opt/app-root/bin/python, which does.
+RUN printf '#!/bin/sh\nexec /opt/app-root/bin/python "$@"\n' > /usr/local/bin/python \
+    && chmod +x /usr/local/bin/python
+
+# Set LD_LIBRARY_PATH in /etc/environment for SSH sessions (loaded by PAM, not inherited from container).
+# CUDA and cuDNN are registered in ldconfig; only OpenMPI lib needs an explicit entry.
+RUN echo "LD_LIBRARY_PATH=/usr/lib64/openmpi/lib" >> /etc/environment
+
+RUN mkdir -p /var/run/sshd
+
+# SSH client config
+RUN sed -i "s/[ #]\(.*StrictHostKeyChecking \).*/ \1no/g" /etc/ssh/ssh_config \
+    && echo "    UserKnownHostsFile /dev/null" >> /etc/ssh/ssh_config \
+    && echo "    Port ${SSH_PORT}" >> /etc/ssh/ssh_config \
+    && echo "    SendEnv PATH LD_LIBRARY_PATH" >> /etc/ssh/ssh_config
+
+# SSH server config
+RUN sed -i "s/#\(StrictModes \).*/\1no/g" /etc/ssh/sshd_config \
+    && sed -i "s/#\(Port \).*/\1${SSH_PORT}/g" /etc/ssh/sshd_config \
+    && echo "StrictModes no" >> /etc/ssh/sshd_config \
+    && echo "Port ${SSH_PORT}" >> /etc/ssh/sshd_config
+
+# Install InfiniBand and Mellanox RDMA user-space libraries.
+# libibverbs/librdmacm: base RDMA verbs and connection management.
+# libibumad: user MAD library required by some OpenMPI components.
+# libmlx5: Mellanox ConnectX-4/5/6/7 provider; activates rc_mlx5/dc_mlx5 UCX transports.
+# infiniband-diags: diagnostic tools (ibstat, ibstatus, iblinkinfo) for debugging IB connectivity.
+RUN dnf install -y \
+    rdma-core \
+    libibverbs \
+    librdmacm \
+    libibumad \
+    libmlx5 \
+    infiniband-diags \
+    && dnf clean all
+
+# User-level sshd config for running as non-root
+# OpenMPI MCA params file: read by every OpenMPI process regardless of environment variables,
+# so this reliably applies to orted and worker processes launched via SSH.
+RUN mkdir -p /home/mpiuser /home/mpiuser/.openmpi && \
+    echo "PidFile /tmp/sshd.pid" > /home/mpiuser/.sshd_config && \
+    echo "HostKey /home/mpiuser/.ssh/id_rsa" >> /home/mpiuser/.sshd_config && \
+    echo "StrictModes no" >> /home/mpiuser/.sshd_config && \
+    echo "Port ${SSH_PORT}" >> /home/mpiuser/.sshd_config && \
+    echo "AcceptEnv PATH LD_LIBRARY_PATH" >> /home/mpiuser/.sshd_config
+
+# Install Python dependencies from requirements.txt
+WORKDIR /opt/app-root/bin
+COPY requirements.txt ./
+
+RUN uv pip install --no-cache --require-hashes \
+        --python /opt/app-root/bin/python3.12 \
+        -r requirements.txt && \
+    rm -f ./requirements.txt && \
+    chmod -R g+w /opt/app-root/lib/python3.12/site-packages
+
+# OpenShift GID 0 pattern: give root group same permissions as owner.
+# OpenShift random UIDs always have GID 0 as primary group.
+RUN chgrp -R 0 /home/mpiuser && chmod -R g=u /home/mpiuser
+
+# Allow uid_entrypoint to add random UID to /etc/passwd at runtime
+RUN chmod g=u /etc/passwd
+
+# uid_entrypoint: register the OpenShift random UID in /etc/passwd so that
+# getpwuid() calls (used by Python getpass, PyTorch cache dirs, etc.) succeed.
+COPY uid_entrypoint.sh /usr/local/bin/uid_entrypoint.sh
+RUN chmod +x /usr/local/bin/uid_entrypoint.sh
+
+WORKDIR /home/mpiuser
+ENV HOME=/home/mpiuser
+ENV PATH=/usr/local/bin:$PATH:$HOME/.local/bin
+ENV LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:${LD_LIBRARY_PATH}
+ENTRYPOINT ["/usr/local/bin/uid_entrypoint.sh"]
+USER 1001

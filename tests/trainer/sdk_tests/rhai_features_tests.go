@@ -38,8 +38,14 @@ import (
 )
 
 const (
-	rhaiFeaturesNotebookName = "rhai_features.ipynb"
-	rhaiFeaturesNotebookPath = "resources/" + rhaiFeaturesNotebookName
+	rhaiFeaturesNotebookName        = "rhai_features.ipynb"
+	rhaiFeaturesNotebookPath        = "resources/" + rhaiFeaturesNotebookName
+	rhaiFsdpFullStateNotebookName   = "rhai_features_fsdp_full_state.ipynb"
+	rhaiFsdpFullStateNotebookPath   = "resources/" + rhaiFsdpFullStateNotebookName
+	rhaiFsdpSharedStateNotebookName = "rhai_features_fsdp_shared_state.ipynb"
+	rhaiFsdpSharedStateNotebookPath = "resources/" + rhaiFsdpSharedStateNotebookName
+	rhaiDeepspeedStage0NotebookName = "rhai_features_deepspeed_stage0.ipynb"
+	rhaiDeepspeedStage0NotebookPath = "resources/" + rhaiDeepspeedStage0NotebookName
 
 	// Annotation keys for progression tracking (must match SDK/training-operator constants)
 	annotationProgressionTracking = "trainer.opendatahub.io/progression-tracking"
@@ -66,6 +72,8 @@ type RhaiFeatureConfig struct {
 	Accelerator               Accelerator // CPU, NVIDIA, or AMD
 	NumNodes                  int         // Number of training nodes (default: 2)
 	NumGpusPerNode            int         // GPUs per node for multi-GPU tests (default: 1)
+	NotebookPath              string      // Path to notebook file (default: rhai_features.ipynb)
+	NotebookName              string      // Name of notebook file (default: rhai_features.ipynb)
 }
 
 // RunRhaiFeaturesProgressionTest runs the e2e test for RHAI features with progression tracking
@@ -152,53 +160,94 @@ func RunRhaiFeaturesAllMultiGpuTest(t *testing.T, accelerator Accelerator, numNo
 	})
 }
 
-// runS3CheckpointTest is a helper that sets up S3 storage and runs the checkpoint test
-func runS3CheckpointTest(t *testing.T, accelerator Accelerator, numNodes, numGpusPerNode int) {
+// runS3CheckpointTestWithNotebook is a generic helper that sets up S3 storage and runs the checkpoint test with a custom notebook
+func runS3CheckpointTestWithNotebook(t *testing.T, accelerator Accelerator, numNodes, numGpusPerNode int, notebookPath, notebookName string) {
 	test := With(t)
 
 	// Get S3 provider (validates credentials internally)
 	provider, err := trainerutils.GetS3Provider()
 	test.Expect(err).NotTo(HaveOccurred(), "S3 configuration required. Please set AWS_DEFAULT_ENDPOINT, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY")
 
-	// Create test bucket
-	err = provider.CreateBucket(test.Ctx(), trainerutils.ConstantBucketName)
-	test.Expect(err).NotTo(HaveOccurred(), "Failed to create test bucket")
+	// Use a unique folder prefix within the dedicated bucket to isolate parallel test runs
+	sanitizedTestName := strings.NewReplacer("/", "-", " ", "-").Replace(t.Name())
+	folderPrefix := fmt.Sprintf("checkpoints-%s-%d", sanitizedTestName, time.Now().UTC().UnixNano())
+	bucketName := trainerutils.ConstantBucketName
 
-	// Schedule cleanup to run when function exits (ensures bucket is deleted even if test fails)
+	exists, err := provider.BucketExists(test.Ctx(), bucketName)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to verify S3 bucket %s", bucketName))
+	test.Expect(exists).To(BeTrue(), fmt.Sprintf("S3 bucket %q does not exist. This bucket must be pre-created in the S3 storage before running checkpoint tests.", bucketName))
+
+	// Schedule cleanup to delete only the test folder when the function exits
 	defer func() {
-		if err := provider.DeleteBucket(test.Ctx(), trainerutils.ConstantBucketName); err != nil {
-			test.T().Logf("Warning: failed to delete test bucket: %v", err)
+		if err := provider.DeleteFolder(test.Ctx(), bucketName, folderPrefix); err != nil {
+			test.T().Logf("Warning: failed to delete test folder %s/%s: %v", bucketName, folderPrefix, err)
 		} else {
-			test.T().Logf("Test bucket deleted: %s (all checkpoints cleaned)", trainerutils.ConstantBucketName)
+			test.T().Logf("Test folder deleted: s3://%s/%s", bucketName, folderPrefix)
 		}
 	}()
 
-	test.T().Logf("Test bucket ready: %s", trainerutils.ConstantBucketName)
-
-	// Generate unique timestamp-based prefix
-	checkpointPrefix := trainerutils.GenerateCheckpointPrefix()
-	t.Logf("Using bucket: %s, prefix: %s", trainerutils.ConstantBucketName, checkpointPrefix)
+	test.T().Logf("Using folder s3://%s/%s for checkpoints", bucketName, folderPrefix)
 
 	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
 		EnableProgressionTracking: false,
 		EnableJitCheckpoint:       true,
-		CheckpointOutputDir:       fmt.Sprintf("s3://%s/%s", trainerutils.ConstantBucketName, checkpointPrefix),
+		CheckpointOutputDir:       fmt.Sprintf("s3://%s/%s/checkpoints", bucketName, folderPrefix),
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
 		Accelerator:               accelerator,
 		NumNodes:                  numNodes,
 		NumGpusPerNode:            numGpusPerNode,
+		NotebookPath:              notebookPath,
+		NotebookName:              notebookName,
 	})
 }
 
 // RunRhaiS3CheckpointTest runs the e2e test for S3 checkpoint storage (CPU only, 2 nodes)
 func RunRhaiS3CheckpointTest(t *testing.T, accelerator Accelerator) {
-	runS3CheckpointTest(t, accelerator, 2, 1)
+	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFeaturesNotebookPath, rhaiFeaturesNotebookName)
+}
+
+// RunRhaiS3FsdpFullStateTest runs the e2e test for FSDP full state checkpoint (CPU only, 2 nodes)
+func RunRhaiS3FsdpFullStateTest(t *testing.T, accelerator Accelerator) {
+	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFsdpFullStateNotebookPath, rhaiFsdpFullStateNotebookName)
+}
+
+// RunRhaiS3FsdpFullStateMultiProcessTest runs the e2e test for FSDP full state checkpoint with multi-process per node
+func RunRhaiS3FsdpFullStateMultiProcessTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
+	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiFsdpFullStateNotebookPath, rhaiFsdpFullStateNotebookName)
+}
+
+// RunRhaiS3FsdpSharedStateGpuTest runs the e2e test for FSDP shared state checkpoint (GPU required, 2 nodes, 1 GPU each)
+func RunRhaiS3FsdpSharedStateGpuTest(t *testing.T, accelerator Accelerator) {
+	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFsdpSharedStateNotebookPath, rhaiFsdpSharedStateNotebookName)
+}
+
+// RunRhaiS3FsdpSharedStateMultiGpuTest runs the e2e test for FSDP shared state checkpoint (GPU required, multi-GPU per node)
+func RunRhaiS3FsdpSharedStateMultiGpuTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
+	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiFsdpSharedStateNotebookPath, rhaiFsdpSharedStateNotebookName)
+}
+
+// RunRhaiS3DeepspeedStage0GpuTest runs the e2e test for DeepSpeed Stage 0 checkpoint (GPU required, 2 nodes, 1 GPU each)
+func RunRhaiS3DeepspeedStage0GpuTest(t *testing.T, accelerator Accelerator) {
+	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiDeepspeedStage0NotebookPath, rhaiDeepspeedStage0NotebookName)
+}
+
+// RunRhaiS3DeepspeedStage0MultiGpuTest runs the e2e test for DeepSpeed Stage 0 checkpoint (GPU required, multi-GPU per node)
+func RunRhaiS3DeepspeedStage0MultiGpuTest(t *testing.T, accelerator Accelerator, numNodes, numProcessesPerNode int) {
+	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, numProcessesPerNode, rhaiDeepspeedStage0NotebookPath, rhaiDeepspeedStage0NotebookName)
 }
 
 // runRhaiFeaturesTestWithConfig runs the e2e test with the given feature configuration
 func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test := With(t)
+
+	// Set defaults for notebook path/name if not specified
+	if config.NotebookPath == "" {
+		config.NotebookPath = rhaiFeaturesNotebookPath
+	}
+	if config.NotebookName == "" {
+		config.NotebookName = rhaiFeaturesNotebookName
+	}
 
 	// Create a new test namespace
 	namespace := test.NewTestNamespace()
@@ -214,9 +263,8 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
 	// Create ConfigMap with notebook and install script
-	localPath := rhaiFeaturesNotebookPath
-	nb, err := os.ReadFile(localPath)
-	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
+	nb, err := os.ReadFile(config.NotebookPath)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", config.NotebookPath))
 
 	// Read the kubeflow install helper script
 	installScriptPath := "resources/disconnected_env/install_kubeflow.py"
@@ -224,8 +272,8 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
 
 	cmData := map[string][]byte{
-		rhaiFeaturesNotebookName: nb,
-		"install_kubeflow.py":    installScript,
+		config.NotebookName:   nb,
+		"install_kubeflow.py": installScript,
 	}
 	cm := CreateConfigMap(test, namespace.Name, cmData)
 
@@ -246,7 +294,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 
 	// Determine GPU resource label (empty for CPU) and training runtime
 	gpuResourceLabel := ""
-	trainingRuntime := trainerutils.DefaultClusterTrainingRuntime // Default for CPU and NVIDIA
+	trainingRuntime := trainerutils.DefaultClusterTrainingRuntimeCUDA // Default for CPU and NVIDIA
 	if config.Accelerator.IsGpu() {
 		gpuResourceLabel = config.Accelerator.ResourceLabel
 		if config.Accelerator == AMD {
@@ -398,15 +446,15 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		dataConnectionExports,
 		pipExports,
 		pipInstallFlags,
-		rhaiFeaturesNotebookName,
+		config.NotebookName,
 	)
 
-	test.T().Logf("Feature config: ProgressionTracking=%v, JitCheckpoint=%v, Accelerator=%s, NumNodes=%d, NumGpusPerNode=%d",
-		config.EnableProgressionTracking, config.EnableJitCheckpoint, config.Accelerator.Type, numNodes, numGpusPerNode)
+	test.T().Logf("Feature config: ProgressionTracking=%v, JitCheckpoint=%v, Accelerator=%s, NumNodes=%d, NumGpusPerNode=%d, Notebook=%s",
+		config.EnableProgressionTracking, config.EnableJitCheckpoint, config.Accelerator.Type, numNodes, numGpusPerNode, config.NotebookName)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
 	// Create Notebook CR using the RWX PVC
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, rhaiFeaturesNotebookName, 0, sharedPVC, common.ContainerSizeSmall)
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, config.NotebookName, 0, sharedPVC, common.ContainerSizeSmall)
 
 	// Cleanup - use longer timeout due to large runtime images
 	defer func() {
@@ -689,19 +737,33 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	checkpointURI := trainerutils.ParseCloudURI(checkpointDir)
 	if checkpointURI != nil && checkpointURI.Scheme == "s3" && checkpointURI.Bucket != "" {
 		test.T().Log("Step 1b: Verifying cloud checkpoint upload is working...")
+
+		// Check SDK applied the save_strategy override (monkey-patch working)
 		test.Eventually(func() bool {
 			for _, pod := range listTrainingPods(test, namespace, trainJobName) {
 				if pod.Status.Phase != corev1.PodRunning {
 					continue
 				}
 				logs := PodLog(test, namespace, pod.Name, corev1.PodLogOptions{Container: "node"})(test)
-				// Check SDK applied the save_strategy override (monkey-patch working)
-				if !strings.Contains(logs, "[Kubeflow] Applied save_strategy:") {
-					test.T().Log("Waiting for SDK save_strategy override to appear in logs...")
-					return false
+				if strings.Contains(logs, "Applied save_strategy:") {
+					test.T().Log("SDK save_strategy override confirmed in pod logs")
+					return true
 				}
-				// Check at least one checkpoint was uploaded to cloud storage (from logs)
-				if strings.Contains(logs, "[Kubeflow] Upload complete:") {
+			}
+			return false
+		}, TestTimeoutMedium, 5*time.Second).Should(BeTrue(),
+			"SDK save_strategy override not detected in training pod logs. "+
+				"Expected 'Applied save_strategy:' message. "+
+				"This usually means the SDK's checkpoint config override was not applied to the Trainer.")
+
+		// Check at least one checkpoint was uploaded to cloud storage (from logs)
+		test.Eventually(func() bool {
+			for _, pod := range listTrainingPods(test, namespace, trainJobName) {
+				if pod.Status.Phase != corev1.PodRunning {
+					continue
+				}
+				logs := PodLog(test, namespace, pod.Name, corev1.PodLogOptions{Container: "node"})(test)
+				if strings.Contains(logs, "Upload complete") {
 					test.T().Log("Cloud checkpoint upload confirmed in pod logs")
 					return true
 				}
@@ -709,9 +771,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 			return false
 		}, TestTimeoutMedium, 5*time.Second).Should(BeTrue(),
 			"Cloud checkpoint upload not detected in training pod logs. "+
-				"Expected '[Kubeflow] Upload complete:' after epoch completion. "+
-				"This usually means the SDK's checkpoint config override (save_strategy, output_dir) "+
-				"was not applied to the Trainer. Check full training pod logs for '[Kubeflow]' messages.")
+				"Expected 'Upload complete' after epoch completion.")
 		test.T().Log("Cloud checkpoint upload verified in logs - verifying checkpoints exist in S3...")
 
 		// Verify checkpoints actually exist in S3 (not just logs)
@@ -972,9 +1032,9 @@ func verifyCheckpointLoadedFromLogs(test Test, namespace, trainJobName, checkpoi
 	test.Expect(len(pods)).NotTo(Equal(0), "No training pods found to verify checkpoint logs")
 
 	// Checkpoint resume indicators from Kubeflow SDK (transformers.py)
-	indicators := []string{"[Kubeflow] Found latest checkpoint:", "[Kubeflow] Auto-resuming from:"}
+	indicators := []string{"Found latest checkpoint:", "Auto-resuming from:"}
 	if strings.Contains(checkpointDir, "://") {
-		indicators = []string{"[Kubeflow] Downloading checkpoint:", "[Kubeflow] Download complete"}
+		indicators = []string{"Download complete"}
 	}
 
 	for _, pod := range pods {
