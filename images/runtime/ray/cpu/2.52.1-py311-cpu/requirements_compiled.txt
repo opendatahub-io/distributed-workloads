@@ -55,7 +55,7 @@ google-auth==2.48.0
     # via google-api-core
 googleapis-common-protos==1.72.0
     # via google-api-core
-grpcio==1.78.1
+grpcio==1.75.0
     # via ray
 h11==0.16.0
     # via uvicorn
@@ -130,7 +130,7 @@ protobuf==6.33.5
     #   tensorboardx
 py-spy==0.4.1
     # via ray
-pyarrow==23.0.1
+pyarrow==20.0.0
     # via ray
 pyasn1==0.6.2
     # via
