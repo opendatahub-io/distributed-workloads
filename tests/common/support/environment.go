@@ -62,9 +62,6 @@ const (
 	storageBucketSftDir          = "AWS_STORAGE_BUCKET_SFT_DIR"
 	storageBucketLoraDir         = "AWS_STORAGE_BUCKET_LORA_DIR"
 
-	// Number of nodes for distributed training
-	nnodesEnvVar = "NNODES"
-
 	// Name of existing namespace to be used for test
 	testNamespaceNameEnvVar = "TEST_NAMESPACE_NAME"
 )
@@ -199,13 +196,6 @@ func GetStorageBucketOsftDir() (string, bool) {
 func GetStorageBucketLoraDir() (string, bool) {
 	storage_bucket_lora_dir, exists := os.LookupEnv(storageBucketLoraDir)
 	return storage_bucket_lora_dir, exists
-}
-
-func GetNnodes() string {
-	if v, ok := os.LookupEnv(nnodesEnvVar); ok {
-		return v
-	}
-	return "2"
 }
 
 func GetStorageBucketSftDir() (string, bool) {
