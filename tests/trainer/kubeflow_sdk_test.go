@@ -36,22 +36,44 @@ func TestKubeflowSdkKueueIntegration(t *testing.T) {
 	sdktests.RunFashionMnistKueueCpuDistributedTraining(t)
 }
 
+// Single-node, single-GPU tests (1 node, 1 GPU)
+
+// TestSftTrainingHubSingleNodeSingleGPU tests SFT training on a single node with a single GPU
+func TestSftTrainingHubSingleNodeSingleGPU(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunSftTrainingHubMultiGpuDistributedTraining(t, 1)
+}
+
+// TestOsftTrainingHubSingleNodeSingleGPU tests OSFT training on a single node with a single GPU
+func TestOsftTrainingHubSingleNodeSingleGPU(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunOsftTrainingHubMultiGpuDistributedTraining(t, 1)
+}
+
+// TestLoraTrainingHubSingleNodeSingleGPU tests LoRA training on a single node with a single GPU
+func TestLoraTrainingHubSingleNodeSingleGPU(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunLoraTrainingHubMultiGpuDistributedTraining(t, 1)
+}
+
+// Multi-node, multi-GPU tests (2 nodes, 1 GPU each)
+
 // TestOsftTrainingHubMultiNodeMultiGPU tests OSFT training using TrainingHubTrainer
 func TestOsftTrainingHubMultiNodeMultiGPU(t *testing.T) {
 	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 1)) // TODO: may need to be updated once https://issues.redhat.com/browse/RHOAIENG-30719 and https://issues.redhat.com/browse/RHOAIENG-24552 are resolved
-	sdktests.RunOsftTrainingHubMultiGpuDistributedTraining(t)
+	sdktests.RunOsftTrainingHubMultiGpuDistributedTraining(t, 2)
 }
 
 // TestLoraTrainingHubMultiNodeMultiGPU tests Lora training using TrainingHubTrainer
 func TestLoraTrainingHubMultiNodeMultiGPU(t *testing.T) {
 	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 1)) // TODO: may need to be updated once https://issues.redhat.com/browse/RHOAIENG-30719 and https://issues.redhat.com/browse/RHOAIENG-24552 are resolved
-	sdktests.RunLoraTrainingHubMultiGpuDistributedTraining(t)
+	sdktests.RunLoraTrainingHubMultiGpuDistributedTraining(t, 2)
 }
 
 // TestSftTrainingHubMultiNodeMultiGPU tests SFT training using TrainingHubTrainer
 func TestSftTrainingHubMultiNodeMultiGPU(t *testing.T) {
 	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 1))
-	sdktests.RunSftTrainingHubMultiGpuDistributedTraining(t)
+	sdktests.RunSftTrainingHubMultiGpuDistributedTraining(t, 2)
 }
 
 // CPU tests
