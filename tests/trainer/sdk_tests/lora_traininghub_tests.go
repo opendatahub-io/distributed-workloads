@@ -101,6 +101,7 @@ func RunLoraTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 			"export AWS_STORAGE_BUCKET='%s'; "+
 			"export AWS_STORAGE_BUCKET_LORA_DIR='%s'; "+
 			"export TRAINING_RUNTIME='%s'; "+
+			"export NNODES='%s'; "+
 			"export GPU_TYPE='nvidia'; "+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill boto3==1.34.162 && "+
 			"python /opt/app-root/notebooks/install_kubeflow.py && "+
@@ -109,6 +110,7 @@ func RunLoraTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
 		endpoint, accessKey, secretKey, bucket, prefix,
 		trainerutils.DefaultTrainingHubRuntimeCUDA,
+		support.GetNnodes(),
 		loraNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
