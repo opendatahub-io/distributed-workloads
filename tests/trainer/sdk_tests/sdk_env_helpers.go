@@ -31,19 +31,10 @@ func buildKubeflowInstallExports() string {
 	if gitURL != "" {
 		exports.WriteString("export KUBEFLOW_INSTALL_FROM_GIT='true'; ")
 		exports.WriteString("export KUBEFLOW_GIT_URL=" + shellQuote(gitURL) + "; ")
-		exports.WriteString("unset KUBEFLOW_REQUIRED_VERSION; ")
-		exports.WriteString("unset KUBEFLOW_SKIP_INSTALL; ")
 	} else if version != "" {
-		exports.WriteString("export KUBEFLOW_INSTALL_FROM_GIT='false'; ")
-		exports.WriteString("unset KUBEFLOW_GIT_URL; ")
 		exports.WriteString("export KUBEFLOW_REQUIRED_VERSION=" + shellQuote(version) + "; ")
-		exports.WriteString("unset KUBEFLOW_SKIP_INSTALL; ")
 	} else {
-		// Default behavior: skip installation and use the SDK already in the notebook image
 		exports.WriteString("export KUBEFLOW_SKIP_INSTALL='true'; ")
-		exports.WriteString("export KUBEFLOW_INSTALL_FROM_GIT='false'; ")
-		exports.WriteString("unset KUBEFLOW_GIT_URL; ")
-		exports.WriteString("unset KUBEFLOW_REQUIRED_VERSION; ")
 	}
 
 	if indexURL != "" {
