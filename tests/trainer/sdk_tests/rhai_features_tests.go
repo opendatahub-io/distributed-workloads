@@ -267,13 +267,12 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", config.NotebookPath))
 
 	// Read the kubeflow install helper script
-	installScriptPath := "resources/disconnected_env/install_kubeflow.py"
 	installScript, err := os.ReadFile(installScriptPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
 
 	cmData := map[string][]byte{
 		config.NotebookName:   nb,
-		"install_kubeflow.py": installScript,
+		installKubeflowScript: installScript,
 	}
 	cm := CreateConfigMap(test, namespace.Name, cmData)
 
@@ -339,13 +338,13 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 			} else {
 				test.T().Logf("S3 mode for models/datasets: endpoint=%s, bucket=%s", s3Endpoint, modelsBucket)
 				s3Exports = fmt.Sprintf(
-					"export AWS_DEFAULT_ENDPOINT='%s'; "+
-						"export AWS_ACCESS_KEY_ID='%s'; "+
-						"export AWS_SECRET_ACCESS_KEY='%s'; "+
-						"export AWS_STORAGE_BUCKET='%s'; "+
-						"export MODEL_S3_PREFIX='%s'; "+
-						"export DATASET_S3_PREFIX='%s'; ",
-					s3Endpoint, s3AccessKey, s3SecretKey, modelsBucket, modelS3Prefix, datasetS3Prefix,
+					"export AWS_DEFAULT_ENDPOINT=%s; "+
+						"export AWS_ACCESS_KEY_ID=%s; "+
+						"export AWS_SECRET_ACCESS_KEY=%s; "+
+						"export AWS_STORAGE_BUCKET=%s; "+
+						"export MODEL_S3_PREFIX=%s; "+
+						"export DATASET_S3_PREFIX=%s; ",
+					shellQuote(s3Endpoint), shellQuote(s3AccessKey), shellQuote(s3SecretKey), shellQuote(modelsBucket), shellQuote(modelS3Prefix), shellQuote(datasetS3Prefix),
 				)
 			}
 		} else {
@@ -375,9 +374,9 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		test.T().Logf("Created Data Connection secret: %s for cloud checkpoint storage", secret.Name)
 
 		dataConnectionExports = fmt.Sprintf(
-			"export DATA_CONNECTION_NAME='%s'; "+
+			"export DATA_CONNECTION_NAME=%s; "+
 				"export KUBEFLOW_INSTALL_FROM_GIT='true'; ",
-			secret.Name,
+			shellQuote(secret.Name),
 		)
 		test.T().Logf("Data Connection configured for cloud checkpointing: %s", config.CheckpointOutputDir)
 	} else if checkpointURI != nil {
@@ -395,8 +394,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test.T().Logf("Using Red Hat PyPI index for %s (kubeflow not on public PyPI)", gpuType)
 
 	// Build pip exports - GPU_TYPE tells install_kubeflow.py which Red Hat index to use
-	pipExports := fmt.Sprintf("export GPU_TYPE='%s'; ", gpuType)
-	pipInstallFlags := ""
+	pipExports := fmt.Sprintf("export GPU_TYPE=%s; ", shellQuote(gpuType))
 
 	// Set defaults for num_nodes and num_gpus_per_node if not specified
 	numNodes := config.NumNodes
@@ -408,44 +406,53 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		numGpusPerNode = 1
 	}
 
+	sdkInstallExports := buildKubeflowInstallExports()
+	if dataConnectionExports != "" {
+		// If data connection is configured, it forces git install.
+		// We must ensure sdkInstallExports doesn't override it to false.
+		test.T().Logf("Data connection configured: forcing git install mode")
+		sdkInstallExports += "export KUBEFLOW_INSTALL_FROM_GIT='true'; unset KUBEFLOW_SKIP_INSTALL; "
+	}
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
 			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL='%s'; "+
-			"export NOTEBOOK_TOKEN='%s'; "+
-			"export NOTEBOOK_NAMESPACE='%s'; "+
-			"export SHARED_PVC_NAME='%s'; "+
-			"export ENABLE_PROGRESSION_TRACKING='%s'; "+
-			"export ENABLE_JIT_CHECKPOINT='%s'; "+
-			"export CHECKPOINT_OUTPUT_DIR='%s'; "+
-			"export CHECKPOINT_SAVE_STRATEGY='%s'; "+
-			"export CHECKPOINT_SAVE_TOTAL_LIMIT='%s'; "+
-			"export GPU_RESOURCE_LABEL='%s'; "+
-			"export TRAINING_RUNTIME='%s'; "+
+			"export OPENSHIFT_API_URL=%s; "+
+			"export NOTEBOOK_TOKEN=%s; "+
+			"export NOTEBOOK_NAMESPACE=%s; "+
+			"export SHARED_PVC_NAME=%s; "+
+			"export ENABLE_PROGRESSION_TRACKING=%s; "+
+			"export ENABLE_JIT_CHECKPOINT=%s; "+
+			"export CHECKPOINT_OUTPUT_DIR=%s; "+
+			"export CHECKPOINT_SAVE_STRATEGY=%s; "+
+			"export CHECKPOINT_SAVE_TOTAL_LIMIT=%s; "+
+			"export GPU_RESOURCE_LABEL=%s; "+
+			"export TRAINING_RUNTIME=%s; "+
 			"export NUM_NODES='%d'; "+
 			"export NUM_GPUS_PER_NODE='%d'; "+
 			"%s"+ // S3 exports (if configured)
 			"%s"+ // Data Connection exports (if configured)
 			"%s"+ // PyPI/GPU_TYPE exports
-			"python -m pip install --quiet --no-cache-dir %s papermill ipykernel boto3==1.34.162 && "+
-			"python /opt/app-root/notebooks/install_kubeflow.py && "+
+			"%s"+ // SDK install exports
+			"python -m pip install --quiet --no-cache-dir papermill && "+
+			"python /opt/app-root/notebooks/%s && "+
 			"python -m ipykernel install --user --name=python3 && "+
 			"python -m papermill /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"sleep infinity",
-		GetOpenShiftApiUrl(test), userToken, namespace.Name, sharedPVC.Name,
-		enableProgression,
-		enableCheckpoint,
-		config.CheckpointOutputDir,
-		config.CheckpointSaveStrategy,
-		config.CheckpointSaveTotalLimit,
-		gpuResourceLabel,
-		trainingRuntime,
+		shellQuote(GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(sharedPVC.Name),
+		shellQuote(enableProgression),
+		shellQuote(enableCheckpoint),
+		shellQuote(config.CheckpointOutputDir),
+		shellQuote(config.CheckpointSaveStrategy),
+		shellQuote(config.CheckpointSaveTotalLimit),
+		shellQuote(gpuResourceLabel),
+		shellQuote(trainingRuntime),
 		numNodes,
 		numGpusPerNode,
 		s3Exports,
 		dataConnectionExports,
 		pipExports,
-		pipInstallFlags,
+		sdkInstallExports,
+		installKubeflowScript,
 		config.NotebookName,
 	)
 

@@ -24,6 +24,8 @@ import subprocess
 import sys
 import os
 import warnings
+import re
+from urllib.parse import urlparse
 
 # Suppress SSL warnings for self-signed certs in disconnected environments
 try:
@@ -32,6 +34,35 @@ try:
 except ImportError:
     pass
 warnings.filterwarnings("ignore", message=".*InsecureRequestWarning.*")
+
+
+def redact_url(url: str) -> str:
+    """Redact credentials from URL for safe logging."""
+    if not url:
+        return url
+    try:
+        parsed = urlparse(url)
+        # Reconstruct safe netloc (hostname + optional port)
+        safe_netloc = parsed.hostname or ""
+        if parsed.port:
+            safe_netloc = f"{safe_netloc}:{parsed.port}"
+        # Return only scheme, netloc, and path (clear query and fragment)
+        return parsed._replace(netloc=safe_netloc, query="", fragment="").geturl()
+    except Exception:
+        return "****"
+
+
+def redact_text(text: str) -> str:
+    """Redact any URLs found in a block of text."""
+    if not text:
+        return text
+    # Simple regex to find URLs
+    url_pattern = re.compile(r'https?://[^\s]+')
+    
+    def replace_url(match):
+        return redact_url(match.group(0))
+        
+    return url_pattern.sub(replace_url, text)
 
 
 def get_required_version():
@@ -48,6 +79,10 @@ def get_rhai_pypi_index() -> str:
     - CUDA: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda12.9-ubi9/simple/
     - ROCm: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9/simple/
     """
+    custom_index = os.environ.get("KUBEFLOW_PYPI_INDEX_URL")
+    if custom_index:
+        return custom_index
+
     gpu_type = os.environ.get("GPU_TYPE", "cpu").lower()
     base = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2"
     
@@ -81,27 +116,13 @@ def install_from_pypi():
     """Install kubeflow from Red Hat PyPI index (not available on public PyPI)."""
     required_version = get_required_version()
     rhai_index = get_rhai_pypi_index()
+    safe_rhai_index = redact_url(rhai_index)
     
-    # Step 1: Install kubeflow dependencies from public PyPI
-    # (kubeflow requires: pydantic, kubernetes, kubeflow-trainer-api, kubeflow-katib-api)
-    print("Installing kubeflow dependencies from public PyPI...")
-    deps_cmd = [
-        sys.executable, "-m", "pip", "install", "--quiet",
-        "pydantic>=2.10.0", "kubernetes>=27.2.0", 
-        "kubeflow-trainer-api>=2.0.0", "kubeflow-katib-api>=0.19.0"
-    ]
-    deps_result = subprocess.run(deps_cmd, capture_output=True, text=True)
-    if deps_result.returncode != 0:
-        print(f"Failed to install dependencies: {deps_result.stderr}")
-        return False
-    
-    # Step 2: Install kubeflow SDK from Red Hat index (with --no-deps since deps are installed)
-    print(f"Installing kubeflow=={required_version} from {rhai_index}")
+    print(f"Installing kubeflow=={required_version} from {safe_rhai_index}")
     cmd = [
         sys.executable, "-m", "pip", "install", "--quiet",
         "--index-url", rhai_index,
         "--trusted-host", "console.redhat.com",
-        "--no-deps",  # Dependencies already installed from public PyPI
         f"kubeflow=={required_version}"
     ]
     
@@ -113,7 +134,7 @@ def install_from_pypi():
         else:
             print("Installed kubeflow version doesn't match, will try S3 fallback")
             return False
-    print(f"PyPI install failed: {result.stderr}")
+    print(f"PyPI install failed: {redact_text(result.stderr)}")
     return False
 
 
@@ -189,7 +210,7 @@ def install_from_git():
         "KUBEFLOW_GIT_URL",
         "kubeflow @ git+https://github.com/opendatahub-io/kubeflow-sdk.git"
     )
-    print(f"Installing kubeflow from git: {git_url}")
+    print(f"Installing kubeflow from git: {redact_text(git_url)}")
     cmd = [
         sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir", git_url
     ]
@@ -197,11 +218,16 @@ def install_from_git():
     if result.returncode == 0:
         print("Successfully installed kubeflow from git")
         return True
-    print(f"Git install failed: {result.stderr}")
+    print(f"Git install failed: {redact_text(result.stderr)}")
     return False
 
 
 def main():
+    # If KUBEFLOW_SKIP_INSTALL is set, skip installation entirely
+    if os.environ.get("KUBEFLOW_SKIP_INSTALL", "").lower() == "true":
+        print("KUBEFLOW_SKIP_INSTALL is set. Skipping SDK installation to use the version baked into the notebook image.")
+        return 0
+
     # If KUBEFLOW_INSTALL_FROM_GIT is set, install from git (for unreleased versions)
     if os.environ.get("KUBEFLOW_INSTALL_FROM_GIT", "").lower() == "true":
         if install_from_git():
