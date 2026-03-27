@@ -1,0 +1,141 @@
+# MPI GRPO Benchmark — Qwen 2.5 7B + GSM8K + DeepSpeed ZeRO-3
+# 5 nodes x 8 A100 80GB GPUs = 40 GPUs total
+#
+# Algorithm:  GRPO (Group Relative Policy Optimization) via TRL GRPOTrainer
+# Model:      Qwen/Qwen2.5-7B-Instruct
+# Dataset:    openai/gsm8k (~7.5K grade-school math problems)
+# Distributed: DeepSpeed ZeRO-3 + OpenMPI via Kubeflow TrainJob
+#
+# MPI communication patterns exercised:
+#   - allreduce   (gradient synchronisation every step)
+#   - allgather   (ZeRO-3 parameter gathering for forward/backward)
+#   - broadcast   (generation output distribution across ranks)
+#
+# Prerequisites:
+#   kubectl create namespace kftv2-mpi-grpo
+#   kubectl create configmap mpi-grpo-scripts \
+#     --from-file=train_grpo.py \
+#     --from-file=ds_config_zero3.json \
+#     -n kftv2-mpi-grpo
+#
+# Run:
+#   kubectl apply -f trainjob.yaml
+#
+# Logs:
+#   kubectl logs -n kftv2-mpi-grpo \
+#     -l batch.kubernetes.io/job-name=mpi-grpo-benchmark-launcher-0 \
+#     --tail=-1 -f
+#
+# Scaling:
+#   - 40 GPUs (default):  numNodes: 5, nvidia.com/gpu: "8"
+#   - 16 GPUs:            numNodes: 2, nvidia.com/gpu: "8"
+#   - 2 GPUs (smoke):     numNodes: 2, nvidia.com/gpu: "1", memory: 40Gi, cpu: "8"
+#   For 13B+ models increase memory to 300Gi and consider reducing GRPO_BATCH_SIZE.
+---
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainJob
+metadata:
+  name: mpi-grpo-benchmark
+  namespace: kftv2-mpi-grpo
+spec:
+  runtimeRef:
+    apiGroup: trainer.kubeflow.org
+    kind: ClusterTrainingRuntime
+    name: odh-mpi-cuda-openmpi-aipcc
+  trainer:
+    command:
+    - bash
+    - -c
+    - |
+      echo "=== MPI GRPO Benchmark — Launcher ==="
+      echo "Hostname: $(hostname -f)"
+      echo "Hostfile:"
+      cat /etc/mpi/hostfile 2>/dev/null || echo "No hostfile"
+      echo "GPU count per node: $(nvidia-smi -L 2>/dev/null | wc -l)"
+      echo "---"
+
+      # Workaround: Kubernetes mounts SSH secret volumes with 0644 permissions
+      # but SSH requires 0600 for private keys.
+      echo "Fixing SSH key permissions..."
+      cp /home/mpiuser/.ssh/id_rsa /tmp/id_rsa && chmod 600 /tmp/id_rsa
+
+      echo "Waiting 30s for workers to be ready..."
+      sleep 30
+
+      mpirun --mca plm_rsh_args "-i /tmp/id_rsa -o ConnectionAttempts=10" \
+        -x MASTER_ADDR=$(hostname -f) \
+        -x MASTER_PORT=29500 \
+        -x HF_HOME=/tmp/hf_cache \
+        -x NCCL_DEBUG=INFO \
+        -x GRPO_MODEL=Qwen/Qwen2.5-7B-Instruct \
+        -x GRPO_MAX_STEPS=50 \
+        -x GRPO_BATCH_SIZE=1 \
+        -x GRPO_NUM_GENERATIONS=4 \
+        -x GRPO_MAX_COMPLETION=512 \
+        -x GRPO_MAX_PROMPT=256 \
+        -x GRPO_LEARNING_RATE=5e-7 \
+        -x GRPO_DS_CONFIG=/mnt/scripts/ds_config_zero3.json \
+        python /mnt/scripts/train_grpo.py
+    numNodes: 5
+    resourcesPerNode:
+      limits:
+        nvidia.com/gpu: "8"
+        memory: 200Gi
+        cpu: "32"
+      requests:
+        nvidia.com/gpu: "8"
+        memory: 200Gi
+        cpu: "32"
+  podTemplateOverrides:
+  # --- launcher pod ---
+  - spec:
+      containers:
+      - name: node
+        volumeMounts:
+        - mountPath: /mnt/scripts
+          name: scripts
+        - mountPath: /dev/shm
+          name: dshm
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                jobset.sigs.k8s.io/jobset-name: mpi-grpo-benchmark
+            topologyKey: kubernetes.io/hostname
+      volumes:
+      - name: scripts
+        configMap:
+          name: mpi-grpo-scripts
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 16Gi
+    targetJobs:
+    - name: launcher
+  # --- worker pods ---
+  - spec:
+      containers:
+      - name: node
+        volumeMounts:
+        - mountPath: /mnt/scripts
+          name: scripts
+        - mountPath: /dev/shm
+          name: dshm
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                jobset.sigs.k8s.io/jobset-name: mpi-grpo-benchmark
+            topologyKey: kubernetes.io/hostname
+      volumes:
+      - name: scripts
+        configMap:
+          name: mpi-grpo-scripts
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 16Gi
+    targetJobs:
+    - name: node
