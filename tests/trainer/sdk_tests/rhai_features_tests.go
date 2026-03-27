@@ -433,7 +433,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 			"%s"+ // Data Connection exports (if configured)
 			"%s"+ // PyPI/GPU_TYPE exports
 			"%s"+ // SDK install exports
-			"python -m pip install --quiet --no-cache-dir papermill ipykernel kubernetes boto3==1.34.162 && "+
+			"python -m pip install --quiet --no-cache-dir papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"python -m ipykernel install --user --name=python3 && "+
 			"python -m papermill /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+

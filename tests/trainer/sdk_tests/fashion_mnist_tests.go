@@ -103,7 +103,7 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 			"export TRAINING_RUNTIME=%s; "+
 			"export GPU_TYPE='cpu'; "+
 			"%s"+
-			"python -m pip install --quiet --no-cache-dir ipykernel papermill kubernetes boto3==1.34.162 && "+
+			"python -m pip install --quiet --no-cache-dir papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
@@ -234,7 +234,7 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 			"export GPU_TYPE='cpu'; "+
 			"export KUEUE_QUEUE_NAME=%s; "+
 			"%s"+
-			"python -m pip install --quiet --no-cache-dir ipykernel papermill kubernetes boto3==1.34.162 && "+
+			"python -m pip install --quiet --no-cache-dir papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",

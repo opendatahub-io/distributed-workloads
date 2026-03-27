@@ -118,32 +118,11 @@ def install_from_pypi():
     rhai_index = get_rhai_pypi_index()
     safe_rhai_index = redact_url(rhai_index)
     
-    # Step 1: Install kubeflow dependencies
-    # (kubeflow requires: pydantic, kubernetes, kubeflow-trainer-api, kubeflow-katib-api)
-    print("Installing kubeflow dependencies...")
-    deps_cmd = [
-        sys.executable, "-m", "pip", "install", "--quiet",
-        "pydantic>=2.10.0", "kubernetes>=27.2.0", 
-        "kubeflow-trainer-api>=2.1.0,<2.2.0", "kubeflow-katib-api>=0.19.0"
-    ]
-    
-    # If a custom index is provided, use it for dependencies too
-    custom_index = os.environ.get("KUBEFLOW_PYPI_INDEX_URL")
-    if custom_index:
-        deps_cmd.extend(["--index-url", custom_index])
-        
-    deps_result = subprocess.run(deps_cmd, capture_output=True, text=True)
-    if deps_result.returncode != 0:
-        print(f"Failed to install dependencies: {redact_text(deps_result.stderr)}")
-        return False
-    
-    # Step 2: Install kubeflow SDK from Red Hat index (with --no-deps since deps are installed)
     print(f"Installing kubeflow=={required_version} from {safe_rhai_index}")
     cmd = [
         sys.executable, "-m", "pip", "install", "--quiet",
         "--index-url", rhai_index,
         "--trusted-host", "console.redhat.com",
-        "--no-deps",  # Dependencies already installed from public PyPI
         f"kubeflow=={required_version}"
     ]
     
@@ -151,7 +130,6 @@ def install_from_pypi():
     if result.returncode == 0:
         if verify_kubeflow_version():
             print("Successfully installed kubeflow SDK from Red Hat PyPI")
-            verify_trainer_api_compatibility()
             return True
         else:
             print("Installed kubeflow version doesn't match, will try S3 fallback")
@@ -226,30 +204,6 @@ def install_from_s3():
         return False
 
 
-def verify_trainer_api_compatibility():
-    """Check that the installed kubeflow-trainer-api version is compatible with the SDK.
-
-    The SDK uses podTemplateOverrides which only exists in kubeflow-trainer-api 2.1.x.
-    Older versions use podSpecOverrides (2.0.x) and newer versions use runtimePatches (2.2+).
-    If an incompatible version is installed, PodTemplateOverrides will be silently dropped
-    by pydantic, causing training pods to be created without volume mounts.
-    """
-    try:
-        from importlib.metadata import version
-        api_version = version("kubeflow-trainer-api")
-        major_minor = tuple(int(x) for x in api_version.split("+")[0].split(".")[:2])
-        if major_minor != (2, 1):
-            print(
-                f"WARNING: kubeflow-trainer-api {api_version} is installed but the SDK "
-                f"requires 2.1.x for podTemplateOverrides support. "
-                f"PodTemplateOverrides will be silently ignored with this version. "
-                f"See: upstream API renamed podSpecOverrides (2.0.x) -> "
-                f"podTemplateOverrides (2.1.x) -> runtimePatches (2.2+)"
-            )
-    except Exception:
-        pass
-
-
 def install_from_git():
     """Install kubeflow from git repo (for unreleased versions not yet on Red Hat PyPI)."""
     git_url = os.environ.get(
@@ -263,7 +217,6 @@ def install_from_git():
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode == 0:
         print("Successfully installed kubeflow from git")
-        verify_trainer_api_compatibility()
         return True
     print(f"Git install failed: {redact_text(result.stderr)}")
     return False

@@ -84,7 +84,7 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 			"export NOTEBOOK_NAMESPACE=%s; "+
 			"export TRAINING_RUNTIME=%s; "+
 			"%s"+
-			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill kubernetes && "+
+			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
@@ -179,7 +179,7 @@ func RunTorchrunTrainingFailureTest(t *testing.T) {
 			"export AWS_STORAGE_BUCKET_SFT_DIR=%s; "+
 			"export TRAINING_RUNTIME=%s; "+
 			"%s"+
-			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill kubernetes boto3==1.34.162 && "+
+			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
