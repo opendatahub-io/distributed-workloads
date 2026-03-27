@@ -67,9 +67,7 @@ dependencies = [
     # HuggingFace
     "hf-xet>=1.1.8",
     "huggingface-hub>=0.34.4",
-    # TODO: re-add mlflow when AIPCC has a version compatible with training-hub
-    # mlflow==3.10.0+rhai1 requires kubernetes<35, which requires urllib3<2.4
-    # training-hub==0.6.0 requires urllib3>=2.4 - conflict!
+    "mlflow==3.10.1+rhaiv.2",
     
     # Storage
     "s3fs==2025.9.0",
