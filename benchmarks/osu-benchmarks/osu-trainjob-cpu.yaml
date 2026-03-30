@@ -1,0 +1,8 @@
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainJob
+metadata:
+  name: osu-benchmark-test
+  namespace: mpi-benchmarks
+spec:
+  runtimeRef:
+    name: mpi
