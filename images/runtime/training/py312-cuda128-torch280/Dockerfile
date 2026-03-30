@@ -119,9 +119,14 @@ RUN pip install -U pip setuptools wheel ninja cmake
 # Optional: set GPU archs if you hit arch issues
 ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0"
 
-# Deterministic 2-step: sub-dep first, then parent without deps
-RUN pip install --no-build-isolation --no-cache-dir causal-conv1d==1.5.3.post1 && \
-    pip install --no-build-isolation --no-cache-dir mamba-ssm==2.2.6.post3 --no-deps && \
+# Install CUDA extensions that require --no-build-isolation so they
+# compile against the already-installed torch==2.8.0+cu128 instead of
+# pip pulling the latest torch into an isolated build environment.
+RUN pip install --no-build-isolation --no-cache-dir \
+        causal-conv1d==1.6.0 \
+        flash-attn==2.8.3 && \
+    pip install --no-build-isolation --no-cache-dir --no-deps \
+        mamba-ssm==2.3.0 && \
     fix-permissions /opt/app-root -P
 
 # Restore user workspace

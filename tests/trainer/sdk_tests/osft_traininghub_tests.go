@@ -36,7 +36,7 @@ const (
 )
 
 // Multi-GPU - Distributed Training with OSFT and TrainingHubTrainer
-func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
+func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T, nnodes int) {
 	test := support.With(t)
 
 	// Create a new test namespace
@@ -101,6 +101,7 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 			"export AWS_STORAGE_BUCKET='%s'; "+
 			"export AWS_STORAGE_BUCKET_OSFT_DIR='%s'; "+
 			"export TRAINING_RUNTIME='%s'; "+
+			"export NNODES='%d'; "+
 			"export GPU_TYPE='nvidia'; "+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill boto3==1.34.162 && "+
 			"python /opt/app-root/notebooks/install_kubeflow.py && "+
@@ -109,6 +110,7 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T) {
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
 		endpoint, accessKey, secretKey, bucket, prefix,
 		trainerutils.DefaultTrainingHubRuntimeCUDA,
+		nnodes,
 		osftNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
