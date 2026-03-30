@@ -1,0 +1,33 @@
+# Image 1 (quay.io/rh-ee-srpillai/cuda130-openmpi41-training:v1) must be
+# built and pushed before building this image.
+FROM quay.io/rh-ee-srpillai/cuda130-openmpi41-training:v1
+
+ARG OSU_VERSION=7.4
+
+USER 0
+
+# Build OSU Micro-Benchmarks with CUDA support.
+# OpenMPI 4.1.6 with CUDA + UCX is already installed at /usr/lib64/openmpi.
+# The training base image removes gcc/make at build time, so we reinstall them
+# here for the OSU compile step, then remove them again to keep the image lean.
+# cd /tmp first to escape the base image's WORKDIR (/home/mpiuser).
+RUN cd /tmp \
+    && dnf install -y gcc gcc-c++ make wget cuda-cudart-devel-13-0 cuda-crt-13-0 cuda-nvcc-13-0 \
+    && wget -q https://mvapich.cse.ohio-state.edu/download/mvapich/osu-micro-benchmarks-${OSU_VERSION}.tar.gz \
+    && tar -xf osu-micro-benchmarks-${OSU_VERSION}.tar.gz \
+    && cd /tmp/osu-micro-benchmarks-${OSU_VERSION} \
+    && ln -sf /usr/local/cuda/lib64/libcudart.so.13 /usr/local/cuda/lib64/libcudart.so \
+    && find . -name "osu_util_mpi.c" -exec sed -i -E 's/cudaMemPrefetchAsync\(([^,]+), *([^,]+), *([^,]+), *([^)]+)\)/cudaMemPrefetchAsync(\1, \2, (struct cudaMemLocation){.type = cudaMemLocationTypeDevice, .id = \3}, 0, \4)/g' {} \; \
+    && LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/usr/lib64/ucx:/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs \
+       LDFLAGS="-L/usr/local/cuda/lib64 -L/usr/local/cuda/lib64/stubs" \
+       ./configure CC=/usr/lib64/openmpi/bin/mpicc CXX=/usr/lib64/openmpi/bin/mpicxx \
+        --enable-cuda --with-cuda=/usr/local/cuda \
+        --prefix=/usr/local/osu-benchmarks \
+    && make -j$(nproc) \
+    && make install \
+    && rm -rf /tmp/osu-micro-benchmarks-${OSU_VERSION}* \
+    && dnf remove -y gcc gcc-c++ make wget cuda-cudart-devel-13-0 cuda-crt-13-0 cuda-nvcc-13-0 \
+    && dnf clean all
+
+WORKDIR /usr/local/osu-benchmarks/libexec/osu-micro-benchmarks/mpi
+USER 1001
