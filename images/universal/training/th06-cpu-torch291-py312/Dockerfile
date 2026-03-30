@@ -33,8 +33,10 @@ WORKDIR /opt/app-root/src
 
 # Install main dependencies from AIPCC index
 # Strict AIPCC-only - no fallback indexes (request missing packages be added to AIPCC)
-RUN uv pip install --no-cache --require-hashes \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9/simple/ \
+RUN uv pip install --no-cache \
+    --index-strategy=unsafe-best-match \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA1/cpu-ubi9/simple/ \
+    --extra-index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cpu-ubi9/simple/ \
     -r /tmp/deps/requirements.txt
 
 # Fix permissions for OpenShift
@@ -73,6 +75,7 @@ RUN if [ "${DOWNSTREAM}" != "true" ]; then \
     dnf install -y --setopt=install_weak_deps=False \
         perl \
         mesa-libGL \
+        protobuf \
         skopeo && \
     dnf clean all && rm -rf /var/cache/dnf/*; \
 else \
