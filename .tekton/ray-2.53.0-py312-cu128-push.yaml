@@ -55,9 +55,9 @@ spec:
     - pipelineTaskName: ecosystem-cert-preflight-checks
       computeResources:
         requests:
-          memory: 4Gi
+          memory: 6Gi
         limits:
-          memory: 4Gi
+          memory: 6Gi
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
