@@ -3,7 +3,8 @@
 MPI GRPO Benchmark — Qwen 2.5 7B + GSM8K + DeepSpeed ZeRO-3
 
 Production benchmark for validating multi-node MPI network performance.
-Designed for up to 5 nodes x 8 GPUs = 40 A100 80GB GPUs.
+Target hardware: IBMCloud gx3d-160x1792x8h100 (8x H100 80GB per node).
+Scaling strategy: 1/2/4 nodes (8-32 GPUs), extrapolated to 16 nodes (128 GPUs).
 
 Launch via mpirun (handled by Kubeflow TrainJob MPI runtime):
     mpirun -x MASTER_ADDR=... -x MASTER_PORT=29500 python train_grpo.py

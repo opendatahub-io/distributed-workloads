@@ -1,10 +1,11 @@
 # MPI GRPO Benchmark — Qwen 2.5 7B + GSM8K + DeepSpeed ZeRO-3
-# 5 nodes x 8 A100 80GB GPUs = 40 GPUs total
+# Target: IBMCloud gx3d-160x1792x8h100 nodes (8x H100 80GB per node)
 #
 # Algorithm:  GRPO (Group Relative Policy Optimization) via TRL GRPOTrainer
 # Model:      Qwen/Qwen2.5-7B-Instruct
 # Dataset:    openai/gsm8k (~7.5K grade-school math problems)
 # Distributed: DeepSpeed ZeRO-3 + OpenMPI via Kubeflow TrainJob
+# Network:    150 Gbps RoCE
 #
 # MPI communication patterns exercised:
 #   - allreduce   (gradient synchronisation every step)
@@ -26,11 +27,11 @@
 #     -l batch.kubernetes.io/job-name=mpi-grpo-benchmark-launcher-0 \
 #     --tail=-1 -f
 #
-# Scaling:
-#   - 40 GPUs (default):  numNodes: 5, nvidia.com/gpu: "8"
-#   - 16 GPUs:            numNodes: 2, nvidia.com/gpu: "8"
-#   - 2 GPUs (smoke):     numNodes: 2, nvidia.com/gpu: "1", memory: 40Gi, cpu: "8"
-#   For 13B+ models increase memory to 300Gi and consider reducing GRPO_BATCH_SIZE.
+# Scaling strategy (8xH100 per node):
+#   - 1 node  (  8 GPUs):  numNodes: 1  — default
+#   - 2 nodes ( 16 GPUs):  numNodes: 2  — first inter-node scaling point
+#   - 4 nodes ( 32 GPUs):  numNodes: 4  — mid-scale benchmark
+#   - 16 nodes (128 GPUs): numNodes: 16 — extrapolation target
 ---
 apiVersion: trainer.kubeflow.org/v1alpha1
 kind: TrainJob
@@ -67,6 +68,9 @@ spec:
         -x MASTER_PORT=29500 \
         -x HF_HOME=/tmp/hf_cache \
         -x NCCL_DEBUG=INFO \
+        -x NCCL_IB_DISABLE=0 \
+        -x NCCL_NET_GDR_LEVEL=5 \
+        -x NCCL_IB_GID_INDEX=3 \
         -x GRPO_MODEL=Qwen/Qwen2.5-7B-Instruct \
         -x GRPO_MAX_STEPS=50 \
         -x GRPO_BATCH_SIZE=1 \
@@ -76,16 +80,16 @@ spec:
         -x GRPO_LEARNING_RATE=5e-7 \
         -x GRPO_DS_CONFIG=/mnt/scripts/ds_config_zero3.json \
         python /mnt/scripts/train_grpo.py
-    numNodes: 5
+    numNodes: 1
     resourcesPerNode:
       limits:
         nvidia.com/gpu: "8"
-        memory: 200Gi
-        cpu: "32"
+        memory: 1200Gi
+        cpu: "120"
       requests:
         nvidia.com/gpu: "8"
-        memory: 200Gi
-        cpu: "32"
+        memory: 1200Gi
+        cpu: "120"
   podTemplateOverrides:
   # --- launcher pod ---
   - spec:
