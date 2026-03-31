@@ -32,6 +32,7 @@ import (
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 	kfto "github.com/opendatahub-io/distributed-workloads/tests/kfto"
+	trainerutils "github.com/opendatahub-io/distributed-workloads/tests/trainer/utils"
 )
 
 func TestJobSetWorkflow(t *testing.T) {
@@ -44,13 +45,15 @@ func TestJobSetWorkflow(t *testing.T) {
 	// Create PVC for shared storage
 	pvc := CreatePersistentVolumeClaim(test, namespace, "1Gi", AccessModes(corev1.ReadWriteOnce))
 
+	// Get node image from ClusterTrainingRuntime
+	nodeImage, err := trainerutils.GetImageFromClusterTrainingRuntime(test, trainerutils.DefaultClusterTrainingRuntimeCPU)
+	test.Expect(err).NotTo(HaveOccurred())
+
 	// Create TrainingRuntime with initializer jobs
-	trainingRuntime := createTrainingRuntimeWithInitializers(test, namespace, pvc.Name)
-	defer deleteTrainingRuntime(test, namespace, trainingRuntime.Name)
+	trainingRuntime := createTrainingRuntimeWithInitializers(test, namespace, pvc.Name, nodeImage)
 
 	// Create TrainJob referring the TrainingRuntime
 	trainJob := createTrainJobWithInitializers(test, namespace, trainingRuntime.Name)
-	defer deleteTrainJob(test, namespace, trainJob.Name)
 
 	// Verify JobSet creation
 	test.Eventually(SingleJobSet(test, namespace), TestTimeoutMedium).Should(
@@ -77,13 +80,15 @@ func TestFailedJobSetWorkflow(t *testing.T) {
 	// Create PVC for shared storage
 	pvc := CreatePersistentVolumeClaim(test, namespace, "1Gi", AccessModes(corev1.ReadWriteOnce))
 
+	// Get node image from ClusterTrainingRuntime
+	nodeImage, err := trainerutils.GetImageFromClusterTrainingRuntime(test, trainerutils.DefaultClusterTrainingRuntimeCPU)
+	test.Expect(err).NotTo(HaveOccurred())
+
 	// Create TrainingRuntime With Initializers
-	trainingRuntime := createTrainingRuntimeWithInitializers(test, namespace, pvc.Name)
-	defer deleteTrainingRuntime(test, namespace, trainingRuntime.Name)
+	trainingRuntime := createTrainingRuntimeWithInitializers(test, namespace, pvc.Name, nodeImage)
 
 	// Create TrainJob
 	trainJob := createTrainJobWithFailingInitializer(test, namespace, trainingRuntime.Name)
-	defer deleteTrainJob(test, namespace, trainJob.Name)
 
 	// Wait for JobSet failure
 	test.Eventually(SingleJobSet(test, namespace), TestTimeoutMedium).Should(
@@ -100,7 +105,7 @@ func TestFailedJobSetWorkflow(t *testing.T) {
 	test.T().Log("TrainJob failed as expected")
 }
 
-func createTrainingRuntimeWithInitializers(test Test, namespace, pvcName string) *trainerv1alpha1.TrainingRuntime {
+func createTrainingRuntimeWithInitializers(test Test, namespace, pvcName, nodeImage string) *trainerv1alpha1.TrainingRuntime {
 	test.T().Helper()
 
 	trainingRuntime := &trainerv1alpha1.TrainingRuntime{
@@ -288,7 +293,7 @@ func createTrainingRuntimeWithInitializers(test Test, namespace, pvcName string)
 											Containers: []corev1.Container{
 												{
 													Name:            "node",
-													Image:           GetTrainingCudaPyTorch28Image(),
+													Image:           nodeImage,
 													ImagePullPolicy: corev1.PullIfNotPresent,
 													Resources: corev1.ResourceRequirements{
 														Requests: corev1.ResourceList{
@@ -500,21 +505,6 @@ func createTrainJobWithFailingInitializer(test Test, namespace, runtimeName stri
 	test.T().Logf("Created TrainJob %s/%s", createdTrainJob.Namespace, createdTrainJob.Name)
 
 	return createdTrainJob
-}
-
-func deleteTrainingRuntime(test Test, namespace, name string) {
-	test.T().Helper()
-
-	err := test.Client().Trainer().TrainerV1alpha1().TrainingRuntimes(namespace).Delete(
-		test.Ctx(),
-		name,
-		metav1.DeleteOptions{},
-	)
-	if err != nil {
-		test.T().Logf("Warning: Failed to delete TrainingRuntime %s/%s: %v", namespace, name, err)
-	} else {
-		test.T().Logf("Deleted TrainingRuntime %s/%s successfully", namespace, name)
-	}
 }
 
 func verifySequentialJobExecution(test Test, namespace string) {
