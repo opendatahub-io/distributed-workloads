@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	common "github.com/opendatahub-io/distributed-workloads/tests/common"
 	support "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -35,7 +36,22 @@ const (
 	failureNotebookPath         = "resources/" + failureNotebookName
 	torchrunFailureNotebookName = "torchrun_failure.ipynb"
 	torchrunFailureNotebookPath = "resources/" + torchrunFailureNotebookName
+	failureInstallScriptPath    = "resources/disconnected_env/install_kubeflow.py"
+	failureInstallScriptName    = "install_kubeflow.py"
 )
+
+func resolveTrainingHubRuntime(test support.Test, preferred, fallback string) string {
+	test.T().Helper()
+
+	if _, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(
+		test.Ctx(), preferred, metav1.GetOptions{},
+	); err == nil {
+		return preferred
+	}
+
+	test.T().Logf("ClusterTrainingRuntime %q not found, falling back to %q", preferred, fallback)
+	return fallback
+}
 
 // RunTrainingFailureScenariosTest verifies that training failures are properly
 // propagated — when a training pod fails, the TrainJob should report a Failed
@@ -55,11 +71,27 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
-	// Create ConfigMap with notebook
+	// Create ConfigMap with notebook and kubeflow install script
 	localPath := failureNotebookPath
 	nb, err := os.ReadFile(localPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
-	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{failureNotebookName: nb})
+	installScript, err := os.ReadFile(failureInstallScriptPath)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", failureInstallScriptPath))
+	endpoint, endpointOK := support.GetStorageBucketDefaultEndpoint()
+	accessKey, _ := support.GetStorageBucketAccessKeyId()
+	secretKey, _ := support.GetStorageBucketSecretKey()
+	bucket, bucketOK := support.GetStorageBucketName()
+	if !endpointOK {
+		endpoint = ""
+	}
+	if !bucketOK {
+		bucket = ""
+	}
+	trainingRuntime := resolveTrainingHubRuntime(test, trainerutils.DefaultTrainingHubRuntimeCPU, trainerutils.DefaultTrainingHubRuntimeCUDA)
+	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{
+		failureNotebookName:  nb,
+		failureInstallScriptName: installScript,
+	})
 
 	// Create RWX PVC required by the notebook pod template
 	storageClass, err := support.GetRWXStorageClass(test)
@@ -76,12 +108,20 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 		"set -e; "+
 			"export OPENSHIFT_API_URL='%s'; export NOTEBOOK_USER_TOKEN='%s'; "+
 			"export NOTEBOOK_NAMESPACE='%s'; "+
+			"export AWS_DEFAULT_ENDPOINT='%s'; export AWS_ACCESS_KEY_ID='%s'; "+
+			"export AWS_SECRET_ACCESS_KEY='%s'; export AWS_STORAGE_BUCKET='%s'; "+
 			"export TRAINING_RUNTIME='%s'; "+
-			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill && "+
+			"export GPU_TYPE='cpu'; "+
+			"%s"+
+			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill boto3==1.34.162 && "+
+			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name,
-		trainerutils.DefaultTrainingHubRuntimeCPU,
+		endpoint, accessKey, secretKey, bucket,
+		trainingRuntime,
+		buildKubeflowInstallExports(),
+		failureInstallScriptName,
 		failureNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
@@ -122,11 +162,16 @@ func RunTorchrunTrainingFailureTest(t *testing.T) {
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
-	// Create ConfigMap with notebook
+	// Create ConfigMap with notebook and kubeflow install script
 	localPath := torchrunFailureNotebookPath
 	nb, err := os.ReadFile(localPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", localPath))
-	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{torchrunFailureNotebookName: nb})
+	installScript, err := os.ReadFile(failureInstallScriptPath)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", failureInstallScriptPath))
+	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{
+		torchrunFailureNotebookName: nb,
+		failureInstallScriptName:    installScript,
+	})
 
 	// S3 configuration for model and dataset download
 	endpoint, endpointOK := support.GetStorageBucketDefaultEndpoint()
@@ -140,6 +185,7 @@ func RunTorchrunTrainingFailureTest(t *testing.T) {
 	if !bucketOK {
 		bucket = ""
 	}
+	trainingRuntime := resolveTrainingHubRuntime(test, trainerutils.DefaultTrainingHubRuntimeCUDA, trainerutils.DefaultTrainingHubRuntimeCUDA)
 
 	// Create RWX PVC for shared dataset and model
 	storageClass, err := support.GetRWXStorageClass(test)
@@ -162,12 +208,17 @@ func RunTorchrunTrainingFailureTest(t *testing.T) {
 			"export AWS_STORAGE_BUCKET='%s'; "+
 			"export AWS_STORAGE_BUCKET_SFT_DIR='%s'; "+
 			"export TRAINING_RUNTIME='%s'; "+
+			"export GPU_TYPE='nvidia'; "+
+			"%s"+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages ipykernel papermill boto3==1.34.162 && "+
+			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		support.GetOpenShiftApiUrl(test), userToken, namespace.Name, rwxPvc.Name,
 		endpoint, accessKey, secretKey, bucket, prefix,
-		trainerutils.DefaultTrainingHubRuntimeCUDA,
+		trainingRuntime,
+		buildKubeflowInstallExports(),
+		failureInstallScriptName,
 		torchrunFailureNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
