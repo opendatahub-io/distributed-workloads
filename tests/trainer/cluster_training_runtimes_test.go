@@ -170,7 +170,12 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 
 		// Wait for TrainJob completion
 		test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutDouble).
-			Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
+			Should(Satisfy(TrainJobReachedFinalState))
+
+		finalJob := TrainJob(test, namespace, trainJob.Name)(test)
+		test.Expect(finalJob).To(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)),
+			"TrainJob %s/%s should be complete; TrainJobFailed message: %s",
+			namespace, trainJob.Name, TrainJobFailedMessage(finalJob))
 
 		test.T().Logf("TrainJob with ClusterTrainingRuntime '%s' completed successfully", runtime.Name)
 
