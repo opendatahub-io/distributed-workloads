@@ -20,6 +20,7 @@ import (
 	"context"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"testing"
 
@@ -149,7 +150,12 @@ func (t *T) OutputDir() string {
 			t.outputDir = dir
 		} else {
 			t.T().Logf("Creating ephemeral output directory as %s env variable is unset", TestOutputDir)
-			t.outputDir = t.T().TempDir()
+			safeName := strings.ReplaceAll(t.T().Name(), "/", "_")
+			dir, err := os.MkdirTemp("", safeName)
+			if err != nil {
+				t.T().Fatalf("Error creating output directory: %v", err)
+			}
+			t.outputDir = dir
 		}
 		t.T().Logf("Output directory has been created at: %s", t.outputDir)
 	})

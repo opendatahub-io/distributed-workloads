@@ -221,21 +221,6 @@ func createTrainJob(test Test, namespace, runtimeName string) *trainerv1alpha1.T
 	return createTrainJob
 }
 
-func deleteTrainJob(test Test, namespace, name string) {
-	test.T().Helper()
-
-	err := test.Client().Trainer().TrainerV1alpha1().TrainJobs(namespace).Delete(
-		test.Ctx(),
-		name,
-		metav1.DeleteOptions{},
-	)
-	if err != nil {
-		test.T().Logf("Warning: Failed to delete TrainJob %s/%s: %v", namespace, name, err)
-	} else {
-		test.T().Logf("Deleted TrainJob %s/%s successfully", namespace, name)
-	}
-}
-
 func verifyPodContainerImages(test Test, namespace, trainJobName string) {
 	// Determine registry based on cluster environment
 	registryName := GetExpectedRegistry(test)
