@@ -109,6 +109,7 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		shellQuote(support.GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(rwxPvc.Name),
 		shellQuote(endpoint), shellQuote(accessKey), shellQuote(secretKey), shellQuote(bucket), shellQuote(prefix),
+		// TODO: change to DefaultClusterTrainingRuntimeCPU for EA2 RC2 and later
 		shellQuote(trainerutils.DefaultClusterTrainingRuntimeCUDA),
 		sdkInstallExports,
 		installKubeflowScript,
@@ -117,7 +118,7 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 	command := []string{"/bin/sh", "-c", shellCmd}
 
 	// Create Notebook CR using the RWX PVC
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, 0, rwxPvc, common.ContainerSizeSmall)
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, 0, rwxPvc, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCPU))
 
 	// Cleanup - use longer timeout due to large runtime images
 	defer func() {
@@ -240,6 +241,7 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		shellQuote(support.GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(rwxPvc.Name),
 		shellQuote(endpoint), shellQuote(accessKey), shellQuote(secretKey), shellQuote(bucket), shellQuote(prefix),
+		// TODO: change to DefaultClusterTrainingRuntimeCPU for EA2 RC2 and later
 		shellQuote(trainerutils.DefaultClusterTrainingRuntimeCUDA),
 		shellQuote(customLocalQueue.Name),
 		sdkInstallExports,
@@ -249,7 +251,7 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 	command := []string{"/bin/sh", "-c", shellCmd}
 
 	// Create Notebook CR using the RWX PVC
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, 0, rwxPvc, common.ContainerSizeSmall)
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, 0, rwxPvc, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCPU))
 
 	// Cleanup - use longer timeout due to large runtime images
 	defer func() {

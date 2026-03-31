@@ -460,8 +460,16 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		config.EnableProgressionTracking, config.EnableJitCheckpoint, config.Accelerator.Type, numNodes, numGpusPerNode, config.NotebookName)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
+	// Determine the notebook image stream based on the accelerator
+	notebookImageStream := common.NotebookImageStreamTrainingHubCPU
+	if config.Accelerator == NVIDIA {
+		notebookImageStream = common.NotebookImageStreamTrainingHubCUDA
+	} else if config.Accelerator == AMD {
+		notebookImageStream = common.NotebookImageStreamTrainingHubROCm
+	}
+
 	// Create Notebook CR using the RWX PVC
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, config.NotebookName, 0, sharedPVC, common.ContainerSizeSmall)
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, config.NotebookName, 0, sharedPVC, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(test, notebookImageStream))
 
 	// Cleanup - use longer timeout due to large runtime images
 	defer func() {

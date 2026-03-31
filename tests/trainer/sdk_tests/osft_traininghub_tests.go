@@ -120,7 +120,7 @@ func RunOsftTrainingHubMultiGpuDistributedTraining(t *testing.T, nnodes int) {
 
 	// Create Notebook CR using the RWX PVC
 	// For GPU testing, we use a larger container size to ensure sufficient resources
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, osftNotebookName, 0, rwxPvc, common.ContainerSizeMedium)
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, osftNotebookName, 0, rwxPvc, common.ContainerSizeMedium, common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCUDA))
 
 	// Cleanup - use longer timeout for GPU tests due to large runtime images
 	defer func() {

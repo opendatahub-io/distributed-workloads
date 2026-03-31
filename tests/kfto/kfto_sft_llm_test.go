@@ -176,7 +176,7 @@ func kftoSftLlm(t *testing.T, image string, gpu Accelerator, modelName string) {
 	}
 
 	// Create Notebook CR
-	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, "sft.ipynb", 1, notebookPVC, ContainerSizeMedium, gpu.ResourceLabel)
+	CreateNotebook(test, namespace, userToken, notebookCommand, config.Name, "sft.ipynb", 1, notebookPVC, ContainerSizeMedium, GetRecommendedNotebookImageFromImageStream(test, NotebookImageStreamDataScience), gpu.ResourceLabel)
 
 	// Gracefully cleanup Notebook
 	defer func() {

@@ -31,9 +31,9 @@ import (
 )
 
 // CreateNotebookFromBytes creates a ConfigMap with the notebook and a Notebook CR to run it.
-func CreateNotebookFromBytes(test Test, namespace *corev1.Namespace, userToken string, notebookName string, notebookBytes []byte, command []string, numGpus int, containerSize common.ContainerSize) *corev1.ConfigMap {
+func CreateNotebookFromBytes(test Test, namespace *corev1.Namespace, userToken string, notebookName string, notebookBytes []byte, command []string, numGpus int, containerSize common.ContainerSize, notebookImage string) *corev1.ConfigMap {
 	cm := CreateConfigMap(test, namespace.Name, map[string][]byte{notebookName: notebookBytes})
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, numGpus, CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", AccessModes(corev1.ReadWriteOnce)), containerSize)
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, numGpus, CreatePersistentVolumeClaim(test, namespace.Name, "10Gi", AccessModes(corev1.ReadWriteOnce)), containerSize, notebookImage)
 	return cm
 }
 
