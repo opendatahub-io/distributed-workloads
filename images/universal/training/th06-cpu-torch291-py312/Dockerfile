@@ -25,7 +25,7 @@ USER 0
 WORKDIR /tmp/deps
 
 # Copy requirements files
-COPY --chown=1001:0 pyproject.toml requirements.txt ./
+COPY --chown=1001:0 pyproject.toml requirements.txt requirements-ea2.txt ./
 
 # Switch to user 1001 for pip installations
 USER 1001
@@ -36,8 +36,10 @@ WORKDIR /opt/app-root/src
 RUN uv pip install --no-cache \
     --index-strategy=unsafe-best-match \
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA1/cpu-ubi9/simple/ \
-    --extra-index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cpu-ubi9/simple/ \
-    -r /tmp/deps/requirements.txt
+    -r /tmp/deps/requirements.txt \
+ && uv pip install --no-cache \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cpu-ubi9/simple/ \
+    -r /tmp/deps/requirements-ea2.txt
 
 # Fix permissions for OpenShift
 ARG PYTHON_VERSION
