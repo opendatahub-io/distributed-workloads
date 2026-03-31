@@ -2,11 +2,9 @@
 #    uv pip compile --generate-hashes --python-platform=linux --python-version=3.12 -o requirements.txt pyproject.toml
 --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9/simple/
 
-absl-py==2.4.0 \
-    --hash=sha256:27392fbda337bd3e9f7a1a0405c9b22d314238bbbbb6e910f4208dcd4750740e
+absl-py==2.4.0
     # via tensorboard
-accelerate==1.12.0 \
-    --hash=sha256:8d36d82068b76a931739b111d9f79a80e9a49d1dcc6459b0ab8b12c61b1f8954
+accelerate==1.12.0
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   peft
@@ -14,21 +12,17 @@ accelerate==1.12.0 \
     #   trl
     #   unsloth
     #   unsloth-zoo
-aiobotocore==2.26.0 \
-    --hash=sha256:487145cef1c66f7a086d4efd4bf5c4af61396d55cab0b8040c9554af4c9c0e68
+aiobotocore==2.26.0
     # via s3fs
-aiofiles==25.1.0 \
-    --hash=sha256:4c091cc027c0266b8d8def46e9d5a58e6d9e262745d900c5e52f0678d45173a1
+aiofiles==25.1.0
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   instructlab-training
     #   rhai-innovation-mini-trainer
     #   training-hub
-aiohappyeyeballs==2.6.1 \
-    --hash=sha256:a80202be86e008deac1f890d385d721617c4e26feeb21c4469a37596e123ff2f
+aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.13.3 \
-    --hash=sha256:d31ac919f1cd8bf76ae9bc4927d0e095ed30693cb7d154f53856cbb9c2f2a90a
+aiohttp==3.13.3
     # via
     #   aiobotocore
     #   aiohttp-retry
@@ -36,63 +30,45 @@ aiohttp==3.13.3 \
     #   model-registry
     #   s3fs
     #   training-hub
-aiohttp-retry==2.9.1 \
-    --hash=sha256:64964cce206b18b4ed0bfee1fb9aedfeda6e9dc48842373f0493b4d34052e986
+aiohttp-retry==2.9.1
     # via model-registry
-aioitertools==0.13.0 \
-    --hash=sha256:400913a74413692b0a25601076cb3a5ddc85d631ff824bac5143ac1d37e030a7
+aioitertools==0.13.0
     # via aiobotocore
-aiosignal==1.4.0 \
-    --hash=sha256:35433d6f320fe66ed3a952b9a7fc316eb953b83104d48d5fddb62870dfca2f11
+aiosignal==1.4.0
     # via aiohttp
-annotated-doc==0.0.4 \
-    --hash=sha256:1f30b54cb0d51c4de14289c8c2266c7bb2082af6ca7e0f28ff9b5faf43ff5a22
+annotated-doc==0.0.4
     # via typer
-annotated-types==0.7.0 \
-    --hash=sha256:92b21c3f1f2f0d8654887e14da6cb02463119d9a834ab9b96515ae62695f6b83
+annotated-types==0.7.0
     # via pydantic
-anyio==4.12.1 \
-    --hash=sha256:b2953cd6f0a4b33847187e433b116f57d6bbb37782d5a43081e6398e2ce17627
+anyio==4.12.1
     # via httpx
-async-timeout==5.0.1 \
-    --hash=sha256:c8261f99328b3c2248741f3cb414ba0bdfc4f1a998fdc013fc5e529728fa7300
+async-timeout==5.0.1
     # via th06-rocm-universal-image (pyproject.toml)
-attr==0.3.2 \
-    --hash=sha256:4aa4bea35f11edee7dc8b0e563a655dcf149991ca4509d33edc67a79b61f79cb
+attr==0.3.2
     # via training-hub
-attrs==25.4.0 \
-    --hash=sha256:392db93a8a91fe1136a04b6e76a66467d78490efa31a9c5bd114287e9ae6a554
+attrs==25.4.0
     # via aiohttp
-bitsandbytes==0.49.2 \
-    --hash=sha256:80af0305f4204e2bce22dd0e3cddb97f9b3cce21734dc9d972bff03c5ba5ee26
+bitsandbytes==0.49.2
     # via unsloth
-botocore==1.41.5 \
-    --hash=sha256:a9f71c7c15c0d915cd191f4515f5160da74334779f1a6ccb90e90511eb92bc9b
+botocore==1.41.5
     # via aiobotocore
-certifi==2026.1.4 \
-    --hash=sha256:1a75c82bf4fc859a1690c7c84de9ae6287401c1dfb624bc775d9d0b58a350489
+certifi==2026.1.4
     # via
     #   httpcore
     #   httpx
     #   kubernetes
     #   requests
-charset-normalizer==3.4.4 \
-    --hash=sha256:6794d9e991c686b6d84a3fdc76005c022f08d21d1b8c0721a8a3ab94d02ad63c
+charset-normalizer==3.4.4
     # via requests
-click==8.3.1 \
-    --hash=sha256:0e27291555a37cb794facb4786d75a241361098e881e8da2b51cf8df464d0fe7
+click==8.3.1
     # via typer
-contourpy==1.3.3 \
-    --hash=sha256:b9445312e8ce7eb65b476fdcb056c222dc2b70260b1ef005213a4ef703bf49a3
+contourpy==1.3.3
     # via matplotlib
-cut-cross-entropy==25.1.1 \
-    --hash=sha256:f3ae7ba5949c1e2bbab4b5ca68495bef27c0b8fe765245095c2ed065bf2f59f6
+cut-cross-entropy==25.1.1
     # via unsloth-zoo
-cycler==0.12.1 \
-    --hash=sha256:e07bc997e6d13626b944208c5471529f4519f0f484fb688d5c030062794ddbed
+cycler==0.12.1
     # via matplotlib
-datasets==4.3.0 \
-    --hash=sha256:577c2953a7c988339b76838ba14d20b9b69319e50473c75a1d02f13165042027
+datasets==4.3.0
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   instructlab-training
@@ -101,34 +77,26 @@ datasets==4.3.0 \
     #   trl
     #   unsloth
     #   unsloth-zoo
-deepspeed==0.18.6 \
-    --hash=sha256:4358892807af3dfec883731bd4bd8bc54c12fbabab172922d6fed21dd1e551e8
+deepspeed==0.18.6
     # via th06-rocm-universal-image (pyproject.toml)
-deprecated==1.3.1 \
-    --hash=sha256:35a73958a4508441b8598a1a6d30341312dd14a7dda2ec3597dc70ab8b6f44c5
+deprecated==1.3.1
     # via rhai-innovation-mini-trainer
-diffusers==0.36.0 \
-    --hash=sha256:09153f1a4a9e98a566e9253a41a29e7f5592bfdef4fb9dcdb2b92f0151c0fa06
+diffusers==0.36.0
     # via unsloth
-dill==0.4.0 \
-    --hash=sha256:d57c6bfe02bfaace65360bb3b7eaf14d0a11923d2dca95c927287fdd8fa731c0
+dill==0.4.0
     # via
     #   datasets
     #   multiprocess
-docstring-parser==0.17.0 \
-    --hash=sha256:fcf01821cc326e4632aab1acb32203d84d654416a076fbccb05572f13cdc676a
+docstring-parser==0.17.0
     # via tyro
-durationpy==0.10 \
-    --hash=sha256:646a851a2e643b8944c1025072c548a658ca63f261947167c8efd88e3679835b
+durationpy==0.10
     # via kubernetes
-einops==0.8.2 \
-    --hash=sha256:fd0a5786195678aa36323ea5f063a4a03287116c7004db06e27e16b1290e1dee
+einops==0.8.2
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   deepspeed
     #   flash-attn
-filelock==3.24.3 \
-    --hash=sha256:983322efd9b07bf619bc48673e7d9878f89bb68c51c699b3b6ab7de6444675f3
+filelock==3.24.3
     # via
     #   datasets
     #   diffusers
@@ -137,64 +105,50 @@ filelock==3.24.3 \
     #   training-hub
     #   transformers
     #   unsloth-zoo
-flash-attn==2.8.3 \
-    --hash=sha256:d3b3585caa7bbf0d970551943761af42c5a52ff837fab684457327dc08352250
+flash-attn==2.8.3
     # via th06-rocm-universal-image (pyproject.toml)
-fonttools==4.61.1 \
-    --hash=sha256:7dd141953eb02c897c4308f1cd0d59d8c181b9feecc260390d85a1fb2ab3a984
+fonttools==4.61.1
     # via matplotlib
-frozenlist==1.8.0 \
-    --hash=sha256:ed44edb75900923f83031bde4f051c0264fe7e30589b76ede915d2cc34976539
+frozenlist==1.8.0
     # via
     #   aiohttp
     #   aiosignal
     #   training-hub
-fsspec==2025.9.0 \
-    --hash=sha256:017cdcd3912eee826b0dbb1dfb7e157f822ff2621d94d54d80307a623a6d2cc8
+fsspec==2025.9.0
     # via
     #   datasets
     #   huggingface-hub
     #   s3fs
     #   torch
     #   training-hub
-googleapis-common-protos==1.73.0 \
-    --hash=sha256:cc6239f29b5b5704c0c0df3f8a9cb01ecedb908b1e6455f0e57b3af6b57ff818
+googleapis-common-protos==1.73.0
     # via
     #   grpcio-status
     #   pyspark-connect
-grpcio==1.78.0 \
-    --hash=sha256:db48bb0d6be73a05434f47c0c3236dc66e34deb31ba8404c37842080602f7dbd
+grpcio==1.78.0
     # via
     #   grpcio-status
     #   pyspark-connect
     #   tensorboard
-grpcio-status==1.78.0 \
-    --hash=sha256:6bdea36231a4e4ea25099e661057e1fbcb08e4955ec0a9977bd4c5931455998e
+grpcio-status==1.78.0
     # via pyspark-connect
-h11==0.16.0 \
-    --hash=sha256:c20b06203a8a86835f8ab4517157046d331e1a1b3c39b31553b9af24f4e16e4c
+h11==0.16.0
     # via httpcore
-hf-transfer==0.1.9 \
-    --hash=sha256:fd9b649855cb8033e62e3c561fba3af1cb2f0a3ea61a4bdd9cb6f283e936de80
+hf-transfer==0.1.9
     # via
     #   unsloth
     #   unsloth-zoo
-hf-xet==1.2.0 \
-    --hash=sha256:a21835635d045522c79f66ff0968d67678ecbc3547bb599e6a0fbf9ccf8c6dc6
+hf-xet==1.2.0
     # via huggingface-hub
-hjson==3.1.0 \
-    --hash=sha256:bad530bb65e76403c29d7f41f52c63ea5ee1b9129eac5590c8449d9203c82633
+hjson==3.1.0
     # via deepspeed
-httpcore==1.0.9 \
-    --hash=sha256:6de3aa9eaf3e7b15910896b87b23abbeb035117e1315c9e1466bdec5c75fe3ad
+httpcore==1.0.9
     # via httpx
-httpx==0.28.1 \
-    --hash=sha256:a6d0a52db2f16fb5aafea3f7ba9fd0d70c7cecde9e900bd916effafdc6e0421e
+httpx==0.28.1
     # via
     #   datasets
     #   diffusers
-huggingface-hub==0.36.2 \
-    --hash=sha256:3b2a83467d88f5de4e1b4c1a717c2f7cb6de0d4bbe03ab0c988cee9281d03828
+huggingface-hub==0.36.2
     # via
     #   accelerate
     #   datasets
@@ -205,125 +159,94 @@ huggingface-hub==0.36.2 \
     #   transformers
     #   unsloth
     #   unsloth-zoo
-idna==3.11 \
-    --hash=sha256:0551246d53df81d9db4f07ef8edf02b02ccc604330880cc9e282a86cc779be07
+idna==3.11
     # via
     #   anyio
     #   httpx
     #   requests
     #   yarl
-importlib-metadata==8.7.1 \
-    --hash=sha256:7f1b7474fde2bcd457331483016674ec9b2e7c516e3868ac1e8bd15a8c82d584
+importlib-metadata==8.7.1
     # via diffusers
-iniconfig==2.3.0 \
-    --hash=sha256:0959591cd9d2221ba1d0302e9bcefcc960c53211c0bb89f5b430078033afaa50
+iniconfig==2.3.0
     # via pytest
-instructlab-training==0.14.2 \
-    --hash=sha256:018c888e9828be16eec3c3da0b2f4000e28f774b00769c9b64195ea33fae5b6e
+instructlab-training==0.14.2
     # via training-hub
-jinja2==3.1.6 \
-    --hash=sha256:c35acda5599d833af32650d5bef4db29825ddf4821c9d2695fb25d135cb7b2ba
+jinja2==3.1.6
     # via
     #   torch
     #   training-hub
-jmespath==1.1.0 \
-    --hash=sha256:55ba29d298b50dc19224b9697452469c67a08e883ce20eecdc76e8c80ed6a9bb
+jmespath==1.1.0
     # via
     #   aiobotocore
     #   botocore
-kernels==0.12.1 \
-    --hash=sha256:887ddcec3c6aa5d2bd2e8e6107cb1682ee4b4cd25e012c24b1de3a987a1ffa8d
+kernels==0.12.1
     # via th06-rocm-universal-image (pyproject.toml)
-kiwisolver==1.4.9 \
-    --hash=sha256:e50919e83a5097ed4e9486a2c5cbbea56222663bc9f3c08b8619e8a9067891ff
+kiwisolver==1.4.9
     # via matplotlib
-kubeflow==0.3.0+rhaiv.1 \
-    --hash=sha256:d99dddfe0a0bb67d7fd031d1c73543cafbde8075d93472e48d99724d63e3e949
+kubeflow==0.3.0+rhaiv.1
     # via th06-rocm-universal-image (pyproject.toml)
-kubeflow-katib-api==0.19.0 \
-    --hash=sha256:dc47a2f0565021e7e5cc456b610ca54bf98b42f410df3c255b34229058b153bf
+kubeflow-katib-api==0.19.0
     # via kubeflow
-kubeflow-spark-api==2.4.0 \
-    --hash=sha256:c2ed9e235d0d4f8cb4ec6c6c1aca450195e1aec534047db9d287d68b5e960607
+kubeflow-spark-api==2.4.0
     # via th06-rocm-universal-image (pyproject.toml)
-kubeflow-trainer-api==2.1.0 \
-    --hash=sha256:fbae55122d7ea46952b86c98667e26f55c15caabe0762d4b608535f6736c8a0a
+kubeflow-trainer-api==2.1.0
     # via kubeflow
-kubernetes==35.0.0 \
-    --hash=sha256:8e8ec6d745073b35f1ed2317af18dbaba8265ade60f5a26546f82a18b9bc97ca
+kubernetes==35.0.0
     # via kubeflow
-liger-kernel==0.7.0 \
-    --hash=sha256:aeaf0a94f54689241a224c228fe95afba1bb64a7c2d08c36167572344cf2c145
+liger-kernel==0.7.0
     # via th06-rocm-universal-image (pyproject.toml)
-llvmlite==0.46.0 \
-    --hash=sha256:620ad0783257a6bf98ee0c6cf9f646769011c7199bfc494b6c9fc0d4c1b4a3db
+llvmlite==0.46.0
     # via
     #   numba
     #   training-hub
-markdown==3.10.2 \
-    --hash=sha256:1f415f51eed9242ef22b051b625488a186c0662c1088bb22c50a7c02ed2d229b
+markdown==3.10.2
     # via tensorboard
-markdown-it-py==4.0.0 \
-    --hash=sha256:d626156c0b6f20ae9a2ea29e00be775bb768000d5aa8833559d71652d59619c0
+markdown-it-py==4.0.0
     # via rich
-markupsafe==3.0.3 \
-    --hash=sha256:0bdaa36774340bd8115d613d5d63face2b4d16ff4997e4f99c173fe8e3c0c3d0
+markupsafe==3.0.3
     # via
     #   jinja2
     #   werkzeug
-matplotlib==3.10.8 \
-    --hash=sha256:23d6c7f7edfcd8a6e6183c923c218ad9614a4989636f449d8f5f930dfdd3334c
+matplotlib==3.10.8
     # via training-hub
-mdurl==0.1.2 \
-    --hash=sha256:a00418333ec4837cdcba5f1e8e08fb7eef9ea9246b5e347cc341690126c59b5f
+mdurl==0.1.2
     # via markdown-it-py
-model-registry==0.3.7 \
-    --hash=sha256:21824f98efb55900ad9ef37acc6d06ef5d935dafbf7d103873e20b7f0a8d4b78
+model-registry==0.3.7
     # via th06-rocm-universal-image (pyproject.toml)
-mpmath==1.3.0 \
-    --hash=sha256:2251b57d29755033bd27e6e19e0221925e1192160ffea82781c9a2f53b0820b0
+mpmath==1.3.0
     # via
     #   sympy
     #   training-hub
-msgpack==1.1.2 \
-    --hash=sha256:e4a5bcc86ceec930cfd056aa7af346440f544181eb2744a9510c5557b610f76d
+msgpack==1.1.2
     # via deepspeed
-msgspec==0.20.0 \
-    --hash=sha256:aea317bd9edd438fd39f2db09d4013750eb01d71432bd7887d4a433ae64c5163
+msgspec==0.20.0
     # via unsloth-zoo
-multidict==6.7.1 \
-    --hash=sha256:1b67b08d04b8d1cd52e3f6c8be9bbfdf4f44be1fe4e04e46485534c60fdee456
+multidict==6.7.1
     # via
     #   aiobotocore
     #   aiohttp
     #   yarl
-multiprocess==0.70.16 \
-    --hash=sha256:7b1462ece0dd87209a01ad0780a190a2ec679fd8e2d5ba5b4c7c6a5b5e202810
+multiprocess==0.70.16
     # via
     #   datasets
     #   training-hub
-nest-asyncio2==1.7.2 \
-    --hash=sha256:9d3c668c78bfdb19a0d6317d7aad71b878f8adf755cce93b203f6fd367ae58f5
+nest-asyncio2==1.7.2
     # via model-registry
-networkx==3.6.1 \
-    --hash=sha256:8c895e509d22e680f3bf6422e916baedba4af8a04d782fb0dec6d9cb1c6950cb
+networkx==3.6.1
     # via
     #   torch
     #   training-hub
-ninja==1.11.1.4 \
-    --hash=sha256:759f32586d3756c43894472de81919d268ad89392e4a6b53c121e0811977ce12
+ninja==1.11.1.4
     # via
     #   deepspeed
     #   rhai-innovation-mini-trainer
-numba==0.64.0 \
-    --hash=sha256:384929e85ee4da7fe3e331d282347816df085ab774077b542bd0e5d7342f095a
+numba==0.64.0
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   instructlab-training
     #   rhai-innovation-mini-trainer
     #   training-hub
-numpy==2.3.5 \
-    --hash=sha256:cd4aef10c336acb791314d736f2d1524ed19555f808799a6b3dcd901f6b9c200
+numpy==2.3.5
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   accelerate
@@ -346,11 +269,9 @@ numpy==2.3.5 \
     #   unsloth
     #   unsloth-zoo
     #   xformers
-oauthlib==3.3.1 \
-    --hash=sha256:73c6b48e9491f2df1864fd6767fa206530334b713b6b5f39f62f0b085012e0db
+oauthlib==3.3.1
     # via requests-oauthlib
-packaging==26.0 \
-    --hash=sha256:c318ca8898b1b505d6bac8efd15d23a41337bab06227c36f811e11d4820f4ead
+packaging==26.0
     # via
     #   accelerate
     #   bitsandbytes
@@ -368,38 +289,32 @@ packaging==26.0 \
     #   unsloth
     #   unsloth-zoo
     #   wheel
-pandas==3.0.1 \
-    --hash=sha256:30ae7a25766201e8781c12efc1de2e54a2c7c1ac64f1f127dc56b61c7b2626a6
+pandas==3.0.1
     # via
     #   datasets
     #   pyspark-connect
     #   training-hub
-peft==0.18.1 \
-    --hash=sha256:eefd959dc97416fa887296279a93fdee9b8a0f4e3d31de30cb75dc7f6cb926d7
+peft==0.18.1
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   instructlab-training
     #   training-hub
     #   unsloth
     #   unsloth-zoo
-pillow==12.1.1 \
-    --hash=sha256:9f12932e47a2b970e2600b828b37314d6f026d3b4486f9a58b8fc795a4ab7d1f
+pillow==12.1.1
     # via
     #   diffusers
     #   matplotlib
     #   tensorboard
     #   torchvision
     #   unsloth-zoo
-pluggy==1.6.0 \
-    --hash=sha256:bfa9d1e91a108be9676ccb1beb3ec196188cbd99251bf6fa1c7988301752af4f
+pluggy==1.6.0
     # via pytest
-propcache==0.4.1 \
-    --hash=sha256:4f6dbc01a16b3f6d808f570d8e625ea3ad06262a2634f3f05cefd10ded742cc3
+propcache==0.4.1
     # via
     #   aiohttp
     #   yarl
-protobuf==6.33.5 \
-    --hash=sha256:738ef1273295ef0cfbdd13908c8694339469ce4dc9e62334455c61eaa3b46697
+protobuf==6.33.5
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   googleapis-common-protos
@@ -407,8 +322,7 @@ protobuf==6.33.5 \
     #   tensorboard
     #   unsloth
     #   unsloth-zoo
-psutil==7.2.2 \
-    --hash=sha256:af11055dea81cd069b2dc14d80c7f1c2c915ed458099c46f717d4e000633b90d
+psutil==7.2.2
     # via
     #   accelerate
     #   deepspeed
@@ -416,22 +330,18 @@ psutil==7.2.2 \
     #   training-hub
     #   unsloth
     #   unsloth-zoo
-py-cpuinfo==9.0.0 \
-    --hash=sha256:bf4f7882130b2fa617c35eb9567c2cc2adda51fb360837f77d17afc9feed010f
+py-cpuinfo==9.0.0
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   deepspeed
     #   instructlab-training
-py4j==0.10.9.9 \
-    --hash=sha256:c1f1096ed0983bdd6325344ecd9507f418713852eda19ec710b5f73d8fca2f5c
+py4j==0.10.9.9
     # via pyspark
-pyarrow==23.0.1 \
-    --hash=sha256:ed608bad6ebd64361ac979923756ba815d0cdf7c9fda3009987b20062c59613a
+pyarrow==23.0.1
     # via
     #   datasets
     #   pyspark-connect
-pydantic==2.12.5 \
-    --hash=sha256:fb0de9bc28de04fe69deeaacf59a84463bcd487588bc3707c37c9dcfa38edfcb
+pydantic==2.12.5
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   deepspeed
@@ -442,30 +352,23 @@ pydantic==2.12.5 \
     #   kubeflow-trainer-api
     #   model-registry
     #   training-hub
-pydantic-core==2.41.5 \
-    --hash=sha256:29e0cdc3882fe59d4c29ae524d393211bdd9db9743e89379b4a3746cae9e4094
+pydantic-core==2.41.5
     # via pydantic
-pygments==2.19.2 \
-    --hash=sha256:c5c2be1ffef7f0af4e3b6a399071e254fc0ca756406c099cc4ad4976112b701e
+pygments==2.19.2
     # via
     #   pytest
     #   rich
-pyparsing==3.3.2 \
-    --hash=sha256:6f9c47ec90bc4227adc0a12d6f316f26abfb224999ee396f678c70de3baba499
+pyparsing==3.3.2
     # via
     #   matplotlib
     #   training-hub
-pyspark==4.0.1 \
-    --hash=sha256:93aaa47bf7d460cb3a745df2e17c1f987aed7f0ba61d94a9a534e08afbfccf97
+pyspark==4.0.1
     # via pyspark-connect
-pyspark-connect==4.0.1 \
-    --hash=sha256:2a26b93bd657fca07ae8e7d8a8d1ad0c55cbb8f8edc00e7cfe44fdadf1a77f5a
+pyspark-connect==4.0.1
     # via th06-rocm-universal-image (pyproject.toml)
-pytest==9.0.2 \
-    --hash=sha256:30a74723661750cd16739fc651114a2640cd322d4d606bddb09265915ec9238d
+pytest==9.0.2
     # via training-hub
-python-dateutil==2.9.0.post0 \
-    --hash=sha256:9a0a70bf1779fbc2d02b323393c6a301bfaaaf0653df30a59388cd782eb6df83
+python-dateutil==2.9.0.post0
     # via
     #   aiobotocore
     #   botocore
@@ -473,8 +376,7 @@ python-dateutil==2.9.0.post0 \
     #   matplotlib
     #   model-registry
     #   pandas
-pyyaml==6.0.3 \
-    --hash=sha256:8d88eaa1b89b0d6c71cd02cc64d5f70f7b6a6145c23fae4cb25558a05f13d338
+pyyaml==6.0.3
     # via
     #   accelerate
     #   datasets
@@ -484,15 +386,13 @@ pyyaml==6.0.3 \
     #   kubernetes
     #   peft
     #   transformers
-regex==2026.2.19 \
-    --hash=sha256:f80fc5cf69ac0ab8c9db5c7a772519dfa6a42c246a7efb60a277ee0c0d36d1f6
+regex==2026.2.19
     # via
     #   diffusers
     #   training-hub
     #   transformers
     #   unsloth-zoo
-requests==2.32.5 \
-    --hash=sha256:59b9dc8ae722bdca1531f4de75cab2a974c69bfc8febd1d1a2e97dd4dc3d5ff1
+requests==2.32.5
     # via
     #   datasets
     #   diffusers
@@ -501,72 +401,57 @@ requests==2.32.5 \
     #   requests-oauthlib
     #   training-hub
     #   transformers
-requests-oauthlib==2.0.0 \
-    --hash=sha256:4304364f067d61704e94b6d300498973d42f7ef273c1fcd26858d2d86e1c1627
+requests-oauthlib==2.0.0
     # via kubernetes
-rhai-innovation-mini-trainer==0.6.1 \
-    --hash=sha256:405109553756b51ee833a5130d93e56d4c468f53af5b5796130d74d2ebeebb42
+rhai-innovation-mini-trainer==0.6.1
     # via training-hub
-rich==14.3.3 \
-    --hash=sha256:8723d897ec64e03262a75c0335ae98cbc468b75b1b1f3fbe9a0b142d0aedf4d0
+rich==14.3.3
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   instructlab-training
     #   rhai-innovation-mini-trainer
     #   training-hub
     #   typer
-s3fs==2025.9.0 \
-    --hash=sha256:440126a4d545e37b13666eddb2f0107412e2cec5478ac944ac84a33d41bbfa5b
+s3fs==2025.9.0
     # via th06-rocm-universal-image (pyproject.toml)
-safetensors==0.7.0 \
-    --hash=sha256:add14a8e3af80ae91a588544947dacf1e7f944b80cec52cc48cb80e3ae43bb64
+safetensors==0.7.0
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   accelerate
     #   diffusers
     #   peft
     #   transformers
-sentencepiece==0.2.1 \
-    --hash=sha256:fb2f33ff4bd11f518f5233427aa7be8db12ff56de5256eb4c4896b8e2f9616e8
+sentencepiece==0.2.1
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   unsloth
     #   unsloth-zoo
-setuptools==80.10.2 \
-    --hash=sha256:25d3f2cf975b8dd24758213f83c1dab7f891bf37f4d7b065cc36fd7901feb6ab
+setuptools==80.10.2
     # via
     #   tensorboard
     #   torch
     #   training-hub
-shellingham==1.5.4 \
-    --hash=sha256:143e148bcd4fff5bf709b7f0b74fed324c2534cad7593584c096f1e7621b9b98
+shellingham==1.5.4
     # via typer
-simpleeval==1.0.3 \
-    --hash=sha256:e96103bf65d08db20d2e1e0b7204f32358a65c3db1293bae6b76680a4bda15f3
+simpleeval==1.0.3
     # via th06-rocm-universal-image (pyproject.toml)
-six==1.17.0 \
-    --hash=sha256:667482b476c8abf4dfe998869c7b8df34174bed8c6c9c9344722747cf00ce65f
+six==1.17.0
     # via
     #   kubernetes
     #   python-dateutil
-sympy==1.14.0 \
-    --hash=sha256:435c9c1b7c344e3c7f459c56ce4f087819db7f353a5a097c5b740285d0f60fee
+sympy==1.14.0
     # via
     #   torch
     #   training-hub
-tensorboard==2.20.0 \
-    --hash=sha256:9dc9f978cb84c0723acf9a345d96c184f0293d18f166bb8d59ee098e6cfaaba6
+tensorboard==2.20.0
     # via th06-rocm-universal-image (pyproject.toml)
-tensorboard-data-server==0.7.2 \
-    --hash=sha256:7e0610d205889588983836ec05dc098e80f97b7e7bbff7e994ebb78f578d0ddb
+tensorboard-data-server==0.7.2
     # via tensorboard
-tokenizers==0.22.2 \
-    --hash=sha256:0001f3ff330646ef74bce2110741c7b6dceee99ae635f090033fa83353d36004
+tokenizers==0.22.2
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   transformers
-torch==2.9.1 \
-    --hash=sha256:c6b187493adf0046b2079c563f3ba651e681a7ebbd2c93c394ad4daec5c258bd
+torch==2.9.1
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   accelerate
@@ -582,14 +467,11 @@ torch==2.9.1 \
     #   unsloth
     #   unsloth-zoo
     #   xformers
-torchao==0.16.0+git \
-    --hash=sha256:69700198bff3b42251914498465bcdd6330de097ea7720c2238ff7903ee08d6f
+torchao==0.16.0+git
     # via unsloth-zoo
-torchvision==0.24.1 \
-    --hash=sha256:3a9ae154804af65f375a55aa4a7b0f25af63358ed87358d303da2e4693a3f577
+torchvision==0.24.1
     # via unsloth
-tqdm==4.67.1 \
-    --hash=sha256:a9721913a2419188cc026816983f50fbdf5499aef73960f412bb5dea051290ff
+tqdm==4.67.1
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   datasets
@@ -599,11 +481,9 @@ tqdm==4.67.1 \
     #   transformers
     #   unsloth
     #   unsloth-zoo
-training-hub==0.6.0 \
-    --hash=sha256:e5444a2ffe1401101cf265d9ed8354f1d0fd1a7d58dd403e871057e5799123ce
+training-hub==0.6.0
     # via th06-rocm-universal-image (pyproject.toml)
-transformers==4.57.6 \
-    --hash=sha256:1b85b20e08d6bfcaf0b5655cfa57958adbfb368574fc63b4262a5495f5a50660
+transformers==4.57.6
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   instructlab-training
@@ -613,8 +493,7 @@ transformers==4.57.6 \
     #   trl
     #   unsloth
     #   unsloth-zoo
-triton==3.5.1 \
-    --hash=sha256:eab4422d7ed3932e3eae8e3f1972b37ab73600f35338a729d8d57347cdd9c47c
+triton==3.5.1
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   cut-cross-entropy
@@ -622,22 +501,18 @@ triton==3.5.1 \
     #   torch
     #   unsloth
     #   unsloth-zoo
-trl==0.24.0 \
-    --hash=sha256:68d7656fe1eaedd93f8367c12cc9dde6be1ecf4b788ae5bd1a7179e1cabf3e4c
+trl==0.24.0
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   instructlab-training
     #   training-hub
     #   unsloth
     #   unsloth-zoo
-typeguard==4.5.1 \
-    --hash=sha256:142b90ae18415271afd091475fa88013f7efcf26187428d42c57e1530143de6f
+typeguard==4.5.1
     # via tyro
-typer==0.24.1 \
-    --hash=sha256:e55ff2df6b2a068e337d80b0ce1e3ae81407bdf13bef4c6d4170a9f147c05235
+typer==0.24.1
     # via rhai-innovation-mini-trainer
-typing-extensions==4.15.0 \
-    --hash=sha256:4a2a3b0bc168c7eb44837eb6a1b3e9424c1c6f68ab35a8fdd4d50902832538f4
+typing-extensions==4.15.0
     # via
     #   aiosignal
     #   anyio
@@ -651,61 +526,48 @@ typing-extensions==4.15.0 \
     #   typing-inspection
     #   tyro
     #   unsloth-zoo
-typing-inspection==0.4.2 \
-    --hash=sha256:ea5ab3215bab8e8048c1cc243d39a3eacebede51842ee8a412f1330e313125f2
+typing-inspection==0.4.2
     # via pydantic
-tyro==1.0.8 \
-    --hash=sha256:4b6e672ed83de9cd0fea2ca2aad7297ebbfd4289a0ff3371487bf323d9199f4b
+tyro==1.0.8
     # via
     #   unsloth
     #   unsloth-zoo
-unsloth==2026.3.3 \
-    --hash=sha256:c3e08cfdaf23edcb3c8d77b77cb4f381867f6c7457773f579de8b586794a76f3
+unsloth==2026.3.3
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   training-hub
-unsloth-zoo==2026.3.2 \
-    --hash=sha256:fdd9803e8324fdf15b4a7ae1ce9bb99dec94ed0fa358778b6cc83e84f36ddc1d
+unsloth-zoo==2026.3.2
     # via unsloth
-urllib3==2.6.3 \
-    --hash=sha256:6ac038501e1f2f1046dd6e6cdbe2a6f24a2b9672c9a627682bb8202d6723236d
+urllib3==2.6.3
     # via
     #   botocore
     #   kubernetes
     #   requests
     #   training-hub
-websocket-client==1.9.0 \
-    --hash=sha256:48a46482593e08752f85ffdae6cc6ed315966817450f0951be7ec8ce741ea4c6
+websocket-client==1.9.0
     # via kubernetes
-werkzeug==3.1.6 \
-    --hash=sha256:70c8b4e9bbce6935f6ad1d7370de375edce34651e1bdd963a554b8d5764b6e41
+werkzeug==3.1.6
     # via tensorboard
-wheel==0.46.3 \
-    --hash=sha256:48f02431a4cda5d1d74b161333651868dd9bbd160fce33300360242e490bc500
+wheel==0.46.3
     # via
     #   instructlab-training
     #   training-hub
     #   unsloth
     #   unsloth-zoo
-wrapt==1.17.3 \
-    --hash=sha256:da4f06bfd21b9b12353e5b5717e42dc60212f233e929d56c2257b130dc0540c7
+wrapt==1.17.3
     # via
     #   aiobotocore
     #   deprecated
-xformers==0.0.33.post2 \
-    --hash=sha256:814d8feb5dab30e0b039d09814d7570492511884a071c8e4fe3f86c82a45781b
+xformers==0.0.33.post2
     # via
     #   th06-rocm-universal-image (pyproject.toml)
     #   training-hub
     #   unsloth
-xxhash==3.6.0 \
-    --hash=sha256:1d3fe76a47dc4aff7a72ca983b2fdc899e7a27f49ab4f8c7b033e7ead0e92d92
+xxhash==3.6.0
     # via
     #   datasets
     #   training-hub
-yarl==1.22.0 \
-    --hash=sha256:623aa70cd9313d31e387575b67d4144e5c675b0ae0ea8a888a0f978513a4e5b2
+yarl==1.22.0
     # via aiohttp
-zipp==3.23.0 \
-    --hash=sha256:2002d6edf90b77013e0e19350ab371af361f7e69e030cf6230eda44987da4239
+zipp==3.23.0
     # via importlib-metadata
