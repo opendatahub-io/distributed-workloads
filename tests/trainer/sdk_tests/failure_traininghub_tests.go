@@ -97,7 +97,7 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 	command := []string{"/bin/sh", "-c", shellCmd}
 
 	// Create Notebook CR — CPU-only (ContainerSizeSmall), no GPUs needed
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, failureNotebookName, 0, rwxPvc, common.ContainerSizeSmall)
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, failureNotebookName, 0, rwxPvc, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCPU))
 
 	// Cleanup
 	defer func() {
@@ -193,7 +193,7 @@ func RunTorchrunTrainingFailureTest(t *testing.T) {
 	command := []string{"/bin/sh", "-c", shellCmd}
 
 	// Create Notebook CR — GPU test, use ContainerSizeMedium
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, torchrunFailureNotebookName, 0, rwxPvc, common.ContainerSizeMedium)
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, torchrunFailureNotebookName, 0, rwxPvc, common.ContainerSizeMedium, common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCUDA))
 
 	// Cleanup — use longer timeout for GPU tests due to large runtime images
 	defer func() {

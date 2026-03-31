@@ -44,6 +44,14 @@ const (
 )
 
 const (
+	// Notebook ImageStream names for retrieving recommended images from RHOAI
+	NotebookImageStreamDataScience     = "s2i-generic-data-science-notebook"
+	NotebookImageStreamTrainingHubCPU  = "training-hub-universal-cpu"
+	NotebookImageStreamTrainingHubCUDA = "training-hub-universal-cuda"
+	NotebookImageStreamTrainingHubROCm = "training-hub-universal-rocm"
+)
+
+const (
 	tierSmoke    = "Smoke"
 	tierSanity   = "Sanity"
 	tier1        = "Tier1"
@@ -128,12 +136,32 @@ func GenerateNotebookUserToken(t Test) string {
 	return strings.TrimSpace(string(out))
 }
 
-func GetNotebookImage(t Test) string {
-	notebook_image, ok := os.LookupEnv(notebookImage)
-	if !ok {
-		t.T().Fatalf("Expected environment variable %s not found, please use this environment variable to specify image of the Notebook.", notebookImage)
+// GetRecommendedNotebookImageFromImageStream returns the NOTEBOOK_IMAGE env var if set,
+// otherwise resolves the recommended image from the named ImageStream.
+func GetRecommendedNotebookImageFromImageStream(t Test, imageStreamName string) string {
+	if image, ok := os.LookupEnv(notebookImage); ok {
+		return image
 	}
-	return notebook_image
+
+	odhNamespace, err := GetApplicationsNamespaceFromDSCI(t, DefaultDSCIName)
+	if err != nil {
+		t.T().Fatalf("Failed to get ODH namespace from DSCI: %v", err)
+	}
+
+	is := GetImageStream(t, odhNamespace, imageStreamName)
+	for _, tag := range is.Spec.Tags {
+		if tag.Annotations["opendatahub.io/workbench-image-recommended"] == "true" {
+			for _, statusTag := range is.Status.Tags {
+				if statusTag.Tag == tag.Name && len(statusTag.Items) > 0 {
+					t.T().Logf("Using notebook image from ImageStream %s:%s: %s", imageStreamName, tag.Name, statusTag.Items[0].DockerImageReference)
+					return statusTag.Items[0].DockerImageReference
+				}
+			}
+		}
+	}
+
+	t.T().Fatalf("ImageStream %s/%s has no recommended tag, set %s environment variable to specify the notebook image", odhNamespace, imageStreamName, notebookImage)
+	return ""
 }
 
 func GetTestTier(t Test) (string, bool) {
