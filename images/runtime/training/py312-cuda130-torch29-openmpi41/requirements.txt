@@ -557,7 +557,7 @@ setuptools==80.10.2
     #   training-hub
 shellingham==1.5.4
     # via typer
-simpleeval==1.0.3
+simpleeval==1.0.7
     # via py312-cuda130-torch29-openmpi41 (pyproject.toml)
 six==1.17.0
     # via

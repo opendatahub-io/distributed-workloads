@@ -22,7 +22,6 @@ tokenizers = "<1.0,>=0.13.3"
 tqdm = "<5.0,>=4.66.2"
 trl = ">=0.15.2"
 protobuf = "<6.0.0,>=5.28.0"
-simpleeval = "<1.0,>=0.9.13"
 safetensors = "*"
 packaging = ">=20.9"
 pyyaml = "*"
@@ -37,6 +36,7 @@ async-timeout = "==4.0.3"
 tensorboard = "2.19.0"
 fsspec = ">=2025.3.0"
 s3fs = ">=2025.3.0"
+simpleeval = "==1.0.7"
 
 [dev-packages]
 
