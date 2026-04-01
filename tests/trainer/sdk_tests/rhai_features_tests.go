@@ -309,6 +309,14 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	s3AccessKey, _ := GetStorageBucketAccessKeyId()
 	s3SecretKey, _ := GetStorageBucketSecretKey()
 
+	// AWS_INTERNAL_ENDPOINT overrides the endpoint used by in-cluster pods (notebook, training).
+	// The external endpoint (AWS_DEFAULT_ENDPOINT) is still used by the Go test itself for validation.
+	s3InternalEndpoint := s3Endpoint
+	if internal, ok := os.LookupEnv("AWS_INTERNAL_ENDPOINT"); ok && internal != "" {
+		s3InternalEndpoint = internal
+		test.T().Logf("Using internal endpoint for in-cluster pods: %s (external: %s)", s3InternalEndpoint, s3Endpoint)
+	}
+
 	// Get bucket from env for models/datasets (separate from checkpoint bucket)
 	// For S3 checkpoint tests, checkpoint bucket is created dynamically and passed via CHECKPOINT_OUTPUT_DIR
 	modelsBucket, _ := GetStorageBucketName()
@@ -336,7 +344,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 			} else if !exists {
 				test.T().Logf("Warning: Bucket %s does not exist. Skipping S3 mode for models/datasets. Will use HuggingFace.", modelsBucket)
 			} else {
-				test.T().Logf("S3 mode for models/datasets: endpoint=%s, bucket=%s", s3Endpoint, modelsBucket)
+				test.T().Logf("S3 mode for models/datasets: endpoint=%s, bucket=%s", s3InternalEndpoint, modelsBucket)
 				s3Exports = fmt.Sprintf(
 					"export AWS_DEFAULT_ENDPOINT=%s; "+
 						"export AWS_ACCESS_KEY_ID=%s; "+
@@ -344,7 +352,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 						"export AWS_STORAGE_BUCKET=%s; "+
 						"export MODEL_S3_PREFIX=%s; "+
 						"export DATASET_S3_PREFIX=%s; ",
-					shellQuote(s3Endpoint), shellQuote(s3AccessKey), shellQuote(s3SecretKey), shellQuote(modelsBucket), shellQuote(modelS3Prefix), shellQuote(datasetS3Prefix),
+					shellQuote(s3InternalEndpoint), shellQuote(s3AccessKey), shellQuote(s3SecretKey), shellQuote(modelsBucket), shellQuote(modelS3Prefix), shellQuote(datasetS3Prefix),
 				)
 			}
 		} else {
@@ -366,7 +374,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		secretData := map[string]string{
 			"AWS_ACCESS_KEY_ID":     s3AccessKey,
 			"AWS_SECRET_ACCESS_KEY": s3SecretKey,
-			"AWS_S3_ENDPOINT":       s3Endpoint,
+			"AWS_S3_ENDPOINT":       s3InternalEndpoint,
 			"AWS_S3_BUCKET":         checkpointURI.Bucket,
 		}
 
@@ -407,12 +415,6 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	}
 
 	sdkInstallExports := buildKubeflowInstallExports()
-	if dataConnectionExports != "" {
-		// If data connection is configured, it forces git install.
-		// We must ensure sdkInstallExports doesn't override it to false.
-		test.T().Logf("Data connection configured: forcing git install mode")
-		sdkInstallExports += "export KUBEFLOW_INSTALL_FROM_GIT='true'; unset KUBEFLOW_SKIP_INSTALL; "
-	}
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
 			"export IPYTHONDIR='/tmp/.ipython'; "+
