@@ -76,52 +76,52 @@ func TestSftTrainingHubMultiNodeMultiGPU(t *testing.T) {
 	sdktests.RunSftTrainingHubMultiGpuDistributedTraining(t, 2)
 }
 
-// CPU tests
+// CPU tests - 1 node, 1 CPU each
 func TestRhaiTrainingProgressionCPU(t *testing.T) {
 	Tags(t, Tier1)
-	sdktests.RunRhaiFeaturesProgressionTest(t, support.CPU)
+	sdktests.RunRhaiFeaturesProgressionTest(t, support.CPU, 1)
 }
 
 func TestRhaiJitCheckpointingCPU(t *testing.T) {
 	Tags(t, Tier1)
-	sdktests.RunRhaiFeaturesCheckpointTest(t, support.CPU)
+	sdktests.RunRhaiFeaturesCheckpointTest(t, support.CPU, 1)
 }
 
 func TestRhaiFeaturesCPU(t *testing.T) {
 	Tags(t, Tier1)
-	sdktests.RunRhaiFeaturesAllTest(t, support.CPU)
+	sdktests.RunRhaiFeaturesAllTest(t, support.CPU, 1)
 }
 
 // CUDA (NVIDIA) GPU tests - 2 nodes, 1 GPU each
 func TestRhaiTrainingProgressionCuda(t *testing.T) {
 	Tags(t, KftoCuda, MultiNodeGpu(2, support.NVIDIA))
-	sdktests.RunRhaiFeaturesProgressionTest(t, support.NVIDIA)
+	sdktests.RunRhaiFeaturesProgressionTest(t, support.NVIDIA, 2)
 }
 
 func TestRhaiJitCheckpointingCuda(t *testing.T) {
 	Tags(t, KftoCuda, MultiNodeGpu(2, support.NVIDIA))
-	sdktests.RunRhaiFeaturesCheckpointTest(t, support.NVIDIA)
+	sdktests.RunRhaiFeaturesCheckpointTest(t, support.NVIDIA, 2)
 }
 
 func TestRhaiFeaturesCuda(t *testing.T) {
 	Tags(t, KftoCuda, MultiNodeGpu(2, support.NVIDIA))
-	sdktests.RunRhaiFeaturesAllTest(t, support.NVIDIA)
+	sdktests.RunRhaiFeaturesAllTest(t, support.NVIDIA, 2)
 }
 
 // ROCm (AMD) GPU tests - 2 nodes, 1 GPU each
 func TestRhaiTrainingProgressionRocm(t *testing.T) {
 	Tags(t, KftoRocm, MultiNodeGpu(2, support.AMD))
-	sdktests.RunRhaiFeaturesProgressionTest(t, support.AMD)
+	sdktests.RunRhaiFeaturesProgressionTest(t, support.AMD, 2)
 }
 
 func TestRhaiJitCheckpointingRocm(t *testing.T) {
 	Tags(t, KftoRocm, MultiNodeGpu(2, support.AMD))
-	sdktests.RunRhaiFeaturesCheckpointTest(t, support.AMD)
+	sdktests.RunRhaiFeaturesCheckpointTest(t, support.AMD, 2)
 }
 
 func TestRhaiFeaturesRocm(t *testing.T) {
 	Tags(t, KftoRocm, MultiNodeGpu(2, support.AMD))
-	sdktests.RunRhaiFeaturesAllTest(t, support.AMD)
+	sdktests.RunRhaiFeaturesAllTest(t, support.AMD, 2)
 }
 
 // Multi-GPU CUDA tests - 2 nodes, 2 GPUs each (requires 4 total NVIDIA GPUs)
@@ -171,13 +171,13 @@ func TestTorchrunTrainingFailure(t *testing.T) {
 // S3 Checkpoint tests (CPU only, auto-skip if S3 not configured)
 func TestRhaiS3CheckpointingCPU(t *testing.T) {
 	Tags(t, Tier1)
-	sdktests.RunRhaiS3CheckpointTest(t, support.CPU)
+	sdktests.RunRhaiS3CheckpointTest(t, support.CPU, 1)
 }
 
 // FSDP Full State Checkpoint tests (CPU only, auto-skip if S3 not configured)
 func TestRhaiS3FsdpFullStateCheckpointingCPU(t *testing.T) {
 	Tags(t, Tier1)
-	sdktests.RunRhaiS3FsdpFullStateTest(t, support.CPU)
+	sdktests.RunRhaiS3FsdpFullStateTest(t, support.CPU, 1)
 }
 
 // FSDP Full State Checkpoint tests (2 nodes, 2 processes per node)

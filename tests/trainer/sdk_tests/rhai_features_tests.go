@@ -77,7 +77,7 @@ type RhaiFeatureConfig struct {
 }
 
 // RunRhaiFeaturesProgressionTest runs the e2e test for RHAI features with progression tracking
-func RunRhaiFeaturesProgressionTest(t *testing.T, accelerator Accelerator) {
+func RunRhaiFeaturesProgressionTest(t *testing.T, accelerator Accelerator, numNodes int) {
 	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
 		EnableProgressionTracking: true,
 		EnableJitCheckpoint:       false,
@@ -85,13 +85,13 @@ func RunRhaiFeaturesProgressionTest(t *testing.T, accelerator Accelerator) {
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
 		Accelerator:               accelerator,
-		NumNodes:                  2, // Default: 2 nodes
-		NumGpusPerNode:            1, // Default: 1 GPU per node
+		NumNodes:                  numNodes,
+		NumGpusPerNode:            1,
 	})
 }
 
 // RunRhaiFeaturesCheckpointTest runs the e2e test for RHAI features with checkpointing
-func RunRhaiFeaturesCheckpointTest(t *testing.T, accelerator Accelerator) {
+func RunRhaiFeaturesCheckpointTest(t *testing.T, accelerator Accelerator, numNodes int) {
 	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
 		EnableProgressionTracking: false,
 		EnableJitCheckpoint:       true,
@@ -99,13 +99,13 @@ func RunRhaiFeaturesCheckpointTest(t *testing.T, accelerator Accelerator) {
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
 		Accelerator:               accelerator,
-		NumNodes:                  2, // Default: 2 nodes
-		NumGpusPerNode:            1, // Default: 1 GPU per node
+		NumNodes:                  numNodes,
+		NumGpusPerNode:            1,
 	})
 }
 
 // RunRhaiFeaturesAllTest runs the e2e test for RHAI features with both progression tracking and checkpointing
-func RunRhaiFeaturesAllTest(t *testing.T, accelerator Accelerator) {
+func RunRhaiFeaturesAllTest(t *testing.T, accelerator Accelerator, numNodes int) {
 	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
 		EnableProgressionTracking: true,
 		EnableJitCheckpoint:       true,
@@ -113,8 +113,8 @@ func RunRhaiFeaturesAllTest(t *testing.T, accelerator Accelerator) {
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
 		Accelerator:               accelerator,
-		NumNodes:                  2, // Default: 2 nodes
-		NumGpusPerNode:            1, // Default: 1 GPU per node
+		NumNodes:                  numNodes,
+		NumGpusPerNode:            1,
 	})
 }
 
@@ -202,14 +202,14 @@ func runS3CheckpointTestWithNotebook(t *testing.T, accelerator Accelerator, numN
 	})
 }
 
-// RunRhaiS3CheckpointTest runs the e2e test for S3 checkpoint storage (CPU only, 2 nodes)
-func RunRhaiS3CheckpointTest(t *testing.T, accelerator Accelerator) {
-	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFeaturesNotebookPath, rhaiFeaturesNotebookName)
+// RunRhaiS3CheckpointTest runs the e2e test for S3 checkpoint storage
+func RunRhaiS3CheckpointTest(t *testing.T, accelerator Accelerator, numNodes int) {
+	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, 1, rhaiFeaturesNotebookPath, rhaiFeaturesNotebookName)
 }
 
-// RunRhaiS3FsdpFullStateTest runs the e2e test for FSDP full state checkpoint (CPU only, 2 nodes)
-func RunRhaiS3FsdpFullStateTest(t *testing.T, accelerator Accelerator) {
-	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFsdpFullStateNotebookPath, rhaiFsdpFullStateNotebookName)
+// RunRhaiS3FsdpFullStateTest runs the e2e test for FSDP full state checkpoint
+func RunRhaiS3FsdpFullStateTest(t *testing.T, accelerator Accelerator, numNodes int) {
+	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, 1, rhaiFsdpFullStateNotebookPath, rhaiFsdpFullStateNotebookName)
 }
 
 // RunRhaiS3FsdpFullStateMultiProcessTest runs the e2e test for FSDP full state checkpoint with multi-process per node
@@ -502,7 +502,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	// For checkpoint tests, run suspend/resume flow instead of waiting for completion
 	if config.EnableJitCheckpoint {
 		test.T().Log("Running JIT checkpoint suspend/resume test...")
-		verifyCheckpoints(test, namespace.Name, trainJobName, config.CheckpointOutputDir, config.EnableProgressionTracking, TestTimeoutGpuProvisioning)
+		verifyCheckpoints(test, namespace.Name, trainJobName, config.CheckpointOutputDir, config.EnableProgressionTracking, numNodes, TestTimeoutGpuProvisioning)
 	} else {
 		// Wait for TrainJob to complete normally - use longer timeout due to large runtime images
 		test.Eventually(TrainJob(test, namespace.Name, trainJobName), TestTimeoutGpuProvisioning, 10*time.Second).
@@ -519,7 +519,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		test.T().Log("Verifying progression tracking features...")
 
 		// Verify termination message on training pods contains progress data
-		verifyTerminationMessage(test, namespace.Name, trainJobName)
+		verifyTerminationMessage(test, namespace.Name, trainJobName, numNodes)
 
 		// Verify progression tracking annotations
 		test.Expect(annotations[annotationProgressionTracking]).To(Equal("true"),
@@ -649,11 +649,11 @@ func verifyTrainJobAnnotations(test Test, namespace, trainJobName string, config
 }
 
 // verifyTerminationMessage checks that training pods have termination messages with progress data
-func verifyTerminationMessage(test Test, namespace, trainJobName string) {
+func verifyTerminationMessage(test Test, namespace, trainJobName string, numNodes int) {
 	test.T().Helper()
 
 	pods := listTrainingPods(test, namespace, trainJobName)
-	test.Expect(len(pods)).To(Equal(2), "Expected exactly 2 training pods for distributed job")
+	test.Expect(len(pods)).To(Equal(numNodes), fmt.Sprintf("Expected exactly %d training pod(s)", numNodes))
 	test.T().Logf("Found %d training pod(s) for TrainJob %s", len(pods), trainJobName)
 
 	// Check termination message on at least one pod
@@ -727,7 +727,7 @@ func verifyTerminationMessage(test Test, namespace, trainJobName string) {
 // 4. Resuming the TrainJob to verify checkpoint restore
 // 5. Verifying training completes successfully
 // When progressionEnabled=true, also verifies progress before/after suspend using annotations
-func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string, progressionEnabled bool, timeout time.Duration) {
+func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string, progressionEnabled bool, numNodes int, timeout time.Duration) {
 	test.T().Helper()
 
 	test.T().Logf("Starting JIT checkpoint verification for TrainJob %s (checkpoint_dir=%s)", trainJobName, checkpointDir)
@@ -736,7 +736,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	test.T().Log("Step 1: Waiting for training pods to start...")
 	test.Eventually(func() int {
 		return countRunningPods(test, namespace, trainJobName)
-	}, timeout, 5*time.Second).Should(Equal(2), "Expected exactly 2 training pods to be running")
+	}, timeout, 5*time.Second).Should(Equal(numNodes), fmt.Sprintf("Expected exactly %d training pod(s) to be running", numNodes))
 	test.T().Log("Training pods are running")
 
 	// Wait for at least 2 epochs before suspending.
@@ -857,7 +857,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	test.T().Log("Waiting for new training pods to start...")
 	test.Eventually(func() int {
 		return countRunningPods(test, namespace, trainJobName)
-	}, TestTimeoutMedium, 5*time.Second).Should(Equal(2), "Expected exactly 2 training pods to start after resume")
+	}, TestTimeoutMedium, 5*time.Second).Should(Equal(numNodes), fmt.Sprintf("Expected exactly %d training pod(s) to start after resume", numNodes))
 	test.T().Log("New training pods started")
 
 	// Step 7: Verify progress after resume (only when progression tracking is enabled)
