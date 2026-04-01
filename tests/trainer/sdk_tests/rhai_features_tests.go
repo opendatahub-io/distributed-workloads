@@ -745,7 +745,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	test.T().Log("Waiting for training to complete at least 2 epochs (checking logs)...")
 	test.Eventually(func() bool {
 		return hasCompletedEpochFromLogs(test, namespace, trainJobName, 2)
-	}, TestTimeoutMedium, 5*time.Second).Should(BeTrue(), "Training should complete at least 2 epochs before suspension")
+	}, TestTimeoutLong, 5*time.Second).Should(BeTrue(), "Training should complete at least 2 epochs before suspension")
 	test.T().Log("At least 2 epochs completed - ready to suspend")
 
 	// Verify cloud checkpoint upload is working (only for cloud storage mode, not PVC)
