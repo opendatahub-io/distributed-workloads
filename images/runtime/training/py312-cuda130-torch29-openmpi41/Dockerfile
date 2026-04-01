@@ -143,9 +143,9 @@ RUN mkdir -p /home/mpiuser /home/mpiuser/.openmpi && \
 WORKDIR /opt/app-root/bin
 COPY requirements.txt ./
 
-RUN UV_CONFIG_FILE=/dev/null uv pip install --no-cache --require-hashes \
+RUN UV_CONFIG_FILE=/dev/null uv pip install --no-cache \
         --python /opt/app-root/bin/python3.12 \
-        --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9/simple/ \
+        --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/cuda13.0-ubi9/simple/ \
         -r requirements.txt && \
     rm -f ./requirements.txt && \
     # The C9S base image ships numpy, scipy, pyarrow, and pillow compiled against
