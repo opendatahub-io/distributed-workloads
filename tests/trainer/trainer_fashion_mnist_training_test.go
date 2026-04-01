@@ -399,6 +399,10 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 															MountPath: "/mnt/scripts",
 															ReadOnly:  true,
 														},
+														{
+															Name:      "dshm",
+															MountPath: "/dev/shm",
+														},
 													},
 												},
 											},
@@ -418,6 +422,14 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 															LocalObjectReference: corev1.LocalObjectReference{
 																Name: configMapName,
 															},
+														},
+													},
+												},
+												{
+													Name: "dshm",
+													VolumeSource: corev1.VolumeSource{
+														EmptyDir: &corev1.EmptyDirVolumeSource{
+															Medium: corev1.StorageMediumMemory,
 														},
 													},
 												},
