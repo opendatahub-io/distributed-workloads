@@ -107,6 +107,8 @@ regex==2026.2.28
     #   transformers
 rhai-innovation-mini-trainer==0.7.0
     # via training-hub
+simpleeval==1.0.7
+    # via th06-cpu-universal-image (pyproject.toml)
 smmap==5.0.3
     # via gitdb
 sqlalchemy==2.0.48
