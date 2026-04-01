@@ -278,11 +278,11 @@ matplotlib==3.10.8
     #   training-hub
 mdurl==0.1.2
     # via markdown-it-py
-mlflow==3.10.0+rhai2
+mlflow==3.10.1+rhaiv.2
     # via py312-cuda130-torch29-openmpi41 (pyproject.toml)
-mlflow-skinny==3.10.0+rhai2
+mlflow-skinny==3.10.1+rhaiv.2
     # via mlflow
-mlflow-tracing==3.10.0+rhai2
+mlflow-tracing==3.10.1+rhaiv.2
     # via mlflow
 mpmath==1.3.0
     # via
