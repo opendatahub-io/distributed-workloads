@@ -200,7 +200,7 @@ importlib-metadata==8.7.1
     #   opentelemetry-api
 iniconfig==2.3.0
     # via pytest
-instructlab-training==0.15.2
+instructlab-training==0.14.2
     # via training-hub
 itsdangerous==2.2.0
     # via flask
@@ -463,7 +463,7 @@ requests==2.33.1
     #   transformers
 requests-oauthlib==2.0.0
     # via kubernetes
-rhai-innovation-mini-trainer==0.7.2
+rhai-innovation-mini-trainer==0.6.1
     # via training-hub
 simpleeval==1.0.7
     # via th06-cpu-universal-image (pyproject.toml)

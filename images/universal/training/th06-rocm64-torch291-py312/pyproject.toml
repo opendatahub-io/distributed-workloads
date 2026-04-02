@@ -67,6 +67,8 @@ dependencies = [
     
     # Training Frameworks
     "training_hub[lora]==0.6.0",
+    "instructlab-training==0.14.2",
+    "rhai-innovation-mini-trainer==0.6.1",
     "unsloth==2026.3.3",
     
     # Kubeflow SDK
