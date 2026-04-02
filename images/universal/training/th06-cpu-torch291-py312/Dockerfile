@@ -31,13 +31,14 @@ COPY --chown=1001:0 pyproject.toml requirements.txt requirements-ga.txt ./
 USER 1001
 WORKDIR /opt/app-root/src
 
-# Install main dependencies from AIPCC index
-# Strict AIPCC-only - no fallback indexes (request missing packages be added to AIPCC)
-RUN uv pip install --no-cache \
+# Install dependencies from AIPCC indexes
+# torch and triton from EA1 index (GA will introduce torch 2.10.0, we need 2.9.1)
+# All other packages from GA index
+RUN uv pip install --no-cache-dir \
     --index-strategy=unsafe-best-match \
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA1/cpu-ubi9/simple/ \
     -r /tmp/deps/requirements.txt \
- && uv pip install --no-cache \
+ && uv pip install --no-cache-dir \
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/cpu-ubi9/simple/ \
     -r /tmp/deps/requirements-ga.txt
 
