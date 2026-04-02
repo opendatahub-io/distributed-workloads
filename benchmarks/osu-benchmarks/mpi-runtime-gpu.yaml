@@ -20,7 +20,7 @@ spec:
                 spec:
                   containers:
                     - name: mpi-container
-                      image: quay.io/rh-ee-srpillai/osu-benchmark:v11-cuda
+                      image: quay.io/modh/distributed-workloads-benchmark:trainer-mpi-osu-cuda-latest
                       resources:
                         limits:
                           nvidia.com/gpu: "1"
@@ -75,7 +75,7 @@ spec:
                 spec:
                   containers:
                     - name: mpi-container
-                      image: quay.io/rh-ee-srpillai/osu-benchmark:v11-cuda
+                      image: quay.io/modh/distributed-workloads-benchmark:trainer-mpi-osu-cuda-latest
                       resources:
                         limits:
                           nvidia.com/gpu: "1"
