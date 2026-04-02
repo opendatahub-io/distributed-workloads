@@ -28,18 +28,22 @@ USER 0
 WORKDIR /tmp/deps
 
 # Copy requirements files
-COPY --chown=1001:0 pyproject.toml requirements.txt ./
+COPY --chown=1001:0 pyproject.toml requirements.txt requirements-ga.txt ./
 
 # Switch to user 1001 for pip installations
 USER 1001
 WORKDIR /opt/app-root/src
 
-# Install main dependencies from AIPCC index
-# All packages (including flash-attn) are pre-built wheels in AIPCC
-# Strict AIPCC-only - no fallback indexes (request missing packages be added to AIPCC)
+# Install dependencies from AIPCC indexes
+# torch and triton from EA2 index (GA will introduce torch 2.10.0, we need 2.9.1)
+# All other packages from GA index
 RUN uv pip install --no-cache-dir \
+    --index-strategy=unsafe-best-match \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9/simple/ \
+    -r /tmp/deps/requirements.txt \
+ && uv pip install --no-cache-dir \
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9/simple/ \
-    -r /tmp/deps/requirements.txt
+    -r /tmp/deps/requirements-ga.txt
 
 # Fix permissions for OpenShift
 ARG PYTHON_VERSION
