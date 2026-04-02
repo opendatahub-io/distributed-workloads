@@ -1,0 +1,35 @@
+name: Build and Push OSU benchmark image
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'benchmarks/osu-benchmarks/**'
+  pull_request:
+    paths:
+      - 'benchmarks/osu-benchmarks/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-push-osu-benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build OSU benchmark image
+      run: make build-osu-benchmark-image
+
+    - name: Login to Quay.io
+      id: podman-login-quay
+      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      run: podman login --username ${{ secrets.QUAY_MODH_BENCHMARK_USERNAME }} --password ${{ secrets.QUAY_MODH_BENCHMARK_TOKEN }} quay.io
+
+    - name: Push OSU benchmark image
+      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      run: make push-osu-benchmark-image
+
+    - name: Logout from Quay.io
+      if: always() && steps.podman-login-quay.outcome == 'success'
+      run: podman logout quay.io

@@ -18,7 +18,7 @@ spec:
                 spec:
                   containers:
                     - name: mpi-container
-                      image: quay.io/rh-ee-srpillai/osu-benchmark:v14
+                      image: quay.io/modh/distributed-workloads-benchmark:trainer-mpi-osu-latest
                       command:
                         - /bin/bash
                         - -c
@@ -58,7 +58,7 @@ spec:
                 spec:
                   containers:
                     - name: mpi-container
-                      image: quay.io/rh-ee-srpillai/osu-benchmark:v14
+                      image: quay.io/modh/distributed-workloads-benchmark:trainer-mpi-osu-latest
                       command:
                         - /bin/bash
                         - -c
