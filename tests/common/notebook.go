@@ -101,7 +101,7 @@ type NotebookProps struct {
 	SizeSelection             ContainerSize
 }
 
-func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken string, command []string, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int, notebookPVC *corev1.PersistentVolumeClaim, containerSize ContainerSize, acceleratorResourceLabel ...string) {
+func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken string, command []string, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int, notebookPVC *corev1.PersistentVolumeClaim, containerSize ContainerSize, notebookImage string, acceleratorResourceLabel ...string) {
 	s3BucketName, s3BucketNameExists := GetStorageBucketName()
 	s3AccessKeyId, _ := GetStorageBucketAccessKeyId()
 	s3SecretAccessKey, _ := GetStorageBucketSecretKey()
@@ -159,7 +159,7 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 		Namespace:                 namespace.Name,
 		OpenDataHubNamespace:      odhNamespace,
 		Command:                   strCommand,
-		NotebookImage:             GetNotebookImage(test),
+		NotebookImage:             notebookImage,
 		NotebookConfigMapName:     jupyterNotebookConfigMapName,
 		NotebookConfigMapFileName: jupyterNotebookConfigMapFileName,
 		NotebookPVC:               notebookPVC.Name,

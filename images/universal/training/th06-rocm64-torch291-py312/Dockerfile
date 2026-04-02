@@ -37,8 +37,8 @@ WORKDIR /opt/app-root/src
 # Install main dependencies from AIPCC index
 # All packages (including flash-attn) are pre-built wheels in AIPCC
 # Strict AIPCC-only - no fallback indexes (request missing packages be added to AIPCC)
-RUN uv pip install --no-cache-dir --require-hashes \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9/simple/ \
+RUN uv pip install --no-cache-dir \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9/simple/ \
     -r /tmp/deps/requirements.txt
 
 # Fix permissions for OpenShift
@@ -101,7 +101,8 @@ RUN if [ "${DOWNSTREAM}" != "true" ]; then \
         hipcc \
         hip-devel \
         hip-runtime-amd \
-        rocm-device-libs && \
+        rocm-device-libs \
+        protobuf && \
     dnf clean all && rm -rf /var/cache/dnf/* && \
     # Fix /opt/rocm symlink if needed
     if [ -L /opt/rocm ] && [ "$(readlink /opt/rocm)" != "/opt/rocm-6.4.3" ]; then \

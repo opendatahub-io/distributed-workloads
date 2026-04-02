@@ -5,7 +5,7 @@
 #
 # To regenerate requirements.txt:
 #   uv pip compile --python-platform=linux --python-version=3.12 \
-#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9/simple/ \
+#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9/simple/ \
 #     -o requirements.txt pyproject.toml
 
 [project]
@@ -61,6 +61,7 @@ dependencies = [
     
     # Storage
     "s3fs==2025.9.0",
+    "mlflow==3.10.1+rhaiv.2",
     
     # Training Frameworks
     "training_hub[lora]==0.6.0",
@@ -84,4 +85,4 @@ environments = [
 ]
 # Strict AIPCC-only - no fallback indexes
 # If a package is missing, request it be added to AIPCC
-index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9/simple/"
+index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9/simple/"

@@ -170,7 +170,12 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 
 		// Wait for TrainJob completion
 		test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutDouble).
-			Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
+			Should(Satisfy(TrainJobReachedFinalState))
+
+		finalJob := TrainJob(test, namespace, trainJob.Name)(test)
+		test.Expect(finalJob).To(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)),
+			"TrainJob %s/%s should be complete; TrainJobFailed message: %s",
+			namespace, trainJob.Name, TrainJobFailedMessage(finalJob))
 
 		test.T().Logf("TrainJob with ClusterTrainingRuntime '%s' completed successfully", runtime.Name)
 
@@ -214,21 +219,6 @@ func createTrainJob(test Test, namespace, runtimeName string) *trainerv1alpha1.T
 	test.T().Logf("Created TrainJob %s/%s successfully", createTrainJob.Namespace, createTrainJob.Name)
 
 	return createTrainJob
-}
-
-func deleteTrainJob(test Test, namespace, name string) {
-	test.T().Helper()
-
-	err := test.Client().Trainer().TrainerV1alpha1().TrainJobs(namespace).Delete(
-		test.Ctx(),
-		name,
-		metav1.DeleteOptions{},
-	)
-	if err != nil {
-		test.T().Logf("Warning: Failed to delete TrainJob %s/%s: %v", namespace, name, err)
-	} else {
-		test.T().Logf("Deleted TrainJob %s/%s successfully", namespace, name)
-	}
 }
 
 func verifyPodContainerImages(test Test, namespace, trainJobName string) {

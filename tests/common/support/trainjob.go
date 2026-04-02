@@ -51,6 +51,11 @@ func TrainJobConditionSuspended(job *trainerv1alpha1.TrainJob) metav1.ConditionS
 	return TrainJobCondition(job, trainerv1alpha1.TrainJobSuspended)
 }
 
+func TrainJobReachedFinalState(job *trainerv1alpha1.TrainJob) bool {
+	return TrainJobConditionComplete(job) == metav1.ConditionTrue ||
+		TrainJobConditionFailed(job) == metav1.ConditionTrue
+}
+
 func TrainJobCondition(job *trainerv1alpha1.TrainJob, conditionType string) metav1.ConditionStatus {
 	for _, condition := range job.Status.Conditions {
 		if condition.Type == conditionType {
@@ -58,4 +63,17 @@ func TrainJobCondition(job *trainerv1alpha1.TrainJob, conditionType string) meta
 		}
 	}
 	return metav1.ConditionUnknown
+}
+
+// TrainJobFailedMessage returns the status message from the TrainJobFailed condition, if set.
+func TrainJobFailedMessage(job *trainerv1alpha1.TrainJob) string {
+	if job == nil {
+		return ""
+	}
+	for _, condition := range job.Status.Conditions {
+		if condition.Type == trainerv1alpha1.TrainJobFailed && condition.Status == metav1.ConditionTrue {
+			return condition.Message
+		}
+	}
+	return ""
 }

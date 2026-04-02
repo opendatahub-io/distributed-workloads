@@ -77,7 +77,7 @@ type RhaiFeatureConfig struct {
 }
 
 // RunRhaiFeaturesProgressionTest runs the e2e test for RHAI features with progression tracking
-func RunRhaiFeaturesProgressionTest(t *testing.T, accelerator Accelerator) {
+func RunRhaiFeaturesProgressionTest(t *testing.T, accelerator Accelerator, numNodes int) {
 	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
 		EnableProgressionTracking: true,
 		EnableJitCheckpoint:       false,
@@ -85,13 +85,13 @@ func RunRhaiFeaturesProgressionTest(t *testing.T, accelerator Accelerator) {
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
 		Accelerator:               accelerator,
-		NumNodes:                  2, // Default: 2 nodes
-		NumGpusPerNode:            1, // Default: 1 GPU per node
+		NumNodes:                  numNodes,
+		NumGpusPerNode:            1,
 	})
 }
 
 // RunRhaiFeaturesCheckpointTest runs the e2e test for RHAI features with checkpointing
-func RunRhaiFeaturesCheckpointTest(t *testing.T, accelerator Accelerator) {
+func RunRhaiFeaturesCheckpointTest(t *testing.T, accelerator Accelerator, numNodes int) {
 	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
 		EnableProgressionTracking: false,
 		EnableJitCheckpoint:       true,
@@ -99,13 +99,13 @@ func RunRhaiFeaturesCheckpointTest(t *testing.T, accelerator Accelerator) {
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
 		Accelerator:               accelerator,
-		NumNodes:                  2, // Default: 2 nodes
-		NumGpusPerNode:            1, // Default: 1 GPU per node
+		NumNodes:                  numNodes,
+		NumGpusPerNode:            1,
 	})
 }
 
 // RunRhaiFeaturesAllTest runs the e2e test for RHAI features with both progression tracking and checkpointing
-func RunRhaiFeaturesAllTest(t *testing.T, accelerator Accelerator) {
+func RunRhaiFeaturesAllTest(t *testing.T, accelerator Accelerator, numNodes int) {
 	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
 		EnableProgressionTracking: true,
 		EnableJitCheckpoint:       true,
@@ -113,8 +113,8 @@ func RunRhaiFeaturesAllTest(t *testing.T, accelerator Accelerator) {
 		CheckpointSaveStrategy:    "epoch",
 		CheckpointSaveTotalLimit:  "3",
 		Accelerator:               accelerator,
-		NumNodes:                  2, // Default: 2 nodes
-		NumGpusPerNode:            1, // Default: 1 GPU per node
+		NumNodes:                  numNodes,
+		NumGpusPerNode:            1,
 	})
 }
 
@@ -202,14 +202,14 @@ func runS3CheckpointTestWithNotebook(t *testing.T, accelerator Accelerator, numN
 	})
 }
 
-// RunRhaiS3CheckpointTest runs the e2e test for S3 checkpoint storage (CPU only, 2 nodes)
-func RunRhaiS3CheckpointTest(t *testing.T, accelerator Accelerator) {
-	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFeaturesNotebookPath, rhaiFeaturesNotebookName)
+// RunRhaiS3CheckpointTest runs the e2e test for S3 checkpoint storage
+func RunRhaiS3CheckpointTest(t *testing.T, accelerator Accelerator, numNodes int) {
+	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, 1, rhaiFeaturesNotebookPath, rhaiFeaturesNotebookName)
 }
 
-// RunRhaiS3FsdpFullStateTest runs the e2e test for FSDP full state checkpoint (CPU only, 2 nodes)
-func RunRhaiS3FsdpFullStateTest(t *testing.T, accelerator Accelerator) {
-	runS3CheckpointTestWithNotebook(t, accelerator, 2, 1, rhaiFsdpFullStateNotebookPath, rhaiFsdpFullStateNotebookName)
+// RunRhaiS3FsdpFullStateTest runs the e2e test for FSDP full state checkpoint
+func RunRhaiS3FsdpFullStateTest(t *testing.T, accelerator Accelerator, numNodes int) {
+	runS3CheckpointTestWithNotebook(t, accelerator, numNodes, 1, rhaiFsdpFullStateNotebookPath, rhaiFsdpFullStateNotebookName)
 }
 
 // RunRhaiS3FsdpFullStateMultiProcessTest runs the e2e test for FSDP full state checkpoint with multi-process per node
@@ -267,13 +267,12 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", config.NotebookPath))
 
 	// Read the kubeflow install helper script
-	installScriptPath := "resources/disconnected_env/install_kubeflow.py"
 	installScript, err := os.ReadFile(installScriptPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
 
 	cmData := map[string][]byte{
 		config.NotebookName:   nb,
-		"install_kubeflow.py": installScript,
+		installKubeflowScript: installScript,
 	}
 	cm := CreateConfigMap(test, namespace.Name, cmData)
 
@@ -310,6 +309,14 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	s3AccessKey, _ := GetStorageBucketAccessKeyId()
 	s3SecretKey, _ := GetStorageBucketSecretKey()
 
+	// AWS_INTERNAL_ENDPOINT overrides the endpoint used by in-cluster pods (notebook, training).
+	// The external endpoint (AWS_DEFAULT_ENDPOINT) is still used by the Go test itself for validation.
+	s3InternalEndpoint := s3Endpoint
+	if internal, ok := os.LookupEnv("AWS_INTERNAL_ENDPOINT"); ok && internal != "" {
+		s3InternalEndpoint = internal
+		test.T().Logf("Using internal endpoint for in-cluster pods: %s (external: %s)", s3InternalEndpoint, s3Endpoint)
+	}
+
 	// Get bucket from env for models/datasets (separate from checkpoint bucket)
 	// For S3 checkpoint tests, checkpoint bucket is created dynamically and passed via CHECKPOINT_OUTPUT_DIR
 	modelsBucket, _ := GetStorageBucketName()
@@ -337,15 +344,15 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 			} else if !exists {
 				test.T().Logf("Warning: Bucket %s does not exist. Skipping S3 mode for models/datasets. Will use HuggingFace.", modelsBucket)
 			} else {
-				test.T().Logf("S3 mode for models/datasets: endpoint=%s, bucket=%s", s3Endpoint, modelsBucket)
+				test.T().Logf("S3 mode for models/datasets: endpoint=%s, bucket=%s", s3InternalEndpoint, modelsBucket)
 				s3Exports = fmt.Sprintf(
-					"export AWS_DEFAULT_ENDPOINT='%s'; "+
-						"export AWS_ACCESS_KEY_ID='%s'; "+
-						"export AWS_SECRET_ACCESS_KEY='%s'; "+
-						"export AWS_STORAGE_BUCKET='%s'; "+
-						"export MODEL_S3_PREFIX='%s'; "+
-						"export DATASET_S3_PREFIX='%s'; ",
-					s3Endpoint, s3AccessKey, s3SecretKey, modelsBucket, modelS3Prefix, datasetS3Prefix,
+					"export AWS_DEFAULT_ENDPOINT=%s; "+
+						"export AWS_ACCESS_KEY_ID=%s; "+
+						"export AWS_SECRET_ACCESS_KEY=%s; "+
+						"export AWS_STORAGE_BUCKET=%s; "+
+						"export MODEL_S3_PREFIX=%s; "+
+						"export DATASET_S3_PREFIX=%s; ",
+					shellQuote(s3InternalEndpoint), shellQuote(s3AccessKey), shellQuote(s3SecretKey), shellQuote(modelsBucket), shellQuote(modelS3Prefix), shellQuote(datasetS3Prefix),
 				)
 			}
 		} else {
@@ -367,7 +374,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		secretData := map[string]string{
 			"AWS_ACCESS_KEY_ID":     s3AccessKey,
 			"AWS_SECRET_ACCESS_KEY": s3SecretKey,
-			"AWS_S3_ENDPOINT":       s3Endpoint,
+			"AWS_S3_ENDPOINT":       s3InternalEndpoint,
 			"AWS_S3_BUCKET":         checkpointURI.Bucket,
 		}
 
@@ -375,9 +382,9 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		test.T().Logf("Created Data Connection secret: %s for cloud checkpoint storage", secret.Name)
 
 		dataConnectionExports = fmt.Sprintf(
-			"export DATA_CONNECTION_NAME='%s'; "+
+			"export DATA_CONNECTION_NAME=%s; "+
 				"export KUBEFLOW_INSTALL_FROM_GIT='true'; ",
-			secret.Name,
+			shellQuote(secret.Name),
 		)
 		test.T().Logf("Data Connection configured for cloud checkpointing: %s", config.CheckpointOutputDir)
 	} else if checkpointURI != nil {
@@ -395,8 +402,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	test.T().Logf("Using Red Hat PyPI index for %s (kubeflow not on public PyPI)", gpuType)
 
 	// Build pip exports - GPU_TYPE tells install_kubeflow.py which Red Hat index to use
-	pipExports := fmt.Sprintf("export GPU_TYPE='%s'; ", gpuType)
-	pipInstallFlags := ""
+	pipExports := fmt.Sprintf("export GPU_TYPE=%s; ", shellQuote(gpuType))
 
 	// Set defaults for num_nodes and num_gpus_per_node if not specified
 	numNodes := config.NumNodes
@@ -408,44 +414,47 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		numGpusPerNode = 1
 	}
 
+	sdkInstallExports := buildKubeflowInstallExports()
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
 			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL='%s'; "+
-			"export NOTEBOOK_TOKEN='%s'; "+
-			"export NOTEBOOK_NAMESPACE='%s'; "+
-			"export SHARED_PVC_NAME='%s'; "+
-			"export ENABLE_PROGRESSION_TRACKING='%s'; "+
-			"export ENABLE_JIT_CHECKPOINT='%s'; "+
-			"export CHECKPOINT_OUTPUT_DIR='%s'; "+
-			"export CHECKPOINT_SAVE_STRATEGY='%s'; "+
-			"export CHECKPOINT_SAVE_TOTAL_LIMIT='%s'; "+
-			"export GPU_RESOURCE_LABEL='%s'; "+
-			"export TRAINING_RUNTIME='%s'; "+
+			"export OPENSHIFT_API_URL=%s; "+
+			"export NOTEBOOK_TOKEN=%s; "+
+			"export NOTEBOOK_NAMESPACE=%s; "+
+			"export SHARED_PVC_NAME=%s; "+
+			"export ENABLE_PROGRESSION_TRACKING=%s; "+
+			"export ENABLE_JIT_CHECKPOINT=%s; "+
+			"export CHECKPOINT_OUTPUT_DIR=%s; "+
+			"export CHECKPOINT_SAVE_STRATEGY=%s; "+
+			"export CHECKPOINT_SAVE_TOTAL_LIMIT=%s; "+
+			"export GPU_RESOURCE_LABEL=%s; "+
+			"export TRAINING_RUNTIME=%s; "+
 			"export NUM_NODES='%d'; "+
 			"export NUM_GPUS_PER_NODE='%d'; "+
 			"%s"+ // S3 exports (if configured)
 			"%s"+ // Data Connection exports (if configured)
 			"%s"+ // PyPI/GPU_TYPE exports
-			"python -m pip install --quiet --no-cache-dir %s papermill ipykernel boto3==1.34.162 && "+
-			"python /opt/app-root/notebooks/install_kubeflow.py && "+
+			"%s"+ // SDK install exports
+			"python -m pip install --quiet --no-cache-dir papermill && "+
+			"python /opt/app-root/notebooks/%s && "+
 			"python -m ipykernel install --user --name=python3 && "+
 			"python -m papermill /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"sleep infinity",
-		GetOpenShiftApiUrl(test), userToken, namespace.Name, sharedPVC.Name,
-		enableProgression,
-		enableCheckpoint,
-		config.CheckpointOutputDir,
-		config.CheckpointSaveStrategy,
-		config.CheckpointSaveTotalLimit,
-		gpuResourceLabel,
-		trainingRuntime,
+		shellQuote(GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(sharedPVC.Name),
+		shellQuote(enableProgression),
+		shellQuote(enableCheckpoint),
+		shellQuote(config.CheckpointOutputDir),
+		shellQuote(config.CheckpointSaveStrategy),
+		shellQuote(config.CheckpointSaveTotalLimit),
+		shellQuote(gpuResourceLabel),
+		shellQuote(trainingRuntime),
 		numNodes,
 		numGpusPerNode,
 		s3Exports,
 		dataConnectionExports,
 		pipExports,
-		pipInstallFlags,
+		sdkInstallExports,
+		installKubeflowScript,
 		config.NotebookName,
 	)
 
@@ -453,8 +462,16 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		config.EnableProgressionTracking, config.EnableJitCheckpoint, config.Accelerator.Type, numNodes, numGpusPerNode, config.NotebookName)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
+	// Determine the notebook image stream based on the accelerator
+	notebookImageStream := common.NotebookImageStreamTrainingHubCPU
+	if config.Accelerator == NVIDIA {
+		notebookImageStream = common.NotebookImageStreamTrainingHubCUDA
+	} else if config.Accelerator == AMD {
+		notebookImageStream = common.NotebookImageStreamTrainingHubROCm
+	}
+
 	// Create Notebook CR using the RWX PVC
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, config.NotebookName, 0, sharedPVC, common.ContainerSizeSmall)
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, config.NotebookName, 0, sharedPVC, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(test, notebookImageStream))
 
 	// Cleanup - use longer timeout due to large runtime images
 	defer func() {
@@ -485,7 +502,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	// For checkpoint tests, run suspend/resume flow instead of waiting for completion
 	if config.EnableJitCheckpoint {
 		test.T().Log("Running JIT checkpoint suspend/resume test...")
-		verifyCheckpoints(test, namespace.Name, trainJobName, config.CheckpointOutputDir, config.EnableProgressionTracking, TestTimeoutGpuProvisioning)
+		verifyCheckpoints(test, namespace.Name, trainJobName, config.CheckpointOutputDir, config.EnableProgressionTracking, numNodes, TestTimeoutGpuProvisioning)
 	} else {
 		// Wait for TrainJob to complete normally - use longer timeout due to large runtime images
 		test.Eventually(TrainJob(test, namespace.Name, trainJobName), TestTimeoutGpuProvisioning, 10*time.Second).
@@ -502,7 +519,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		test.T().Log("Verifying progression tracking features...")
 
 		// Verify termination message on training pods contains progress data
-		verifyTerminationMessage(test, namespace.Name, trainJobName)
+		verifyTerminationMessage(test, namespace.Name, trainJobName, numNodes)
 
 		// Verify progression tracking annotations
 		test.Expect(annotations[annotationProgressionTracking]).To(Equal("true"),
@@ -632,11 +649,11 @@ func verifyTrainJobAnnotations(test Test, namespace, trainJobName string, config
 }
 
 // verifyTerminationMessage checks that training pods have termination messages with progress data
-func verifyTerminationMessage(test Test, namespace, trainJobName string) {
+func verifyTerminationMessage(test Test, namespace, trainJobName string, numNodes int) {
 	test.T().Helper()
 
 	pods := listTrainingPods(test, namespace, trainJobName)
-	test.Expect(len(pods)).To(Equal(2), "Expected exactly 2 training pods for distributed job")
+	test.Expect(len(pods)).To(Equal(numNodes), fmt.Sprintf("Expected exactly %d training pod(s)", numNodes))
 	test.T().Logf("Found %d training pod(s) for TrainJob %s", len(pods), trainJobName)
 
 	// Check termination message on at least one pod
@@ -710,7 +727,7 @@ func verifyTerminationMessage(test Test, namespace, trainJobName string) {
 // 4. Resuming the TrainJob to verify checkpoint restore
 // 5. Verifying training completes successfully
 // When progressionEnabled=true, also verifies progress before/after suspend using annotations
-func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string, progressionEnabled bool, timeout time.Duration) {
+func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string, progressionEnabled bool, numNodes int, timeout time.Duration) {
 	test.T().Helper()
 
 	test.T().Logf("Starting JIT checkpoint verification for TrainJob %s (checkpoint_dir=%s)", trainJobName, checkpointDir)
@@ -719,7 +736,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	test.T().Log("Step 1: Waiting for training pods to start...")
 	test.Eventually(func() int {
 		return countRunningPods(test, namespace, trainJobName)
-	}, timeout, 5*time.Second).Should(Equal(2), "Expected exactly 2 training pods to be running")
+	}, timeout, 5*time.Second).Should(Equal(numNodes), fmt.Sprintf("Expected exactly %d training pod(s) to be running", numNodes))
 	test.T().Log("Training pods are running")
 
 	// Wait for at least 2 epochs before suspending.
@@ -728,7 +745,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	test.T().Log("Waiting for training to complete at least 2 epochs (checking logs)...")
 	test.Eventually(func() bool {
 		return hasCompletedEpochFromLogs(test, namespace, trainJobName, 2)
-	}, TestTimeoutMedium, 5*time.Second).Should(BeTrue(), "Training should complete at least 2 epochs before suspension")
+	}, TestTimeoutLong, 5*time.Second).Should(BeTrue(), "Training should complete at least 2 epochs before suspension")
 	test.T().Log("At least 2 epochs completed - ready to suspend")
 
 	// Verify cloud checkpoint upload is working (only for cloud storage mode, not PVC)
@@ -840,7 +857,7 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	test.T().Log("Waiting for new training pods to start...")
 	test.Eventually(func() int {
 		return countRunningPods(test, namespace, trainJobName)
-	}, TestTimeoutMedium, 5*time.Second).Should(Equal(2), "Expected exactly 2 training pods to start after resume")
+	}, TestTimeoutMedium, 5*time.Second).Should(Equal(numNodes), fmt.Sprintf("Expected exactly %d training pod(s) to start after resume", numNodes))
 	test.T().Log("New training pods started")
 
 	// Step 7: Verify progress after resume (only when progression tracking is enabled)

@@ -1,4 +1,4 @@
-FROM quay.io/aipcc/base-images/cuda-13.0-el9.6:3.4.0-ea.2-1772829888
+FROM quay.io/aipcc/base-images/cuda-13.0-el9.6:3.4.0-1774635924
 
 ARG SSH_PORT=2222
 
@@ -76,7 +76,7 @@ RUN mkdir -p /home/mpiuser /home/mpiuser/.openmpi && \
 WORKDIR /opt/app-root/bin
 COPY requirements.txt ./
 
-RUN uv pip install --no-cache --require-hashes \
+RUN uv pip install --no-cache \
         --python /opt/app-root/bin/python3.12 \
         -r requirements.txt && \
     rm -f ./requirements.txt && \

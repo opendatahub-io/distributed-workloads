@@ -35,9 +35,9 @@ Disconnected environments require:
 
 | Test Name | Description | Resources |
 |-----------|-------------|-----------|
-| `TestRhaiTrainingProgressionCPU` | Progression tracking on CPU | 2 nodes, 2 CPUs each |
-| `TestRhaiJitCheckpointingCPU` | JIT checkpoint save/resume on CPU | 2 nodes, 2 CPUs each |
-| `TestRhaiFeaturesCPU` | All RHAI features combined (CPU) | 2 nodes, 2 CPUs each |
+| `TestRhaiTrainingProgressionCPU` | Progression tracking on CPU | 1 node, 1 CPU |
+| `TestRhaiJitCheckpointingCPU` | JIT checkpoint save/resume on CPU | 1 node, 1 CPU |
+| `TestRhaiFeaturesCPU` | All RHAI features combined (CPU) | 1 node, 1 CPU |
 | `TestRhaiTrainingProgressionCuda` | Progression tracking on NVIDIA GPU | 2 nodes, 1 GPU each |
 | `TestRhaiJitCheckpointingCuda` | JIT checkpoint on NVIDIA GPU | 2 nodes, 1 GPU each |
 | `TestRhaiFeaturesCuda` | All RHAI features (NVIDIA GPU) | 2 nodes, 1 GPU each |

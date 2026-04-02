@@ -1,5 +1,5 @@
 # ROCm MPI Training Runtime - AIPCC base, UV for deps
-FROM quay.io/aipcc/base-images/rocm-6.4-el9.6:3.4.0-ea.1-1772615238
+FROM quay.io/aipcc/base-images/rocm-6.4-el9.6:3.4.0-1774635772
 
 ARG SSH_PORT=2222
 
@@ -77,8 +77,8 @@ RUN mkdir -p /home/mpiuser /home/mpiuser/.openmpi && \
 WORKDIR /opt/app-root/bin
 COPY requirements.txt ./
 
-RUN uv pip install --no-cache --require-hashes \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9-test/simple/ \
+RUN uv pip install --no-cache \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9-test/simple/ \
     --extra-index-url=https://pypi.org/simple \
     --python /opt/app-root/bin/python3.12 \
     -r requirements.txt && \
