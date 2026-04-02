@@ -27,6 +27,14 @@ func GetRWXStorageClass(t Test) (*storagev1.StorageClass, error) {
 
 	storageClasses := GetStorageClasses(t)
 
+	// Prefer NFS-based StorageClasses as they have full POSIX support
+	for _, sc := range storageClasses {
+		if sc.Provisioner == "nfs.csi.k8s.io" || sc.Provisioner == "example.com/nfs" {
+			t.T().Logf("Found NFS StorageClass '%s' with provisioner '%s' which supports RWX.", sc.Name, sc.Provisioner)
+			return &sc, nil
+		}
+	}
+
 	for _, sc := range storageClasses {
 		if rwxSupportedProvisioners[sc.Provisioner] {
 			t.T().Logf("Found StorageClass '%s' with provisioner '%s' which is likely to support RWX.", sc.Name, sc.Provisioner)
