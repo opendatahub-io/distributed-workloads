@@ -174,20 +174,20 @@ func TestRhaiS3CheckpointingCPU(t *testing.T) {
 	sdktests.RunRhaiS3CheckpointTest(t, support.CPU, 1)
 }
 
-// FSDP Full State Checkpoint tests (CPU only, auto-skip if S3 not configured)
-func TestRhaiS3FsdpFullStateCheckpointingCPU(t *testing.T) {
-	Tags(t, Tier1)
-	sdktests.RunRhaiS3FsdpFullStateTest(t, support.CPU, 1)
+// FSDP Full State Checkpoint tests (GPU required, auto-skip if S3 not configured)
+func TestRhaiS3FsdpFullStateCheckpointingCuda(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunRhaiS3FsdpFullStateTest(t, support.NVIDIA, 1)
 }
 
-// FSDP Full State Checkpoint tests (2 nodes, 2 processes per node)
-func TestRhaiS3FsdpFullStateCheckpointingMultiProcess(t *testing.T) {
-	Tags(t, Tier1)
+// FSDP Full State Checkpoint tests (GPU required, 2 nodes, 2 GPUs per node)
+func TestRhaiS3FsdpFullStateCheckpointingMultiProcessCuda(t *testing.T) {
+	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 2))
 	t.Skip("Skipping: torchrun's hardcoded 30s shutdown timeout interrupts checkpoint saves (>30s for FSDP), " +
 		"leaving .incomplete markers that cause training to restart from scratch. " +
 		"Fix merged (configurable shutdown timeout) but awaiting PyTorch release. " +
 		"See: https://github.com/pytorch/pytorch/pull/172596")
-	sdktests.RunRhaiS3FsdpFullStateMultiProcessTest(t, support.CPU, 2, 2)
+	sdktests.RunRhaiS3FsdpFullStateMultiProcessTest(t, support.NVIDIA, 2, 2)
 }
 
 // FSDP Shared State Checkpoint tests (GPU required, 2 nodes, 1 GPU each)
