@@ -158,7 +158,7 @@ func TestRhaiFeaturesMultiGpuRocm(t *testing.T) {
 
 // Training Failure Scenarios (CPU only) — verifies failures are properly propagated
 func TestTrainingFailureScenarios(t *testing.T) {
-	Tags(t, Tier1)
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
 	sdktests.RunTrainingFailureScenariosTest(t)
 }
 
