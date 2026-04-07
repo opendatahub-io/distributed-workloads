@@ -20,13 +20,25 @@ def main():
     # OpenMPI sets OMPI_COMM_WORLD_* variables; map them to the RANK/LOCAL_RANK/
     # WORLD_SIZE that PyTorch distributed expects.
     # ---------------------------------------------------------------------------
-    rank = int(os.environ.get("OMPI_COMM_WORLD_RANK", "0"))
-    local_rank = int(os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK", "0"))
-    world_size = int(os.environ.get("OMPI_COMM_WORLD_SIZE", "1"))
+    required_mpi_env = (
+        "OMPI_COMM_WORLD_RANK",
+        "OMPI_COMM_WORLD_LOCAL_RANK",
+        "OMPI_COMM_WORLD_SIZE",
+    )
+    missing = [name for name in required_mpi_env if name not in os.environ]
+    if missing:
+        raise RuntimeError(
+            f"Missing OpenMPI environment: {', '.join(missing)}. "
+            "This benchmark must be launched by the MPI runtime."
+        )
 
-    os.environ.setdefault("RANK", str(rank))
-    os.environ.setdefault("LOCAL_RANK", str(local_rank))
-    os.environ.setdefault("WORLD_SIZE", str(world_size))
+    rank = int(os.environ["OMPI_COMM_WORLD_RANK"])
+    local_rank = int(os.environ["OMPI_COMM_WORLD_LOCAL_RANK"])
+    world_size = int(os.environ["OMPI_COMM_WORLD_SIZE"])
+
+    os.environ["RANK"] = str(rank)
+    os.environ["LOCAL_RANK"] = str(local_rank)
+    os.environ["WORLD_SIZE"] = str(world_size)
     os.environ.setdefault("MASTER_PORT", "29500")
     os.environ.setdefault("HF_HOME", "/tmp/hf_cache")
 
@@ -88,7 +100,9 @@ def main():
             self.train_start = None
 
         def on_train_begin(self, args, state, control, **kwargs):
-            self.train_start = time.time()
+            if torch.cuda.is_available():
+                torch.cuda.synchronize(local_rank)
+            self.train_start = time.perf_counter()
             if rank == 0:
                 alloc = torch.cuda.memory_allocated(local_rank) / 1e9
                 reserved = torch.cuda.memory_reserved(local_rank) / 1e9
@@ -99,12 +113,16 @@ def main():
                 )
 
         def on_step_begin(self, args, state, control, **kwargs):
-            self.step_start = time.time()
+            if torch.cuda.is_available():
+                torch.cuda.synchronize(local_rank)
+            self.step_start = time.perf_counter()
 
         def on_step_end(self, args, state, control, **kwargs):
             if self.step_start is None:
                 return
-            elapsed = time.time() - self.step_start
+            if torch.cuda.is_available():
+                torch.cuda.synchronize(local_rank)
+            elapsed = time.perf_counter() - self.step_start
             self.step_times.append(elapsed)
 
             if rank == 0 and state.global_step % args.logging_steps == 0:
@@ -124,7 +142,9 @@ def main():
             if rank != 0 or not self.step_times:
                 return
 
-            total_time = time.time() - self.train_start
+            if torch.cuda.is_available():
+                torch.cuda.synchronize(local_rank)
+            total_time = time.perf_counter() - self.train_start
             warmup = min(self.WARMUP_STEPS, len(self.step_times))
             steady = self.step_times[warmup:]
             avg_step = sum(steady) / len(steady) if steady else 0
@@ -188,7 +208,7 @@ def main():
         "eval_strategy": "no", # Disable eval for benchmark
         "bf16": True,
         "tf32": False,
-        "learning_rate": float(os.environ.get("SFT_LEARNING_RATE", "2.0e-4")),
+        "learning_rate": float(os.environ.get("SFT_LEARNING_RATE", "5e-7")),
         "warmup_steps": 10,
         "lr_scheduler_type": "inverse_sqrt",
         "optim": "adamw_torch_fused",
@@ -257,6 +277,12 @@ def main():
         name=script_args.dataset_config,
         split=script_args.dataset_train_split,
     )
+    
+    dataset_size_str = os.environ.get("SFT_DATASET_SIZE", "")
+    if dataset_size_str:
+        dataset_size = int(dataset_size_str)
+        train_dataset = train_dataset.select(range(min(dataset_size, len(train_dataset))))
+
     test_dataset = None
     if training_args.eval_strategy != "no":
         test_dataset = load_dataset(
