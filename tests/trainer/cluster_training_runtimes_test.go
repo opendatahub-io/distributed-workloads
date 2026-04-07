@@ -35,8 +35,7 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 	Tags(t, Smoke)
 	test := With(t)
 
-	// Determine registry based on cluster environment
-	registryName := GetExpectedRegistry(test)
+	imagePrefix := GetExpectedImagePrefix(test)
 
 	// Build a map of expected runtimes for quick lookup
 	expectedRuntimeMap := make(map[string]trainerutils.ClusterTrainingRuntime)
@@ -84,8 +83,7 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 		test.Expect(foundImage).NotTo(BeEmpty(), "No container image found in ClusterTrainingRuntime %s", runtime.Name)
 		test.T().Logf("Image referred in ClusterTrainingRuntime is %s", foundImage)
 
-		// Verify image based on environment
-		expectedImage := registryName + "/rhoai/" + expectedRuntime.RHOAIImage
+		expectedImage := imagePrefix + "/" + expectedRuntime.Image
 		test.Expect(foundImage).To(ContainSubstring(expectedImage),
 			"Image %s should contain %s", foundImage, expectedImage)
 		test.T().Logf("ClusterTrainingRuntime '%s' uses expected image: %s", expectedRuntime.Name, expectedImage)
@@ -154,11 +152,11 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 	// Run one TrainJob per unique image to avoid redundant runs for CTRs that share the same image
 	tested := make(map[string]bool)
 	for _, runtime := range trainerutils.ExpectedRuntimes {
-		if tested[runtime.RHOAIImage] {
-			test.T().Logf("Skipping ClusterTrainingRuntime '%s' (image '%s' already tested)", runtime.Name, runtime.RHOAIImage)
+		if tested[runtime.Image] {
+			test.T().Logf("Skipping ClusterTrainingRuntime '%s' (image '%s' already tested)", runtime.Name, runtime.Image)
 			continue
 		}
-		tested[runtime.RHOAIImage] = true
+		tested[runtime.Image] = true
 
 		test.T().Logf("Running TrainJob with ClusterTrainingRuntime: %s", runtime.Name)
 
@@ -222,8 +220,7 @@ func createTrainJob(test Test, namespace, runtimeName string) *trainerv1alpha1.T
 }
 
 func verifyPodContainerImages(test Test, namespace, trainJobName string) {
-	// Determine registry based on cluster environment
-	registryName := GetExpectedRegistry(test)
+	imagePrefix := GetExpectedImagePrefix(test)
 
 	product, err := GetProduct(test)
 	test.Expect(err).NotTo(HaveOccurred(), "Failed to get product")
@@ -244,7 +241,7 @@ func verifyPodContainerImages(test Test, namespace, trainJobName string) {
 		test.Expect(images).NotTo(BeEmpty(), "No container images found for Pod %s", pod.Name)
 
 		for _, image := range images {
-			test.Expect(image).To(HavePrefix(registryName), "Image %s should have registry prefix %s", image, registryName)
+			test.Expect(image).To(HavePrefix(imagePrefix), "Image %s should have prefix %s", image, imagePrefix)
 			test.Expect(image).To(MatchRegexp(`@sha256:[a-f0-9]{64}$`),
 				"Image %s should be SHA-based with valid digest", image)
 

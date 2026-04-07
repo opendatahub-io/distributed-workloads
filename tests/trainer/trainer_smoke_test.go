@@ -18,11 +18,11 @@ import (
 
 func TestKubeflowTrainerSmoke(t *testing.T) {
 	Tags(t, Smoke)
-	runSmoke(t, "kubeflow-trainer-controller-manager", "odh-trainer")
+	runSmoke(t, "kubeflow-trainer-controller-manager", "odh-trainer", "trainer")
 }
 
 // runSmoke runs a smoke test for a given deployment and expected image names.
-func runSmoke(t *testing.T, deploymentName string, expectedImage string) {
+func runSmoke(t *testing.T, deploymentName, rhoaiImage, odhImage string) {
 	test := With(t)
 	namespace, err := GetApplicationsNamespaceFromDSCI(test, DefaultDSCIName)
 	test.Expect(err).NotTo(HaveOccurred())
@@ -39,10 +39,14 @@ func runSmoke(t *testing.T, deploymentName string, expectedImage string) {
 
 	test.T().Logf("%s deployment is available", deploymentName)
 
-	// Determine registry based on cluster environment
-	registryName := GetExpectedRegistry(test)
+	imagePrefix := GetExpectedImagePrefix(test)
 
-	test.T().Logf("Verifying %s container image is referred from expected registry ...", deploymentName)
+	expectedImage := rhoaiImage
+	if strings.HasPrefix(imagePrefix, "quay.io") {
+		expectedImage = odhImage
+	}
+
+	test.T().Logf("Verifying %s container image is referred from expected prefix %s ...", deploymentName, imagePrefix)
 
 	// List all running pods in the namespace
 	podList := GetPods(test, namespace, metav1.ListOptions{
@@ -69,6 +73,6 @@ func runSmoke(t *testing.T, deploymentName string, expectedImage string) {
 	}
 
 	containerImage := matchedPods[0].Spec.Containers[0].Image
-	test.Expect(containerImage).To(ContainSubstring(registryName + "/rhoai/" + expectedImage))
-	test.T().Logf("%s container image is referred from %s", deploymentName, registryName)
+	test.Expect(containerImage).To(ContainSubstring(imagePrefix + "/" + expectedImage))
+	test.T().Logf("%s container image is referred from %s", deploymentName, imagePrefix)
 }
