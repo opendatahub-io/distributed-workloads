@@ -94,5 +94,4 @@ spec:
           medium: Memory
           sizeLimit: 16Gi
     targetJobs:
-    - name: launcher
     - name: node
