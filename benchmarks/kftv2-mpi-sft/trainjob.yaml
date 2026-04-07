@@ -41,11 +41,10 @@ spec:
     kind: ClusterTrainingRuntime
     name: odh-mpi-cuda-openmpi-aipcc
   trainer:
-    mlPolicy:
-      mpi: {}
     command:
-    - python
-    - /mnt/scripts/train_sft.py
+    - sh
+    - -c
+    - "sleep 5 && mpirun python /mnt/scripts/train_sft.py"
     numNodes: 1
     resourcesPerNode:
       limits:

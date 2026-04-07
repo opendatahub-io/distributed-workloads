@@ -17,29 +17,11 @@ import time
 def main():
     # ---------------------------------------------------------------------------
     # MPI -> PyTorch environment bridging
-    # OpenMPI sets OMPI_COMM_WORLD_* variables; map them to the RANK/LOCAL_RANK/
-    # WORLD_SIZE that PyTorch distributed expects.
     # ---------------------------------------------------------------------------
-    required_mpi_env = (
-        "OMPI_COMM_WORLD_RANK",
-        "OMPI_COMM_WORLD_LOCAL_RANK",
-        "OMPI_COMM_WORLD_SIZE",
-    )
-    missing = [name for name in required_mpi_env if name not in os.environ]
-    if missing:
-        raise RuntimeError(
-            f"Missing OpenMPI environment: {', '.join(missing)}. "
-            "This benchmark must be launched by the MPI runtime."
-        )
-
-    rank = int(os.environ["OMPI_COMM_WORLD_RANK"])
-    local_rank = int(os.environ["OMPI_COMM_WORLD_LOCAL_RANK"])
-    world_size = int(os.environ["OMPI_COMM_WORLD_SIZE"])
-
-    os.environ["RANK"] = str(rank)
-    os.environ["LOCAL_RANK"] = str(local_rank)
-    os.environ["WORLD_SIZE"] = str(world_size)
-    os.environ.setdefault("MASTER_PORT", "29500")
+    # When using backend="mpi", PyTorch automatically discovers rank and world size
+    # from the MPI runtime. We only need the local rank to set the CUDA device.
+    local_rank = int(os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK", "0"))
+    
     os.environ.setdefault("HF_HOME", "/tmp/hf_cache")
 
     # ---------------------------------------------------------------------------
@@ -56,16 +38,6 @@ def main():
             )
         os.chmod(_nvcc_path, 0o755)
     os.environ["CUDA_HOME"] = "/tmp/cuda_stub"
-
-    hostname = socket.gethostname()
-    if rank == 0:
-        print(f"{'=' * 60}", flush=True)
-        print("MPI SFT Benchmark (DDP with MPI backend)", flush=True)
-        print(f"{'=' * 60}", flush=True)
-    print(
-        f"[Rank {rank}/{world_size}] host={hostname} local_rank={local_rank}",
-        flush=True,
-    )
 
     import torch
     import torch.distributed as dist
@@ -96,6 +68,19 @@ def main():
             f"but only {device_count} CUDA devices are visible."
         )
     torch.cuda.set_device(local_rank)
+    
+    rank = dist.get_rank()
+    world_size = dist.get_world_size()
+
+    hostname = socket.gethostname()
+    if rank == 0:
+        print(f"{'=' * 60}", flush=True)
+        print("MPI SFT Benchmark (DDP with MPI backend)", flush=True)
+        print(f"{'=' * 60}", flush=True)
+    print(
+        f"[Rank {rank}/{world_size}] host={hostname} local_rank={local_rank}",
+        flush=True,
+    )
 
     # ---------------------------------------------------------------------------
     # Benchmark metrics callback
@@ -195,7 +180,6 @@ def main():
         "model_revision": "main",
         "torch_dtype": "bfloat16",
         "attn_implementation": "flash_attention_2",
-        "use_liger": False,
         "use_peft": True,
         "lora_r": 16,
         "lora_alpha": 8,
@@ -213,8 +197,6 @@ def main():
             "add_special_tokens": False,
             "append_concat_token": False
         },
-        "max_seq_length": int(os.environ.get("SFT_MAX_SEQ_LENGTH", "1024")),
-        "dataset_batch_size": 1000,
         "packing": False,
         "max_steps": int(os.environ.get("SFT_MAX_STEPS", "50")),
         "per_device_train_batch_size": int(os.environ.get("SFT_BATCH_SIZE", "1")),
@@ -320,6 +302,7 @@ def main():
         peft_config=get_peft_config(model_args),
         processing_class=tokenizer,
         callbacks=[BenchmarkMetricsCallback()],
+        max_seq_length=int(os.environ.get("SFT_MAX_SEQ_LENGTH", "1024")),
     )
 
     if trainer.accelerator.is_main_process and hasattr(trainer.model, "print_trainable_parameters"):
