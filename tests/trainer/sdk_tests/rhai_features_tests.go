@@ -550,7 +550,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 					continue
 				}
 				var terminationData map[string]interface{}
-				if err := json.Unmarshal([]byte(terminationMessage), &terminationData); err != nil {
+				if err := json.Unmarshal([]byte(sanitizeJSON(terminationMessage)), &terminationData); err != nil {
 					continue
 				}
 				if termProgress, ok := terminationData["progressPercentage"].(float64); ok && termProgress >= 100 {
@@ -565,24 +565,34 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		}
 		test.Expect(found100PercentInTermination).To(BeTrue(), "Training should complete with 100% progress in termination message")
 
-		// Get trainerStatus annotation to verify other metadata fields.
-		// The annotation is operator-generated and may not reach exactly 100% due to polling timing,
-		// but it provides additional metadata (steps, epochs, etc.) that we verify.
-		test.T().Log("Verifying trainerStatus annotation metadata...")
-		trainJob := TrainJob(test, namespace.Name, trainJobName)(test)
-		annotations = trainJob.GetAnnotations()
-		trainerStatusRaw := annotations[annotationTrainerStatus]
-		test.Expect(trainerStatusRaw).NotTo(BeEmpty(), "trainerStatus annotation should not be empty")
-
+		// Wait for the operator to update the trainerStatus annotation with final progress.
+		// The operator reconciles job completion and captures metrics from the termination message,
+		// which may take a few seconds after the job completes.
+		test.T().Log("Waiting for trainerStatus annotation to reach 100% progress...")
 		var trainerStatus map[string]interface{}
-		err := json.Unmarshal([]byte(trainerStatusRaw), &trainerStatus)
-		test.Expect(err).NotTo(HaveOccurred(), "trainerStatus should be valid JSON")
-		test.T().Logf("trainerStatus: %s", trainerStatusRaw)
+		test.Eventually(func() bool {
+			trainJob := TrainJob(test, namespace.Name, trainJobName)(test)
+			trainerStatusRaw := trainJob.GetAnnotations()[annotationTrainerStatus]
+			if trainerStatusRaw == "" {
+				return false
+			}
+			var status map[string]interface{}
+			if err := json.Unmarshal([]byte(sanitizeJSON(trainerStatusRaw)), &status); err != nil {
+				test.T().Logf("trainerStatus not valid JSON yet: %v", err)
+				return false
+			}
+			progress, ok := status["progressPercentage"].(float64)
+			if !ok || progress < 100 {
+				test.T().Logf("trainerStatus progress: %.0f%%, waiting for 100%%...", progress)
+				return false
+			}
+			trainerStatus = status
+			test.T().Logf("trainerStatus: %s", trainerStatusRaw)
+			return true
+		}, 2*time.Minute, 5*time.Second).Should(BeTrue(), "trainerStatus annotation should reach 100% progress")
 
-		// Verify progress metrics exist in annotation (for metadata verification)
-		test.Expect(trainerStatus).To(HaveKey("progressPercentage"))
-		progress := trainerStatus["progressPercentage"].(float64)
-		test.T().Logf("progressPercentage: %.0f%%", progress)
+		// Verify progress metadata fields
+		test.T().Logf("progressPercentage: %.0f%%", trainerStatus["progressPercentage"].(float64))
 
 		test.Expect(trainerStatus).To(HaveKey("currentStep"))
 		test.Expect(trainerStatus).To(HaveKey("totalSteps"))
@@ -676,9 +686,9 @@ func verifyTerminationMessage(test Test, namespace, trainJobName string, numNode
 
 			test.T().Logf("Pod %s termination message: %s", pod.Name, terminationMessage)
 
-			// Parse termination message as JSON
+			// Parse termination message as JSON (sanitize NaN/Infinity which Python allows but JSON doesn't)
 			var terminationData map[string]interface{}
-			err := json.Unmarshal([]byte(terminationMessage), &terminationData)
+			err := json.Unmarshal([]byte(sanitizeJSON(terminationMessage)), &terminationData)
 			test.Expect(err).NotTo(HaveOccurred(), "Termination message should be valid JSON")
 
 			// Verify expected fields exist in termination message
@@ -919,6 +929,19 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 }
 
 // getTrainerStatus extracts trainerStatus annotation as parsed map
+// jsonSanitizer matches quoted strings (to skip them) or bare NaN/Infinity tokens (to replace with null).
+// By matching strings first, NaN/Infinity inside string values are preserved unchanged.
+var jsonSanitizer = regexp.MustCompile(`"(?:[^"\\]|\\.)*"|-?Infinity|NaN`)
+
+func sanitizeJSON(s string) string {
+	return jsonSanitizer.ReplaceAllStringFunc(s, func(match string) string {
+		if match[0] == '"' {
+			return match
+		}
+		return "null"
+	})
+}
+
 func getTrainerStatus(test Test, namespace, trainJobName string) map[string]interface{} {
 	trainJob := TrainJob(test, namespace, trainJobName)(test)
 	statusJSON := trainJob.GetAnnotations()[annotationTrainerStatus]
@@ -926,7 +949,7 @@ func getTrainerStatus(test Test, namespace, trainJobName string) map[string]inte
 		return nil
 	}
 	var status map[string]interface{}
-	if err := json.Unmarshal([]byte(statusJSON), &status); err != nil {
+	if err := json.Unmarshal([]byte(sanitizeJSON(statusJSON)), &status); err != nil {
 		return nil
 	}
 	return status
