@@ -86,6 +86,15 @@ def main():
     # Initialize process group with MPI backend to benchmark MPI
     if not dist.is_initialized():
         dist.init_process_group(backend="mpi")
+        
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is required for this benchmark.")
+    device_count = torch.cuda.device_count()
+    if local_rank >= device_count:
+        raise RuntimeError(
+            f"OMPI_COMM_WORLD_LOCAL_RANK={local_rank}, "
+            f"but only {device_count} CUDA devices are visible."
+        )
     torch.cuda.set_device(local_rank)
 
     # ---------------------------------------------------------------------------
@@ -150,7 +159,13 @@ def main():
             avg_step = sum(steady) / len(steady) if steady else 0
             min_step = min(steady) if steady else 0
             max_step = max(steady) if steady else 0
-            throughput = (args.per_device_train_batch_size * world_size) / avg_step if avg_step > 0 else 0
+            
+            # Calculate throughput based on wall-clock time of steady steps
+            warmup_time = sum(self.step_times[:warmup])
+            steady_steps = len(steady)
+            steady_time = max(total_time - warmup_time, 1e-6)
+            throughput = (args.per_device_train_batch_size * world_size * max(steady_steps, 1)) / steady_time
+            
             peak_mem = torch.cuda.max_memory_allocated(local_rank) / 1e9
 
             print(f"\n{'=' * 60}", flush=True)
@@ -219,14 +234,6 @@ def main():
         "gradient_checkpointing_kwargs": {
             "use_reentrant": False
         },
-        "fsdp": "full_shard auto_wrap",
-        "fsdp_config": {
-            "activation_checkpointing": True,
-            "cpu_ram_efficient_loading": False,
-            "sync_module_states": True,
-            "use_orig_params": True,
-            "limit_all_gathers": False
-        },
         "save_strategy": "no",
         "save_total_limit": 1,
         "resume_from_checkpoint": False,
@@ -251,9 +258,7 @@ def main():
         trust_remote_code=model_args.trust_remote_code,
         attn_implementation=model_args.attn_implementation,
         torch_dtype=model_args.torch_dtype,
-        use_cache=False if training_args.gradient_checkpointing or
-                           training_args.fsdp_config.get("activation_checkpointing",
-                                                         False) else True,
+        use_cache=not training_args.gradient_checkpointing,
         device_map=get_kbit_device_map() if quantization_config is not None else None,
         quantization_config=quantization_config,
     )
