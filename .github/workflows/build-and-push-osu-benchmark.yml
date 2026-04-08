@@ -14,6 +14,8 @@ on:
 jobs:
   build-and-push-osu-benchmark:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - uses: actions/checkout@v4
@@ -24,7 +26,7 @@ jobs:
     - name: Login to Quay.io
       id: podman-login-quay
       if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-      run: podman login --username ${{ secrets.QUAY_MODH_BENCHMARK_USERNAME }} --password ${{ secrets.QUAY_MODH_BENCHMARK_TOKEN }} quay.io
+      run: echo "${{ secrets.QUAY_MODH_BENCHMARK_TOKEN }}" | podman login --username ${{ secrets.QUAY_MODH_BENCHMARK_USERNAME }} --password-stdin quay.io
 
     - name: Push OSU benchmark image
       if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

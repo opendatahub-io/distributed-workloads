@@ -52,11 +52,11 @@ OSU_BENCHMARK_IMAGE ?= quay.io/modh/distributed-workloads-benchmark:trainer-mpi-
 
 .PHONY: build-osu-benchmark-image
 build-osu-benchmark-image:
-	podman build -f benchmarks/osu-benchmarks/Dockerfile -t ${OSU_BENCHMARK_IMAGE} benchmarks/osu-benchmarks/
+	podman build -f benchmarks/osu-benchmarks/Dockerfile -t "${OSU_BENCHMARK_IMAGE}" benchmarks/osu-benchmarks/
 
 .PHONY: push-osu-benchmark-image
 push-osu-benchmark-image:
-	podman push ${OSU_BENCHMARK_IMAGE}
+	podman push "${OSU_BENCHMARK_IMAGE}"
 
 .PHONY: precommit
 precommit:
