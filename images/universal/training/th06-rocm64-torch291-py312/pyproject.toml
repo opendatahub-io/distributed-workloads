@@ -5,7 +5,9 @@
 #
 # To regenerate requirements.txt:
 #   uv pip compile --python-platform=linux --python-version=3.12 \
-#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9/simple/ \
+#     --index-strategy=unsafe-best-match \
+#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9/simple/ \
+#     --extra-index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9/simple/ \
 #     -o requirements.txt pyproject.toml
 
 [project]
@@ -61,10 +63,12 @@ dependencies = [
     
     # Storage
     "s3fs==2025.9.0",
-    "mlflow==3.10.1+rhaiv.2",
+    "mlflow==3.10.1+rhaiv.3",
     
     # Training Frameworks
     "training_hub[lora]==0.6.0",
+    "instructlab-training==0.14.2",
+    "rhai-innovation-mini-trainer==0.6.1",
     "unsloth==2026.3.3",
     
     # Kubeflow SDK
@@ -83,6 +87,6 @@ dependencies = [
 environments = [
     "sys_platform == 'linux' and implementation_name == 'cpython'",
 ]
-# Strict AIPCC-only - no fallback indexes
-# If a package is missing, request it be added to AIPCC
-index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9/simple/"
+index-strategy = "unsafe-best-match"
+index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9/simple/"
+extra-index-url = ["https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9/simple/"]

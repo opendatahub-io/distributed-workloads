@@ -83,6 +83,37 @@ func TestMyFeature(t *testing.T) {
 }
 ```
 
+### Editing notebooks
+
+Test notebooks (`tests/**/resources/*.ipynb`) use 1-space JSON indentation with no trailing newline. When editing notebook cells, preserve the array-of-lines source format — do not collapse source arrays into single strings:
+
+```json
+// Good — array of lines, readable in raw JSON
+"source": [
+ "import os\n",
+ "print('hello')"
+]
+
+// Bad — single string, hard to read in raw JSON
+"source": "import os\nprint('hello')"
+```
+
+If a tool (e.g. `NotebookEdit`) converts the edited cell's source to a single string, convert it back to array-of-lines before committing. You can use a Python script:
+
+```python
+import json
+with open(path, encoding="utf-8") as f:
+    nb = json.load(f)
+for cell in nb["cells"]:
+    if isinstance(cell["source"], str):
+        cell["source"] = cell["source"].splitlines(True)
+        # Ensure last line has no trailing newline (notebook convention)
+        if cell["source"] and cell["source"][-1].endswith("\n"):
+            cell["source"][-1] = cell["source"][-1][:-1]
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(nb, f, indent=1, ensure_ascii=False)
+```
+
 ### Tags
 
 Tests in `tests/trainer/` **must** declare a tag — this is mandatory. Apply it as the first statement so tests are skipped early when `TEST_TIER` is set:
