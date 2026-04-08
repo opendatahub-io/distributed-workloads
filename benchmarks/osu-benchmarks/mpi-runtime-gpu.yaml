@@ -59,7 +59,7 @@ spec:
                     - name: mpi-ssh-auth
                       secret:
                         secretName: osu-benchmark-gpu-mpi-ssh-auth
-                        defaultMode: 420
+                        defaultMode: 384
                         items:
                           - key: ssh-privatekey
                             path: id_rsa
@@ -103,7 +103,7 @@ spec:
                     - name: mpi-ssh-auth
                       secret:
                         secretName: osu-benchmark-gpu-mpi-ssh-auth
-                        defaultMode: 420
+                        defaultMode: 384
                         items:
                           - key: ssh-privatekey
                             path: id_rsa
