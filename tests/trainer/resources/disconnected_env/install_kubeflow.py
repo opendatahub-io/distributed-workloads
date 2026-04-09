@@ -10,14 +10,14 @@ falls back to S3 wheel if PyPI fails.
 
 Environment variables:
     - GPU_TYPE: Accelerator type (cpu, nvidia/cuda, amd/rocm) - determines which Red Hat PyPI index to use
-    - KUBEFLOW_REQUIRED_VERSION: Required version (default: 0.3.0+rhaiv.1)
+    - KUBEFLOW_REQUIRED_VERSION: Required version (default: 0.3.0+rhaiv.2)
 
 S3 fallback env vars:
     - AWS_DEFAULT_ENDPOINT
     - AWS_ACCESS_KEY_ID
     - AWS_SECRET_ACCESS_KEY
     - AWS_STORAGE_BUCKET
-    - KUBEFLOW_WHEEL_S3_KEY (optional, default: wheels/kubeflow-0.3.0+rhaiv.1-py3-none-any.whl)
+    - KUBEFLOW_WHEEL_S3_KEY (optional, default: wheels/kubeflow-0.3.0+rhaiv.2-py3-none-any.whl)
 """
 
 import subprocess
@@ -67,7 +67,7 @@ def redact_text(text: str) -> str:
 
 def get_required_version():
     """Get required kubeflow version from env or use default."""
-    return os.environ.get("KUBEFLOW_REQUIRED_VERSION", "0.3.0+rhaiv.1")
+    return os.environ.get("KUBEFLOW_REQUIRED_VERSION", "0.3.0+rhaiv.2")
 
 
 def get_rhai_pypi_index() -> str:
@@ -176,7 +176,7 @@ def install_from_s3():
         # Get wheel path from env var or use default
         wheel_key = os.environ.get(
             "KUBEFLOW_WHEEL_S3_KEY",
-            "wheels/kubeflow-0.3.0+rhaiv.1-py3-none-any.whl"
+            "wheels/kubeflow-0.3.0+rhaiv.2-py3-none-any.whl"
         )
         # Preserve original wheel filename (pip requires valid wheel name)
         wheel_filename = wheel_key.split("/")[-1]

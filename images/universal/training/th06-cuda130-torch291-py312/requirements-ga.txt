@@ -265,13 +265,13 @@ kernels==0.12.3
     # via th06-cuda-universal-image (pyproject.toml)
 kiwisolver==1.5.0
     # via matplotlib
-kubeflow==0.3.0+rhaiv.1
+kubeflow==0.3.0+rhaiv.2
     # via th06-cuda-universal-image (pyproject.toml)
 kubeflow-katib-api==0.19.0
     # via kubeflow
 kubeflow-spark-api==2.4.0
     # via th06-cuda-universal-image (pyproject.toml)
-kubeflow-trainer-api==2.2.0
+kubeflow-trainer-api==2.1.0
     # via kubeflow
 kubernetes==35.0.0
     # via kubeflow
