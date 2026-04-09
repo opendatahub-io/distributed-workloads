@@ -12,9 +12,6 @@
 ################################################################################
 # Build Arguments
 ################################################################################
-# Although this image looks like 1.43 GA it was built from 1.42 EA2 state.
-# Notebook team releases ODH via main branch and 1.43 EA2 image failed to build.
-# For 1.43 GA this image will most likely stay as is.
 ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-rocm-py312-ubi9:3.4-v1.43
 ARG PYTHON_VERSION=3.12
 ARG DOWNSTREAM=false
@@ -28,22 +25,17 @@ USER 0
 WORKDIR /tmp/deps
 
 # Copy requirements files
-COPY --chown=1001:0 pyproject.toml requirements.txt requirements-ga.txt ./
+COPY --chown=1001:0 pyproject.toml requirements.txt ./
 
 # Switch to user 1001 for pip installations
 USER 1001
 WORKDIR /opt/app-root/src
 
-# Install dependencies from AIPCC indexes
-# torch and triton from EA2 index (GA will introduce torch 2.10.0, we need 2.9.1)
-# All other packages from GA index
+# Install dependencies from AIPCC GA index
 RUN uv pip install --no-cache-dir \
     --index-strategy=unsafe-best-match \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9/simple/ \
-    -r /tmp/deps/requirements.txt \
- && uv pip install --no-cache-dir \
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9/simple/ \
-    -r /tmp/deps/requirements-ga.txt
+    -r /tmp/deps/requirements.txt
 
 # Fix permissions for OpenShift
 ARG PYTHON_VERSION
