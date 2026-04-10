@@ -291,14 +291,20 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	enableProgression := boolStr(config.EnableProgressionTracking)
 	enableCheckpoint := boolStr(config.EnableJitCheckpoint)
 
-	// Determine GPU resource label (empty for CPU) and training runtime
+	// Determine GPU resource label and training runtime based on accelerator
 	gpuResourceLabel := ""
-	trainingRuntime := trainerutils.DefaultClusterTrainingRuntimeCUDA // Default for CPU and NVIDIA
-	if config.Accelerator.IsGpu() {
+	var trainingRuntime string
+	switch config.Accelerator {
+	case CPU:
+		trainingRuntime = trainerutils.DefaultClusterTrainingRuntimeCPU
+	case NVIDIA:
 		gpuResourceLabel = config.Accelerator.ResourceLabel
-		if config.Accelerator == AMD {
-			trainingRuntime = trainerutils.DefaultClusterTrainingRuntimeROCm
-		}
+		trainingRuntime = trainerutils.DefaultClusterTrainingRuntimeCUDA
+	case AMD:
+		gpuResourceLabel = config.Accelerator.ResourceLabel
+		trainingRuntime = trainerutils.DefaultClusterTrainingRuntimeROCm
+	default:
+		t.Fatalf("unsupported accelerator: %+v", config.Accelerator)
 	}
 
 	// S3/MinIO configuration for disconnected environments (optional)
