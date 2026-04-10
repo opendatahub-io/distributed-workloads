@@ -5,24 +5,6 @@
 # to keep torch==2.9.1.
 --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA1/cpu-ubi9/simple/
 
-filelock==3.25.2
-    # via
-    #   torch
-    #   triton
-fsspec==2025.9.0
-    # via torch
-jinja2==3.1.6
-    # via torch
-markupsafe==3.0.3
-    # via jinja2
-mpmath==1.3.0
-    # via sympy
-networkx==3.6.1
-    # via torch
-sympy==1.14.0
-    # via torch
-typing-extensions==4.15.0
-    # via torch
 torch==2.9.1
     # via
     #   th06-cpu-universal-image (pyproject.toml)
