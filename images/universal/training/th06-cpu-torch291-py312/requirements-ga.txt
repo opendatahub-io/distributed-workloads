@@ -113,6 +113,13 @@ einops==0.8.2
     # via th06-cpu-universal-image (pyproject.toml)
 fastapi==0.135.3
     # via mlflow-skinny
+filelock==3.25.2
+    # via
+    #   datasets
+    #   huggingface-hub
+    #   torch
+    #   training-hub
+    #   transformers
 flask==3.1.3
     # via
     #   flask-cors
@@ -125,6 +132,13 @@ frozenlist==1.8.0
     # via
     #   aiohttp
     #   aiosignal
+    #   training-hub
+fsspec==2025.9.0
+    # via
+    #   datasets
+    #   huggingface-hub
+    #   s3fs
+    #   torch
     #   training-hub
 gitdb==4.0.12
     # via gitpython
@@ -190,6 +204,11 @@ instructlab-training==0.14.2
     # via training-hub
 itsdangerous==2.2.0
     # via flask
+jinja2==3.1.6
+    # via
+    #   flask
+    #   torch
+    #   training-hub
 jmespath==1.1.0
     # via
     #   aiobotocore
@@ -218,6 +237,12 @@ markdown==3.10.2
     # via tensorboard
 markdown-it-py==4.0.0
     # via rich
+markupsafe==3.0.3
+    # via
+    #   flask
+    #   jinja2
+    #   mako
+    #   werkzeug
 matplotlib==3.10.8
     # via
     #   mlflow
@@ -232,6 +257,10 @@ mlflow-tracing==3.10.1+rhaiv.3
     # via mlflow
 model-registry==0.3.7
     # via th06-cpu-universal-image (pyproject.toml)
+mpmath==1.3.0
+    # via
+    #   sympy
+    #   training-hub
 multidict==6.7.1
     # via
     #   aiobotocore
@@ -243,6 +272,10 @@ multiprocess==0.70.16
     #   training-hub
 nest-asyncio2==1.7.2
     # via model-registry
+networkx==3.6.1
+    # via
+    #   torch
+    #   training-hub
 ninja==1.11.1.4
     # via rhai-innovation-mini-trainer
 numba==0.65.0
@@ -432,12 +465,26 @@ requests-oauthlib==2.0.0
     # via kubernetes
 rhai-innovation-mini-trainer==0.6.1
     # via training-hub
+rich==14.3.3
+    # via
+    #   th06-cpu-universal-image (pyproject.toml)
+    #   instructlab-training
+    #   rhai-innovation-mini-trainer
+    #   training-hub
+    #   typer
+s3fs==2025.9.0
+    # via th06-cpu-universal-image (pyproject.toml)
 safetensors==0.7.0
     # via
     #   th06-cpu-universal-image (pyproject.toml)
     #   accelerate
     #   peft
     #   transformers
+sentencepiece==0.2.1
+    # via
+    #   th06-cpu-universal-image (pyproject.toml)
+    #   unsloth
+    #   unsloth-zoo
 simpleeval==1.0.7
     # via th06-cpu-universal-image (pyproject.toml)
 smmap==5.0.3
@@ -450,6 +497,10 @@ sqlparse==0.5.5
     # via mlflow-skinny
 starlette==1.0.0
     # via fastapi
+sympy==1.14.0
+    # via
+    #   torch
+    #   training-hub
 tensorboard==2.20.0
     # via th06-cpu-universal-image (pyproject.toml)
 tensorboard-data-server==0.7.2
@@ -483,6 +534,26 @@ trl==0.24.0
     #   instructlab-training
 typer==0.24.1
     # via rhai-innovation-mini-trainer
+typing-extensions==4.15.0
+    # via
+    #   aiosignal
+    #   alembic
+    #   anyio
+    #   fastapi
+    #   graphene
+    #   grpcio
+    #   huggingface-hub
+    #   mlflow-skinny
+    #   model-registry
+    #   opentelemetry-api
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
+    #   pydantic
+    #   pydantic-core
+    #   sqlalchemy
+    #   starlette
+    #   torch
+    #   typing-inspection
 typing-inspection==0.4.2
     # via
     #   fastapi
