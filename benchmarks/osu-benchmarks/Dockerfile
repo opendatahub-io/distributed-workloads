@@ -1,34 +1,21 @@
-# Stage 1: Build OSU Micro-Benchmarks
-FROM quay.io/aipcc/base-images/cpu:3.4.0-ea.2-1772728237 AS builder
+# Stage 1: Build OpenMPI + OSU Micro-Benchmarks
+FROM quay.io/opendatahub/odh-midstream-python-base-3-12:11b0d2c14a1d8de8171d428172aef0cde54ec7a7 AS builder
 
 ARG OMPI_VERSION=4.1.6
 ARG OSU_VERSION=7.3
 
 USER 0
 
-# The amd64 AIPCC image ships without enabled repos.
-# Add CentOS Stream 9 repos (ABI-compatible with RHEL 9) for build dependencies.
-RUN printf '[centos-stream-baseos]\n\
-name=CentOS Stream 9 - BaseOS\n\
-baseurl=https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/\n\
-gpgcheck=0\n\
-enabled=1\n\
-\n\
-[centos-stream-appstream]\n\
-name=CentOS Stream 9 - AppStream\n\
-baseurl=https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/\n\
-gpgcheck=0\n\
-enabled=1\n' > /etc/yum.repos.d/centos-stream.repo
-
-# Single RUN: keeps gcc available for both builds and avoids WORKDIR issues
-# by starting with cd /tmp (the AIPCC image sets WORKDIR=/opt/app-root which
-# interferes with compilation if we extract sources there).
+# Build OpenMPI from source and compile OSU benchmarks against it.
+# Install prefix /usr/lib64/openmpi matches the runtime layout; OSU binaries
+# embed an rpath to /usr/lib64/openmpi/lib so no LD_LIBRARY_PATH is needed
+# for the benchmarks themselves at runtime.
 RUN cd /tmp \
     && dnf install -y gcc gcc-c++ make wget perl \
     && wget -q https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-${OMPI_VERSION}.tar.gz \
     && tar -xf openmpi-${OMPI_VERSION}.tar.gz \
     && cd /tmp/openmpi-${OMPI_VERSION} \
-    && ./configure --prefix=/tmp/ompi-build \
+    && ./configure --prefix=/usr/lib64/openmpi \
         --disable-man-pages \
         --disable-mpi-fortran \
         --with-hwloc=internal \
@@ -40,53 +27,38 @@ RUN cd /tmp \
     && wget -q https://mvapich.cse.ohio-state.edu/download/mvapich/osu-micro-benchmarks-${OSU_VERSION}.tar.gz \
     && tar -xf osu-micro-benchmarks-${OSU_VERSION}.tar.gz \
     && cd /tmp/osu-micro-benchmarks-${OSU_VERSION} \
-    && LD_LIBRARY_PATH=/tmp/ompi-build/lib \
-       ./configure CC=/tmp/ompi-build/bin/mpicc CXX=/tmp/ompi-build/bin/mpicxx \
+    && LD_LIBRARY_PATH=/usr/lib64/openmpi/lib \
+       ./configure CC=/usr/lib64/openmpi/bin/mpicc CXX=/usr/lib64/openmpi/bin/mpicxx \
         LDFLAGS="-Wl,-rpath,/usr/lib64/openmpi/lib" \
         --prefix=/usr/local/osu-benchmarks \
     && make -j$(nproc) \
-    && make install \
-    && rm -rf /tmp/ompi-build /tmp/openmpi-${OMPI_VERSION}* /tmp/osu-micro-benchmarks-${OSU_VERSION}* \
-    && dnf remove -y gcc gcc-c++ make wget perl \
-    && dnf clean all
+    && make install
 
 # Stage 2: Runtime image
-FROM quay.io/aipcc/base-images/cpu:3.4.0-ea.2-1772728237
+FROM quay.io/opendatahub/odh-midstream-python-base-3-12:11b0d2c14a1d8de8171d428172aef0cde54ec7a7
 
 ARG SSH_PORT=2222
 
 USER 0
 
-# Add CentOS Stream 9 repos and install openssh-server (not in the AIPCC base).
-RUN printf '[centos-stream-baseos]\n\
-name=CentOS Stream 9 - BaseOS\n\
-baseurl=https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/\n\
-gpgcheck=0\n\
-enabled=1\n\
-\n\
-[centos-stream-appstream]\n\
-name=CentOS Stream 9 - AppStream\n\
-baseurl=https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/\n\
-gpgcheck=0\n\
-enabled=1\n' > /etc/yum.repos.d/centos-stream.repo \
-    && dnf install -y openssh-server \
-    && dnf clean all \
-    && rm -f /etc/yum.repos.d/centos-stream.repo
+RUN dnf install -y openssh-server openssh-clients \
+    && dnf clean all
 
 LABEL maintainer="srpillai" \
       summary="OSU MPI Benchmarks on OpenMPI (OpenShift-compatible)" \
-      description="OSU MPI Benchmarks on OpenMPI 4.1 image based on AIPCC CPU base for MPI Benchmarking" \
+      description="OSU MPI Benchmarks on OpenMPI 4.1 for CPU-only MPI Benchmarking" \
       io.k8s.display-name="OSU MPI Benchmarks on OpenMPI 4.1 base image" \
-      io.k8s.description="OSU MPI Benchmarks on OpenMPI 4.1 image based on AIPCC CPU base for MPI Benchmarking" \
+      io.k8s.description="OSU MPI Benchmarks on OpenMPI 4.1 for CPU-only MPI Benchmarking" \
       version="1.0"
 
+COPY --from=builder /usr/lib64/openmpi /usr/lib64/openmpi
 COPY --from=builder /usr/local/osu-benchmarks /usr/local/osu-benchmarks
 
-# Create symlinks for OpenMPI binaries in /usr/bin so they're in default SSH PATH
+# Symlinks for OpenMPI binaries in /usr/bin so they're in default SSH PATH
 RUN ln -s /usr/lib64/openmpi/bin/orted /usr/bin/orted \
     && ln -s /usr/lib64/openmpi/bin/mpiexec /usr/bin/mpiexec
 
-# Set LD_LIBRARY_PATH in /etc/environment for SSH sessions (loaded by PAM, not inherited from container)
+# LD_LIBRARY_PATH in /etc/environment for SSH sessions (loaded by PAM, not inherited from container)
 RUN echo "LD_LIBRARY_PATH=/usr/lib64/openmpi/lib" >> /etc/environment
 
 RUN mkdir -p /var/run/sshd

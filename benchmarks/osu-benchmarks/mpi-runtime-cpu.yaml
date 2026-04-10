@@ -34,8 +34,12 @@ spec:
                           W1=osu-benchmark-test-worker-1-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local &&
                           echo "$W0 slots=1" > /tmp/hostfile &&
                           echo "$W1 slots=1" >> /tmp/hostfile &&
-                          echo "Waiting for workers...";
-                          sleep 15;
+                          echo "Waiting for workers..." &&
+                          for host in "$W0" "$W1"; do
+                          ready=0; for i in $(seq 1 60); do
+                          if ssh -p 2222 -i /tmp/.ssh/id_rsa -o ConnectTimeout=2 -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$host" true 2>/dev/null; then ready=1; break; fi;
+                          echo "  waiting for $host ($i/60)..."; sleep 2; done;
+                          [ "$ready" -eq 1 ] || { echo "FATAL: $host not reachable after 120s"; exit 1; }; done;
                           MPI_SSH="ssh -p 2222 -i /tmp/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" &&
                           MPIARGS="--allow-run-as-root -np 2 -hostfile /tmp/hostfile --prefix /usr/lib64/openmpi -mca orte_keep_fqdn_hostnames 1 -mca plm_rsh_agent \"$MPI_SSH\" -mca pml ob1 -mca btl tcp,self -x LD_LIBRARY_PATH=/usr/lib64/openmpi/lib" &&
                           echo "=== POINT-TO-POINT BENCHMARKS (INTER-NODE) ===" &&
