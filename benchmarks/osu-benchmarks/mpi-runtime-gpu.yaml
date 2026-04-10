@@ -28,15 +28,11 @@ spec:
                         - name: mpi-ssh-auth
                           mountPath: /tmp/ssh
                       command:
+                        - /usr/local/bin/uid_entrypoint.sh
                         - /bin/bash
                         - -c
                         - >-
                           export HOME=/tmp &&
-                          cp /etc/passwd /tmp/passwd &&
-                          echo "$UID:x:$UID:0:mpi user:/tmp:/bin/bash" >> /tmp/passwd &&
-                          export LD_PRELOAD=/usr/lib64/libnss_wrapper.so &&
-                          export NSS_WRAPPER_PASSWD=/tmp/passwd &&
-                          export NSS_WRAPPER_GROUP=/etc/group &&
                           mkdir -p /tmp/.ssh &&
                           cp /tmp/ssh/id_rsa /tmp/.ssh/ &&
                           cp /tmp/ssh/config /tmp/.ssh/ 2>/dev/null || true &&
@@ -45,10 +41,13 @@ spec:
                           W1=osu-benchmark-gpu-worker-1-0.osu-benchmark-gpu.mpi-benchmarks.svc.cluster.local &&
                           echo "$W0 slots=1" > /tmp/hostfile &&
                           echo "$W1 slots=1" >> /tmp/hostfile &&
-                          echo "Waiting for workers...";
-                          sleep 15;
-                          MPI_SSH="ssh -p 2222 -i /tmp/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" &&
-                          MPIARGS="--allow-run-as-root -np 2 -hostfile /tmp/hostfile --prefix /usr/lib64/openmpi -mca orte_keep_fqdn_hostnames 1 -mca plm_rsh_agent \"$MPI_SSH\" -x LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/usr/local/cuda/lib64 -x CUDA_VISIBLE_DEVICES" &&
+                          echo "Waiting for workers..." &&
+                          for host in "$W0" "$W1"; do
+                          ready=0; for i in $(seq 1 60); do
+                          if ssh -o ConnectTimeout=2 -o BatchMode=yes -i /tmp/.ssh/id_rsa "$host" true 2>/dev/null; then ready=1; break; fi;
+                          echo "  waiting for $host ($i/60)..."; sleep 2; done;
+                          [ "$ready" -eq 1 ] || { echo "FATAL: $host not reachable after 120s"; exit 1; }; done;
+                          MPIARGS="--allow-run-as-root -np 2 -hostfile /tmp/hostfile --prefix /usr/lib64/openmpi -mca orte_keep_fqdn_hostnames 1 -mca plm_rsh_agent 'ssh -i /tmp/.ssh/id_rsa' -x LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/usr/local/cuda/lib64 -x CUDA_VISIBLE_DEVICES" &&
                           echo "=== GPU-DIRECT BENCHMARKS (Device-to-Device) ===" &&
                           echo "--- GPU LATENCY (D D) ---" && eval mpirun $MPIARGS ./pt2pt/osu_latency -d cuda D D &&
                           echo "--- GPU BANDWIDTH (D D) ---" && eval mpirun $MPIARGS ./pt2pt/osu_bw -d cuda D D &&
@@ -64,8 +63,6 @@ spec:
                           - key: ssh-privatekey
                             path: id_rsa
                           - key: ssh-publickey
-                            path: id_rsa.pub
-                          - key: ssh-publickey
                             path: authorized_keys
         - name: worker
           replicas: 2
@@ -80,15 +77,11 @@ spec:
                         limits:
                           nvidia.com/gpu: "1"
                       command:
+                        - /usr/local/bin/uid_entrypoint.sh
                         - /bin/bash
                         - -c
                         - >-
                           export HOME=/tmp &&
-                          cp /etc/passwd /tmp/passwd &&
-                          echo "$UID:x:$UID:0:mpi user:/tmp:/bin/bash" >> /tmp/passwd &&
-                          export LD_PRELOAD=/usr/lib64/libnss_wrapper.so &&
-                          export NSS_WRAPPER_PASSWD=/tmp/passwd &&
-                          export NSS_WRAPPER_GROUP=/etc/group &&
                           mkdir -p /tmp/.ssh /tmp/hostkeys &&
                           cp /tmp/ssh/authorized_keys /tmp/.ssh/ &&
                           ssh-keygen -t rsa -f /tmp/hostkeys/ssh_host_rsa_key -N "" -q &&
@@ -105,9 +98,5 @@ spec:
                         secretName: osu-benchmark-gpu-mpi-ssh-auth
                         defaultMode: 384
                         items:
-                          - key: ssh-privatekey
-                            path: id_rsa
-                          - key: ssh-publickey
-                            path: id_rsa.pub
                           - key: ssh-publickey
                             path: authorized_keys

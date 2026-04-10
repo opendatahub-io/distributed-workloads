@@ -46,9 +46,10 @@ build-test-image:
 push-test-image:
 	podman push ${E2E_TEST_IMAGE}
 
-# OSU MPI Benchmark image
+# OSU MPI Benchmark images
 OSU_BENCHMARK_VERSION ?= latest
 OSU_BENCHMARK_IMAGE ?= quay.io/modh/distributed-workloads-benchmark:trainer-mpi-osu-${OSU_BENCHMARK_VERSION}
+OSU_BENCHMARK_CUDA_IMAGE ?= quay.io/modh/distributed-workloads-benchmark:trainer-mpi-osu-cuda-${OSU_BENCHMARK_VERSION}
 
 .PHONY: build-osu-benchmark-image
 build-osu-benchmark-image:
@@ -57,6 +58,14 @@ build-osu-benchmark-image:
 .PHONY: push-osu-benchmark-image
 push-osu-benchmark-image:
 	podman push "${OSU_BENCHMARK_IMAGE}"
+
+.PHONY: build-osu-benchmark-cuda-image
+build-osu-benchmark-cuda-image:
+	podman build -f benchmarks/osu-benchmarks/Dockerfile.cuda -t "${OSU_BENCHMARK_CUDA_IMAGE}" benchmarks/osu-benchmarks/
+
+.PHONY: push-osu-benchmark-cuda-image
+push-osu-benchmark-cuda-image:
+	podman push "${OSU_BENCHMARK_CUDA_IMAGE}"
 
 .PHONY: precommit
 precommit:
