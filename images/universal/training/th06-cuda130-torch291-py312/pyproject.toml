@@ -81,7 +81,7 @@ dependencies = [
     "unsloth==2026.3.3",
     
     # Kubeflow SDK
-    "kubeflow==0.3.0+rhaiv.1",
+    "kubeflow==0.3.0+rhaiv.2",
     "kubeflow_spark_api==2.4.0",
     "pyspark_connect==4.0.1",
     

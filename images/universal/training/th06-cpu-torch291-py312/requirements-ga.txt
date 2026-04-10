@@ -217,13 +217,13 @@ joblib==1.5.3
     # via scikit-learn
 kiwisolver==1.5.0
     # via matplotlib
-kubeflow==0.3.0+rhaiv.1
+kubeflow==0.3.0+rhaiv.2
     # via th06-cpu-universal-image (pyproject.toml)
 kubeflow-katib-api==0.19.0
     # via kubeflow
 kubeflow-spark-api==2.4.0
     # via th06-cpu-universal-image (pyproject.toml)
-kubeflow-trainer-api==2.2.0
+kubeflow-trainer-api==2.1.0
     # via kubeflow
 kubernetes==35.0.0
     # via kubeflow
@@ -465,8 +465,50 @@ requests-oauthlib==2.0.0
     # via kubernetes
 rhai-innovation-mini-trainer==0.6.1
     # via training-hub
+rich==14.3.3
+    # via
+    #   th06-cpu-universal-image (pyproject.toml)
+    #   instructlab-training
+    #   rhai-innovation-mini-trainer
+    #   training-hub
+    #   typer
+s3fs==2025.9.0
+    # via th06-cpu-universal-image (pyproject.toml)
+safetensors==0.7.0
+    # via
+    #   th06-cpu-universal-image (pyproject.toml)
+    #   accelerate
+    #   peft
+    #   transformers
+sentencepiece==0.2.1
+    # via
+    #   th06-cpu-universal-image (pyproject.toml)
+    #   unsloth
+    #   unsloth-zoo
+scikit-learn==1.8.0
+    # via
+    #   mlflow
+    #   skops
+scipy==1.17.1
+    # via
+    #   mlflow
+    #   scikit-learn
+    #   skops
+setuptools==80.10.2
+    # via
+    #   tensorboard
+    #   torch
+    #   training-hub
+shellingham==1.5.4
+    # via typer
 simpleeval==1.0.7
     # via th06-cpu-universal-image (pyproject.toml)
+six==1.17.0
+    # via
+    #   kubernetes
+    #   python-dateutil
+skops==0.13.0
+    # via mlflow
 smmap==5.0.3
     # via gitdb
 sqlalchemy==2.0.48

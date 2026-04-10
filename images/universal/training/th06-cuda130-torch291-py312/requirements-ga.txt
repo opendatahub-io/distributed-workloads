@@ -137,15 +137,6 @@ einops==0.8.2
     #   mamba-ssm
 fastapi==0.135.3
     # via mlflow-skinny
-filelock==3.25.2
-    # via
-    #   datasets
-    #   diffusers
-    #   huggingface-hub
-    #   torch
-    #   training-hub
-    #   transformers
-    #   unsloth-zoo
 flash-attn==2.8.3
     # via th06-cuda-universal-image (pyproject.toml)
 flask==3.1.3
@@ -160,13 +151,6 @@ frozenlist==1.8.0
     # via
     #   aiohttp
     #   aiosignal
-    #   training-hub
-fsspec==2025.9.0
-    # via
-    #   datasets
-    #   huggingface-hub
-    #   s3fs
-    #   torch
     #   training-hub
 gitdb==4.0.12
     # via gitpython
@@ -250,11 +234,6 @@ instructlab-training==0.14.2
     #   training-hub
 itsdangerous==2.2.0
     # via flask
-jinja2==3.1.6
-    # via
-    #   flask
-    #   torch
-    #   training-hub
 jmespath==1.1.0
     # via
     #   aiobotocore
@@ -265,13 +244,13 @@ kernels==0.12.3
     # via th06-cuda-universal-image (pyproject.toml)
 kiwisolver==1.5.0
     # via matplotlib
-kubeflow==0.3.0+rhaiv.1
+kubeflow==0.3.0+rhaiv.2
     # via th06-cuda-universal-image (pyproject.toml)
 kubeflow-katib-api==0.19.0
     # via kubeflow
 kubeflow-spark-api==2.4.0
     # via th06-cuda-universal-image (pyproject.toml)
-kubeflow-trainer-api==2.2.0
+kubeflow-trainer-api==2.1.0
     # via kubeflow
 kubernetes==35.0.0
     # via kubeflow
@@ -289,12 +268,6 @@ markdown==3.10.2
     # via tensorboard
 markdown-it-py==4.0.0
     # via rich
-markupsafe==3.0.3
-    # via
-    #   flask
-    #   jinja2
-    #   mako
-    #   werkzeug
 matplotlib==3.10.8
     # via
     #   mlflow
@@ -309,10 +282,6 @@ mlflow-tracing==3.10.1+rhaiv.3
     # via mlflow
 model-registry==0.3.7
     # via th06-cuda-universal-image (pyproject.toml)
-mpmath==1.3.0
-    # via
-    #   sympy
-    #   training-hub
 msgpack==1.1.2
     # via deepspeed
 msgspec==0.20.0
@@ -328,10 +297,6 @@ multiprocess==0.70.16
     #   training-hub
 nest-asyncio2==1.7.2
     # via model-registry
-networkx==3.6.1
-    # via
-    #   torch
-    #   training-hub
 ninja==1.11.1.4
     # via
     #   causal-conv1d
@@ -613,10 +578,6 @@ sqlparse==0.5.5
     # via mlflow-skinny
 starlette==1.0.0
     # via fastapi
-sympy==1.14.0
-    # via
-    #   torch
-    #   training-hub
 tensorboard==2.20.0
     # via th06-cuda-universal-image (pyproject.toml)
 tensorboard-data-server==0.7.2
@@ -667,29 +628,6 @@ typer==0.24.1
     # via
     #   th06-cuda-universal-image (pyproject.toml)
     #   rhai-innovation-mini-trainer
-typing-extensions==4.15.0
-    # via
-    #   aiosignal
-    #   alembic
-    #   anyio
-    #   fastapi
-    #   graphene
-    #   grpcio
-    #   huggingface-hub
-    #   mlflow-skinny
-    #   model-registry
-    #   opentelemetry-api
-    #   opentelemetry-sdk
-    #   opentelemetry-semantic-conventions
-    #   pydantic
-    #   pydantic-core
-    #   sqlalchemy
-    #   starlette
-    #   torch
-    #   typeguard
-    #   typing-inspection
-    #   tyro
-    #   unsloth-zoo
 typing-inspection==0.4.2
     # via
     #   fastapi

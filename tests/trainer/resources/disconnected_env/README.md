@@ -209,7 +209,7 @@ The prestage script creates this structure:
 │   └── train/
 │       └── train_All_100.jsonl
 └── wheels/
-    └── kubeflow-0.3.0+rhaiv.1-py3-none-any.whl  # See Step 3
+    └── kubeflow-0.3.0+rhaiv.2-py3-none-any.whl  # See Step 3
 ```
 
 ---
@@ -224,12 +224,12 @@ The RHAI features require a specific version of the Kubeflow SDK that may not be
 # Clone and build the wheel
 git clone https://github.com/opendatahub-io/kubeflow-sdk.git
 cd kubeflow-sdk
-git checkout v0.3.0+rhaiv.1
+git checkout v0.3.0+rhaiv.2
 pip install build
 python -m build --wheel
 
 # Or download pre-built wheel
-pip download "kubeflow @ git+https://github.com/opendatahub-io/kubeflow-sdk.git@v0.3.0+rhaiv.1" \
+pip download "kubeflow @ git+https://github.com/opendatahub-io/kubeflow-sdk.git@v0.3.0+rhaiv.2" \
   --no-deps -d /tmp/wheels
 ```
 
@@ -237,7 +237,7 @@ pip download "kubeflow @ git+https://github.com/opendatahub-io/kubeflow-sdk.git@
 
 ```bash
 # Upload wheel to S3
-mc cp kubeflow-0.3.0+rhaiv.1-py3-none-any.whl myminio/<bucket>/wheels/
+mc cp kubeflow-0.3.0+rhaiv.2-py3-none-any.whl myminio/<bucket>/wheels/
 ```
 
 ### 3.3 (Alternative) Upload to PyPI Mirror
@@ -246,7 +246,7 @@ If you have a PyPI mirror (Nexus, DevPI):
 
 ```bash
 twine upload --repository-url https://<pypi-mirror>/repository/pypi/ \
-  dist/kubeflow-0.3.0+rhaiv.1-py3-none-any.whl
+  dist/kubeflow-0.3.0+rhaiv.2-py3-none-any.whl
 ```
 
 ---
@@ -289,8 +289,8 @@ export AWS_STORAGE_BUCKET_LORA_DIR="lora-data"    # LoRA test
 export AWS_STORAGE_BUCKET_SFT_DIR="sft-data"      # SFT test
 
 # Kubeflow wheel S3 path (default shown)
-export KUBEFLOW_WHEEL_S3_KEY="wheels/kubeflow-0.3.0+rhaiv.1-8-py3-none-any.whl"
-export KUBEFLOW_REQUIRED_VERSION="0.3.0+rhaiv.1"
+export KUBEFLOW_WHEEL_S3_KEY="wheels/kubeflow-0.3.0+rhaiv.2-8-py3-none-any.whl"
+export KUBEFLOW_REQUIRED_VERSION="0.3.0+rhaiv.2"
 
 # SSL verification (set to "false" for self-signed certs on S3)
 export VERIFY_SSL="false"
@@ -389,7 +389,7 @@ ModuleNotFoundError: No module named 'kubeflow.trainer'
 **Fix:** 
 1. Upload correct wheel to S3:
    ```bash
-   mc cp kubeflow-0.3.0+rhaiv.1-py3-none-any.whl myminio/<bucket>/wheels/
+   mc cp kubeflow-0.3.0+rhaiv.2-py3-none-any.whl myminio/<bucket>/wheels/
    ```
 2. Verify `KUBEFLOW_WHEEL_S3_KEY` points to correct path
 

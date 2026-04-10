@@ -109,8 +109,7 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		shellQuote(support.GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(rwxPvc.Name),
 		shellQuote(endpoint), shellQuote(accessKey), shellQuote(secretKey), shellQuote(bucket), shellQuote(prefix),
-		// TODO: change to DefaultClusterTrainingRuntimeCPU for EA2 RC2 and later
-		shellQuote(trainerutils.DefaultClusterTrainingRuntimeCUDA),
+		shellQuote(trainerutils.DefaultClusterTrainingRuntimeCPU),
 		sdkInstallExports,
 		installKubeflowScript,
 		notebookName,
@@ -241,8 +240,7 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		shellQuote(support.GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(rwxPvc.Name),
 		shellQuote(endpoint), shellQuote(accessKey), shellQuote(secretKey), shellQuote(bucket), shellQuote(prefix),
-		// TODO: change to DefaultClusterTrainingRuntimeCPU for EA2 RC2 and later
-		shellQuote(trainerutils.DefaultClusterTrainingRuntimeCUDA),
+		shellQuote(trainerutils.DefaultClusterTrainingRuntimeCPU),
 		shellQuote(customLocalQueue.Name),
 		sdkInstallExports,
 		installKubeflowScript,

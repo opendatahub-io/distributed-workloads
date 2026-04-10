@@ -156,7 +156,9 @@ func TestRhaiFeaturesMultiGpuRocm(t *testing.T) {
 	sdktests.RunRhaiFeaturesAllMultiGpuTest(t, support.AMD, 2, 2)
 }
 
-// Training Failure Scenarios (CPU only) — verifies failures are properly propagated
+// Training Failure Scenarios — verifies failures are properly propagated
+// Requires CUDA: LORA scenario uses Unsloth which fails at import without CUDA,
+// producing a different error than the expected "No config file found".
 func TestTrainingFailureScenarios(t *testing.T) {
 	Tags(t, KftoCuda, Gpu(support.NVIDIA))
 	sdktests.RunTrainingFailureScenariosTest(t)
