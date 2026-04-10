@@ -1,0 +1,74 @@
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: ClusterTrainingRuntime
+metadata:
+  name: mpi
+spec:
+  mlPolicy:
+    mpi:
+      mpiImplementation: OpenMPI
+      sshAuthMountPath: /tmp/ssh
+  template:
+    spec:
+      replicatedJobs:
+        - name: launcher
+          replicas: 1
+          template:
+            spec:
+              template:
+                spec:
+                  containers:
+                    - name: mpi-container
+                      image: quay.io/modh/distributed-workloads-benchmark:trainer-mpi-osu-latest
+                      command:
+                        - /bin/bash
+                        - -c
+                        - >-
+                          export HOME=/tmp &&
+                          grep -qE "^[^:]*:[^:]*:$(id -u):" /etc/passwd ||
+                          echo "mpiuser:x:$(id -u):0:mpiuser:/tmp:/bin/sh" >> /etc/passwd &&
+                          mkdir -p /tmp/.ssh &&
+                          cp /tmp/ssh/id_rsa /tmp/.ssh/ &&
+                          cp /tmp/ssh/config /tmp/.ssh/ &&
+                          chmod 600 /tmp/.ssh/id_rsa &&
+                          W0=osu-benchmark-test-worker-0-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local &&
+                          W1=osu-benchmark-test-worker-1-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local &&
+                          echo "$W0 slots=1" > /tmp/hostfile &&
+                          echo "$W1 slots=1" >> /tmp/hostfile &&
+                          echo "Waiting for workers...";
+                          sleep 15;
+                          MPI_SSH="ssh -p 2222 -i /tmp/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" &&
+                          MPIARGS="--allow-run-as-root -np 2 -hostfile /tmp/hostfile --prefix /usr/lib64/openmpi -mca orte_keep_fqdn_hostnames 1 -mca plm_rsh_agent \"$MPI_SSH\" -mca pml ob1 -mca btl tcp,self -x LD_LIBRARY_PATH=/usr/lib64/openmpi/lib" &&
+                          echo "=== POINT-TO-POINT BENCHMARKS (INTER-NODE) ===" &&
+                          echo "--- LATENCY ---" && eval mpirun $MPIARGS ./pt2pt/osu_latency &&
+                          echo "--- BANDWIDTH ---" && eval mpirun $MPIARGS ./pt2pt/osu_bw &&
+                          echo "--- BIDIRECTIONAL BANDWIDTH ---" && eval mpirun $MPIARGS ./pt2pt/osu_bibw &&
+                          echo "=== COLLECTIVE BENCHMARKS (INTER-NODE) ===" &&
+                          echo "--- ALLREDUCE ---" && eval mpirun $MPIARGS ./collective/osu_allreduce &&
+                          echo "--- ALLGATHER ---" && eval mpirun $MPIARGS ./collective/osu_allgather &&
+                          echo "--- ALLTOALL ---" && eval mpirun $MPIARGS ./collective/osu_alltoall &&
+                          echo "--- BROADCAST ---" && eval mpirun $MPIARGS ./collective/osu_bcast &&
+                          echo "--- REDUCE ---" && eval mpirun $MPIARGS ./collective/osu_reduce &&
+                          echo "--- BARRIER ---" && eval mpirun $MPIARGS ./collective/osu_barrier &&
+                          echo "=== ALL INTER-NODE BENCHMARKS COMPLETE ==="
+        - name: worker
+          replicas: 2
+          template:
+            spec:
+              template:
+                spec:
+                  containers:
+                    - name: mpi-container
+                      image: quay.io/modh/distributed-workloads-benchmark:trainer-mpi-osu-latest
+                      command:
+                        - /bin/bash
+                        - -c
+                        - >-
+                          export HOME=/tmp &&
+                          grep -qE "^[^:]*:[^:]*:$(id -u):" /etc/passwd ||
+                          echo "mpiuser:x:$(id -u):0:mpiuser:/tmp:/bin/sh" >> /etc/passwd &&
+                          mkdir -p /tmp/.ssh /tmp/hostkeys &&
+                          cp /tmp/ssh/authorized_keys /tmp/.ssh/ &&
+                          ssh-keygen -t rsa -f /tmp/hostkeys/ssh_host_rsa_key -N "" -q &&
+                          ssh-keygen -t ecdsa -f /tmp/hostkeys/ssh_host_ecdsa_key -N "" -q &&
+                          ssh-keygen -t ed25519 -f /tmp/hostkeys/ssh_host_ed25519_key -N "" -q &&
+                          /usr/sbin/sshd -D -f /tmp/sshd_config
