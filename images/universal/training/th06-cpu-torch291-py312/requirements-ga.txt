@@ -485,8 +485,30 @@ sentencepiece==0.2.1
     #   th06-cpu-universal-image (pyproject.toml)
     #   unsloth
     #   unsloth-zoo
+scikit-learn==1.8.0
+    # via
+    #   mlflow
+    #   skops
+scipy==1.17.1
+    # via
+    #   mlflow
+    #   scikit-learn
+    #   skops
+setuptools==80.10.2
+    # via
+    #   tensorboard
+    #   torch
+    #   training-hub
+shellingham==1.5.4
+    # via typer
 simpleeval==1.0.7
     # via th06-cpu-universal-image (pyproject.toml)
+six==1.17.0
+    # via
+    #   kubernetes
+    #   python-dateutil
+skops==0.13.0
+    # via mlflow
 smmap==5.0.3
     # via gitdb
 sqlalchemy==2.0.48
