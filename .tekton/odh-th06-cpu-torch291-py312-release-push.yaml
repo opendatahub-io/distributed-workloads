@@ -9,8 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "3.4-GA" && ( "images/universal/training/th06-cpu-torch291-py312/***".pathChanged()
-      || ".tekton/odh-th06-cpu-torch291-py312-push.yaml".pathChanged() )
+      == "3.4-GA"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
