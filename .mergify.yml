@@ -1,0 +1,24 @@
+pull_request_rules:
+  - name: Auto-approve lake-gate PRs
+    conditions:
+      - base=stable
+      - label=lake-gate
+      - -draft
+      - -closed
+      - author=github-actions[bot]
+      - check-success~=^Red Hat Konflux.*
+    actions:
+      review:
+        type: APPROVE
+  - name: Auto-merge lake-gate PRs to stable
+    conditions:
+      - base=stable
+      - label=lake-gate
+      - -draft
+      - -closed
+      - author=github-actions[bot]
+      - check-success~=^Red Hat Konflux.*
+      - "#approved-reviews-by>=1"
+    actions:
+      merge:
+        method: fast-forward
