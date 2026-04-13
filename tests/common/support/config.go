@@ -92,3 +92,27 @@ func GetExpectedRegistry(test Test) string {
 	prefix := GetExpectedImagePrefix(test)
 	return strings.SplitN(prefix, "/", 2)[0]
 }
+
+// GetRhoaiOperatorRelatedImage reads a RELATED_IMAGE_* environment variable from the
+// rhods-operator pod. Returns the image value and true if found, empty string and false otherwise.
+func GetRhoaiOperatorRelatedImage(test Test, envVarName string) (string, bool) {
+	test.T().Helper()
+
+	pods := GetPods(test, "redhat-ods-operator", metav1.ListOptions{
+		FieldSelector: "status.phase=Running",
+	})
+
+	for _, pod := range pods {
+		if strings.HasPrefix(pod.Name, "rhods-operator-") {
+			for _, container := range pod.Spec.Containers {
+				for _, env := range container.Env {
+					if env.Name == envVarName {
+						return env.Value, true
+					}
+				}
+			}
+		}
+	}
+
+	return "", false
+}

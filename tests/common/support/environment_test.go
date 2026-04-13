@@ -60,7 +60,8 @@ func TestGetTrainingImage(t *testing.T) {
 	os.Setenv(TestTrainingCudaPyTorch251Image, "training/training:latest")
 
 	// Get the image.
-	image := GetTrainingCudaPyTorch251Image()
+	test := With(t)
+	image := GetTrainingCudaPyTorch251Image(test)
 	// Assert that the image is correct.
 
 	g.Expect(image).To(gomega.Equal("training/training:latest"), "Expected image training/training:latest, but got %s", image)
