@@ -17,26 +17,29 @@ import (
 
 func TestPyTorchJobFailureWithCudaPyTorch241(t *testing.T) {
 	Tags(t, Tier1)
-	runFailedPyTorchJobTest(t, GetTrainingCudaPyTorch241Image())
+	test := With(t)
+	runFailedPyTorchJobTest(test, GetTrainingCudaPyTorch241Image(test))
 }
 
 func TestPyTorchJobFailureWithCudaPyTorch251(t *testing.T) {
 	Tags(t, Tier1)
-	runFailedPyTorchJobTest(t, GetTrainingCudaPyTorch251Image())
+	test := With(t)
+	runFailedPyTorchJobTest(test, GetTrainingCudaPyTorch251Image(test))
 }
 
 func TestPyTorchJobFailureWithROCmPyTorch241(t *testing.T) {
 	Tags(t, Tier1)
-	runFailedPyTorchJobTest(t, GetTrainingROCmPyTorch241Image())
+	test := With(t)
+	runFailedPyTorchJobTest(test, GetTrainingROCmPyTorch241Image(test))
 }
 
 func TestPyTorchJobFailureWithROCmPyTorch251(t *testing.T) {
 	Tags(t, Tier1)
-	runFailedPyTorchJobTest(t, GetTrainingROCmPyTorch251Image())
+	test := With(t)
+	runFailedPyTorchJobTest(test, GetTrainingROCmPyTorch251Image(test))
 }
 
-func runFailedPyTorchJobTest(t *testing.T, image string) {
-	test := With(t)
+func runFailedPyTorchJobTest(test Test, image string) {
 
 	SetupKueue(test, initialKueueState, PyTorchJobFramework)
 

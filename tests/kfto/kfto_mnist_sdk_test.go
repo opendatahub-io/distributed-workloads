@@ -37,21 +37,23 @@ import (
 
 func TestMnistSDKPyTorch241(t *testing.T) {
 	Tags(t, Tier1)
-	runMnistSDK(t, GetTrainingCudaPyTorch241Image())
+	test := With(t)
+	runMnistSDK(test, GetTrainingCudaPyTorch241Image(test))
 }
 
 func TestMnistSDKPyTorch251(t *testing.T) {
 	Tags(t, Tier1)
-	runMnistSDK(t, GetTrainingCudaPyTorch251Image())
+	test := With(t)
+	runMnistSDK(test, GetTrainingCudaPyTorch251Image(test))
 }
 
 func TestMnistSDKPyTorch28(t *testing.T) {
 	Tags(t, Tier1)
-	runMnistSDK(t, GetTrainingCudaPyTorch28Image())
+	test := With(t)
+	runMnistSDK(test, GetTrainingCudaPyTorch28Image(test))
 }
 
-func runMnistSDK(t *testing.T, trainingImage string) {
-	test := With(t)
+func runMnistSDK(test Test, trainingImage string) {
 
 	SetupKueue(test, initialKueueState, PyTorchJobFramework)
 

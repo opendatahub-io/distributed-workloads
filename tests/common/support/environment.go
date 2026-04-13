@@ -96,28 +96,43 @@ func GetRayTorchROCmImage() string {
 	return lookupEnvOrDefault(TestRayImage, RayTorchROCmImage)
 }
 
-func GetTrainingCudaPyTorch241Image() string {
-	return lookupEnvOrDefault(TestTrainingCudaPyTorch241Image, TrainingCudaPyTorch241Image)
+func GetTrainingCudaPyTorch241Image(test Test) string {
+	return lookupTrainingImage(test, TestTrainingCudaPyTorch241Image, RelatedImageTrainingCudaPyTorch241, TrainingCudaPyTorch241Image)
 }
 
-func GetTrainingCudaPyTorch251Image() string {
-	return lookupEnvOrDefault(TestTrainingCudaPyTorch251Image, TrainingCudaPyTorch251Image)
+func GetTrainingCudaPyTorch251Image(test Test) string {
+	return lookupTrainingImage(test, TestTrainingCudaPyTorch251Image, RelatedImageTrainingCudaPyTorch251, TrainingCudaPyTorch251Image)
 }
 
-func GetTrainingCudaPyTorch28Image() string {
-	return lookupEnvOrDefault(TestTrainingCudaPyTorch28Image, TrainingCudaPyTorch28Image)
+func GetTrainingCudaPyTorch28Image(test Test) string {
+	return lookupTrainingImage(test, TestTrainingCudaPyTorch28Image, RelatedImageTrainingCudaPyTorch28, TrainingCudaPyTorch28Image)
 }
 
-func GetTrainingROCmPyTorch241Image() string {
-	return lookupEnvOrDefault(TestTrainingRocmPyTorch241Image, TrainingRocmPyTorch241Image)
+func GetTrainingROCmPyTorch241Image(test Test) string {
+	return lookupTrainingImage(test, TestTrainingRocmPyTorch241Image, RelatedImageTrainingRocmPyTorch241, TrainingRocmPyTorch241Image)
 }
 
-func GetTrainingROCmPyTorch251Image() string {
-	return lookupEnvOrDefault(TestTrainingRocmPyTorch251Image, TrainingRocmPyTorch251Image)
+func GetTrainingROCmPyTorch251Image(test Test) string {
+	return lookupTrainingImage(test, TestTrainingRocmPyTorch251Image, RelatedImageTrainingRocmPyTorch251, TrainingRocmPyTorch251Image)
 }
 
-func GetTrainingRocmPyTorch28Image() string {
-	return lookupEnvOrDefault(TestTrainingRocmPyTorch28Image, TrainingRocmPyTorch28Image)
+func GetTrainingRocmPyTorch28Image(test Test) string {
+	return lookupTrainingImage(test, TestTrainingRocmPyTorch28Image, RelatedImageTrainingRocmPyTorch28, TrainingRocmPyTorch28Image)
+}
+
+// lookupTrainingImage resolves a training image using three-level priority:
+// 1. Local env var (TEST_TRAINING_*_IMAGE)
+// 2. RHOAI operator pod RELATED_IMAGE env var
+// 3. Hardcoded default
+func lookupTrainingImage(test Test, envVar, relatedImageEnvVar, defaultImage string) string {
+	if v, ok := os.LookupEnv(envVar); ok {
+		return v
+	}
+	if v, ok := GetRhoaiOperatorRelatedImage(test, relatedImageEnvVar); ok {
+		test.T().Logf("Using operator RELATED_IMAGE %s: %s", relatedImageEnvVar, v)
+		return v
+	}
+	return defaultImage
 }
 
 func GetClusterType(t Test) ClusterType {
