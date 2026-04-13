@@ -206,19 +206,17 @@ jobs:
         **Latest commit:** $LATEST_COMMIT_SHORT - ${{ steps.check-diff.outputs.latest_commit_msg }}
         **Total commits to sync:** $COMMIT_COUNT
 
-        ## ⚠️ IMPORTANT: How to Merge
+        ## Merging
 
         **🚫 DO NOT use the GitHub merge button!**
 
-        Once all checks are complete, comment **\`/approve\`** on this PR to automatically fast-forward merge the stable branch to point to the same commit as this temporary branch.
-
-        **Only use the \`/approve\` command - the GitHub merge button will not work correctly for this automated sync process.**
+        Mergify will automatically approve and fast-forward merge this PR into the \`stable\` branch once all Konflux checks pass.
 
         ## Pre-merge Checklist
 
-        Before approving this PR, please ensure the following tasks are completed:
+        Before this PR is merged, please ensure the following tasks are completed:
 
-        - [ ] **PR checks**: PR checks passed
+        - [ ] **PR checks**: All Konflux checks passed
         EOF
         )
         
