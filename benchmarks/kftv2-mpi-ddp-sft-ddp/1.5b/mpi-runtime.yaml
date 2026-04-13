@@ -1,0 +1,72 @@
+# ClusterTrainingRuntime for MPI + CUDA (OpenMPI with AIPCC)
+#
+# Deploy:
+#   oc apply -f mpi-runtime.yaml
+---
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: ClusterTrainingRuntime
+metadata:
+  name: mpi-cuda-openmpi-benchmark
+  labels:
+    trainer.kubeflow.org/framework: openmpi
+spec:
+  mlPolicy:
+    mpi:
+      mpiImplementation: OpenMPI
+      numProcPerNode: 1
+      runLauncherAsNode: true
+      sshAuthMountPath: /home/mpiuser/.ssh
+    numNodes: 1
+  template:
+    spec:
+      network:
+        publishNotReadyAddresses: true
+      replicatedJobs:
+      - groupName: default
+        name: launcher
+        replicas: 1
+        template:
+          metadata:
+            labels:
+              trainer.kubeflow.org/trainjob-ancestor-step: trainer
+          spec:
+            template:
+              spec:
+                containers:
+                - image: quay.io/ksuta/odh-mpi-cuda:0.0.14
+                  name: node
+                  resources:
+                    limits:
+                      nvidia.com/gpu: "1"
+                    requests:
+                      nvidia.com/gpu: "1"
+      - groupName: default
+        name: node
+        replicas: 1
+        template:
+          spec:
+            template:
+              spec:
+                containers:
+                - args:
+                  - -De
+                  - -f
+                  - /home/mpiuser/.sshd_config
+                  command:
+                  - /usr/local/bin/uid_entrypoint.sh
+                  - /usr/sbin/sshd
+                  image: quay.io/ksuta/odh-mpi-cuda:0.0.14
+                  name: node
+                  readinessProbe:
+                    initialDelaySeconds: 3
+                    tcpSocket:
+                      port: 2222
+                  resources:
+                    limits:
+                      nvidia.com/gpu: "1"
+                    requests:
+                      nvidia.com/gpu: "1"
+      successPolicy:
+        operator: All
+        targetReplicatedJobs:
+        - launcher
