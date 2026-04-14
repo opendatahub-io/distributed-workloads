@@ -1,7 +1,7 @@
 # The training base image is built from images/runtime/training/py312-cuda130-torch29-openmpi41/.
 # It provides CUDA 13.0, OpenMPI 4.1.6 with CUDA+UCX support, and SSH infrastructure.
 # Override at build time: podman build --build-arg TRAINING_BASE_IMAGE=<image> ...
-ARG TRAINING_BASE_IMAGE=quay.io/opendatahub/odh-training-cuda130-torch29-openmpi41-py312:latest
+ARG TRAINING_BASE_IMAGE=quay.io/ksuta/odh-mpi-cuda:0.0.14
 FROM ${TRAINING_BASE_IMAGE}
 
 ARG OSU_VERSION=7.4
