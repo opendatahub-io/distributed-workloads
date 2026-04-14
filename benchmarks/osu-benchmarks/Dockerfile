@@ -44,8 +44,7 @@ USER 0
 RUN dnf install -y openssh-server openssh-clients \
     && dnf clean all
 
-LABEL maintainer="srpillai" \
-      summary="OSU MPI Benchmarks on OpenMPI (OpenShift-compatible)" \
+LABEL summary="OSU MPI Benchmarks on OpenMPI (OpenShift-compatible)" \
       description="OSU MPI Benchmarks on OpenMPI 4.1 for CPU-only MPI Benchmarking" \
       io.k8s.display-name="OSU MPI Benchmarks on OpenMPI 4.1 base image" \
       io.k8s.description="OSU MPI Benchmarks on OpenMPI 4.1 for CPU-only MPI Benchmarking" \
