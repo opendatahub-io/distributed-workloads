@@ -125,6 +125,7 @@ func GetTrainingRocmPyTorch28Image(test Test) string {
 // 2. RHOAI operator pod RELATED_IMAGE env var
 // 3. Hardcoded default
 func lookupTrainingImage(test Test, envVar, relatedImageEnvVar, defaultImage string) string {
+	test.T().Helper()
 	if v, ok := os.LookupEnv(envVar); ok {
 		return v
 	}
@@ -132,6 +133,7 @@ func lookupTrainingImage(test Test, envVar, relatedImageEnvVar, defaultImage str
 		test.T().Logf("Using operator RELATED_IMAGE %s: %s", relatedImageEnvVar, v)
 		return v
 	}
+	test.T().Logf("Operator RELATED_IMAGE %s not found, using default: %s", relatedImageEnvVar, defaultImage)
 	return defaultImage
 }
 
