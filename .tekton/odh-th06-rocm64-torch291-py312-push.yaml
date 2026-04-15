@@ -9,7 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "stable" && ( "images/universal/training/th06-rocm64-torch291-py312/***".pathChanged()
+      == "main" && ( "images/universal/training/th06-rocm64-torch291-py312/***".pathChanged()
       || ".tekton/odh-th06-rocm64-torch291-py312-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
