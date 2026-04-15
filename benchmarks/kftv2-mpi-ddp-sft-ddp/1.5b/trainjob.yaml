@@ -1,0 +1,72 @@
+# MPI DDP SFT Benchmark — Qwen 2.5 1.5B + GSM8K
+#
+# Distributed SFT using PyTorch DDP with MPI as the communications backend.
+---
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainJob
+metadata:
+  generateName: mpi-ddp-sft-
+  namespace: kftv2-mpi-ddp-sft
+spec:
+  runtimeRef:
+    apiGroup: trainer.kubeflow.org
+    kind: ClusterTrainingRuntime
+    name: mpi-cuda-openmpi-benchmark
+  trainer:
+    command:
+    - /usr/local/bin/uid_entrypoint.sh
+    - mpirun
+    - python
+    - /mnt/scripts/train_sft_ddp.py
+    numNodes: 2
+    resourcesPerNode:
+      limits:
+        nvidia.com/gpu: "2"
+        memory: 40Gi
+        cpu: "8"
+      requests:
+        nvidia.com/gpu: "2"
+        memory: 40Gi
+        cpu: "8"
+    env:
+    - name: BENCH_MODEL
+      value: "Qwen/Qwen2.5-1.5B-Instruct"
+    - name: BENCH_DATASET
+      value: "openai/gsm8k"
+    - name: BENCH_DATASET_CONFIG
+      value: "main"
+    - name: BENCH_MAX_STEPS
+      value: "200"
+    - name: BENCH_BATCH_SIZE
+      value: "2"
+    - name: BENCH_MAX_SEQ_LENGTH
+      value: "512"
+    - name: BENCH_LEARNING_RATE
+      value: "2e-5"
+    - name: BENCH_LOG_FREQ
+      value: "1"
+    - name: BENCH_WARMUP_STEPS
+      value: "5"
+    - name: BENCH_GRAD_ACCUM
+      value: "1"
+  podTemplateOverrides:
+  - targetJobs:
+    - name: launcher
+    - name: node
+    spec:
+      containers:
+      - name: node
+        volumeMounts:
+        - mountPath: /mnt/scripts
+          name: scripts
+          readOnly: true
+        - mountPath: /dev/shm
+          name: dshm
+      volumes:
+      - name: scripts
+        configMap:
+          name: mpi-ddp-sft-scripts
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 16Gi
