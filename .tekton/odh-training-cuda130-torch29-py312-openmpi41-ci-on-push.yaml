@@ -1,6 +1,5 @@
 apiVersion: tekton.dev/v1
 kind: PipelineRun
-#
 metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/distributed-workloads?rev={{revision}}
@@ -8,15 +7,17 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main" && ( "images/universal/training/th06-cpu-torch291-py312/***".pathChanged()
-      || ".tekton/odh-th06-cpu-torch291-py312-push.yaml".pathChanged() )
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push"
+      && target_branch == "main"
+      && ( "images/runtime/training/py312-cuda130-torch29-openmpi41".pathChanged()
+            || ".tekton/odh-training-cuda130-torch29-py312-openmpi41-ci-on-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
-    appstudio.openshift.io/component: odh-th06-cpu-torch291-py312-ci
+    appstudio.openshift.io/component: odh-training-cuda130-torch29-py312-openmpi41-ci
     pipelines.appstudio.openshift.io/type: build
-  name: odh-th06-cpu-torch291-py312-ci-on-push
+  name: odh-training-cuda130-torch29-py312-openmpi41-ci-on-push
   namespace: open-data-hub-tenant
 spec:
   params:
@@ -25,11 +26,11 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-th06-cpu-torch291-py312:odh-stable
+    value: quay.io/opendatahub/quay.io/opendatahub/odh-training-cuda130-torch29-py312-openmpi41:odh-stable
   - name: dockerfile
-    value: Dockerfile
+    value: images/runtime/training/py312-cuda130-torch29-openmpi41/Dockerfile
   - name: path-context
-    value: images/universal/training/th06-cpu-torch291-py312
+    value: .
   pipelineRef:
     resolver: git
     params:
@@ -40,7 +41,7 @@ spec:
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-th06-cpu-torch291-py312-ci
+    serviceAccountName: build-pipeline-odh-training-cuda130-torch29-py312-openmpi41-ci
   workspaces:
   - name: git-auth
     secret:
