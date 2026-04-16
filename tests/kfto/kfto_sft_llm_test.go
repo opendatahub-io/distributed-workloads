@@ -40,16 +40,17 @@ import (
 
 func TestKftoSftLlmLlama3_1_8BInstructWithCudaPyTorch251(t *testing.T) {
 	Tags(t, ExamplesCuda)
-	kftoSftLlm(t, GetTrainingCudaPyTorch251Image(), NVIDIA, "meta-llama/Llama-3.1-8B-Instruct")
+	test := With(t)
+	kftoSftLlm(test, GetTrainingCudaPyTorch251Image(test), NVIDIA, "meta-llama/Llama-3.1-8B-Instruct")
 }
 
 func TestKftoSftLlmLlama3_1_8BInstructWithROCmPyTorch251(t *testing.T) {
 	Tags(t, ExamplesRocm)
-	kftoSftLlm(t, GetTrainingROCmPyTorch251Image(), AMD, "meta-llama/Llama-3.1-8B-Instruct")
+	test := With(t)
+	kftoSftLlm(test, GetTrainingROCmPyTorch251Image(test), AMD, "meta-llama/Llama-3.1-8B-Instruct")
 }
 
-func kftoSftLlm(t *testing.T, image string, gpu Accelerator, modelName string) {
-	test := With(t)
+func kftoSftLlm(test Test, image string, gpu Accelerator, modelName string) {
 
 	SetupKueue(test, initialKueueState, PyTorchJobFramework)
 
@@ -150,7 +151,6 @@ func kftoSftLlm(t *testing.T, image string, gpu Accelerator, modelName string) {
 	}
 
 	for oldValue, newValue := range requiredChangesInNotebook {
-		t.Logf("Replacing '%s' with '%s'", oldValue, newValue)
 		updatedNotebookContent = strings.Replace(updatedNotebookContent, oldValue, newValue, -1)
 	}
 
@@ -257,8 +257,8 @@ func kftoSftLlm(t *testing.T, image string, gpu Accelerator, modelName string) {
 	pretrainedOutput := readFileFromPod(pretrainedPath)
 	finetunedOutput := readFileFromPod(finetunedPath)
 
-	t.Logf("Pretrained Output:\n%s", pretrainedOutput)
-	t.Logf("Finetuned Output:\n%s", finetunedOutput)
+	test.T().Logf("Pretrained Output:\n%s", pretrainedOutput)
+	test.T().Logf("Finetuned Output:\n%s", finetunedOutput)
 
 	// Basic validation: outputs must differ
 	test.Expect(pretrainedOutput).ToNot(Equal(finetunedOutput), "Expected outputs to differ between pretrained and fine-tuned model")
@@ -271,13 +271,13 @@ func kftoSftLlm(t *testing.T, image string, gpu Accelerator, modelName string) {
 	test.Expect(preFinal).To(Equal(18), "Pretrained model should return 18 as final numeric answer")
 	test.Expect(fineFinal).To(Equal(18), "Finetuned model should return 18 as final numeric answer")
 
-	t.Logf("Final numeric answers match: %d", preFinal)
+	test.T().Logf("Final numeric answers match: %d", preFinal)
 
 	// Check math reasoning style in finetuned output
 	if hasMathReasoningFormat(finetunedOutput) {
-		t.Log("Finetuned model uses inline math reasoning (<<...>>)")
+		test.T().Log("Finetuned model uses inline math reasoning (<<...>>)")
 	} else {
-		t.Log("Finetuned model does NOT use inline math reasoning format")
+		test.T().Log("Finetuned model does NOT use inline math reasoning format")
 	}
 }
 

@@ -1,0 +1,102 @@
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: ClusterTrainingRuntime
+metadata:
+  name: mpi-gpu
+spec:
+  mlPolicy:
+    mpi:
+      mpiImplementation: OpenMPI
+      numProcPerNode: 1
+      runLauncherAsNode: false
+      sshAuthMountPath: /tmp/ssh
+  template:
+    spec:
+      replicatedJobs:
+        - name: launcher
+          replicas: 1
+          template:
+            spec:
+              template:
+                spec:
+                  containers:
+                    - name: mpi-container
+                      image: quay.io/modh/distributed-workloads-benchmark:trainer-mpi-osu-cuda-latest
+                      resources:
+                        limits:
+                          nvidia.com/gpu: "1"
+                      volumeMounts:
+                        - name: mpi-ssh-auth
+                          mountPath: /tmp/ssh
+                      command:
+                        - /usr/local/bin/uid_entrypoint.sh
+                        - /bin/bash
+                        - -c
+                        - >-
+                          export HOME=/tmp &&
+                          mkdir -p /tmp/.ssh &&
+                          cp /tmp/ssh/id_rsa /tmp/.ssh/ &&
+                          cp /tmp/ssh/config /tmp/.ssh/ 2>/dev/null || true &&
+                          chmod 600 /tmp/.ssh/id_rsa &&
+                          W0=osu-benchmark-gpu-worker-0-0.osu-benchmark-gpu.mpi-benchmarks.svc.cluster.local &&
+                          W1=osu-benchmark-gpu-worker-1-0.osu-benchmark-gpu.mpi-benchmarks.svc.cluster.local &&
+                          echo "$W0 slots=1" > /tmp/hostfile &&
+                          echo "$W1 slots=1" >> /tmp/hostfile &&
+                          echo "Waiting for workers..." &&
+                          for host in "$W0" "$W1"; do
+                          ready=0; for i in $(seq 1 60); do
+                          if ssh -o ConnectTimeout=2 -o BatchMode=yes -i /tmp/.ssh/id_rsa "$host" true 2>/dev/null; then ready=1; break; fi;
+                          echo "  waiting for $host ($i/60)..."; sleep 2; done;
+                          [ "$ready" -eq 1 ] || { echo "FATAL: $host not reachable after 120s"; exit 1; }; done;
+                          MPIARGS="--allow-run-as-root -np 2 -hostfile /tmp/hostfile --prefix /usr/lib64/openmpi -mca orte_keep_fqdn_hostnames 1 -mca plm_rsh_agent 'ssh -i /tmp/.ssh/id_rsa' -x LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/usr/local/cuda/lib64 -x CUDA_VISIBLE_DEVICES" &&
+                          echo "=== GPU-DIRECT BENCHMARKS (Device-to-Device) ===" &&
+                          echo "--- GPU LATENCY (D D) ---" && eval mpirun $MPIARGS ./pt2pt/osu_latency -d cuda D D &&
+                          echo "--- GPU BANDWIDTH (D D) ---" && eval mpirun $MPIARGS ./pt2pt/osu_bw -d cuda D D &&
+                          echo "--- GPU BIDIRECTIONAL BANDWIDTH (D D) ---" && eval mpirun $MPIARGS ./pt2pt/osu_bibw -d cuda D D &&
+                          echo "--- GPU ALLREDUCE (D D) ---" && eval mpirun $MPIARGS ./collective/osu_allreduce -d cuda D D &&
+                          echo "=== ALL GPU-DIRECT BENCHMARKS COMPLETE ==="
+                  volumes:
+                    - name: mpi-ssh-auth
+                      secret:
+                        secretName: osu-benchmark-gpu-mpi-ssh-auth
+                        defaultMode: 384
+                        items:
+                          - key: ssh-privatekey
+                            path: id_rsa
+                          - key: ssh-publickey
+                            path: authorized_keys
+        - name: worker
+          replicas: 2
+          template:
+            spec:
+              template:
+                spec:
+                  containers:
+                    - name: mpi-container
+                      image: quay.io/modh/distributed-workloads-benchmark:trainer-mpi-osu-cuda-latest
+                      resources:
+                        limits:
+                          nvidia.com/gpu: "1"
+                      command:
+                        - /usr/local/bin/uid_entrypoint.sh
+                        - /bin/bash
+                        - -c
+                        - >-
+                          export HOME=/tmp &&
+                          mkdir -p /tmp/.ssh /tmp/hostkeys &&
+                          cp /tmp/ssh/authorized_keys /tmp/.ssh/ &&
+                          ssh-keygen -t rsa -f /tmp/hostkeys/ssh_host_rsa_key -N "" -q &&
+                          ssh-keygen -t ecdsa -f /tmp/hostkeys/ssh_host_ecdsa_key -N "" -q &&
+                          ssh-keygen -t ed25519 -f /tmp/hostkeys/ssh_host_ed25519_key -N "" -q &&
+                          printf 'Port 2222\nPidFile /tmp/sshd.pid\nStrictModes no\nHostKey /tmp/hostkeys/ssh_host_rsa_key\nHostKey /tmp/hostkeys/ssh_host_ecdsa_key\nHostKey /tmp/hostkeys/ssh_host_ed25519_key\nAuthorizedKeysFile /tmp/ssh/authorized_keys\nAcceptEnv PATH LD_LIBRARY_PATH CUDA_VISIBLE_DEVICES\n' > /tmp/sshd_config &&
+                          /usr/sbin/sshd -D -f /tmp/sshd_config
+                      volumeMounts:
+                        - name: mpi-ssh-auth
+                          mountPath: /tmp/ssh
+                  volumes:
+                    - name: mpi-ssh-auth
+                      secret:
+                        secretName: osu-benchmark-gpu-mpi-ssh-auth
+                        defaultMode: 384
+                        items:
+                          - key: ssh-publickey
+                            path: authorized_keys

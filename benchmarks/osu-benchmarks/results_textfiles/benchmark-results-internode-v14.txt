@@ -1,0 +1,238 @@
+Waiting for workers...
+=== POINT-TO-POINT BENCHMARKS (INTER-NODE) ===
+--- LATENCY ---
+Warning: Permanently added '[osu-benchmark-test-worker-0-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-test-worker-1-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+# OSU MPI Latency Test v7.3
+# Size          Latency (us)
+# Datatype: MPI_CHAR.
+1                     404.02
+2                     404.25
+4                     402.63
+8                     404.60
+16                    403.87
+32                    403.33
+64                    403.75
+128                   409.98
+256                   404.33
+512                   403.51
+1024                  408.74
+2048                  408.21
+4096                  413.18
+8192                  421.65
+16384                 475.86
+32768                 467.60
+65536                1393.72
+131072               1408.02
+262144               1543.95
+524288               1741.44
+1048576              1953.86
+2097152              3115.81
+4194304              6511.78
+--- BANDWIDTH ---
+Warning: Permanently added '[osu-benchmark-test-worker-0-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-test-worker-1-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+# OSU MPI Bandwidth Test v7.3
+# Size      Bandwidth (MB/s)
+# Datatype: MPI_CHAR.
+1                       0.06
+2                       0.12
+4                       0.24
+8                       0.49
+16                      1.05
+32                      2.17
+64                      4.29
+128                     7.47
+256                    14.51
+512                    28.92
+1024                   57.80
+2048                  107.04
+4096                  222.95
+8192                  386.97
+16384                 513.51
+32768                 605.91
+65536                 584.60
+131072                595.37
+262144                609.43
+524288                613.35
+1048576               615.73
+2097152               616.14
+4194304               616.50
+--- BIDIRECTIONAL BANDWIDTH ---
+Warning: Permanently added '[osu-benchmark-test-worker-1-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-test-worker-0-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+# OSU MPI Bi-Directional Bandwidth Test v7.3
+# Size      Bandwidth (MB/s)
+# Datatype: MPI_CHAR.
+1                       0.22
+2                       0.43
+4                       0.85
+8                       1.77
+16                      3.16
+32                      7.05
+64                     14.01
+128                    28.30
+256                    54.22
+512                    95.44
+1024                  170.58
+2048                  380.99
+4096                  643.06
+8192                 1155.50
+16384                1235.29
+32768                1228.01
+65536                 694.69
+131072                922.58
+262144                787.75
+524288                636.28
+1048576               667.66
+2097152               608.89
+4194304               679.03
+=== COLLECTIVE BENCHMARKS (INTER-NODE) ===
+--- ALLREDUCE ---
+Warning: Permanently added '[osu-benchmark-test-worker-0-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-test-worker-1-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+
+# OSU MPI Allreduce Latency Test v7.3
+# Datatype: MPI_CHAR.
+# Size       Avg Latency(us)
+1                     402.12
+2                     803.89
+4                     806.92
+8                     407.42
+16                    405.73
+32                    405.71
+64                    403.50
+128                   403.77
+256                   404.53
+512                   404.59
+1024                  406.59
+2048                  409.73
+4096                  865.37
+8192                  427.78
+16384                 852.75
+32768                 932.82
+65536                 984.42
+131072               2670.46
+262144               3717.79
+524288               4217.10
+1048576              3503.17
+--- ALLGATHER ---
+Warning: Permanently added '[osu-benchmark-test-worker-1-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-test-worker-0-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+
+# OSU MPI Allgather Latency Test v7.3
+# Datatype: MPI_CHAR.
+# Size       Avg Latency(us)
+1                     401.40
+2                     406.21
+4                     406.44
+8                     406.68
+16                    406.83
+32                    403.30
+64                    401.51
+128                   407.90
+256                   404.18
+512                   404.93
+1024                  403.88
+2048                  407.83
+4096                  412.14
+8192                  421.35
+16384                 464.37
+32768                 513.08
+65536                1451.21
+131072               1736.22
+262144               1859.99
+524288               2247.63
+1048576              3231.99
+--- ALLTOALL ---
+Warning: Permanently added '[osu-benchmark-test-worker-0-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-test-worker-1-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+
+# OSU MPI All-to-All Personalized Exchange Latency Test v7.3
+# Datatype: MPI_CHAR.
+# Size       Avg Latency(us)
+1                     408.75
+2                     410.17
+4                     411.06
+8                     407.33
+16                    409.12
+32                    408.35
+64                    410.96
+128                   410.45
+256                   410.09
+512                   410.22
+1024                  407.90
+2048                  412.54
+4096                  417.10
+8192                  435.02
+16384                 480.98
+32768                 489.56
+65536                1369.04
+131072               1476.33
+262144               1645.52
+524288               1805.70
+1048576              2298.68
+--- BROADCAST ---
+Warning: Permanently added '[osu-benchmark-test-worker-1-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-test-worker-0-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+
+# OSU MPI Broadcast Latency Test v7.3
+# Datatype: MPI_CHAR.
+# Size       Avg Latency(us)
+1                     393.51
+2                     395.81
+4                     395.57
+8                     390.18
+16                    403.51
+32                    395.00
+64                    410.00
+128                   410.63
+256                   415.25
+512                   420.24
+1024                  390.52
+2048                  391.54
+4096                  416.74
+8192                  405.88
+16384                 415.97
+32768                 511.31
+65536                1284.71
+131072               1349.03
+262144               1362.32
+524288               1540.19
+1048576              1900.78
+--- REDUCE ---
+Warning: Permanently added '[osu-benchmark-test-worker-0-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-test-worker-1-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+
+# OSU MPI Reduce Latency Test v7.3
+# Datatype: MPI_CHAR.
+# Size       Avg Latency(us)
+1                     405.98
+2                     504.54
+4                     480.63
+8                     433.78
+16                    413.12
+32                    407.32
+64                    412.64
+128                   415.81
+256                   408.45
+512                   306.51
+1024                  309.60
+2048                  344.68
+4096                  330.04
+8192                  334.34
+16384                 385.26
+32768                 541.00
+65536                1351.74
+131072               1337.38
+262144               1429.75
+524288               1618.52
+1048576              1891.29
+--- BARRIER ---
+Warning: Permanently added '[osu-benchmark-test-worker-0-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-test-worker-1-0.osu-benchmark-test.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+
+# OSU MPI Barrier Latency Test v7.3
+# Avg Latency(us)
+           401.42
+=== ALL INTER-NODE BENCHMARKS COMPLETE ===

@@ -1,0 +1,125 @@
+Waiting for workers...
+=== GPU-DIRECT BENCHMARKS (Device-to-Device) ===
+--- GPU LATENCY (D D) ---
+[osu-benchmark-gpu-launcher-0-0:00009] Warning: could not find environment variable "CUDA_VISIBLE_DEVICES"
+Warning: Permanently added '[osu-benchmark-gpu-worker-0-0.osu-benchmark-gpu.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-gpu-worker-1-0.osu-benchmark-gpu.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+
+# OSU MPI-CUDA Latency Test v7.4
+# Datatype: MPI_CHAR.
+# Size       Avg Latency(us)
+1                      35.83
+2                      35.51
+4                      35.64
+8                      35.70
+16                     35.71
+32                     36.10
+64                     36.32
+128                    36.41
+256                    36.55
+512                    36.63
+1024                   38.72
+2048                   39.61
+4096                   41.65
+8192                   46.68
+16384                  53.11
+32768                  87.33
+65536                 167.12
+131072                270.41
+262144                409.61
+524288                653.00
+1048576              1105.15
+2097152              1983.54
+4194304              3745.48
+--- GPU BANDWIDTH (D D) ---
+[osu-benchmark-gpu-launcher-0-0:00017] Warning: could not find environment variable "CUDA_VISIBLE_DEVICES"
+Warning: Permanently added '[osu-benchmark-gpu-worker-1-0.osu-benchmark-gpu.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-gpu-worker-0-0.osu-benchmark-gpu.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+
+# OSU MPI-CUDA Bandwidth Test v7.4
+# Datatype: MPI_CHAR.
+# Size      Bandwidth (MB/s)
+1                       0.04
+2                       0.09
+4                       0.18
+8                       0.35
+16                      0.71
+32                      1.41
+64                      2.82
+128                     5.55
+256                     9.85
+512                    22.32
+1024                   43.34
+2048                   75.71
+4096                  147.78
+8192                  269.92
+16384                 425.24
+32768                 729.42
+65536                 692.69
+131072                793.44
+262144                784.86
+524288                908.37
+1048576              1004.43
+2097152              1079.14
+4194304              1106.16
+--- GPU BIDIRECTIONAL BANDWIDTH (D D) ---
+[osu-benchmark-gpu-launcher-0-0:00025] Warning: could not find environment variable "CUDA_VISIBLE_DEVICES"
+Warning: Permanently added '[osu-benchmark-gpu-worker-1-0.osu-benchmark-gpu.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-gpu-worker-0-0.osu-benchmark-gpu.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+
+# OSU MPI-CUDA Bi-Directional Bandwidth Test v7.4
+# Datatype: MPI_CHAR.
+# Size      Bandwidth (MB/s)
+1                       0.07
+2                       0.14
+4                       0.28
+8                       0.56
+16                      1.13
+32                      2.22
+64                      4.41
+128                     8.70
+256                    17.45
+512                    34.10
+1024                   67.22
+2048                  128.16
+4096                  238.10
+8192                  410.96
+16384                 662.22
+32768                 959.46
+65536                 932.75
+131072                813.03
+262144                836.47
+524288                958.67
+1048576              1038.77
+2097152              1104.74
+4194304              1136.68
+--- GPU ALLREDUCE (D D) ---
+[osu-benchmark-gpu-launcher-0-0:00033] Warning: could not find environment variable "CUDA_VISIBLE_DEVICES"
+Warning: Permanently added '[osu-benchmark-gpu-worker-1-0.osu-benchmark-gpu.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[osu-benchmark-gpu-worker-0-0.osu-benchmark-gpu.mpi-benchmarks.svc.cluster.local]:2222' (ED25519) to the list of known hosts.
+
+# OSU MPI-CUDA Allreduce Latency Test v7.4
+# Datatype: MPI_CHAR.
+# Size       Avg Latency(us)
+1                      46.70
+2                      66.85
+4                      65.90
+8                      47.14
+16                     48.61
+32                     47.92
+64                     49.63
+128                    50.65
+256                    51.10
+512                    50.32
+1024                   51.50
+2048                   54.09
+4096                   78.66
+8192                   66.40
+16384                 103.85
+32768                 156.49
+65536                 252.91
+131072                477.39
+262144                783.12
+524288               1388.84
+1048576              2599.66
+=== ALL GPU-DIRECT BENCHMARKS COMPLETE ===
