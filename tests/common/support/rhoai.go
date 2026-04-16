@@ -55,7 +55,7 @@ var (
 func GetProduct(test Test) (*Product, error) {
 	test.T().Helper()
 
-	dsciApplicationsNamespace, err := GetApplicationsNamespaceFromDSCI(test, DefaultDSCIName)
+	dsciApplicationsNamespace, err := GetApplicationsNamespace(test)
 	if err != nil {
 		return nil, err
 	}

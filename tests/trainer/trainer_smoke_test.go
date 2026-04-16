@@ -24,7 +24,7 @@ func TestKubeflowTrainerSmoke(t *testing.T) {
 // runSmoke runs a smoke test for a given deployment and expected image names.
 func runSmoke(t *testing.T, deploymentName, rhoaiImage, odhImage string) {
 	test := With(t)
-	namespace, err := GetApplicationsNamespaceFromDSCI(test, DefaultDSCIName)
+	namespace, err := GetApplicationsNamespace(test)
 	test.Expect(err).NotTo(HaveOccurred())
 
 	test.T().Logf("Waiting for %s deployment to be available ...", deploymentName)
