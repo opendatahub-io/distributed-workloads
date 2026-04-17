@@ -156,7 +156,7 @@ RUN UV_CONFIG_FILE=/dev/null uv pip install --no-cache \
         numpy==1.26.4 \
         scipy==1.17.0 \
         pyarrow==22.0.0 \
-        pillow==12.1.0 && \
+        pillow==12.2.0 && \
     chmod -R g+w /opt/app-root/lib/python3.12/site-packages
 
 # OpenShift GID 0 pattern: give root group same permissions as owner.

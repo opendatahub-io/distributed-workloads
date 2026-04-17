@@ -399,7 +399,7 @@ peft==0.18.1
     #   training-hub
     #   unsloth
     #   unsloth-zoo
-pillow==12.1.1
+pillow==12.2.0
     # via
     #   diffusers
     #   matplotlib
