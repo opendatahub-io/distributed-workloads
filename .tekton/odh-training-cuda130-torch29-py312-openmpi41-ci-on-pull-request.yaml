@@ -12,7 +12,7 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "pull_request"
       && target_branch == "main"
-      && ( "images/runtime/training/py312-cuda130-torch29-openmpi41".pathChanged()
+      && ( "images/runtime/training/py312-cuda130-torch29-openmpi41/**".pathChanged()
             || ".tekton/odh-training-cuda130-torch29-py312-openmpi41-ci-on-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
