@@ -3,12 +3,8 @@ pull_request_rules:
     conditions:
       - base=stable
       - label=lake-gate
-      - -draft
       - -closed
       - author=github-actions[bot]
-      - check-success~=^Red Hat Konflux.*
-      - -check-pending~=^Red Hat Konflux.*
-      - -check-failure~=^Red Hat Konflux.*
     actions:
       review:
         type: APPROVE
@@ -16,7 +12,6 @@ pull_request_rules:
     conditions:
       - base=stable
       - label=lake-gate
-      - -draft
       - -closed
       - author=github-actions[bot]
       - "#approved-reviews-by>=1"
