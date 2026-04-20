@@ -253,8 +253,7 @@ jobs:
           --base stable \
           --head "$BRANCH_NAME" \
           --label "lake-gate" \
-          $REVIEWER_FLAGS \
-          --draft
+          $REVIEWER_FLAGS
         
         echo "Created PR: $PR_TITLE"
       env:
