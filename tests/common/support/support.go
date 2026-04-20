@@ -33,7 +33,7 @@ var (
 	TestTimeoutShort           = 1 * time.Minute
 	TestTimeoutMedium          = 2 * time.Minute
 	TestTimeoutLong            = 5 * time.Minute
-	TestTimeoutDouble          = 40 * time.Minute
+	TestTimeoutDouble          = 20 * time.Minute
 	TestTimeoutGpuProvisioning = 30 * time.Minute
 )
 
@@ -57,6 +57,13 @@ func init() {
 			TestTimeoutLong = duration
 		} else {
 			fmt.Printf("Error parsing TEST_TIMEOUT_LONG. Using default value: %s", TestTimeoutLong)
+		}
+	}
+	if value, ok := os.LookupEnv("TEST_TIMEOUT_DOUBLE"); ok {
+		if duration, err := time.ParseDuration(value); err == nil {
+			TestTimeoutDouble = duration
+		} else {
+			fmt.Printf("Error parsing TEST_TIMEOUT_DOUBLE. Using default value: %s", TestTimeoutDouble)
 		}
 	}
 	if value, ok := os.LookupEnv("TEST_TIMEOUT_GPU_PROVISIONING"); ok {
