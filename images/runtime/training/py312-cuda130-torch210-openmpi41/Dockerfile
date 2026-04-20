@@ -7,14 +7,17 @@ ARG UCX_VERSION=1.19.1
 ARG UCX_SHA256=0fe68f2592b7b378bdac7ccb78331e9e8c5be250f40be118edb1795e94c60209
 ARG OPENMPI_SHA256=44da277b8cdc234e71c62473305a09d63f4dcca292ca40335aab7c4bf0e6a566
 
-LABEL name="training:py312-cuda130-torch29-openmpi41" \
-      summary="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 image based on C9S for Training" \
-      description="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 image based on C9S for Training" \
-      io.k8s.display-name="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 base image for Training" \
-      io.k8s.description="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 image based on C9S for Training" \
+LABEL name="training:py312-cuda130-torch210-openmpi41" \
+      summary="CUDA 13.0 Python 3.12 PyTorch 2.10.0 OpenMPI 4.1 image based on C9S for Training" \
+      description="CUDA 13.0 Python 3.12 PyTorch 2.10.0 OpenMPI 4.1 image based on C9S for Training" \
+      io.k8s.display-name="CUDA 13.0 Python 3.12 PyTorch 2.10.0 OpenMPI 4.1 base image for Training" \
+      io.k8s.description="CUDA 13.0 Python 3.12 PyTorch 2.10.0 OpenMPI 4.1 image based on C9S for Training" \
       authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
 
 USER 0
+
+ENV NV_CUDA_CUDART_DEVEL_VERSION=13-0 \
+    NV_CUDA_NVCC_VERSION=13-0
 
 # libjpeg-turbo: libjpeg.so.62 required by torchvision image I/O extension.
 # libpng:        libpng16.so.16 required by torchvision image I/O extension.
@@ -25,6 +28,16 @@ USER 0
 # numactl-libs and openblas-openmp are installed separately AFTER the OpenMPI
 # build step to avoid dnf clean_requirements_on_remove sweeping them out.
 RUN dnf install -y openssh-server libjpeg-turbo libpng libwebp && dnf clean all
+
+# DeepSpeed runs `nvcc -V` at import for CUDA compatibility; the base image has runtime
+# libs but not the nvcc compiler. Install the same minimal toolkit subset
+# as universal CUDA 13 training images: headers + nvcc.
+RUN dnf config-manager \
+        --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo \
+    && dnf install -y --setopt=install_weak_deps=False \
+        cuda-cudart-devel-${NV_CUDA_CUDART_DEVEL_VERSION} \
+        cuda-nvcc-${NV_CUDA_NVCC_VERSION} \
+    && dnf clean all
 
 # Install UCX 1.19.1 prebuilt RPMs (BSD-3-Clause licensed — fully redistributable).
 # Built against MOFED 24.10 + CUDA 13 — aligns with the UCX version in the downstream base image.
@@ -88,6 +101,13 @@ RUN dnf install -y \
     && dnf clean all \
     && rm -rf /tmp/openmpi-${OPENMPI_VERSION} /tmp/openmpi.tar.gz
 
+# The OpenMPI step removes gcc; cuda-nvcc depends on gcc, so dnf drops the compiler RPMs.
+# Reinstall headers + nvcc after the toolchain strip so DeepSpeed can run `nvcc -V`
+RUN dnf install -y --setopt=install_weak_deps=False \
+        cuda-cudart-devel-${NV_CUDA_CUDART_DEVEL_VERSION} \
+        cuda-nvcc-${NV_CUDA_NVCC_VERSION} \
+    && dnf clean all
+
 # Re-install PyTorch runtime deps that dnf clean_requirements_on_remove sweeps
 # out during the OpenMPI build step above (numactl-libs and openblas-openmp are
 # transitive deps of hwloc-devel / the build toolchain and get auto-removed).
@@ -111,9 +131,11 @@ RUN chmod +x /usr/local/bin/mpirun
 RUN printf '#!/bin/sh\nexec /opt/app-root/bin/python "$@"\n' > /usr/local/bin/python \
     && chmod +x /usr/local/bin/python
 
-# Set LD_LIBRARY_PATH in /etc/environment for SSH sessions (loaded by PAM, not inherited from container).
-# CUDA and cuDNN are registered in ldconfig; OpenMPI and UCX plugin dirs need explicit entries.
-RUN echo "LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/usr/lib64/ucx" >> /etc/environment
+# Set PATH and LD_LIBRARY_PATH in /etc/environment for SSH sessions (loaded by PAM, not inherited from container).
+# Include CUDA toolkit paths so `nvcc` is on PATH for MPI worker ranks
+# OpenMPI and UCX plugin dirs need explicit LD_LIBRARY_PATH entries.
+RUN echo "PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/bin:/usr/bin:/bin" >> /etc/environment \
+    && echo "LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/usr/lib64/ucx:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64" >> /etc/environment
 
 RUN mkdir -p /var/run/sshd
 
@@ -173,8 +195,9 @@ RUN chmod +x /usr/local/bin/uid_entrypoint.sh
 
 WORKDIR /home/mpiuser
 ENV HOME=/home/mpiuser
-ENV PATH=/usr/local/bin:$PATH:$HOME/.local/bin
-ENV LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/usr/lib64/ucx:${LD_LIBRARY_PATH}
+ENV CUDA_HOME=/usr/local/cuda
+ENV PATH=/usr/local/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}:${HOME}/.local/bin
+ENV LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/usr/lib64/ucx:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
 # Override the base image's overly restrictive NVIDIA_REQUIRE_CUDA which only lists
 # specific driver minor versions (535, 550, 565, 570, 575). Any driver >= 570 supports
 # CUDA 13.0; the constraint caused the nvidia-container-runtime-hook to fail on 580.x+.
