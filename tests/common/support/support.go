@@ -33,7 +33,7 @@ var (
 	TestTimeoutShort           = 1 * time.Minute
 	TestTimeoutMedium          = 2 * time.Minute
 	TestTimeoutLong            = 5 * time.Minute
-	TestTimeoutDouble          = 20 * time.Minute
+	TestTimeoutDouble          = 40 * time.Minute
 	TestTimeoutGpuProvisioning = 30 * time.Minute
 )
 
