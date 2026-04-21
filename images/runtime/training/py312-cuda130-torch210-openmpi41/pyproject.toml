@@ -6,19 +6,19 @@
 #     -o requirements.txt pyproject.toml
 
 [project]
-name = "py312-cuda130-torch29-openmpi41"
+name = "py312-cuda130-torch210-openmpi41"
 version = "0.1.0"
 requires-python = "==3.12.*"
 
 dependencies = [
     # PyTorch with CUDA 13.0
-    "torch==2.9.1",
+    "torch==2.10.0",
 
     # Triton (GPU kernel compiler)
-    "triton==3.5.1",
+    "triton==3.6.0",
 
     # xformers (efficient transformers)
-    "xformers==0.0.33.post2",
+    "xformers==0.0.35",
 
     # ML Training and Inference Libraries
     "accelerate==1.12.0",

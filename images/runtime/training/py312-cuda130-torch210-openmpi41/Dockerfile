@@ -7,11 +7,11 @@ ARG UCX_VERSION=1.19.1
 ARG UCX_SHA256=0fe68f2592b7b378bdac7ccb78331e9e8c5be250f40be118edb1795e94c60209
 ARG OPENMPI_SHA256=44da277b8cdc234e71c62473305a09d63f4dcca292ca40335aab7c4bf0e6a566
 
-LABEL name="training:py312-cuda130-torch29-openmpi41" \
-      summary="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 image based on C9S for Training" \
-      description="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 image based on C9S for Training" \
-      io.k8s.display-name="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 base image for Training" \
-      io.k8s.description="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 image based on C9S for Training" \
+LABEL name="training:py312-cuda130-torch210-openmpi41" \
+      summary="CUDA 13.0 Python 3.12 PyTorch 2.10.0 OpenMPI 4.1 image based on C9S for Training" \
+      description="CUDA 13.0 Python 3.12 PyTorch 2.10.0 OpenMPI 4.1 image based on C9S for Training" \
+      io.k8s.display-name="CUDA 13.0 Python 3.12 PyTorch 2.10.0 OpenMPI 4.1 base image for Training" \
+      io.k8s.description="CUDA 13.0 Python 3.12 PyTorch 2.10.0 OpenMPI 4.1 image based on C9S for Training" \
       authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
 
 USER 0

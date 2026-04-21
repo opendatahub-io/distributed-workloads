@@ -2,11 +2,11 @@ FROM quay.io/aipcc/base-images/cuda-13.0-el9.6:3.4.0-1774635924
 
 ARG SSH_PORT=2222
 
-LABEL name="training:py312-cuda130-torch29-openmpi41" \
-      summary="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 image based on UBI9 for Training" \
-      description="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 image based on UBI9 for Training" \
-      io.k8s.display-name="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 base image for Training" \
-      io.k8s.description="CUDA 13.0 Python 3.12 PyTorch 2.9.0 OpenMPI 4.1 image based on UBI9 for Training" \
+LABEL name="training:py312-cuda130-torch210-openmpi41" \
+      summary="CUDA 13.0 Python 3.12 PyTorch 2.10.0 OpenMPI 4.1 image based on UBI9 for Training" \
+      description="CUDA 13.0 Python 3.12 PyTorch 2.10.0 OpenMPI 4.1 image based on UBI9 for Training" \
+      io.k8s.display-name="CUDA 13.0 Python 3.12 PyTorch 2.10.0 OpenMPI 4.1 base image for Training" \
+      io.k8s.description="CUDA 13.0 Python 3.12 PyTorch 2.10.0 OpenMPI 4.1 image based on UBI9 for Training" \
       authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
 
 USER 0
