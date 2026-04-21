@@ -5,19 +5,21 @@ metadata:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/distributed-workloads?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
+    pipelinesascode.tekton.dev/on-comment: "^/build-konflux"
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: |
-      event == "push"
+      event == "pull_request"
       && target_branch == "main"
       && ( "images/runtime/training/py312-cuda130-torch29-openmpi41/**".pathChanged()
-            || ".tekton/odh-training-cuda130-torch29-py312-openmpi41-ci-on-push.yaml".pathChanged() )
+            || ".tekton/odh-training-cuda130-torch29-py312-openmpi41-ci-on-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
-    appstudio.openshift.io/component: odh-training-cuda130-torch29-py312-openmpi41-ci
+    appstudio.openshift.io/component: odh-training-cuda130-torch210-py312-openmpi41-ci
     pipelines.appstudio.openshift.io/type: build
-  name: odh-training-cuda130-torch29-py312-openmpi41-ci-on-push
+  name: odh-training-cuda130-torch210-py312-openmpi41-ci-on-pull-request
   namespace: open-data-hub-tenant
 spec:
   params:
@@ -26,11 +28,16 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-training-cuda130-torch29-py312-openmpi41:odh-stable
+    value: quay.io/opendatahub/odh-training-cuda130-torch210-py312-openmpi41:odh-pr
   - name: dockerfile
     value: Dockerfile
   - name: path-context
-    value: images/runtime/training/py312-cuda130-torch29-openmpi41
+    value: images/runtime/training/py312-cuda130-torch210-openmpi41
+  - name: pipeline-type
+    value: pull-request
+  - name: additional-tags
+    value:
+    - 'odh-pr-{{revision}}'
   pipelineRef:
     resolver: git
     params:
@@ -41,7 +48,7 @@ spec:
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-training-cuda130-torch29-py312-openmpi41-ci
+    serviceAccountName: build-pipeline-odh-training-cuda130-torch210-py312-openmpi41-ci
   workspaces:
   - name: git-auth
     secret:
