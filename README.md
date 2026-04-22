@@ -60,6 +60,23 @@ To download MNIST training script datasets from S3 compatible storage, use the e
 * `AWS_STORAGE_BUCKET` - Storage bucket name
 * `AWS_STORAGE_BUCKET_MNIST_DIR` - Storage bucket directory from which to download MNIST datasets.
 
+### Environment variables for Kubeflow Trainer v2 (TrainingHub SDK) test suite
+
+* `NOTEBOOK_USER_NAME` - Username of user used for running Workbench
+* `NOTEBOOK_USER_PASSWORD` - Password of user used for running Workbench
+* `NOTEBOOK_IMAGE` - Image used for running Workbench
+
+To download models and datasets from S3 compatible storage for TrainingHub SDK tests, use the environment variables mentioned below :
+* `AWS_DEFAULT_ENDPOINT` - Storage bucket endpoint
+* `AWS_ACCESS_KEY_ID` - Storage bucket access key
+* `AWS_SECRET_ACCESS_KEY` - Storage bucket secret key
+* `AWS_STORAGE_BUCKET` - Storage bucket name
+* `AWS_STORAGE_BUCKET_SFT_DIR` (Optional) - S3 prefix for SFT test data (Qwen model + Table-GPT dataset). When not set, notebooks fall back to downloading from HuggingFace.
+* `AWS_STORAGE_BUCKET_OSFT_DIR` (Optional) - S3 prefix for OSFT test data (Qwen model + Table-GPT dataset). When not set, notebooks fall back to downloading from HuggingFace.
+* `AWS_STORAGE_BUCKET_LORA_DIR` (Optional) - S3 prefix for LoRA test data (Qwen model + Unsloth 4-bit variant + sql-create-context dataset). When not set, notebooks fall back to downloading from HuggingFace.
+
+See `tests/trainer/resources/disconnected_env/README.md` for instructions on pre-staging S3 data for disconnected environments.
+
 ### Running Tests
 
 Execute tests like standard Go unit tests.
