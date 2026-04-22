@@ -1,8 +1,12 @@
-FROM quay.io/opendatahub/odh-midstream-cuda-base-13-0:268a2d4baec5ed3c3ae09a6cce325fb83622d87b
+FROM quay.io/opendatahub/odh-midstream-cuda-base-13-0:odh-midstream-cuda-base-13-0-on-push-p7nn6-build-images
 
 ARG SSH_PORT=2222
 ARG OPENMPI_VERSION=4.1.6
 ARG UCX_VERSION=1.19.1
+ARG NV_CUDA_NVCC_VERSION=13.0.88-1
+ARG NV_CUDA_CUDART_DEVEL_VERSION=13.0.96-1
+ARG NV_CUDA_CRT_VERSION=13.0.88-1
+ARG NV_CUDA_CCCL_VERSION=13.0.85-1
 # SHA256 checksums for supply-chain integrity verification.
 ARG UCX_SHA256=0fe68f2592b7b378bdac7ccb78331e9e8c5be250f40be118edb1795e94c60209
 ARG OPENMPI_SHA256=44da277b8cdc234e71c62473305a09d63f4dcca292ca40335aab7c4bf0e6a566
@@ -19,11 +23,6 @@ USER 0
 # libjpeg-turbo: libjpeg.so.62 required by torchvision image I/O extension.
 # libpng:        libpng16.so.16 required by torchvision image I/O extension.
 # libwebp:       libwebp.so.7 required by torchvision image I/O extension.
-# The C9S base image compiles numpy/scipy/pyarrow/pillow against system libraries
-# not available in C9S (libopenblasp.so.0, libthrift-0.15.0.so, libre2.so.9);
-# those packages are reinstalled from manylinux wheels after micropipenv runs.
-# numactl-libs and openblas-openmp are installed separately AFTER the OpenMPI
-# build step to avoid dnf clean_requirements_on_remove sweeping them out.
 RUN dnf install -y openssh-server libjpeg-turbo libpng libwebp && dnf clean all
 
 # Install UCX 1.19.1 prebuilt RPMs (BSD-3-Clause licensed — fully redistributable).
@@ -49,7 +48,7 @@ RUN curl -fsSLo /tmp/ucx.tar.bz2 \
 # OpenMPI install prefix: /usr/lib64/openmpi  (keeps existing symlink/PATH layout)
 #
 # --with-cuda:  opal_built_with_cuda_support=true — MPI calls accept GPU pointers.
-# --with-ucx:   links against UCX 1.20.0 (CUDA 13 aware) installed at /usr.
+# --with-ucx:   links against UCX 1.19.1 (CUDA 13 aware) installed at /usr.
 #               ucx-cuda provides cuda_copy/cuda_ipc transports for GPU-Direct;
 #               ucx-ib-mlx5 provides rc_mlx5/dc_mlx5 for GPU-Direct RDMA over IB
 #               (activated when MOFED is present on the host at runtime).
@@ -88,10 +87,24 @@ RUN dnf install -y \
     && dnf clean all \
     && rm -rf /tmp/openmpi-${OPENMPI_VERSION} /tmp/openmpi.tar.gz
 
-# Re-install PyTorch runtime deps that dnf clean_requirements_on_remove sweeps
-# out during the OpenMPI build step above (numactl-libs and openblas-openmp are
-# transitive deps of hwloc-devel / the build toolchain and get auto-removed).
-# Installing them in a fresh RUN marks them as explicit user installs.
+# Reinstall CUDA compiler packages removed by the dnf cascade above.
+# cuda-nvcc-13-0 has Requires: gcc-c++, so dnf treats it as a dependent package
+# and removes it when gcc-c++ is removed. We reinstall with rpm --nodeps since
+# nvcc does not actually need gcc at runtime (it uses its own cicc/ptxas backends).
+# dnf download fetches from the cuda-rhel9-x86_64 repo pre-configured in the base
+# image (https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64);
+# rpm --nodeps installs them without pulling gcc back in.
+RUN dnf download --destdir=/tmp/rpms --repo=cuda-rhel9-x86_64 \
+        cuda-nvcc-13-0-${NV_CUDA_NVCC_VERSION} \
+        cuda-cudart-devel-13-0-${NV_CUDA_CUDART_DEVEL_VERSION} \
+        cuda-crt-13-0-${NV_CUDA_CRT_VERSION} \
+        cuda-cccl-13-0-${NV_CUDA_CCCL_VERSION} \
+    && rpm -ivh --nodeps /tmp/rpms/*.rpm \
+    && rm -rf /tmp/rpms
+
+# Re-install packages swept out by dnf clean_requirements_on_remove above.
+# numactl-libs:    libnuma.so.1 required by OpenMPI and CUDA runtime.
+# openblas-openmp: libopenblaso.so.0 required by PyTorch (libtorch_cpu.so).
 RUN dnf install -y numactl-libs openblas-openmp && dnf clean all
 
 # Create symlinks for OpenMPI binaries in /usr/bin so they're in default SSH PATH
@@ -111,9 +124,11 @@ RUN chmod +x /usr/local/bin/mpirun
 RUN printf '#!/bin/sh\nexec /opt/app-root/bin/python "$@"\n' > /usr/local/bin/python \
     && chmod +x /usr/local/bin/python
 
-# Set LD_LIBRARY_PATH in /etc/environment for SSH sessions (loaded by PAM, not inherited from container).
-# CUDA and cuDNN are registered in ldconfig; OpenMPI and UCX plugin dirs need explicit entries.
-RUN echo "LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/usr/lib64/ucx" >> /etc/environment
+# Set PATH and LD_LIBRARY_PATH in /etc/environment for SSH sessions (loaded by PAM, not inherited from container).
+# Include CUDA toolkit paths so `nvcc` is on PATH for MPI worker ranks.
+# OpenMPI and UCX plugin dirs need explicit LD_LIBRARY_PATH entries.
+RUN echo "PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/bin:/usr/bin:/bin" >> /etc/environment \
+    && echo "LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/usr/lib64/ucx:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64" >> /etc/environment
 
 RUN mkdir -p /var/run/sshd
 
@@ -173,8 +188,9 @@ RUN chmod +x /usr/local/bin/uid_entrypoint.sh
 
 WORKDIR /home/mpiuser
 ENV HOME=/home/mpiuser
-ENV PATH=/usr/local/bin:$PATH:$HOME/.local/bin
-ENV LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/usr/lib64/ucx:${LD_LIBRARY_PATH}
+ENV CUDA_HOME="/usr/local/cuda"
+ENV PATH="/usr/local/nvidia/bin:${CUDA_HOME}/bin:/usr/local/bin:${PATH}:${HOME}/.local/bin"
+ENV LD_LIBRARY_PATH="/usr/lib64/openmpi/lib:/usr/lib64/ucx:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}"
 # Override the base image's overly restrictive NVIDIA_REQUIRE_CUDA which only lists
 # specific driver minor versions (535, 550, 565, 570, 575). Any driver >= 570 supports
 # CUDA 13.0; the constraint caused the nvidia-container-runtime-hook to fail on 580.x+.
