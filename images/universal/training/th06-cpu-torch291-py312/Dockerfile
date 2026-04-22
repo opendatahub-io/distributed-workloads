@@ -1,4 +1,4 @@
-# TH06 CPU Universal Image Dockerfile - demo trigger
+# TH06 CPU Universal Image Dockerfile
 #
 # FIPS-friendly Features:
 # - Build tools are isolated in intermediate stage
