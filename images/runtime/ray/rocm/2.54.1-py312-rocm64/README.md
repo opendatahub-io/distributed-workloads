@@ -1,9 +1,9 @@
 # Ray Runtime Container Image
 
-CUDA enabled container image for Ray in OpenShift AI.
+ROCm enabled container image for Ray in OpenShift AI.
 
 It includes the following layers:
 * UBI 9
 * Python 3.12
-* CUDA 12.8
-* Ray 2.53.0
+* ROCm 6.4.3
+* Ray 2.54.1
