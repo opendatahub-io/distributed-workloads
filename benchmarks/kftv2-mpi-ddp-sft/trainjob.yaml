@@ -11,7 +11,7 @@ spec:
   runtimeRef:
     apiGroup: trainer.kubeflow.org
     kind: ClusterTrainingRuntime
-    name: mpi-cuda-openmpi-benchmark
+    name: openmpi-cuda-benchmark
   trainer:
     command:
     - /usr/local/bin/uid_entrypoint.sh

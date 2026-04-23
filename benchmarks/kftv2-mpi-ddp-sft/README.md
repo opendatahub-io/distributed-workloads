@@ -1,6 +1,6 @@
-# MPI DDP SFT Benchmark — Qwen 2.5 1.5B
+# MPI DDP SFT Benchmark — Qwen 2.5-1.5B-Instruct
 
-Distributed Supervised Fine-Tuning benchmark using **PyTorch DDP** with **MPI** as the communications backend, submitted via Kubeflow Trainer v2 `TrainJob`.
+Distributed Supervised Fine-Tuning benchmark using **PyTorch DDP** with **MPI** as the communications backend, submitted via Kubeflow Trainer v2.
 
 ## What this benchmark does
 
@@ -9,10 +9,10 @@ Distributed Supervised Fine-Tuning benchmark using **PyTorch DDP** with **MPI** 
 | Algorithm | SFT with PyTorch DistributedDataParallel (DDP) |
 | Model | Qwen/Qwen2.5-1.5B-Instruct (1.5B params, float32) |
 | Dataset | openai/gsm8k (~7.5 K grade-school math) |
-| Comm backend | **MPI** (`torch.distributed.init_process_group(backend="mpi")`) |
+| Communication backend | MPI |
 | Gradient sync | DDP automatic allreduce via MPI |
-| Runtime | `mpi-cuda-openmpi-benchmark` ClusterTrainingRuntime |
-| Image | `quay.io/ksuta/odh-mpi-cuda:0.0.14` |
+| Runtime | `openmpi-cuda-benchmark` |
+| Image | `quay.io/opendatahub/odh-training-cuda130-torch210-py312-openmpi41:odh-stable` |
 
 ### MPI communication patterns exercised
 
@@ -32,9 +32,9 @@ PyTorch DDP groups all gradients into a single flat buffer for the first trainin
 
 | File | Description |
 |------|-------------|
-| `train_sft_ddp.py` | Training script — SFT with DDP + MPI gradient allreduce |
-| `trainjob.yaml` | Kubeflow Trainer v2 TrainJob manifest |
-| `mpi-runtime.yaml` | ClusterTrainingRuntime for MPI + CUDA (OpenMPI) |
+| `train_sft_ddp.py` | PyTorch training script performing Supervised Fine-Tuning with DDP and MPI-based gradient synchronization |
+| `trainjob.yaml` | Kubeflow Trainer v2 `TrainJob` manifest defining the distributed training workload and parameters |
+| `mpi-runtime.yaml` | `ClusterTrainingRuntime` resource providing the OpenMPI + CUDA execution environment |
 
 ## Quick Start
 
