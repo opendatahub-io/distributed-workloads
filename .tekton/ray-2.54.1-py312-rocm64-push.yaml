@@ -9,13 +9,13 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" 
       && target_branch == "main" 
-      && ( "images/runtime/ray/rocm/2.53.0-py312-rocm64/**".pathChanged() || ".tekton/ray-2.53.0-py312-rocm64-push.yaml".pathChanged() )
+      && ( "images/runtime/ray/rocm/2.54.1-py312-rocm64/**".pathChanged() || ".tekton/ray-2.54.1-py312-rocm64-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: runtime-ray
     appstudio.openshift.io/component: ray-rocm
     pipelines.appstudio.openshift.io/type: build
-  name: ray-rocm-2.53.0-py312-rocm64-on-push
+  name: ray-rocm-2.54.1-py312-rocm64-on-push
   namespace: rhoai-tenant
 spec:
   params:
@@ -24,13 +24,13 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/ray:2.53.0-py312-rocm64
+    value: quay.io/modh/ray:2.54.1-py312-rocm64
   - name: additional-tag
-    value: 2.53.0-py312-rocm64-{{revision}}
+    value: 2.54.1-py312-rocm64-{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
-    value: images/runtime/ray/rocm/2.53.0-py312-rocm64
+    value: images/runtime/ray/rocm/2.54.1-py312-rocm64
   taskRunSpecs:
     - pipelineTaskName: build-container
       stepSpecs:
