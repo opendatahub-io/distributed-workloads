@@ -6,7 +6,7 @@
 apiVersion: trainer.kubeflow.org/v1alpha1
 kind: ClusterTrainingRuntime
 metadata:
-  name: mpi-cuda-openmpi-benchmark
+  name: openmpi-cuda-benchmark
   labels:
     trainer.kubeflow.org/framework: openmpi
 spec:
@@ -33,7 +33,7 @@ spec:
             template:
               spec:
                 containers:
-                - image: quay.io/ksuta/odh-mpi-cuda:0.0.14
+                - image: quay.io/opendatahub/odh-training-cuda130-torch210-py312-openmpi41:odh-stable
                   name: node
                   resources:
                     limits:
@@ -55,7 +55,7 @@ spec:
                   command:
                   - /usr/local/bin/uid_entrypoint.sh
                   - /usr/sbin/sshd
-                  image: quay.io/ksuta/odh-mpi-cuda:0.0.14
+                  image: quay.io/opendatahub/odh-training-cuda130-torch210-py312-openmpi41:odh-stable
                   name: node
                   readinessProbe:
                     initialDelaySeconds: 3
