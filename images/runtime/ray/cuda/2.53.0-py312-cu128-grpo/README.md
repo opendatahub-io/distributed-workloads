@@ -24,9 +24,6 @@ podman build -t quay.io/<org>/ray-grpo:2.53.0-py312-cu128 .
 
 Use this image as the `rayImage` for both head and worker pods in a KubeRay `RayCluster` CR. verl launches training via `python -m verl.trainer.main_ppo` on the head node and distributes FSDP training + vLLM rollouts across workers.
 
-## Known workarounds
+## Notes
 
-- **`--no-deps` install of training-hub**: training-hub's base dependencies (`instructlab-training`, `rhai-innovation-mini-trainer`) require `numba>=0.62`, which conflicts with vllm's `numba==0.61.2`. The GRPO code paths don't use those packages, so training-hub is installed without its declared dependencies and runtime deps are supplied explicitly.
-- **`patch_init.py`**: training-hub's `__init__.py` eagerly imports modules that depend on the excluded packages. This build-time patch wraps those imports in `try/except` blocks.
-
-Both workarounds can be removed once training-hub makes those dependencies optional extras.
+- **Git branch installs**: `instructlab-training` and `rhai-innovation-mini-trainer` are currently installed from their `main` branches to pick up the relaxed `numba>=0.61.2` constraint (merged but not yet released to PyPI). `training-hub[grpo]` is installed from the `lora-grpo` branch (GRPO code not yet merged to `main`). Once all packages are released, Step 4 simplifies to `pip install "training-hub[grpo]"`.

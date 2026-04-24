@@ -17,8 +17,7 @@
 #   1. vllm first — pins torch 2.9.0, numba 0.61.2, flashinfer, triton
 #   2. flash-attn — pre-built wheel matched to torch 2.9 ABI
 #   3. verl + ML libs
-#   4. training-hub with --no-deps (base deps conflict with vllm's numba)
-#   5. Remaining runtime deps explicitly
+#   4. training-hub[grpo] (numba constraint relaxed to >=0.61.2 upstream)
 
 FROM quay.io/modh/ray:2.53.0-py312-cu128
 
@@ -58,49 +57,17 @@ RUN pip install --no-cache-dir \
     "transformers>=4.57.6,<5.0" \
     "datasets>=4.0.0"
 
-# ── 4. training-hub (code-only) ──────────────────────────────────────
-# --no-deps is intentional: training-hub's base [project].dependencies
-# pull instructlab-training and rhai-innovation-mini-trainer, which pin
-# numba>=0.62 and llvmlite>=0.42. That conflicts with vllm's numba==0.61.2.
-# The GRPO/verl code paths don't call into those packages, so skipping
-# them is safe. All actually-needed deps are installed in steps 1-3 and 5.
-RUN pip install --no-cache-dir --no-deps \
-    "training-hub[grpo]"
-
-# ── 5. Remaining runtime deps + grpo extras ──────────────────────────
-# These are training-hub runtime deps that are safe to install (no
-# numba/llvmlite conflict) and not already satisfied by vllm/verl.
-# litellm is capped below 1.82.7 (supply-chain compromise in
-# 1.82.7-1.82.8, 2026-03-24).
+# ── 4. training-hub[grpo] ────────────────────────────────────────────
+# GRPO code lives on the lora-grpo branch (not yet merged to main).
+# instructlab-training & mini_trainer from main to pick up the relaxed
+# numba>=0.61.2 constraint (merged but not yet released to PyPI).
+# Once all released, replace with: pip install "training-hub[grpo]"
 RUN pip install --no-cache-dir \
-    "openpipe-art" \
-    "litellm>=1.82.0,<1.82.7" \
-    "trl" \
-    "packaging>=24.2" \
-    "rich>=14.1.0" \
-    "pydantic>=2.7.0" \
-    "aiofiles>=23.2.1" \
-    "accelerate>=0.34.2" \
-    "sympy>=1.0" \
-    "networkx>=3.0" \
-    "jinja2>=3.1.0" \
-    "fsspec>=2025.0" \
-    "pandas>=2.2" \
-    "matplotlib>=3.9" \
-    "multiprocess>=0.70.16" \
-    "aiohttp>=3.12" \
-    "pyparsing>=3.0" \
-    "regex>=2025.0" \
-    "psutil>=6.0" \
-    "urllib3>=2.4" \
-    "frozenlist>=1.7" \
-    "xxhash>=3.0" \
-    "requests>=2.32.5" \
-    "filelock>=3.19.1" \
-    "mpmath>=1.3.0" \
-    "timm>=1.0"
+    "instructlab-training @ git+https://github.com/instructlab/training.git@main" \
+    "rhai-innovation-mini-trainer @ git+https://github.com/Red-Hat-AI-Innovation-Team/mini_trainer.git@main" \
+    "training-hub[grpo] @ git+https://github.com/Red-Hat-AI-Innovation-Team/training_hub.git@lora-grpo"
 
-# ── 6. Ray / NCCL / vLLM environment defaults ───────────────────────
+# ── 5. Ray / NCCL / vLLM environment defaults ───────────────────────
 ENV NCCL_DEBUG=WARN \
     TOKENIZERS_PARALLELISM=true \
     VLLM_ALLOW_RUNTIME_LORA_UPDATING=true \
@@ -108,16 +75,7 @@ ENV NCCL_DEBUG=WARN \
     VLLM_USE_V1=1 \
     RAY_DEDUP_LOGS=0
 
-# ── 7. Patch training_hub __init__.py for partial-install ─────────────
-# training_hub's __init__ eagerly imports sft/osft/lora which need
-# instructlab-training and rhai-innovation-mini-trainer (excluded via
-# --no-deps to avoid numba conflict). Wrap those imports in try/except
-# so the package loads cleanly with only the GRPO modules available.
-COPY patch_init.py /tmp/patch_init.py
-RUN python /tmp/patch_init.py /opt/app-root/lib64/python3.12/site-packages/training_hub/__init__.py && \
-    rm /tmp/patch_init.py
-
-# ── 8. Smoke test ───────────────────────────────────────────────────
+# ── 6. Smoke test ───────────────────────────────────────────────────
 RUN python -c "\
 import ray; print(f'ray {ray.__version__}'); \
 import vllm; print(f'vllm {vllm.__version__}'); \
