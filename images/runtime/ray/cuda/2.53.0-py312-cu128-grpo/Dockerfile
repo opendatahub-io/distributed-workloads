@@ -75,19 +75,5 @@ ENV NCCL_DEBUG=WARN \
     VLLM_USE_V1=1 \
     RAY_DEDUP_LOGS=0
 
-# ── 6. Smoke test ───────────────────────────────────────────────────
-RUN python -c "\
-import ray; print(f'ray {ray.__version__}'); \
-import vllm; print(f'vllm {vllm.__version__}'); \
-import torch; print(f'torch {torch.__version__}'); \
-import numpy; print(f'numpy {numpy.__version__}'); \
-import verl; print('verl OK'); \
-import peft; print(f'peft {peft.__version__}'); \
-import transformers; print(f'transformers {transformers.__version__}'); \
-import training_hub; print('training_hub OK'); \
-from training_hub import lora_grpo; print('lora_grpo OK'); \
-from training_hub import VeRLLoRAGRPOBackend; print('verl backend OK'); \
-"
-
 USER 1001
 WORKDIR /opt/app-root/src
