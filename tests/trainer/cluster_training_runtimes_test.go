@@ -83,10 +83,18 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 		test.Expect(foundImage).NotTo(BeEmpty(), "No container image found in ClusterTrainingRuntime %s", runtime.Name)
 		test.T().Logf("Image referred in ClusterTrainingRuntime is %s", foundImage)
 
-		expectedImage := imagePrefix + "/" + expectedRuntime.Image
-		test.Expect(foundImage).To(ContainSubstring(expectedImage),
-			"Image %s should contain %s", foundImage, expectedImage)
-		test.T().Logf("ClusterTrainingRuntime '%s' uses expected image: %s", expectedRuntime.Name, expectedImage)
+		if trainerutils.IsMPIRuntime(runtime.Name) {
+			test.Expect(foundImage).To(HavePrefix("quay.io/"),
+				"MPI image %s should originate from quay.io", foundImage)
+			test.Expect(foundImage).To(ContainSubstring(expectedRuntime.Image),
+				"MPI image %s should contain %s", foundImage, expectedRuntime.Image)
+			test.T().Logf("MPI ClusterTrainingRuntime '%s' uses expected image: %s", expectedRuntime.Name, foundImage)
+		} else {
+			expectedImage := imagePrefix + "/" + expectedRuntime.Image
+			test.Expect(foundImage).To(ContainSubstring(expectedImage),
+				"Image %s should contain %s", foundImage, expectedImage)
+			test.T().Logf("ClusterTrainingRuntime '%s' uses expected image: %s", expectedRuntime.Name, expectedImage)
+		}
 	}
 
 	// Verify all expected runtimes are present
@@ -172,8 +180,8 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 	// Run one TrainJob per unique image to avoid redundant runs for CTRs that share the same image
 	tested := make(map[string]bool)
 	for _, runtime := range trainerutils.ExpectedRuntimes {
-		if runtime.Name == trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA {
-			test.T().Logf("Skipping ClusterTrainingRuntime '%s' in generic runtime execution test; OpenMPI has dedicated coverage", runtime.Name)
+		if trainerutils.IsMPIRuntime(runtime.Name) {
+			test.T().Logf("Skipping MPI runtime '%s' (covered by TestMultiNodeOpenMPITrainJob)", runtime.Name)
 			continue
 		}
 		if tested[runtime.Image] {
