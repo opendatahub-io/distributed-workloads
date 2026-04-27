@@ -38,6 +38,12 @@ const (
 	// DefaultClusterTrainingRuntimeROCm is the default runtime for AMD/ROCm accelerators
 	DefaultClusterTrainingRuntimeROCm = "torch-distributed-rocm"
 
+	// DefaultClusterTrainingRuntimeOpenMPICUDA is the default runtime for OpenMPI CUDA workloads
+	DefaultClusterTrainingRuntimeOpenMPICUDA = "openmpi-cuda"
+
+	// DefaultClusterTrainingRuntimeOpenMPICUDAImage is the expected image suffix for the OpenMPI CUDA runtime
+	DefaultClusterTrainingRuntimeOpenMPICUDAImage = "odh-training-cuda130-torch210-py312-openmpi41"
+
 	// DefaultTrainingHubRuntimeCUDA is the default CUDA runtime for training hub workloads
 	DefaultTrainingHubRuntimeCUDA = "training-hub"
 
