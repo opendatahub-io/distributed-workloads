@@ -38,6 +38,12 @@ const (
 	// DefaultClusterTrainingRuntimeROCm is the default runtime for AMD/ROCm accelerators
 	DefaultClusterTrainingRuntimeROCm = "torch-distributed-rocm"
 
+	// DefaultClusterTrainingRuntimeOpenMPICUDA is the default runtime for OpenMPI CUDA workloads
+	DefaultClusterTrainingRuntimeOpenMPICUDA = "openmpi-cuda"
+
+	// DefaultClusterTrainingRuntimeOpenMPICUDAImage is the expected image suffix for the OpenMPI CUDA runtime
+	DefaultClusterTrainingRuntimeOpenMPICUDAImage = "odh-training-cuda130-torch210-py312-openmpi41"
+
 	// DefaultTrainingHubRuntimeCUDA is the default CUDA runtime for training hub workloads
 	DefaultTrainingHubRuntimeCUDA = "training-hub"
 
@@ -55,6 +61,7 @@ var DefaultClusterTrainingRuntimes = []string{
 	DefaultClusterTrainingRuntimeCUDA,
 	DefaultClusterTrainingRuntimeROCm,
 	DefaultClusterTrainingRuntimeCPU,
+	DefaultClusterTrainingRuntimeOpenMPICUDA,
 	DefaultTrainingHubRuntimeCUDA,
 	DefaultTrainingHubRuntimeCPU,
 	DefaultTrainingHubRuntimeROCm,
@@ -91,6 +98,7 @@ var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: DefaultClusterTrainingRuntimeCUDA, Image: "odh-th06-cuda130-torch291-py312"},
 	{Name: DefaultClusterTrainingRuntimeROCm, Image: "odh-th06-rocm64-torch291-py312"},
 	{Name: DefaultClusterTrainingRuntimeCPU, Image: "odh-th06-cpu-torch291-py312"},
+	{Name: DefaultClusterTrainingRuntimeOpenMPICUDA, Image: DefaultClusterTrainingRuntimeOpenMPICUDAImage},
 	{Name: "torch-distributed-cuda128-torch29-py312", Image: "odh-training-cuda128-torch29-py312"},
 	{Name: "torch-distributed-rocm64-torch29-py312", Image: "odh-training-rocm64-torch29-py312"},
 	{Name: "torch-distributed-cuda130-torch291-py312", Image: "odh-th06-cuda130-torch291-py312"},

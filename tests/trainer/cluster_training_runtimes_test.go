@@ -108,6 +108,26 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 	test.T().Log("All ClusterTrainingRuntimes verified successfully!")
 }
 
+func TestOpenMPICudaClusterTrainingRuntime(t *testing.T) {
+	Tags(t, Smoke)
+	test := With(t)
+
+	runtime, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(
+		test.Ctx(),
+		trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA,
+		metav1.GetOptions{},
+	)
+	test.Expect(err).NotTo(HaveOccurred(), "Failed to get ClusterTrainingRuntime %s", trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA)
+
+	foundImage, err := trainerutils.GetImageFromClusterTrainingRuntime(test, trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA)
+	test.Expect(err).NotTo(HaveOccurred())
+	test.Expect(foundImage).NotTo(BeEmpty(), "No container image found in ClusterTrainingRuntime %s", runtime.Name)
+	test.Expect(foundImage).To(ContainSubstring(trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDAImage),
+		"Image %s should contain %s", foundImage, trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDAImage)
+	test.Expect(runtime.Labels).To(HaveKeyWithValue("trainer.kubeflow.org/framework", "openmpi"))
+	test.T().Logf("ClusterTrainingRuntime '%s' is present, uses image %s, and is labeled for framework openmpi", runtime.Name, foundImage)
+}
+
 // TestDefaultTrainingHubRuntimesMatchDefaultClusterRuntimes is a smoke test that verifies
 // Training Hub and pinned torch-distributed CTR resources (th06) have exactly the same
 // spec as their corresponding DefaultClusterTrainingRuntime resources.
@@ -152,6 +172,10 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 	// Run one TrainJob per unique image to avoid redundant runs for CTRs that share the same image
 	tested := make(map[string]bool)
 	for _, runtime := range trainerutils.ExpectedRuntimes {
+		if runtime.Name == trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA {
+			test.T().Logf("Skipping ClusterTrainingRuntime '%s' in generic runtime execution test; OpenMPI has dedicated coverage", runtime.Name)
+			continue
+		}
 		if tested[runtime.Image] {
 			test.T().Logf("Skipping ClusterTrainingRuntime '%s' (image '%s' already tested)", runtime.Name, runtime.Image)
 			continue
