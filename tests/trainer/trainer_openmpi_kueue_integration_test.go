@@ -89,7 +89,7 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 
 	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name)
-	trainJob := createOpenMPICudaKueueTrainJob(test, namespace, localQueue.Name, configMap.Name)
+	trainJob := createOpenMPICudaKueueTrainJob(test, namespace, localQueue.Name, configMap.Name, "15")
 
 	test.Eventually(KueueWorkloads(test, namespace), TestTimeoutMedium).Should(
 		And(
@@ -131,7 +131,147 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 	test.T().Logf("OpenMPI TrainJob %s/%s completed successfully", namespace, trainJob.Name)
 }
 
-func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapName string) *trainerv1alpha1.TrainJob {
+func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
+	Tags(t, Sanity, KftoCuda, MultiNodeGpu(2, NVIDIA))
+	test := With(t)
+	SetupKueue(test, initialKueueState, TrainJobFramework)
+
+	namespace := test.NewTestNamespace(WithKueueManaged()).Name
+	test.T().Logf("Created Kueue-managed namespace: %s", namespace)
+
+	configMap := CreateConfigMap(test, namespace, map[string][]byte{
+		"openmpi_cuda_smoke.py": readFile(test, "resources/openmpi_cuda_smoke.py"),
+	})
+
+	resourceFlavor := CreateKueueResourceFlavor(test, kueuev1beta1.ResourceFlavorSpec{
+		NodeLabels: map[string]string{
+			"nvidia.com/gpu.present": "true",
+		},
+	})
+	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+
+	clusterQueue := CreateKueueClusterQueue(test, kueuev1beta1.ClusterQueueSpec{
+		NamespaceSelector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"kubernetes.io/metadata.name": namespace,
+			},
+		},
+		ResourceGroups: []kueuev1beta1.ResourceGroup{
+			{
+				CoveredResources: []corev1.ResourceName{
+					corev1.ResourceCPU,
+					corev1.ResourceMemory,
+					corev1.ResourceName(NVIDIA.ResourceLabel),
+				},
+				Flavors: []kueuev1beta1.FlavorQuotas{
+					{
+						Name: kueuev1beta1.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []kueuev1beta1.ResourceQuota{
+							{
+								Name:         corev1.ResourceCPU,
+								NominalQuota: resource.MustParse("4"),
+							},
+							{
+								Name:         corev1.ResourceMemory,
+								NominalQuota: resource.MustParse("16Gi"),
+							},
+							{
+								Name:         corev1.ResourceName(NVIDIA.ResourceLabel),
+								NominalQuota: resource.MustParse("2"),
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+
+	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name)
+	trainJob := createOpenMPICudaKueueTrainJob(test, namespace, localQueue.Name, configMap.Name, "120")
+
+	test.Eventually(KueueWorkloads(test, namespace), TestTimeoutMedium).Should(
+		And(
+			HaveLen(1),
+			ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrueBecause("OpenMPI workload failed to be admitted"))),
+			ContainElement(WithTransform(func(w *kueuev1beta1.Workload) string {
+				return w.Spec.QueueName
+			}, Equal(localQueue.Name))),
+			ContainElement(WithTransform(openMPIPodSetNames, ConsistOf("launcher", "node"))),
+		),
+	)
+	test.T().Log("OpenMPI Kueue Workload admitted with launcher and node pod sets")
+
+	test.Eventually(SingleJobSet(test, namespace), TestTimeoutMedium).Should(
+		WithTransform(JobSetReplicatedJobsCount, Equal(2)),
+	)
+	test.T().Log("JobSet created with launcher and node replicated jobs")
+
+	test.Eventually(func(g Gomega) {
+		launcherRunning, nodeRunning := openMPIRunningPodCounts(test, namespace, trainJob.Name)
+		g.Expect(launcherRunning).To(Equal(1), "expected exactly one running launcher pod")
+		g.Expect(nodeRunning).To(Equal(1), "expected exactly one running worker pod")
+	}, TestTimeoutMedium).Should(Succeed())
+	test.T().Log("Launcher and worker pods reached Running concurrently")
+
+	workload := singleOpenMPIWorkload(test, namespace)
+	workload.Spec.Active = Ptr(false)
+	_, err := test.Client().Kueue().KueueV1beta1().Workloads(namespace).Update(
+		test.Ctx(),
+		workload,
+		metav1.UpdateOptions{},
+	)
+	test.Expect(err).NotTo(HaveOccurred(), "Failed to deactivate OpenMPI Workload")
+
+	test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutMedium).Should(
+		WithTransform(TrainJobConditionSuspended, Equal(metav1.ConditionTrue)),
+	)
+	test.T().Logf("OpenMPI TrainJob %s/%s is suspended after workload deactivation", namespace, trainJob.Name)
+
+	test.Eventually(Pods(test, namespace, metav1.ListOptions{}), TestTimeoutMedium).Should(HaveLen(0))
+	test.T().Log("OpenMPI launcher and worker pods were removed after workload deactivation")
+
+	workload = singleOpenMPIWorkload(test, namespace)
+	workload.Spec.Active = Ptr(true)
+	_, err = test.Client().Kueue().KueueV1beta1().Workloads(namespace).Update(
+		test.Ctx(),
+		workload,
+		metav1.UpdateOptions{},
+	)
+	test.Expect(err).NotTo(HaveOccurred(), "Failed to reactivate OpenMPI Workload")
+
+	test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutMedium).Should(
+		WithTransform(TrainJobConditionSuspended, Equal(metav1.ConditionFalse)),
+	)
+	test.T().Logf("OpenMPI TrainJob %s/%s resumed after workload reactivation", namespace, trainJob.Name)
+
+	test.Eventually(KueueWorkloads(test, namespace), TestTimeoutMedium).Should(
+		ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrue())),
+	)
+	test.Eventually(func(g Gomega) {
+		launcherRunning, nodeRunning := openMPIRunningPodCounts(test, namespace, trainJob.Name)
+		g.Expect(launcherRunning).To(Equal(1), "expected exactly one running launcher pod after resume")
+		g.Expect(nodeRunning).To(Equal(1), "expected exactly one running worker pod after resume")
+	}, TestTimeoutMedium).Should(Succeed())
+	test.T().Log("OpenMPI launcher and worker pods are running again after workload reactivation")
+
+	var launcherLog string
+	test.Eventually(func(g Gomega) string {
+		launcherPod := openMPIPodByRole(test, namespace, trainJob.Name, "launcher")
+		launcherLog = GetPodLog(test, namespace, launcherPod.Name, corev1.PodLogOptions{
+			Container: launcherPod.Spec.Containers[0].Name,
+		})
+		g.Expect(launcherLog).NotTo(BeEmpty())
+		return launcherLog
+	}, TestTimeoutLong).Should(ContainSubstring("MPI CUDA allreduce succeeded"))
+	test.T().Log("Launcher logs confirm successful MPI CUDA allreduce after workload reactivation")
+
+	test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutLong).
+		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
+	test.T().Logf("OpenMPI TrainJob %s/%s completed successfully after workload reactivation", namespace, trainJob.Name)
+}
+
+func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapName, holdSeconds string) *trainerv1alpha1.TrainJob {
 	test.T().Helper()
 
 	trainJob := &trainerv1alpha1.TrainJob{
@@ -158,7 +298,7 @@ func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapNa
 				},
 				NumNodes: Ptr(int32(2)),
 				Env: []corev1.EnvVar{
-					{Name: "MPI_TEST_HOLD_SECONDS", Value: "15"},
+					{Name: "MPI_TEST_HOLD_SECONDS", Value: holdSeconds},
 					{Name: "PYTHONUNBUFFERED", Value: "1"},
 				},
 				ResourcesPerNode: Ptr(corev1.ResourceRequirements{
@@ -310,4 +450,12 @@ func openMPIPodByRole(test Test, namespace, trainJobName, role string) corev1.Po
 		test.T().Fatalf("No active pod found for TrainJob %s with role %s", trainJobName, role)
 	}
 	return *selected
+}
+
+func singleOpenMPIWorkload(test Test, namespace string) *kueuev1beta1.Workload {
+	test.T().Helper()
+
+	workloads := GetKueueWorkloads(test, namespace)
+	test.Expect(workloads).To(HaveLen(1), "expected exactly one OpenMPI workload in namespace %s", namespace)
+	return workloads[0]
 }
