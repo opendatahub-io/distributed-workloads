@@ -17,7 +17,6 @@ limitations under the License.
 package trainer
 
 import (
-	"strings"
 	"testing"
 
 	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
@@ -116,15 +115,20 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 	}, TestTimeoutMedium).Should(Succeed())
 	test.T().Log("Launcher and worker pods reached Running concurrently")
 
+	var launcherLog string
+	test.Eventually(func(g Gomega) string {
+		launcherPod := openMPIPodByRole(test, namespace, trainJob.Name, "launcher")
+		launcherLog = GetPodLog(test, namespace, launcherPod.Name, corev1.PodLogOptions{
+			Container: launcherPod.Spec.Containers[0].Name,
+		})
+		g.Expect(launcherLog).NotTo(BeEmpty())
+		return launcherLog
+	}, TestTimeoutLong).Should(ContainSubstring("MPI CUDA allreduce succeeded"))
+	test.T().Log("Launcher logs confirm successful MPI CUDA allreduce")
+
 	test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutLong).
 		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
 	test.T().Logf("OpenMPI TrainJob %s/%s completed successfully", namespace, trainJob.Name)
-
-	launcherLog := GetPodLog(test, namespace, openMPIPodNameByRole(test, namespace, trainJob.Name, "launcher"), corev1.PodLogOptions{
-		Container: "node",
-	})
-	test.Expect(launcherLog).To(ContainSubstring("MPI CUDA allreduce succeeded"))
-	test.T().Log("Launcher logs confirm successful MPI CUDA allreduce")
 }
 
 func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapName string) *trainerv1alpha1.TrainJob {
@@ -269,19 +273,41 @@ func openMPIRunningPodCounts(test Test, namespace, trainJobName string) (int, in
 	return launcherRunning, nodeRunning
 }
 
-func openMPIPodNameByRole(test Test, namespace, trainJobName, role string) string {
+func openMPIPodByRole(test Test, namespace, trainJobName, role string) corev1.Pod {
 	test.T().Helper()
 
 	pods := GetPods(test, namespace, metav1.ListOptions{
-		LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJobName,
+		LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJobName +
+			",jobset.sigs.k8s.io/replicatedjob-name=" + role,
 	})
 
-	for _, pod := range pods {
-		if pod.Labels["jobset.sigs.k8s.io/replicatedjob-name"] == role && !strings.Contains(pod.Name, "-init") {
-			return pod.Name
+	var selected *corev1.Pod
+	for i := range pods {
+		pod := pods[i]
+		if pod.Status.Phase != corev1.PodRunning &&
+			pod.Status.Phase != corev1.PodPending &&
+			pod.Status.Phase != corev1.PodSucceeded {
+			continue
+		}
+		if selected == nil {
+			selected = &pod
+			continue
+		}
+		if selected.Status.Phase != corev1.PodRunning && pod.Status.Phase == corev1.PodRunning {
+			selected = &pod
+			continue
+		}
+		if selected.Status.Phase == corev1.PodSucceeded && pod.Status.Phase == corev1.PodPending {
+			selected = &pod
+			continue
+		}
+		if selected.CreationTimestamp.Before(&pod.CreationTimestamp) {
+			selected = &pod
 		}
 	}
 
-	test.T().Fatalf("No pod found for TrainJob %s with role %s", trainJobName, role)
-	return ""
+	if selected == nil {
+		test.T().Fatalf("No active pod found for TrainJob %s with role %s", trainJobName, role)
+	}
+	return *selected
 }
