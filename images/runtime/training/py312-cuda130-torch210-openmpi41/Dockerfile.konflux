@@ -1,4 +1,4 @@
-FROM quay.io/aipcc/base-images/cuda-13.0-el9.6:3.4.0-1774635924
+FROM quay.io/aipcc/base-images/cuda-13.0-el9.6@sha256:3de8a37c9172aea6a15fe12aeeb9fd6be09a5a5ca419ec2e9fc2e16c3f0b138d
 
 ARG SSH_PORT=2222
 

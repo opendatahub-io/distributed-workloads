@@ -1,5 +1,5 @@
 # ROCm MPI Training Runtime - AIPCC base, UV for deps
-FROM quay.io/aipcc/base-images/rocm-6.4-el9.6:3.4.0-1774635772
+FROM quay.io/aipcc/base-images/rocm-6.4-el9.6@sha256:444b1345c0bcf09ae1cb9a4f618c349522930021c8fc3e105276768beaf322cd
 
 ARG SSH_PORT=2222
 
