@@ -49,6 +49,9 @@ const (
 
 	// DefaultClusterTrainingRuntimeCPU is the default runtime for CPU-only torch-distributed workloads
 	DefaultClusterTrainingRuntimeCPU = "torch-distributed-cpu"
+
+	// DefaultMPIClusterTrainingRuntimeCUDA is the default CUDA runtime for mpi workloads
+	DefaultMPIClusterTrainingRuntimeCUDA = "openmpi-cuda"
 )
 
 var DefaultClusterTrainingRuntimes = []string{
@@ -58,6 +61,7 @@ var DefaultClusterTrainingRuntimes = []string{
 	DefaultTrainingHubRuntimeCUDA,
 	DefaultTrainingHubRuntimeCPU,
 	DefaultTrainingHubRuntimeROCm,
+	DefaultMPIClusterTrainingRuntimeCUDA,
 }
 
 func IsDefaultRuntime(name string) bool {
@@ -103,6 +107,7 @@ var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: "training-hub-th06-cuda130-torch291-py312", Image: "odh-th06-cuda130-torch291-py312"},
 	{Name: "training-hub-th06-cpu-torch291-py312", Image: "odh-th06-cpu-torch291-py312"},
 	{Name: "training-hub-th06-rocm64-torch291-py312", Image: "odh-th06-rocm64-torch291-py312"},
+	{Name: DefaultMPIClusterTrainingRuntimeCUDA, Image: "odh-training-cuda130-torch210-py312-openmpi41"},
 }
 
 // GetImageFromClusterTrainingRuntime retrieves the container image from the named ClusterTrainingRuntime
