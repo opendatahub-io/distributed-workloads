@@ -84,6 +84,8 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 		test.T().Logf("Image referred in ClusterTrainingRuntime is %s", foundImage)
 
 		if trainerutils.IsMPIRuntime(runtime.Name) {
+			test.Expect(foundImage).To(HavePrefix("quay.io/"),
+				"MPI image %s should originate from quay.io", foundImage)
 			test.Expect(foundImage).To(ContainSubstring(expectedRuntime.Image),
 				"MPI image %s should contain %s", foundImage, expectedRuntime.Image)
 			test.T().Logf("MPI ClusterTrainingRuntime '%s' uses expected image: %s", expectedRuntime.Name, foundImage)

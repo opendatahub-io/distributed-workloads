@@ -57,12 +57,17 @@ func TestMultiNodeOpenMPITrainJob(t *testing.T) {
 		LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJob.Name + ",jobset.sigs.k8s.io/replicatedjob-name=launcher",
 	})
 	test.Expect(launcherPods).To(HaveLen(1), "Expected exactly 1 launcher pod")
+	if len(launcherPods) == 0 {
+		test.T().FailNow()
+	}
 
 	logs := GetPodLog(test, namespace, launcherPods[0].Name, corev1.PodLogOptions{})
 	test.Expect(logs).To(ContainSubstring("MPI TrainJob test PASSED"),
 		"Launcher logs should contain MPI success marker")
 	test.Expect(logs).To(ContainSubstring("[Rank 0/2]"),
 		"Launcher logs should show rank 0 of 2 processes")
+	test.Expect(logs).To(ContainSubstring("[Rank 1/2]"),
+		"Launcher logs should show rank 1 of 2 processes")
 	test.T().Logf("Launcher pod logs:\n%s", logs)
 }
 
