@@ -33,7 +33,7 @@ import (
 )
 
 func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
-	Tags(t, Sanity, KftoCuda, MultiNodeGpu(2, NVIDIA))
+	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 
@@ -129,10 +129,12 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 	test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutLong).
 		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
 	test.T().Logf("OpenMPI TrainJob %s/%s completed successfully", namespace, trainJob.Name)
+
+	verifyOpenMPIPodContainerImages(test, namespace, trainJob.Name)
 }
 
 func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
-	Tags(t, Sanity, KftoCuda, MultiNodeGpu(2, NVIDIA))
+	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 
@@ -188,7 +190,7 @@ func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
 	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 
 	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name)
-	trainJob := createOpenMPICudaKueueTrainJob(test, namespace, localQueue.Name, configMap.Name, "120")
+	trainJob := createOpenMPICudaKueueTrainJob(test, namespace, localQueue.Name, configMap.Name, "40")
 
 	test.Eventually(KueueWorkloads(test, namespace), TestTimeoutMedium).Should(
 		And(
@@ -458,4 +460,25 @@ func singleOpenMPIWorkload(test Test, namespace string) *kueuev1beta1.Workload {
 	workloads := GetKueueWorkloads(test, namespace)
 	test.Expect(workloads).To(HaveLen(1), "expected exactly one OpenMPI workload in namespace %s", namespace)
 	return workloads[0]
+}
+
+func verifyOpenMPIPodContainerImages(test Test, namespace, trainJobName string) {
+	test.T().Helper()
+
+	runtimeImage, err := trainerutils.GetImageFromClusterTrainingRuntime(test, trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA)
+	test.Expect(err).NotTo(HaveOccurred(), "Failed to get image from ClusterTrainingRuntime %s", trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA)
+
+	pods := GetPods(test, namespace, metav1.ListOptions{LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJobName})
+	test.Expect(pods).NotTo(BeEmpty(), "No pods found for TrainJob %s", trainJobName)
+
+	for _, pod := range pods {
+		images := getPodContainerImages(pod)
+		test.Expect(images).NotTo(BeEmpty(), "No container images found for Pod %s", pod.Name)
+
+		for _, image := range images {
+			test.Expect(image).To(Equal(runtimeImage),
+				"Image %s should match OpenMPI runtime image %s", image, runtimeImage)
+			test.T().Logf("Pod %s uses the expected OpenMPI runtime image %s", pod.Name, runtimeImage)
+		}
+	}
 }
