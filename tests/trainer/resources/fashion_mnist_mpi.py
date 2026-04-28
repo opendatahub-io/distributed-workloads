@@ -3,6 +3,7 @@ import socket
 import logging
 
 import torch
+import torch.distributed as dist
 import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader, Subset
@@ -10,12 +11,16 @@ from torch.utils.data import DataLoader, Subset
 
 def train_mpi_fashion_mnist():
     rank = int(os.environ.get("OMPI_COMM_WORLD_RANK", "-1"))
-    size = int(os.environ.get("OMPI_COMM_WORLD_SIZE", "-1"))
     local_rank = int(os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK", "0"))
-    expected_size = int(os.environ.get("EXPECTED_WORLD_SIZE", "2"))
+    expected_size = 2
     hostname = socket.gethostname()
 
     assert rank >= 0, "OMPI_COMM_WORLD_RANK not set"
+
+    # Explicitly initialize PyTorch distributed with MPI backend for this E2E.
+    dist.init_process_group(backend="mpi")
+    rank = dist.get_rank()
+    size = dist.get_world_size()
     assert size == expected_size, f"Expected {expected_size} MPI processes, got {size}"
 
     formatter = logging.Formatter("%(asctime)s %(levelname)-8s %(message)s")
@@ -107,6 +112,7 @@ def train_mpi_fashion_mnist():
         logger.info("[Rank %s/%s] Epoch %s avg_loss=%.6f", rank, size, epoch, avg_loss)
 
     logger.info("[Rank %s/%s] MPI TrainJob test PASSED", rank, size)
+    dist.destroy_process_group()
 
 
 if __name__ == "__main__":
