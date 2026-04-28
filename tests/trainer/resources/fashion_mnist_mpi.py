@@ -10,12 +10,9 @@ from torch.utils.data import DataLoader, Subset
 
 
 def train_mpi_fashion_mnist():
-    rank = int(os.environ.get("OMPI_COMM_WORLD_RANK", "-1"))
     local_rank = int(os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK", "0"))
     expected_size = 2
     hostname = socket.gethostname()
-
-    assert rank >= 0, "OMPI_COMM_WORLD_RANK not set"
 
     # Explicitly initialize PyTorch distributed with MPI backend for this E2E.
     dist.init_process_group(backend="mpi")
