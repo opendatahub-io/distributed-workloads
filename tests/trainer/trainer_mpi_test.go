@@ -17,6 +17,7 @@ limitations under the License.
 package trainer
 
 import (
+	"encoding/base64"
 	"testing"
 
 	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
@@ -37,7 +38,8 @@ func TestMultiNodeOpenMPITrainJob(t *testing.T) {
 
 	namespace := test.NewTestNamespace().Name
 
-	trainJob := createMPITrainJob(test, namespace)
+	mpiTrainingScript := string(readFile(test, "resources/fashion_mnist_mpi.py"))
+	trainJob := createMPITrainJob(test, namespace, mpiTrainingScript)
 
 	test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutDouble).
 		Should(Satisfy(TrainJobReachedFinalState))
@@ -56,9 +58,7 @@ func TestMultiNodeOpenMPITrainJob(t *testing.T) {
 	launcherPods := GetPods(test, namespace, metav1.ListOptions{
 		LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJob.Name + ",jobset.sigs.k8s.io/replicatedjob-name=launcher",
 	})
-	if len(launcherPods) != 1 {
-		test.T().Fatalf("Expected exactly 1 launcher pod, got %d", len(launcherPods))
-	}
+	test.Expect(launcherPods).To(HaveLen(1), "Expected exactly 1 launcher pod")
 
 	logs := GetPodLog(test, namespace, launcherPods[0].Name, corev1.PodLogOptions{})
 	test.Expect(logs).To(ContainSubstring("MPI TrainJob test PASSED"),
@@ -70,8 +70,10 @@ func TestMultiNodeOpenMPITrainJob(t *testing.T) {
 	test.T().Logf("Launcher pod logs:\n%s", logs)
 }
 
-func createMPITrainJob(test Test, namespace string) *trainerv1alpha1.TrainJob {
+func createMPITrainJob(test Test, namespace, trainingScript string) *trainerv1alpha1.TrainJob {
 	test.T().Helper()
+
+	encodedScript := base64.StdEncoding.EncodeToString([]byte(trainingScript))
 
 	trainJob := &trainerv1alpha1.TrainJob{
 		ObjectMeta: metav1.ObjectMeta{
@@ -87,15 +89,7 @@ func createMPITrainJob(test Test, namespace string) *trainerv1alpha1.TrainJob {
 				Command: []string{
 					"mpirun",
 					"python", "-c",
-					`import os, socket, torch
-rank = int(os.environ.get("OMPI_COMM_WORLD_RANK", "-1"))
-size = int(os.environ.get("OMPI_COMM_WORLD_SIZE", "-1"))
-hostname = socket.gethostname()
-print(f"[Rank {rank}/{size}] Running on {hostname}")
-assert size == 2, f"Expected 2 MPI processes, got {size}"
-assert rank >= 0, f"OMPI_COMM_WORLD_RANK not set"
-print(f"[Rank {rank}/{size}] PyTorch {torch.__version__}, CUDA available: {torch.cuda.is_available()}")
-print(f"[Rank {rank}/{size}] MPI TrainJob test PASSED")`,
+					`import base64; exec(base64.b64decode("` + encodedScript + `").decode("utf-8"))`,
 				},
 				ResourcesPerNode: &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
