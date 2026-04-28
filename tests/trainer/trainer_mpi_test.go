@@ -60,9 +60,6 @@ func TestMultiNodeOpenMPITrainJob(t *testing.T) {
 		LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJob.Name + ",jobset.sigs.k8s.io/replicatedjob-name=launcher",
 	})
 	test.Expect(launcherPods).To(HaveLen(1), "Expected exactly 1 launcher pod")
-	if len(launcherPods) != 1 {
-		test.T().Fatalf("Expected exactly 1 launcher pod, got %d", len(launcherPods))
-	}
 
 	logs := GetPodLog(test, namespace, launcherPods[0].Name, corev1.PodLogOptions{})
 	test.Expect(logs).To(ContainSubstring("MPI TrainJob test PASSED"),
