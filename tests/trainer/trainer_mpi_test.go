@@ -32,7 +32,7 @@ import (
 )
 
 func TestMultiNodeOpenMPITrainJob(t *testing.T) {
-	Tags(t, Sanity, MultiNodeGpu(2, NVIDIA))
+	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	test := With(t)
 
 	namespace := test.NewTestNamespace().Name
@@ -56,9 +56,8 @@ func TestMultiNodeOpenMPITrainJob(t *testing.T) {
 	launcherPods := GetPods(test, namespace, metav1.ListOptions{
 		LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJob.Name + ",jobset.sigs.k8s.io/replicatedjob-name=launcher",
 	})
-	test.Expect(launcherPods).To(HaveLen(1), "Expected exactly 1 launcher pod")
-	if len(launcherPods) == 0 {
-		test.T().FailNow()
+	if len(launcherPods) != 1 {
+		test.T().Fatalf("Expected exactly 1 launcher pod, got %d", len(launcherPods))
 	}
 
 	logs := GetPodLog(test, namespace, launcherPods[0].Name, corev1.PodLogOptions{})
@@ -100,10 +99,10 @@ print(f"[Rank {rank}/{size}] MPI TrainJob test PASSED")`,
 				},
 				ResourcesPerNode: &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
-						"nvidia.com/gpu": resource.MustParse("1"),
+						corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse("1"),
 					},
 					Limits: corev1.ResourceList{
-						"nvidia.com/gpu": resource.MustParse("1"),
+						corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse("1"),
 					},
 				},
 			},
