@@ -115,7 +115,7 @@ spec:
       description: Build a source image.
       name: build-source-image
       type: string
-    - default: "false"
+    - default: "true"
       description: Add built image into an OCI image index
       name: build-image-index
       type: string
@@ -356,6 +356,7 @@ spec:
         values:
         - "false"
     - name: ecosystem-cert-preflight-checks
+      timeout: 2h
       params:
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
@@ -366,7 +367,7 @@ spec:
         - name: name
           value: ecosystem-cert-preflight-checks
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-ecosystem-cert-preflight-checks:0.1@sha256:5131cce0f93d0b728c7bcc0d6cee4c61d4c9f67c6d619c627e41e3c9775b497d
+          value: quay.io/konflux-ci/tekton-catalog/task-ecosystem-cert-preflight-checks:0.2@sha256:51ee3ca7b8142f39a2861ed0f94f67e02c538e3b7e57de56ed301fbb9774aa12
         - name: kind
           value: task
         resolver: bundles
