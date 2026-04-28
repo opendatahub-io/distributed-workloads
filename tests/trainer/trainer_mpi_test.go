@@ -17,7 +17,6 @@ limitations under the License.
 package trainer
 
 import (
-	"encoding/base64"
 	"testing"
 
 	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
@@ -38,8 +37,10 @@ func TestMultiNodeOpenMPITrainJob(t *testing.T) {
 
 	namespace := test.NewTestNamespace().Name
 
-	mpiTrainingScript := string(readFile(test, "resources/fashion_mnist_mpi.py"))
-	trainJob := createMPITrainJob(test, namespace, mpiTrainingScript)
+	mpiScriptConfigMap := CreateConfigMap(test, namespace, map[string][]byte{
+		"fashion_mnist_mpi.py": readFile(test, "resources/fashion_mnist_mpi.py"),
+	})
+	trainJob := createMPITrainJob(test, namespace, mpiScriptConfigMap.Name)
 
 	test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutDouble).
 		Should(Satisfy(TrainJobReachedFinalState))
@@ -70,10 +71,8 @@ func TestMultiNodeOpenMPITrainJob(t *testing.T) {
 	test.T().Logf("Launcher pod logs:\n%s", logs)
 }
 
-func createMPITrainJob(test Test, namespace, trainingScript string) *trainerv1alpha1.TrainJob {
+func createMPITrainJob(test Test, namespace, scriptConfigMapName string) *trainerv1alpha1.TrainJob {
 	test.T().Helper()
-
-	encodedScript := base64.StdEncoding.EncodeToString([]byte(trainingScript))
 
 	trainJob := &trainerv1alpha1.TrainJob{
 		ObjectMeta: metav1.ObjectMeta{
@@ -88,8 +87,7 @@ func createMPITrainJob(test Test, namespace, trainingScript string) *trainerv1al
 				NumNodes: Ptr(int32(2)),
 				Command: []string{
 					"mpirun",
-					"python", "-c",
-					`import base64; exec(base64.b64decode("` + encodedScript + `").decode("utf-8"))`,
+					"python", "/etc/mpi-test/fashion_mnist_mpi.py",
 				},
 				ResourcesPerNode: &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
@@ -97,6 +95,39 @@ func createMPITrainJob(test Test, namespace, trainingScript string) *trainerv1al
 					},
 					Limits: corev1.ResourceList{
 						corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse("1"),
+					},
+				},
+			},
+			PodTemplateOverrides: []trainerv1alpha1.PodTemplateOverride{
+				{
+					TargetJobs: []trainerv1alpha1.PodTemplateOverrideTargetJob{
+						{Name: "launcher"},
+						{Name: "node"},
+					},
+					Spec: &trainerv1alpha1.PodTemplateSpecOverride{
+						Containers: []trainerv1alpha1.ContainerOverride{
+							{
+								Name: "node",
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      "mpi-test-script",
+										MountPath: "/etc/mpi-test",
+									},
+								},
+							},
+						},
+						Volumes: []corev1.Volume{
+							{
+								Name: "mpi-test-script",
+								VolumeSource: corev1.VolumeSource{
+									ConfigMap: &corev1.ConfigMapVolumeSource{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: scriptConfigMapName,
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
