@@ -3,5 +3,5 @@
 --extra-index-url https://download.pytorch.org/whl/cu130
 
 minio==7.2.20
-torchvision==0.24.1+cu130  # no-deps
+torchvision==0.25.0+cu130  # no-deps
 pillow==11.0.0  # no-deps
