@@ -42,42 +42,42 @@ func TestPyTorchDDPMultiNodeMultiCPUWithTorchCuda28(t *testing.T) {
 }
 
 func TestPyTorchDDPSingleNodeSingleGPUWithTorchCuda(t *testing.T) {
-	Tags(t, KftoCuda)
+	Tags(t, KftoCuda, Gpu(NVIDIA))
 	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, "resources/requirements-cuda.txt", 1, 1)
 }
 
 func TestPyTorchDDPSingleNodeMultiGPUWithTorchCuda(t *testing.T) {
-	Tags(t, KftoCuda)
+	Tags(t, KftoCuda, MultiGpu(NVIDIA, 2))
 	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, "resources/requirements-cuda.txt", 1, 2)
 }
 
 func TestPyTorchDDPMultiNodeSingleGPUWithTorchCuda(t *testing.T) {
-	Tags(t, KftoCuda)
+	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, "resources/requirements-cuda.txt", 2, 1)
 }
 
 func TestPyTorchDDPMultiNodeMultiGPUWithTorchCuda(t *testing.T) {
-	Tags(t, KftoCuda)
+	Tags(t, KftoCuda, MultiNodeMultiGpu(2, NVIDIA, 2))
 	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, "resources/requirements-cuda.txt", 2, 2)
 }
 
 func TestPyTorchDDPSingleNodeSingleGPUWithTorchRocm(t *testing.T) {
-	Tags(t, KftoRocm)
+	Tags(t, KftoRocm, Gpu(AMD))
 	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 1, 1)
 }
 
 func TestPyTorchDDPSingleNodeMultiGPUWithTorchRocm(t *testing.T) {
-	Tags(t, KftoRocm)
+	Tags(t, KftoRocm, MultiGpu(AMD, 2))
 	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 1, 2)
 }
 
 func TestPyTorchDDPMultiNodeSingleGPUWithTorchRocm(t *testing.T) {
-	Tags(t, KftoRocm)
+	Tags(t, KftoRocm, MultiNodeGpu(2, AMD))
 	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 2, 1)
 }
 
 func TestPyTorchDDPMultiNodeMultiGPUWithTorchRocm(t *testing.T) {
-	Tags(t, KftoRocm)
+	Tags(t, KftoRocm, MultiNodeMultiGpu(2, AMD, 2))
 	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 2, 2)
 }
 
