@@ -53,7 +53,6 @@ const (
 
 const (
 	tierSmoke    = "Smoke"
-	tierSanity   = "Sanity"
 	tier1        = "Tier1"
 	tier2        = "Tier2"
 	tier3        = "Tier3"
@@ -65,7 +64,7 @@ const (
 	examplesRocm = "Examples-ROCm"
 )
 
-var testTiers = []string{tierSmoke, tierSanity, tier1, tier2, tier3, preUpgrade, postUpgrade, kftoCuda, kftoRocm, examplesCuda, examplesRocm}
+var testTiers = []string{tierSmoke, tier1, tier2, tier3, preUpgrade, postUpgrade, kftoCuda, kftoRocm, examplesCuda, examplesRocm}
 
 var testTierParam string
 

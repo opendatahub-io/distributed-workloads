@@ -34,13 +34,13 @@ import (
 )
 
 func TestPyTorchJobMnistMultiNodeSingleCpu(t *testing.T) {
-	Tags(t, Sanity, MultiNode(3))
+	Tags(t, Tier1, MultiNode(3))
 	test := With(t)
 	runKFTOPyTorchMnistJob(test, CPU, GetTrainingCudaPyTorch251Image(test), "resources/requirements.txt", 2, 1)
 }
 
 func TestPyTorchJobMnistMultiNodeMultiCpu(t *testing.T) {
-	Tags(t, Tier1, MultiNode(3))
+	Tags(t, Tier2, MultiNode(3))
 	test := With(t)
 	runKFTOPyTorchMnistJob(test, CPU, GetTrainingCudaPyTorch251Image(test), "resources/requirements.txt", 2, 2)
 }

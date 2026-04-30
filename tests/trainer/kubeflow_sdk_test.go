@@ -24,13 +24,13 @@ import (
 	sdktests "github.com/opendatahub-io/distributed-workloads/tests/trainer/sdk_tests"
 )
 
-func TestKubeflowSdkSanity(t *testing.T) {
-	Tags(t, Sanity)
+func TestKubeflowSdk(t *testing.T) {
+	Tags(t, Tier1)
 	sdktests.RunFashionMnistCpuDistributedTraining(t)
 }
 
 func TestKubeflowSdkKueueIntegration(t *testing.T) {
-	Tags(t, Sanity)
+	Tags(t, Tier1)
 	test := support.With(t)
 	support.SetupKueue(test, initialKueueState, support.TrainJobFramework)
 	sdktests.RunFashionMnistKueueCpuDistributedTraining(t)
@@ -78,17 +78,17 @@ func TestSftTrainingHubMultiNodeMultiGPU(t *testing.T) {
 
 // CPU tests - 1 node, 1 CPU each
 func TestRhaiTrainingProgressionCPU(t *testing.T) {
-	Tags(t, Tier1)
+	Tags(t, Tier2)
 	sdktests.RunRhaiFeaturesProgressionTest(t, support.CPU, 1)
 }
 
 func TestRhaiJitCheckpointingCPU(t *testing.T) {
-	Tags(t, Tier1)
+	Tags(t, Tier2)
 	sdktests.RunRhaiFeaturesCheckpointTest(t, support.CPU, 1)
 }
 
 func TestRhaiFeaturesCPU(t *testing.T) {
-	Tags(t, Tier1)
+	Tags(t, Tier2)
 	sdktests.RunRhaiFeaturesAllTest(t, support.CPU, 1)
 }
 
@@ -172,7 +172,7 @@ func TestTorchrunTrainingFailure(t *testing.T) {
 
 // S3 Checkpoint tests (CPU only, auto-skip if S3 not configured)
 func TestRhaiS3CheckpointingCPU(t *testing.T) {
-	Tags(t, Tier1)
+	Tags(t, Tier2)
 	sdktests.RunRhaiS3CheckpointTest(t, support.CPU, 1)
 }
 

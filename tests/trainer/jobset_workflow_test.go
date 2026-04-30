@@ -36,7 +36,7 @@ import (
 )
 
 func TestJobSetWorkflow(t *testing.T) {
-	Tags(t, Sanity)
+	Tags(t, Tier1)
 	test := With(t)
 
 	// Create a namespace
@@ -71,7 +71,7 @@ func TestJobSetWorkflow(t *testing.T) {
 }
 
 func TestFailedJobSetWorkflow(t *testing.T) {
-	Tags(t, Sanity)
+	Tags(t, Tier2)
 	test := With(t)
 
 	// Create a namespace

@@ -33,19 +33,19 @@ import (
 )
 
 func TestPyTorchJobSingleNodeSingleGpuWithCudaPyTorch241(t *testing.T) {
-	Tags(t, Tier1, Gpu(NVIDIA))
+	Tags(t, Tier2, Gpu(NVIDIA))
 	test := With(t)
 	runKFTOPyTorchJob(test, GetTrainingCudaPyTorch241Image(test), NVIDIA, 1, 0)
 }
 
 func TestPyTorchJobSingleNodeSingleGpuWithCudaPyTorch251(t *testing.T) {
-	Tags(t, Tier1, Gpu(NVIDIA))
+	Tags(t, Tier2, Gpu(NVIDIA))
 	test := With(t)
 	runKFTOPyTorchJob(test, GetTrainingCudaPyTorch251Image(test), NVIDIA, 1, 0)
 }
 
 func TestPyTorchJobSingleNodeSingleGpuWithCudaPyTorch28(t *testing.T) {
-	Tags(t, Tier1, Gpu(NVIDIA))
+	Tags(t, Tier2, Gpu(NVIDIA))
 	test := With(t)
 	runKFTOPyTorchJob(test, GetTrainingCudaPyTorch28Image(test), NVIDIA, 1, 0)
 }
@@ -105,19 +105,19 @@ func TestPyTorchJobMultiNodeMultiGpuWithCudaPyTorch28(t *testing.T) {
 }
 
 func TestPyTorchJobSingleNodeSingleGpuWithROCmPyTorch241(t *testing.T) {
-	Tags(t, Tier1, Gpu(AMD))
+	Tags(t, Tier2, Gpu(AMD))
 	test := With(t)
 	runKFTOPyTorchJob(test, GetTrainingROCmPyTorch241Image(test), AMD, 1, 0)
 }
 
 func TestPyTorchJobSingleNodeSingleGpuWithROCmPyTorch251(t *testing.T) {
-	Tags(t, Tier1, Gpu(AMD))
+	Tags(t, Tier2, Gpu(AMD))
 	test := With(t)
 	runKFTOPyTorchJob(test, GetTrainingROCmPyTorch251Image(test), AMD, 1, 0)
 }
 
 func TestPyTorchJobSingleNodeSingleGpuWithROCmPyTorch28(t *testing.T) {
-	Tags(t, Tier1, Gpu(AMD))
+	Tags(t, Tier2, Gpu(AMD))
 	test := With(t)
 	runKFTOPyTorchJob(test, GetTrainingRocmPyTorch28Image(test), AMD, 1, 0)
 }

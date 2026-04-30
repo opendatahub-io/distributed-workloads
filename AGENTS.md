@@ -72,7 +72,7 @@ Namespace-scoped resources are deleted automatically when the test namespace is 
 
 ```go
 func TestMyFeature(t *testing.T) {
-    Tags(t, Sanity)        // 1. tag / skip checks
+    Tags(t, Tier1)         // 1. tag / skip checks
     test := With(t)        // 2. create test context
 
     namespace := test.NewTestNamespace().Name  // 3. isolated namespace
@@ -121,7 +121,6 @@ Tests in `tests/trainer/` **must** declare a tag — this is mandatory. Apply it
 | Tag | When to use |
 |-----|-------------|
 | `Smoke` | Minimal deployment verification |
-| `Sanity` | Core workflow correctness |
 | `Tier1`–`Tier3` | Progressively deeper coverage |
 | `Gpu(accelerator)` | Requires at least one GPU node |
 | `MultiGpu(accelerator, n)` | Requires n GPUs per node |

@@ -37,7 +37,7 @@ import (
 )
 
 func TestPyTorchDDPMultiNodeMultiCPUWithTorchCuda28(t *testing.T) {
-	Tags(t, Tier1, MultiNode(2))
+	Tags(t, Tier2, MultiNode(2))
 	runPyTorchDDPMultiNodeJob(t, CPU, trainerutils.DefaultClusterTrainingRuntimeCPU, "resources/requirements-cpu.txt", 2, 2)
 }
 
