@@ -165,7 +165,9 @@ func (t *T) OutputDir() string {
 func (t *T) NewTestNamespace(options ...Option[*corev1.Namespace]) *corev1.Namespace {
 	t.T().Helper()
 	namespace := createTestNamespace(t, options...)
+	cancelPeriodicCapture := startPeriodicPodLogCapture(t, namespace)
 	t.T().Cleanup(func() {
+		cancelPeriodicCapture()
 		storeAllPodLogs(t, namespace)
 		storeEvents(t, namespace)
 		deleteTestNamespace(t, namespace)
