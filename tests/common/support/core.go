@@ -17,10 +17,14 @@ limitations under the License.
 package support
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"path"
 	"reflect"
+	"time"
 
 	"github.com/onsi/gomega"
 
@@ -175,6 +179,87 @@ func storeContainerLog(t Test, namespace *corev1.Namespace, podName, containerNa
 
 	containerLogFileName := "pod-" + podName + "-" + containerName
 	WriteToOutputDir(t, containerLogFileName, Log, bytes)
+}
+
+const maxCapturedLogBytes int64 = 10 << 20 // 10 MiB per container snapshot
+
+func startPeriodicPodLogCapture(t Test, namespace *corev1.Namespace) context.CancelFunc {
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	client := t.Client().Core().CoreV1()
+
+	writeFile := func(filePath string, data []byte) {
+		if err := os.WriteFile(filePath, data, 0o600); err != nil {
+			t.T().Logf("periodic pod capture: failed writing %s: %v", filePath, err)
+		}
+	}
+
+	fetchLog := func(outputDir, podName, containerName string, previous bool) {
+		tailLines := int64(10000)
+		options := corev1.PodLogOptions{Container: containerName, Previous: previous, TailLines: &tailLines}
+		stream, err := client.Pods(namespace.Name).GetLogs(podName, &options).Stream(ctx)
+		if err != nil {
+			return
+		}
+		defer func() { _ = stream.Close() }()
+
+		data, err := io.ReadAll(io.LimitReader(stream, maxCapturedLogBytes))
+		if err != nil || len(data) == 0 {
+			return
+		}
+
+		suffix := ""
+		if previous {
+			suffix = "-previous"
+		}
+		writeFile(path.Join(outputDir, "pod-"+podName+"-"+containerName+suffix+".log"), data)
+	}
+
+	go func() {
+		defer close(done)
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				outputDir := t.OutputDir()
+
+				pods, err := client.Pods(namespace.Name).List(ctx, metav1.ListOptions{})
+				if err != nil {
+					continue
+				}
+
+				for _, pod := range pods.Items {
+					for _, container := range pod.Spec.InitContainers {
+						fetchLog(outputDir, pod.Name, container.Name, false)
+						fetchLog(outputDir, pod.Name, container.Name, true)
+					}
+
+					for _, container := range pod.Spec.Containers {
+						fetchLog(outputDir, pod.Name, container.Name, false)
+						fetchLog(outputDir, pod.Name, container.Name, true)
+					}
+
+					status := map[string]any{
+						"phase":             pod.Status.Phase,
+						"containerStatuses": pod.Status.ContainerStatuses,
+						"initStatuses":      pod.Status.InitContainerStatuses,
+					}
+					if data, err := json.MarshalIndent(status, "", "  "); err == nil {
+						writeFile(path.Join(outputDir, "pod-"+pod.Name+"-status.log"), data)
+					}
+				}
+			}
+		}
+	}()
+
+	return func() {
+		cancel()
+		<-done
+	}
 }
 
 func CreateServiceAccount(t Test, namespace string) *corev1.ServiceAccount {
