@@ -89,15 +89,15 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
 		shellQuote(support.GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name),
-		shellQuote(trainerutils.DefaultTrainingHubRuntimeCPU),
+		shellQuote(trainerutils.DefaultTrainingHubRuntimeCUDA),
 		sdkInstallExports,
 		installKubeflowScript,
 		failureNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
-	// Create Notebook CR — CPU-only (ContainerSizeSmall), no GPUs needed
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, failureNotebookName, 0, rwxPvc, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCPU))
+	// Create Notebook CR — uses CUDA runtime (LORA scenario requires Unsloth/CUDA, SFT checks flash attention)
+	common.CreateNotebook(test, namespace, userToken, command, cm.Name, failureNotebookName, 0, rwxPvc, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCUDA))
 
 	// Cleanup
 	defer func() {
