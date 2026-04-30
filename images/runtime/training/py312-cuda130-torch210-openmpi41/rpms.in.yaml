@@ -1,0 +1,12 @@
+contentOrigin:
+  repofiles:
+    - ./rpm-repos/ubi.repo
+
+packages:
+  - openssh-server
+
+arches:
+  - x86_64
+
+context:
+  containerfile: Dockerfile.konflux

@@ -1,0 +1,15 @@
+contentOrigin:
+  repofiles:
+    - ./rpm-repos/ubi.repo
+    - ./rpm-repos/redhat.repo
+
+packages:
+  - openssh-server
+  - rdma-core
+  - infiniband-diags
+
+arches:
+  - x86_64
+
+context:
+  containerfile: Dockerfile.konflux

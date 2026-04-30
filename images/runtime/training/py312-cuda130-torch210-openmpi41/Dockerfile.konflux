@@ -48,20 +48,6 @@ RUN sed -i "s/#\(StrictModes \).*/\1no/g" /etc/ssh/sshd_config \
     && echo "StrictModes no" >> /etc/ssh/sshd_config \
     && echo "Port ${SSH_PORT}" >> /etc/ssh/sshd_config
 
-# Install InfiniBand and Mellanox RDMA user-space libraries.
-# libibverbs/librdmacm: base RDMA verbs and connection management.
-# libibumad: user MAD library required by some OpenMPI components.
-# libmlx5: Mellanox ConnectX-4/5/6/7 provider; activates rc_mlx5/dc_mlx5 UCX transports.
-# infiniband-diags: diagnostic tools (ibstat, ibstatus, iblinkinfo) for debugging IB connectivity.
-RUN dnf install -y \
-    rdma-core \
-    libibverbs \
-    librdmacm \
-    libibumad \
-    libmlx5 \
-    infiniband-diags \
-    && dnf clean all
-
 # User-level sshd config for running as non-root
 # OpenMPI MCA params file: read by every OpenMPI process regardless of environment variables,
 # so this reliably applies to orted and worker processes launched via SSH.
