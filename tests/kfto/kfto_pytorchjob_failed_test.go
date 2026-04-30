@@ -16,25 +16,25 @@ import (
 )
 
 func TestPyTorchJobFailureWithCudaPyTorch241(t *testing.T) {
-	Tags(t, Tier1)
+	Tags(t, Tier2)
 	test := With(t)
 	runFailedPyTorchJobTest(test, GetTrainingCudaPyTorch241Image(test))
 }
 
 func TestPyTorchJobFailureWithCudaPyTorch251(t *testing.T) {
-	Tags(t, Tier1)
+	Tags(t, Tier2)
 	test := With(t)
 	runFailedPyTorchJobTest(test, GetTrainingCudaPyTorch251Image(test))
 }
 
 func TestPyTorchJobFailureWithROCmPyTorch241(t *testing.T) {
-	Tags(t, Tier1)
+	Tags(t, Tier2)
 	test := With(t)
 	runFailedPyTorchJobTest(test, GetTrainingROCmPyTorch241Image(test))
 }
 
 func TestPyTorchJobFailureWithROCmPyTorch251(t *testing.T) {
-	Tags(t, Tier1)
+	Tags(t, Tier2)
 	test := With(t)
 	runFailedPyTorchJobTest(test, GetTrainingROCmPyTorch251Image(test))
 }

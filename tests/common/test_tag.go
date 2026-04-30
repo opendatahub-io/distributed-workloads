@@ -45,10 +45,6 @@ var Smoke = func(test Test) (runTest bool, skipReason string) {
 	return testTier(test, tierSmoke)
 }
 
-var Sanity = func(test Test) (runTest bool, skipReason string) {
-	return testTier(test, tierSanity)
-}
-
 var Tier1 = func(test Test) (runTest bool, skipReason string) {
 	return testTier(test, tier1)
 }

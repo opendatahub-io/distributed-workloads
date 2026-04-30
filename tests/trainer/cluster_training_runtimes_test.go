@@ -174,7 +174,7 @@ func TestDefaultTrainingHubRuntimesMatchDefaultClusterRuntimes(t *testing.T) {
 }
 
 func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
-	Tags(t, Sanity)
+	Tags(t, Tier1)
 	test := With(t)
 
 	// Run one TrainJob per unique image to avoid redundant runs for CTRs that share the same image

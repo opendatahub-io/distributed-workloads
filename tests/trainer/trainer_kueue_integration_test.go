@@ -55,7 +55,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestKueueDefaultLocalQueueLabelInjection(t *testing.T) {
-	Tags(t, Sanity)
+	Tags(t, Tier1)
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 
@@ -137,7 +137,7 @@ func TestKueueDefaultLocalQueueLabelInjection(t *testing.T) {
 }
 
 func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {
-	Tags(t, Sanity)
+	Tags(t, Tier1)
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 
@@ -223,7 +223,7 @@ func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {
 }
 
 func TestKueueWorkloadInadmissibleWithNonExistentLocalQueue(t *testing.T) {
-	Tags(t, Sanity)
+	Tags(t, Tier2)
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 
