@@ -65,7 +65,7 @@ func mnistRay(t *testing.T, numGpus int, gpuResourceName string, rayImage string
 	test := With(t)
 
 	// Create a namespace
-	namespace := test.NewTestNamespace()
+	namespace := test.NewTestNamespace(WithKueueManaged())
 
 	// Ensure Notebook ServiceAccount exists (no extra RBAC)
 	ensureNotebookServiceAccount(test, namespace.Name)

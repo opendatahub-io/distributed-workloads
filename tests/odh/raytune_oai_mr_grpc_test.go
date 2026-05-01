@@ -46,7 +46,7 @@ func raytuneHpo(t *testing.T, numGpus int) {
 	test := With(t)
 
 	// Create a namespace
-	namespace := test.NewTestNamespace()
+	namespace := test.NewTestNamespace(WithKueueManaged())
 
 	// Ensure Notebook ServiceAccount exists (no extra RBAC)
 	ensureNotebookServiceAccount(test, namespace.Name)
