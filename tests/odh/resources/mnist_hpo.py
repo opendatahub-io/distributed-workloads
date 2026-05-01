@@ -171,7 +171,7 @@ def train_mnist(config):
         model.parameters(), lr=config["lr"], momentum=config["momentum"]
     )
 
-    while True:
+    for _ in range(5):
         train_func(model, optimizer, train_loader, device)
         acc = test_func(model, test_loader, device)
         metrics = {"mean_accuracy": acc}
@@ -180,12 +180,33 @@ def train_mnist(config):
         if should_checkpoint:
             with tempfile.TemporaryDirectory() as tempdir:
                 torch.save(model.state_dict(), os.path.join(tempdir, "model.pt"))
-                train.report(metrics, checkpoint=Checkpoint.from_directory(tempdir))
+                tune.report(metrics, checkpoint=Checkpoint.from_directory(tempdir))
         else:
-            train.report(metrics)
+            tune.report(metrics)
 
 
 if __name__ == "__main__":
+    import os as _os
+    # Ray 2.35.0's get_air_verbosity() expects int or AirVerbosity enum, but the
+    # RHOAI cluster sets AIR_VERBOSITY as a plain string. Patch at the source so
+    # it works regardless of when/how the env-var is re-injected (e.g. via ray.init).
+    try:
+        import ray.tune.experimental.output as _ray_output
+        import ray.tune.tune as _ray_tune_module
+        _orig_gav = _ray_output.get_air_verbosity
+        def _fixed_gav(verbose):
+            if isinstance(verbose, str):
+                try:
+                    verbose = int(verbose)
+                except (ValueError, TypeError):
+                    verbose = 2
+            return _orig_gav(verbose)
+        _ray_output.get_air_verbosity = _fixed_gav
+        _ray_tune_module.get_air_verbosity = _fixed_gav
+    except Exception:
+        pass
+    _os.environ.pop("AIR_VERBOSITY", None)
+
     # for early stopping
     sched = AsyncHyperBandScheduler()
     gpu_value=int("has to be specified")
@@ -198,12 +219,8 @@ if __name__ == "__main__":
             scheduler=sched,
             num_samples=5,
         ),
-        run_config=train.RunConfig(
+        run_config=tune.RunConfig(
             name="exp",
-            stop={
-                "mean_accuracy": 0.98,
-                "training_iteration": 5,
-            },
         ),
         param_space={
             "lr": tune.loguniform(1e-4, 1e-2),

@@ -44,7 +44,7 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelName string, modelC
 	test := With(t)
 
 	// Create a namespace
-	namespace := test.NewTestNamespace()
+	namespace := test.NewTestNamespace(WithKueueManaged())
 	var workingDirectory, err = os.Getwd()
 	test.Expect(err).ToNot(HaveOccurred())
 

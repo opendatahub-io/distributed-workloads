@@ -45,7 +45,7 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	test := With(t)
 
 	// Creating a namespace
-	namespace := test.NewTestNamespace()
+	namespace := test.NewTestNamespace(WithKueueManaged())
 
 	// Ensure Notebook ServiceAccount exists (no extra RBAC)
 	ensureNotebookServiceAccount(test, namespace.Name)
@@ -72,7 +72,7 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 							},
 							{
 								Name:         corev1.ResourceName("nvidia.com/gpu"),
-								NominalQuota: resource.MustParse(fmt.Sprint(numGpus)),
+								NominalQuota: resource.MustParse(fmt.Sprint(numGpus * 2)), // 2 workers x numGpus each
 							},
 						},
 					},
