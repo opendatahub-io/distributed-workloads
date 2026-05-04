@@ -1,0 +1,49 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/distributed-workloads?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push"
+      && target_branch == "release/odh-3.5-ea.1"
+      && ( "images/runtime/training/py312-cuda130-torch210-openmpi41/**".pathChanged()
+            || ".tekton/odh-training-cuda130-torch210-py312-openmpi41-ci-on-release-push.yaml".pathChanged() )
+  creationTimestamp: null
+  labels:
+    appstudio.openshift.io/application: opendatahub-builds
+    appstudio.openshift.io/component: odh-training-cuda130-torch210-py312-openmpi41-ci
+    pipelines.appstudio.openshift.io/type: build
+  name: odh-training-cuda130-torch210-py312-openmpi41-ci-on-release-push
+  namespace: open-data-hub-tenant
+spec:
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: output-image
+    value: quay.io/opendatahub/odh-training-cuda130-torch210-py312-openmpi41:odh-3.5-ea1
+  - name: dockerfile
+    value: Dockerfile
+  - name: path-context
+    value: images/runtime/training/py312-cuda130-torch210-openmpi41
+  pipelineRef:
+    resolver: git
+    params:
+    - name: url
+      value: https://github.com/opendatahub-io/odh-konflux-central.git
+    - name: revision
+      value: main
+    - name: pathInRepo
+      value: pipeline/multi-arch-container-build.yaml
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-odh-training-cuda130-torch210-py312-openmpi41-ci
+  workspaces:
+  - name: git-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
+status: {}
