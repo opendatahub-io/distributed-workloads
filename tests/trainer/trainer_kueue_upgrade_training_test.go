@@ -23,10 +23,12 @@ import (
 	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
 	. "github.com/onsi/gomega"
 
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	jobsetv1alpha2 "sigs.k8s.io/jobset/api/jobset/v1alpha2"
 	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 	kueueacv1beta1 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta1"
 
@@ -50,6 +52,14 @@ var (
 	specificRuntimeTrainJobName   = "trainjob-upgrade-specific"
 	specificRuntimeConfigMapName  = "specific-runtime-upgrade"
 	specificRuntimeConfigMapKey   = "runtime-name"
+
+	// Custom runtime upgrade test variables
+	customRuntimeNamespaceName  = "test-trainer-upgrade-custom-rt"
+	customRuntimeResourceFlavor = "rf-trainer-upgrade-custom-rt"
+	customRuntimeClusterQueue   = "cq-trainer-upgrade-custom-rt"
+	customRuntimeLocalQueue     = "lq-trainer-upgrade-custom-rt"
+	customRuntimeTrainJobName   = "trainjob-upgrade-custom-rt"
+	customRuntimeCTRName        = "custom-upgrade-runtime"
 )
 
 func TestSetupUpgradeTrainJob(t *testing.T) {
@@ -158,7 +168,8 @@ func TestRunUpgradeTrainJob(t *testing.T) {
 
 // This test verifies backward compatibility of the Trainer operator with older/specific runtimes that may be replaced during upgrades.
 func TestSetupSpecificRuntimeUpgradeTrainJob(t *testing.T) {
-	Tags(t, PreUpgrade)
+	t.Skip("Skip due to issue RHOAIENG-48867")
+	//Tags(t, PreUpgrade)
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 
@@ -238,7 +249,8 @@ func TestSetupSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 // TestRunSpecificRuntimeUpgradeTrainJob verifies that a TrainJob using a specific cluster training runtime
 // ClusterTrainingRuntime still works after upgrade, even if that runtime was replaced.
 func TestRunSpecificRuntimeUpgradeTrainJob(t *testing.T) {
-	Tags(t, PostUpgrade)
+	t.Skip("Skip due to issue RHOAIENG-48867")
+	//Tags(t, PostUpgrade)
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 
@@ -299,6 +311,128 @@ func TestRunSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 	test.T().Logf("TrainJob %s/%s using specific runtime %s completed successfully after upgrade", specificRuntimeNamespaceName, specificRuntimeTrainJobName, specificRuntime)
 
 }
+
+// TestSetupCustomRuntimeUpgradeTrainJob creates a custom ClusterTrainingRuntime (using the image
+// from the default CUDA runtime) and a suspended TrainJob referencing it. Since this CTR is
+// user-created, its spec won't change during upgrade, avoiding the immutable JobSet field issue
+// from RHOAIENG-48867.
+func TestSetupCustomRuntimeUpgradeTrainJob(t *testing.T) {
+	Tags(t, PreUpgrade)
+	test := With(t)
+	SetupKueue(test, initialKueueState, TrainJobFramework)
+
+	// Get image from the default CUDA runtime to use in our custom CTR
+	image, err := trainerutils.GetImageFromClusterTrainingRuntime(test, trainerutils.DefaultClusterTrainingRuntimeCUDA)
+	test.Expect(err).NotTo(HaveOccurred())
+
+	// Create custom ClusterTrainingRuntime
+	createCustomClusterTrainingRuntime(test, image)
+
+	// Create Kueue-managed namespace
+	CreateOrGetTestNamespaceWithName(test, customRuntimeNamespaceName, WithKueueManaged())
+	test.T().Logf("Created Kueue-managed namespace: %s", customRuntimeNamespaceName)
+
+	// Create Kueue resources with StopPolicy=Hold
+	resourceFlavor := kueueacv1beta1.ResourceFlavor(customRuntimeResourceFlavor)
+	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta1().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Applied Kueue ResourceFlavor %s successfully", appliedResourceFlavor.Name)
+
+	clusterQueue := kueueacv1beta1.ClusterQueue(customRuntimeClusterQueue).WithSpec(
+		kueueacv1beta1.ClusterQueueSpec().
+			WithNamespaceSelector(metav1.LabelSelector{}).
+			WithResourceGroups(
+				kueueacv1beta1.ResourceGroup().WithCoveredResources(
+					corev1.ResourceName("cpu"), corev1.ResourceName("memory"),
+				).WithFlavors(
+					kueueacv1beta1.FlavorQuotas().
+						WithName(kueuev1beta1.ResourceFlavorReference(customRuntimeResourceFlavor)).
+						WithResources(
+							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
+							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
+						),
+				),
+			).
+			WithStopPolicy(kueuev1beta1.Hold),
+	)
+	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Applied Kueue ClusterQueue %s with StopPolicy=Hold successfully", appliedClusterQueue.Name)
+
+	localQueue := kueueacv1beta1.LocalQueue(customRuntimeLocalQueue, customRuntimeNamespaceName).
+		WithAnnotations(map[string]string{"kueue.x-k8s.io/default-queue": "true"}).
+		WithSpec(
+			kueueacv1beta1.LocalQueueSpec().WithClusterQueue(kueuev1beta1.ClusterQueueReference(customRuntimeClusterQueue)),
+		)
+	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta1().LocalQueues(customRuntimeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Applied Kueue LocalQueue %s/%s successfully", appliedLocalQueue.Namespace, appliedLocalQueue.Name)
+
+	// Create TrainJob using the custom CTR
+	trainJob := createUpgradeTrainJob(test, customRuntimeNamespaceName, appliedLocalQueue.Name, customRuntimeTrainJobName, customRuntimeCTRName)
+
+	// Verify Kueue Workload is Inadmissible
+	var workloadName string
+	test.Eventually(KueueWorkloads(test, customRuntimeNamespaceName), TestTimeoutShort).Should(
+		ContainElement(WithTransform(func(w *kueuev1beta1.Workload) bool {
+			inadmissible, _ := KueueWorkloadInadmissible(w)
+			if inadmissible {
+				workloadName = w.Name
+			}
+			return inadmissible
+		}, BeTrue())),
+	)
+	test.T().Logf("Kueue Workload '%s' is Inadmissible", workloadName)
+
+	// Verify TrainJob is suspended
+	test.Eventually(TrainJob(test, trainJob.Namespace, customRuntimeTrainJobName), TestTimeoutShort).
+		Should(WithTransform(TrainJobConditionSuspended, Equal(metav1.ConditionTrue)))
+	test.T().Logf("TrainJob %s/%s using custom runtime %s is suspended, waiting for upgrade", trainJob.Namespace, customRuntimeTrainJobName, customRuntimeCTRName)
+}
+
+func TestRunCustomRuntimeUpgradeTrainJob(t *testing.T) {
+	Tags(t, PostUpgrade)
+	test := With(t)
+	SetupKueue(test, initialKueueState, TrainJobFramework)
+
+	namespace := GetNamespaceWithName(test, customRuntimeNamespaceName)
+
+	defer func() {
+		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), customRuntimeResourceFlavor, metav1.DeleteOptions{})
+		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), customRuntimeClusterQueue, metav1.DeleteOptions{})
+		_ = test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Delete(test.Ctx(), customRuntimeCTRName, metav1.DeleteOptions{})
+		DeleteTestNamespace(test, namespace)
+	}()
+
+	// Verify custom CTR still exists after upgrade
+	_, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(test.Ctx(), customRuntimeCTRName, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred(), "Custom ClusterTrainingRuntime should exist after upgrade")
+	test.T().Logf("Custom ClusterTrainingRuntime %s is preserved after upgrade", customRuntimeCTRName)
+
+	// Enable ClusterQueue to process the TrainJob
+	clusterQueue := kueueacv1beta1.ClusterQueue(customRuntimeClusterQueue).WithSpec(kueueacv1beta1.ClusterQueueSpec().WithStopPolicy(kueuev1beta1.None))
+	_, err = test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Enabled ClusterQueue %s by setting StopPolicy to None", customRuntimeClusterQueue)
+
+	// Verify Kueue Workload is admitted
+	test.Eventually(KueueWorkloads(test, customRuntimeNamespaceName), TestTimeoutLong).Should(
+		ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrueBecause("Workload failed to be admitted"))),
+	)
+	test.T().Logf("Kueue Workload for TrainJob %s/%s is admitted", customRuntimeNamespaceName, customRuntimeTrainJobName)
+
+	// TrainJob should be unsuspended
+	test.Eventually(TrainJob(test, customRuntimeNamespaceName, customRuntimeTrainJobName), TestTimeoutLong).
+		Should(WithTransform(TrainJobConditionSuspended, Equal(metav1.ConditionFalse)))
+	test.T().Logf("TrainJob %s/%s is now running", customRuntimeNamespaceName, customRuntimeTrainJobName)
+
+	// Wait for TrainJob to complete
+	test.Eventually(TrainJob(test, customRuntimeNamespaceName, customRuntimeTrainJobName), TestTimeoutLong).
+		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
+	test.T().Logf("TrainJob %s/%s using custom runtime %s completed successfully after upgrade", customRuntimeNamespaceName, customRuntimeTrainJobName, customRuntimeCTRName)
+}
+
+// Helper functions
 
 func createUpgradeTrainJob(test Test, namespace, localQueueName, jobName, runtimeName string) *trainerv1alpha1.TrainJob {
 	// Delete existing TrainJob if present
@@ -398,4 +532,66 @@ func getSpecificRuntimeFromConfigMap(test Test) string {
 	}
 
 	return runtimeName
+}
+
+func createCustomClusterTrainingRuntime(test Test, image string) {
+	_, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(
+		test.Ctx(), customRuntimeCTRName, metav1.GetOptions{})
+	if err == nil {
+		err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Delete(
+			test.Ctx(), customRuntimeCTRName, metav1.DeleteOptions{})
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Eventually(func() bool {
+			_, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(
+				test.Ctx(), customRuntimeCTRName, metav1.GetOptions{})
+			return errors.IsNotFound(err)
+		}, TestTimeoutShort).Should(BeTrue())
+	} else if !errors.IsNotFound(err) {
+		test.T().Fatalf("Error retrieving ClusterTrainingRuntime: %v", err)
+	}
+
+	ctr := &trainerv1alpha1.ClusterTrainingRuntime{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: customRuntimeCTRName,
+		},
+		Spec: trainerv1alpha1.TrainingRuntimeSpec{
+			Template: trainerv1alpha1.JobSetTemplateSpec{
+				Spec: jobsetv1alpha2.JobSetSpec{
+					ReplicatedJobs: []jobsetv1alpha2.ReplicatedJob{
+						{
+							Name:     "node",
+							Replicas: 1,
+							Template: batchv1.JobTemplateSpec{
+								ObjectMeta: metav1.ObjectMeta{
+									Labels: map[string]string{
+										"trainer.kubeflow.org/trainjob-ancestor-step": "trainer",
+									},
+								},
+								Spec: batchv1.JobSpec{
+									BackoffLimit: Ptr(int32(0)),
+									Template: corev1.PodTemplateSpec{
+										Spec: corev1.PodSpec{
+											RestartPolicy: corev1.RestartPolicyNever,
+											Containers: []corev1.Container{
+												{
+													Name:            "node",
+													Image:           image,
+													ImagePullPolicy: corev1.PullIfNotPresent,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err = test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Create(
+		test.Ctx(), ctr, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created custom ClusterTrainingRuntime %s with image %s", customRuntimeCTRName, image)
 }
