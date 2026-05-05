@@ -1,6 +1,5 @@
 contentOrigin:
   repofiles:
-    - ./rpm-repos/ubi.repo
     - ./rpm-repos/redhat.repo
 
 packages:
