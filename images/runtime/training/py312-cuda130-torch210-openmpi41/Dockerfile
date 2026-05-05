@@ -7,6 +7,7 @@ ARG NV_CUDA_NVCC_VERSION=13.0.88-1
 ARG NV_CUDA_CUDART_DEVEL_VERSION=13.0.96-1
 ARG NV_CUDA_CRT_VERSION=13.0.88-1
 ARG NV_CUDA_CCCL_VERSION=13.0.85-1
+ARG NV_LIBNCCL_DEVEL_VERSION=2.28.3-1+cuda13.0
 # SHA256 checksums for supply-chain integrity verification.
 ARG UCX_SHA256=0fe68f2592b7b378bdac7ccb78331e9e8c5be250f40be118edb1795e94c60209
 ARG OPENMPI_SHA256=44da277b8cdc234e71c62473305a09d63f4dcca292ca40335aab7c4bf0e6a566
@@ -101,6 +102,9 @@ RUN dnf download --destdir=/tmp/rpms --repo=cuda-rhel9-x86_64 \
         cuda-cccl-13-0-${NV_CUDA_CCCL_VERSION} \
     && rpm -ivh --nodeps /tmp/rpms/*.rpm \
     && rm -rf /tmp/rpms
+
+# Keep NCCL headers available so in-cluster debug builds such as nccl-tests can compile.
+RUN dnf install -y libnccl-devel-${NV_LIBNCCL_DEVEL_VERSION} && dnf clean all
 
 # Re-install packages swept out by dnf clean_requirements_on_remove above.
 # numactl-libs:    libnuma.so.1 required by OpenMPI and CUDA runtime.
