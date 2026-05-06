@@ -177,9 +177,21 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 	Tags(t, Tier1)
 	test := With(t)
 
+	triggerImageName, triggerSet := GetTriggerImageName()
+	if triggerSet {
+		test.T().Logf("TRIGGER_IMAGE_NAME is set to '%s', only testing runtimes using this image", triggerImageName)
+	}
+
 	// Run one TrainJob per unique image to avoid redundant runs for CTRs that share the same image
 	tested := make(map[string]bool)
+	matchedTriggerRuntime := false
 	for _, runtime := range trainerutils.ExpectedRuntimes {
+		if triggerSet && runtime.Image != triggerImageName {
+			continue
+		}
+		if triggerSet {
+			matchedTriggerRuntime = true
+		}
 		if trainerutils.IsMPIRuntime(runtime.Name) {
 			test.T().Logf("Skipping MPI runtime '%s' (covered by TestMultiNodeOpenMPITrainJob)", runtime.Name)
 			continue
@@ -213,6 +225,13 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 			// Verify container images in the pods created by the TrainJob
 			verifyPodContainerImages(test, namespace, trainJob.Name)
 		}
+	}
+
+	if triggerSet && !matchedTriggerRuntime {
+		test.T().Fatalf("TRIGGER_IMAGE_NAME '%s' does not match any expected ClusterTrainingRuntime image", triggerImageName)
+	}
+	if triggerSet && len(tested) == 0 {
+		test.T().Skipf("TRIGGER_IMAGE_NAME '%s' matched only MPI runtimes; covered by TestMultiNodeOpenMPITrainJob", triggerImageName)
 	}
 
 	test.T().Log("All TrainJobs with expected ClusterTrainingRuntimes completed successfully !!!")

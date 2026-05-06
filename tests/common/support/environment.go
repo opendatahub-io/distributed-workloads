@@ -64,6 +64,10 @@ const (
 
 	// Name of existing namespace to be used for test
 	testNamespaceNameEnvVar = "TEST_NAMESPACE_NAME"
+
+	// Name of the image that triggered the Konflux ITS pipeline run, used to
+	// filter which ClusterTrainingRuntimes are exercised in e2e tests.
+	TriggerImageName = "TRIGGER_IMAGE_NAME"
 )
 
 type ClusterType string
@@ -230,6 +234,10 @@ func GetPipTrustedHost() string {
 
 func GetTestNamespaceName() (string, bool) {
 	return os.LookupEnv(testNamespaceNameEnvVar)
+}
+
+func GetTriggerImageName() (string, bool) {
+	return os.LookupEnv(TriggerImageName)
 }
 
 func lookupEnvOrDefault(key, value string) string {

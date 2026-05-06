@@ -114,6 +114,10 @@ with open(path, "w", encoding="utf-8") as f:
     json.dump(nb, f, indent=1, ensure_ascii=False)
 ```
 
+### Environment variables
+
+Declare env var constants and getter functions in `tests/common/support/environment.go`. Never use `os.Getenv` directly in test files — always go through a getter.
+
 ### Tags
 
 Tests in `tests/trainer/` **must** declare a tag — this is mandatory. Apply it as the first statement so tests are skipped early when `TEST_TIER` is set:
