@@ -4,6 +4,13 @@ lockfileVendor: redhat
 arches:
 - arch: x86_64
   packages:
+  - url: https://cdn.redhat.com/content/eus/rhel9/9.6/x86_64/appstream/os/Packages/i/infiniband-diags-54.0-2.el9_6.x86_64.rpm
+    repoid: rhel-9-for-x86_64-appstream-eus-rpms
+    size: 340878
+    checksum: sha256:12457fb9230714d9f8aa7c27eb297e4076330b01dbfe25ba1f85010f1dab54f6
+    name: infiniband-diags
+    evr: 54.0-2.el9_6
+    sourcerpm: rdma-core-54.0-2.el9_6.src.rpm
   - url: https://cdn.redhat.com/content/eus/rhel9/9.6/x86_64/baseos/os/Packages/o/openssh-8.7p1-45.el9_6.2.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-eus-rpms
     size: 467767
@@ -25,5 +32,12 @@ arches:
     name: openssh-server
     evr: 8.7p1-45.el9_6.2
     sourcerpm: openssh-8.7p1-45.el9_6.2.src.rpm
+  - url: https://cdn.redhat.com/content/eus/rhel9/9.6/x86_64/baseos/os/Packages/r/rdma-core-54.0-2.el9_6.x86_64.rpm
+    repoid: rhel-9-for-x86_64-baseos-eus-rpms
+    size: 63025
+    checksum: sha256:72359157586492a23c9db5937e342aa578662547de2b182bc56504e2df737392
+    name: rdma-core
+    evr: 54.0-2.el9_6
+    sourcerpm: rdma-core-54.0-2.el9_6.src.rpm
   source: []
   module_metadata: []
