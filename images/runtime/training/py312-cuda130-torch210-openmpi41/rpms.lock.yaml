@@ -27,3 +27,28 @@ arches:
     sourcerpm: openssh-8.7p1-45.el9_6.2.src.rpm
   source: []
   module_metadata: []
+- arch: aarch64
+  packages:
+  - url: https://cdn.redhat.com/content/eus/rhel9/9.6/aarch64/baseos/os/Packages/o/openssh-8.7p1-45.el9_6.2.aarch64.rpm
+    repoid: rhel-9-for-aarch64-baseos-eus-rpms
+    size: 456820
+    checksum: sha256:8a8eed20672cdd7dfa7cabb3a6d0db93a45e0f78d60f8194c8723cc96fb28cdc
+    name: openssh
+    evr: 8.7p1-45.el9_6.2
+    sourcerpm: openssh-8.7p1-45.el9_6.2.src.rpm
+  - url: https://cdn.redhat.com/content/eus/rhel9/9.6/aarch64/baseos/os/Packages/o/openssh-clients-8.7p1-45.el9_6.2.aarch64.rpm
+    repoid: rhel-9-for-aarch64-baseos-eus-rpms
+    size: 698879
+    checksum: sha256:60e1843ee481b3a1a29dd84fb1b83af57748fd31146a132f70ba238134f12b98
+    name: openssh-clients
+    evr: 8.7p1-45.el9_6.2
+    sourcerpm: openssh-8.7p1-45.el9_6.2.src.rpm
+  - url: https://cdn.redhat.com/content/eus/rhel9/9.6/aarch64/baseos/os/Packages/o/openssh-server-8.7p1-45.el9_6.2.aarch64.rpm
+    repoid: rhel-9-for-aarch64-baseos-eus-rpms
+    size: 446203
+    checksum: sha256:361ca6dcf510920a65422dc38f4ac95089535606f0521b1e44e5b61a98d9851e
+    name: openssh-server
+    evr: 8.7p1-45.el9_6.2
+    sourcerpm: openssh-8.7p1-45.el9_6.2.src.rpm
+  source: []
+  module_metadata: []
