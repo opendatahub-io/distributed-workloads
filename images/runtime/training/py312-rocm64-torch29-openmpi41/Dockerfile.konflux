@@ -69,8 +69,7 @@ WORKDIR /opt/app-root/bin
 COPY requirements.txt ./
 
 RUN uv pip install --no-cache \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9-test/simple/ \
-    --extra-index-url=https://pypi.org/simple \
+    --no-index --find-links "${PIP_FIND_LINKS}" \
     --python /opt/app-root/bin/python3.12 \
     -r requirements.txt && \
     rm -f ./requirements.txt && \
