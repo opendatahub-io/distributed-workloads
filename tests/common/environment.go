@@ -95,7 +95,10 @@ func GetNotebookUserPassword(t Test) string {
 // GenerateNotebookUserToken generates an OpenShift token using oc login with username and password
 func GenerateNotebookUserToken(t Test) string {
 	if token, ok := os.LookupEnv(notebookUserToken); ok {
-		return strings.TrimSpace(token)
+		if trimmed := strings.TrimSpace(token); trimmed != "" {
+			return trimmed
+		}
+		t.T().Logf("Environment variable %s is set but empty; falling back to oc login", notebookUserToken)
 	}
 
 	userName := GetNotebookUserName(t)

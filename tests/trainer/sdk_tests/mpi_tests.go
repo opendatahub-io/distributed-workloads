@@ -229,9 +229,15 @@ func setupOpenMPIGpuKueue(test support.Test, namespaceName string) (string, func
 	localQueue := support.CreateKueueLocalQueue(test, namespaceName, clusterQueue.Name)
 	test.T().Logf("Created custom LocalQueue %s for OpenMPI SDK TrainJob", localQueue.Name)
 	cleanup := func() {
-		test.Client().Kueue().KueueV1beta1().LocalQueues(namespaceName).Delete(test.Ctx(), localQueue.Name, metav1.DeleteOptions{})
-		test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
-		test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+		if err := test.Client().Kueue().KueueV1beta1().LocalQueues(namespaceName).Delete(test.Ctx(), localQueue.Name, metav1.DeleteOptions{}); err != nil {
+			test.T().Logf("failed to delete LocalQueue %s: %v", localQueue.Name, err)
+		}
+		if err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{}); err != nil {
+			test.T().Logf("failed to delete ClusterQueue %s: %v", clusterQueue.Name, err)
+		}
+		if err := test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{}); err != nil {
+			test.T().Logf("failed to delete ResourceFlavor %s: %v", resourceFlavor.Name, err)
+		}
 	}
 	return localQueue.Name, cleanup
 }
