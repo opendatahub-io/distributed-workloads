@@ -117,6 +117,7 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 }
 
 func TestOpenMPICudaClusterTrainingRuntime(t *testing.T) {
+	t.Skip("Skip due to issue RHOAIENG-61966")
 	Tags(t, Smoke)
 	test := With(t)
 

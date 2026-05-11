@@ -32,6 +32,7 @@ import (
 )
 
 func TestMultiNodeOpenMPITrainJob(t *testing.T) {
+	t.Skip("Skip due to issue RHOAIENG-61966")
 	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	test := With(t)
 

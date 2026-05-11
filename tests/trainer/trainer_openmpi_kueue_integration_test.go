@@ -33,6 +33,7 @@ import (
 )
 
 func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
+	t.Skip("Skip due to issue RHOAIENG-61966")
 	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
@@ -134,6 +135,7 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 }
 
 func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
+	t.Skip("Skip due to issue RHOAIENG-61966")
 	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
