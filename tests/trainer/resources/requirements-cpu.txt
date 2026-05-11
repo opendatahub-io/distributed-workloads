@@ -4,4 +4,3 @@
 
 minio==7.2.20
 torchvision==0.25.0+cpu  # no-deps
-pillow==11.0.0  # no-deps
