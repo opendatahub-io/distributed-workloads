@@ -99,6 +99,8 @@ func GenerateNotebookUserToken(t Test) string {
 			return trimmed
 		}
 		t.T().Logf("Environment variable %s is set but empty; falling back to oc login", notebookUserToken)
+	} else {
+		t.T().Logf("Environment variable %s is not set, generating Notebook user token from credentials", notebookUserToken)
 	}
 
 	userName := GetNotebookUserName(t)

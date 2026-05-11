@@ -35,19 +35,17 @@ import (
 )
 
 const (
-	mpiNotebookName = "mpi.ipynb"
-	mpiNotebookPath = "resources/" + mpiNotebookName
+	mpiNotebookName       = "mpi.ipynb"
+	mpiNotebookPath       = "resources/" + mpiNotebookName
+	mpiScriptName         = "fashion_mnist_mpi.py"
+	mpiTrainingScriptPath = "resources/" + mpiScriptName
 )
 
-func RunOpenMPICudaDistributedTraining(t *testing.T) {
-	runOpenMPICudaDistributedTraining(t, false)
+func RunOpenMPICudaKueueDistributedTraining(t *testing.T, accelerator support.Accelerator) {
+	runOpenMPICudaDistributedTraining(t, accelerator, true)
 }
 
-func RunOpenMPICudaKueueDistributedTraining(t *testing.T) {
-	runOpenMPICudaDistributedTraining(t, true)
-}
-
-func runOpenMPICudaDistributedTraining(t *testing.T, useKueue bool) {
+func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Accelerator, useKueue bool) {
 	test := support.With(t)
 
 	namespace := newMPITestNamespace(test, useKueue)
@@ -62,7 +60,7 @@ func runOpenMPICudaDistributedTraining(t *testing.T, useKueue bool) {
 	var localQueueName string
 	var cleanupKueue func()
 	if useKueue {
-		localQueueName, cleanupKueue = setupOpenMPIGpuKueue(test, namespace.Name)
+		localQueueName, cleanupKueue = setupOpenMPIGpuKueue(test, namespace.Name, accelerator)
 		defer cleanupKueue()
 	}
 
@@ -72,9 +70,13 @@ func runOpenMPICudaDistributedTraining(t *testing.T, useKueue bool) {
 	installScript, err := os.ReadFile(installScriptPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", installScriptPath))
 
+	mpiTrainingScript, err := os.ReadFile(mpiTrainingScriptPath)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read MPI training script: %s", mpiTrainingScriptPath))
+
 	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{
 		mpiNotebookName:       notebookContent,
 		installKubeflowScript: installScript,
+		mpiScriptName:         mpiTrainingScript,
 	})
 
 	storageClass, err := support.GetRWXStorageClass(test)
@@ -99,8 +101,9 @@ func runOpenMPICudaDistributedTraining(t *testing.T, useKueue bool) {
 			"export OPENSHIFT_API_URL=%s; "+
 			"export NOTEBOOK_USER_TOKEN=%s; "+
 			"export NOTEBOOK_NAMESPACE=%s; "+
+			"export NOTEBOOK_CONFIGMAP_NAME=%s; "+
 			"export TRAINING_RUNTIME=%s; "+
-			"export GPU_TYPE='nvidia'; "+
+			"export GPU_TYPE=%s; "+
 			"%s"+
 			"%s"+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
@@ -110,7 +113,9 @@ func runOpenMPICudaDistributedTraining(t *testing.T, useKueue bool) {
 		shellQuote(support.GetOpenShiftApiUrl(test)),
 		shellQuote(userToken),
 		shellQuote(namespace.Name),
+		shellQuote(cm.Name),
 		shellQuote(trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA),
+		shellQuote(acceleratorGPUType(accelerator)),
 		queueExport,
 		sdkInstallExports,
 		installKubeflowScript,
@@ -133,7 +138,7 @@ func runOpenMPICudaDistributedTraining(t *testing.T, useKueue bool) {
 
 	defer func() {
 		common.DeleteNotebook(test, namespace)
-		test.Eventually(common.Notebooks(test, namespace), support.TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		test.Eventually(common.Notebooks(test, namespace), support.TestTimeoutLong).Should(HaveLen(0))
 	}()
 
 	if useKueue {
@@ -183,12 +188,12 @@ func newMPITestNamespace(test support.Test, useKueue bool) *corev1.Namespace {
 	return test.NewTestNamespace()
 }
 
-func setupOpenMPIGpuKueue(test support.Test, namespaceName string) (string, func()) {
+func setupOpenMPIGpuKueue(test support.Test, namespaceName string, accelerator support.Accelerator) (string, func()) {
 	test.T().Helper()
 
 	resourceFlavor := support.CreateKueueResourceFlavor(test, kueuev1beta1.ResourceFlavorSpec{
 		NodeLabels: map[string]string{
-			"nvidia.com/gpu.present": "true",
+			accelerator.ResourceLabel + ".present": "true",
 		},
 	})
 	clusterQueue := support.CreateKueueClusterQueue(test, kueuev1beta1.ClusterQueueSpec{
@@ -202,7 +207,7 @@ func setupOpenMPIGpuKueue(test support.Test, namespaceName string) (string, func
 				CoveredResources: []corev1.ResourceName{
 					corev1.ResourceCPU,
 					corev1.ResourceMemory,
-					corev1.ResourceName(support.NVIDIA.ResourceLabel),
+					corev1.ResourceName(accelerator.ResourceLabel),
 				},
 				Flavors: []kueuev1beta1.FlavorQuotas{
 					{
@@ -217,7 +222,7 @@ func setupOpenMPIGpuKueue(test support.Test, namespaceName string) (string, func
 								NominalQuota: resource.MustParse("16Gi"),
 							},
 							{
-								Name:         corev1.ResourceName(support.NVIDIA.ResourceLabel),
+								Name:         corev1.ResourceName(accelerator.ResourceLabel),
 								NominalQuota: resource.MustParse("2"),
 							},
 						},
@@ -240,4 +245,15 @@ func setupOpenMPIGpuKueue(test support.Test, namespaceName string) (string, func
 		}
 	}
 	return localQueue.Name, cleanup
+}
+
+func acceleratorGPUType(accelerator support.Accelerator) string {
+	switch accelerator.ResourceLabel {
+	case support.AMD.ResourceLabel:
+		return "amd"
+	case support.NVIDIA.ResourceLabel:
+		return "nvidia"
+	default:
+		return accelerator.Type
+	}
 }

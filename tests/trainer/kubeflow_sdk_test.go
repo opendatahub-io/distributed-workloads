@@ -36,16 +36,11 @@ func TestKubeflowSdkKueueIntegration(t *testing.T) {
 	sdktests.RunFashionMnistKueueCpuDistributedTraining(t)
 }
 
-func TestKubeflowSdkOpenMPICuda(t *testing.T) {
-	Tags(t, KftoCuda, MultiNodeGpu(2, support.NVIDIA))
-	sdktests.RunOpenMPICudaDistributedTraining(t)
-}
-
 func TestKubeflowSdkOpenMPICudaKueueIntegration(t *testing.T) {
 	Tags(t, KftoCuda, MultiNodeGpu(2, support.NVIDIA))
 	test := support.With(t)
 	support.SetupKueue(test, initialKueueState, support.TrainJobFramework)
-	sdktests.RunOpenMPICudaKueueDistributedTraining(t)
+	sdktests.RunOpenMPICudaKueueDistributedTraining(t, support.NVIDIA)
 }
 
 // Single-node, single-GPU tests (1 node, 1 GPU)
