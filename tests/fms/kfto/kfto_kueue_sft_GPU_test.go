@@ -29,7 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
+	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -110,18 +110,18 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 	namespace := test.CreateOrGetTestNamespace().Name
 
 	// Create Kueue resources
-	resourceFlavor := CreateKueueResourceFlavor(test, kueuev1beta1.ResourceFlavorSpec{})
-	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+	resourceFlavor := CreateKueueResourceFlavor(test, kueuev1beta2.ResourceFlavorSpec{})
+	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 
-	clusterQueue := CreateKueueClusterQueue(test, kueuev1beta1.ClusterQueueSpec{
+	clusterQueue := CreateKueueClusterQueue(test, kueuev1beta2.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{},
-		ResourceGroups: []kueuev1beta1.ResourceGroup{
+		ResourceGroups: []kueuev1beta2.ResourceGroup{
 			{
 				CoveredResources: []corev1.ResourceName{corev1.ResourceCPU, corev1.ResourceMemory, "nvidia.com/gpu"},
-				Flavors: []kueuev1beta1.FlavorQuotas{
+				Flavors: []kueuev1beta2.FlavorQuotas{
 					{
-						Name: kueuev1beta1.ResourceFlavorReference(resourceFlavor.Name),
-						Resources: []kueuev1beta1.ResourceQuota{
+						Name: kueuev1beta2.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []kueuev1beta2.ResourceQuota{
 							{
 								Name:         corev1.ResourceCPU,
 								NominalQuota: resource.MustParse("8"),
@@ -140,10 +140,10 @@ func runMultiGpuPytorchjob(t *testing.T, modelConfigFile string, numberOfGpus in
 			},
 		},
 	})
-	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 
 	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name)
-	defer test.Client().Kueue().KueueV1beta1().LocalQueues(namespace).Delete(test.Ctx(), localQueue.Name, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().LocalQueues(namespace).Delete(test.Ctx(), localQueue.Name, metav1.DeleteOptions{})
 
 	// Create a ConfigMap with configuration
 	configData := map[string][]byte{

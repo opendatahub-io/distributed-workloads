@@ -28,9 +28,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1ac "k8s.io/client-go/applyconfigurations/meta/v1"
 	jobsetv1alpha2 "sigs.k8s.io/jobset/api/jobset/v1alpha2"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
-	kueueacv1beta1 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta1"
+	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
+	kueueacv1beta2 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta2"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -74,38 +75,38 @@ func TestSetupUpgradeTrainJob(t *testing.T) {
 	test.T().Logf("Created Kueue-managed namespace: %s", upgradeNamespaceName)
 
 	// Create Kueue resources with StopPolicy
-	resourceFlavor := kueueacv1beta1.ResourceFlavor(resourceFlavorName)
-	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta1().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-TrainJob", Force: true})
+	resourceFlavor := kueueacv1beta2.ResourceFlavor(resourceFlavorName)
+	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta2().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-TrainJob", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ResourceFlavor %s successfully", appliedResourceFlavor.Name)
 
-	clusterQueue := kueueacv1beta1.ClusterQueue(clusterQueueName).WithSpec(
-		kueueacv1beta1.ClusterQueueSpec().
-			WithNamespaceSelector(metav1.LabelSelector{}).
+	clusterQueue := kueueacv1beta2.ClusterQueue(clusterQueueName).WithSpec(
+		kueueacv1beta2.ClusterQueueSpec().
+			WithNamespaceSelector(&metav1ac.LabelSelectorApplyConfiguration{}).
 			WithResourceGroups(
-				kueueacv1beta1.ResourceGroup().WithCoveredResources(
+				kueueacv1beta2.ResourceGroup().WithCoveredResources(
 					corev1.ResourceName("cpu"), corev1.ResourceName("memory"),
 				).WithFlavors(
-					kueueacv1beta1.FlavorQuotas().
-						WithName(kueuev1beta1.ResourceFlavorReference(resourceFlavorName)).
+					kueueacv1beta2.FlavorQuotas().
+						WithName(kueuev1beta2.ResourceFlavorReference(resourceFlavorName)).
 						WithResources(
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
 						),
 				),
 			).
-			WithStopPolicy(kueuev1beta1.Hold),
+			WithStopPolicy(kueuev1beta2.Hold),
 	)
-	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-TrainJob", Force: true})
+	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-TrainJob", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ClusterQueue %s with StopPolicy=Hold successfully", appliedClusterQueue.Name)
 
-	localQueue := kueueacv1beta1.LocalQueue(localQueueName, upgradeNamespaceName).
+	localQueue := kueueacv1beta2.LocalQueue(localQueueName, upgradeNamespaceName).
 		WithAnnotations(map[string]string{"kueue.x-k8s.io/default-queue": "true"}).
 		WithSpec(
-			kueueacv1beta1.LocalQueueSpec().WithClusterQueue(kueuev1beta1.ClusterQueueReference(clusterQueueName)),
+			kueueacv1beta2.LocalQueueSpec().WithClusterQueue(kueuev1beta2.ClusterQueueReference(clusterQueueName)),
 		)
-	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta1().LocalQueues(upgradeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-TrainJob", Force: true})
+	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta2().LocalQueues(upgradeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-TrainJob", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue LocalQueue %s/%s successfully", appliedLocalQueue.Namespace, appliedLocalQueue.Name)
 
@@ -115,7 +116,7 @@ func TestSetupUpgradeTrainJob(t *testing.T) {
 	// Verify Kueue Workload is Inadmissible
 	var workloadName string
 	test.Eventually(KueueWorkloads(test, upgradeNamespaceName), TestTimeoutShort).Should(
-		ContainElement(WithTransform(func(w *kueuev1beta1.Workload) bool {
+		ContainElement(WithTransform(func(w *kueuev1beta2.Workload) bool {
 			inadmissible, _ := KueueWorkloadInadmissible(w)
 			if inadmissible {
 				workloadName = w.Name
@@ -139,13 +140,13 @@ func TestRunUpgradeTrainJob(t *testing.T) {
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 	namespace := GetNamespaceWithName(test, upgradeNamespaceName)
 
-	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavorName, metav1.DeleteOptions{})
-	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueueName, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavorName, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueueName, metav1.DeleteOptions{})
 	defer DeleteTestNamespace(test, namespace)
 
 	// Enable ClusterQueue to process waiting TrainJob
-	clusterQueue := kueueacv1beta1.ClusterQueue(clusterQueueName).WithSpec(kueueacv1beta1.ClusterQueueSpec().WithStopPolicy(kueuev1beta1.None))
-	_, err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
+	clusterQueue := kueueacv1beta2.ClusterQueue(clusterQueueName).WithSpec(kueueacv1beta2.ClusterQueueSpec().WithStopPolicy(kueuev1beta2.None))
+	_, err := test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Enabled ClusterQueue %s by setting StopPolicy to None", clusterQueueName)
 
@@ -189,38 +190,38 @@ func TestSetupSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 	storeSpecificRuntimeInConfigMap(test, specificRuntime)
 
 	// Create Kueue resources with StopPolicy=Hold
-	resourceFlavor := kueueacv1beta1.ResourceFlavor(specificRuntimeResourceFlavor)
-	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta1().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-specific-runtime", Force: true})
+	resourceFlavor := kueueacv1beta2.ResourceFlavor(specificRuntimeResourceFlavor)
+	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta2().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-specific-runtime", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ResourceFlavor %s successfully", appliedResourceFlavor.Name)
 
-	clusterQueue := kueueacv1beta1.ClusterQueue(specificRuntimeClusterQueue).WithSpec(
-		kueueacv1beta1.ClusterQueueSpec().
-			WithNamespaceSelector(metav1.LabelSelector{}).
+	clusterQueue := kueueacv1beta2.ClusterQueue(specificRuntimeClusterQueue).WithSpec(
+		kueueacv1beta2.ClusterQueueSpec().
+			WithNamespaceSelector(&metav1ac.LabelSelectorApplyConfiguration{}).
 			WithResourceGroups(
-				kueueacv1beta1.ResourceGroup().WithCoveredResources(
+				kueueacv1beta2.ResourceGroup().WithCoveredResources(
 					corev1.ResourceName("cpu"), corev1.ResourceName("memory"),
 				).WithFlavors(
-					kueueacv1beta1.FlavorQuotas().
-						WithName(kueuev1beta1.ResourceFlavorReference(specificRuntimeResourceFlavor)).
+					kueueacv1beta2.FlavorQuotas().
+						WithName(kueuev1beta2.ResourceFlavorReference(specificRuntimeResourceFlavor)).
 						WithResources(
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
 						),
 				),
 			).
-			WithStopPolicy(kueuev1beta1.Hold),
+			WithStopPolicy(kueuev1beta2.Hold),
 	)
-	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-specific-runtime", Force: true})
+	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-specific-runtime", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ClusterQueue %s with StopPolicy=Hold successfully", appliedClusterQueue.Name)
 
-	localQueue := kueueacv1beta1.LocalQueue(specificRuntimeLocalQueue, specificRuntimeNamespaceName).
+	localQueue := kueueacv1beta2.LocalQueue(specificRuntimeLocalQueue, specificRuntimeNamespaceName).
 		WithAnnotations(map[string]string{"kueue.x-k8s.io/default-queue": "true"}).
 		WithSpec(
-			kueueacv1beta1.LocalQueueSpec().WithClusterQueue(kueuev1beta1.ClusterQueueReference(specificRuntimeClusterQueue)),
+			kueueacv1beta2.LocalQueueSpec().WithClusterQueue(kueuev1beta2.ClusterQueueReference(specificRuntimeClusterQueue)),
 		)
-	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta1().LocalQueues(specificRuntimeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-specific-runtime", Force: true})
+	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta2().LocalQueues(specificRuntimeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-specific-runtime", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue LocalQueue %s/%s successfully", appliedLocalQueue.Namespace, appliedLocalQueue.Name)
 
@@ -230,7 +231,7 @@ func TestSetupSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 	// Verify Kueue Workload is Inadmissible
 	var workloadName string
 	test.Eventually(KueueWorkloads(test, specificRuntimeNamespaceName), TestTimeoutShort).Should(
-		ContainElement(WithTransform(func(w *kueuev1beta1.Workload) bool {
+		ContainElement(WithTransform(func(w *kueuev1beta2.Workload) bool {
 			inadmissible, _ := KueueWorkloadInadmissible(w)
 			if inadmissible {
 				workloadName = w.Name
@@ -265,8 +266,8 @@ func TestRunSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 	namespace := GetNamespaceWithName(test, specificRuntimeNamespaceName)
 
 	defer func() {
-		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), specificRuntimeResourceFlavor, metav1.DeleteOptions{})
-		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), specificRuntimeClusterQueue, metav1.DeleteOptions{})
+		_ = test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), specificRuntimeResourceFlavor, metav1.DeleteOptions{})
+		_ = test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), specificRuntimeClusterQueue, metav1.DeleteOptions{})
 		_ = test.Client().Core().CoreV1().ConfigMaps(specificRuntimeNamespaceName).Delete(test.Ctx(), specificRuntimeConfigMapName, metav1.DeleteOptions{})
 		DeleteTestNamespace(test, namespace)
 	}()
@@ -289,8 +290,8 @@ func TestRunSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 	test.T().Logf("TrainJob %s/%s exists after upgrade with RuntimeRef: %s", trainJob.Namespace, trainJob.Name, trainJob.Spec.RuntimeRef.Name)
 
 	// Enable ClusterQueue to process the TrainJob
-	clusterQueue := kueueacv1beta1.ClusterQueue(specificRuntimeClusterQueue).WithSpec(kueueacv1beta1.ClusterQueueSpec().WithStopPolicy(kueuev1beta1.None))
-	_, err = test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
+	clusterQueue := kueueacv1beta2.ClusterQueue(specificRuntimeClusterQueue).WithSpec(kueueacv1beta2.ClusterQueueSpec().WithStopPolicy(kueuev1beta2.None))
+	_, err = test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Enabled ClusterQueue %s by setting StopPolicy to None", specificRuntimeClusterQueue)
 
@@ -333,38 +334,38 @@ func TestSetupCustomRuntimeUpgradeTrainJob(t *testing.T) {
 	test.T().Logf("Created Kueue-managed namespace: %s", customRuntimeNamespaceName)
 
 	// Create Kueue resources with StopPolicy=Hold
-	resourceFlavor := kueueacv1beta1.ResourceFlavor(customRuntimeResourceFlavor)
-	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta1().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
+	resourceFlavor := kueueacv1beta2.ResourceFlavor(customRuntimeResourceFlavor)
+	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta2().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ResourceFlavor %s successfully", appliedResourceFlavor.Name)
 
-	clusterQueue := kueueacv1beta1.ClusterQueue(customRuntimeClusterQueue).WithSpec(
-		kueueacv1beta1.ClusterQueueSpec().
-			WithNamespaceSelector(metav1.LabelSelector{}).
+	clusterQueue := kueueacv1beta2.ClusterQueue(customRuntimeClusterQueue).WithSpec(
+		kueueacv1beta2.ClusterQueueSpec().
+			WithNamespaceSelector(&metav1ac.LabelSelectorApplyConfiguration{}).
 			WithResourceGroups(
-				kueueacv1beta1.ResourceGroup().WithCoveredResources(
+				kueueacv1beta2.ResourceGroup().WithCoveredResources(
 					corev1.ResourceName("cpu"), corev1.ResourceName("memory"),
 				).WithFlavors(
-					kueueacv1beta1.FlavorQuotas().
-						WithName(kueuev1beta1.ResourceFlavorReference(customRuntimeResourceFlavor)).
+					kueueacv1beta2.FlavorQuotas().
+						WithName(kueuev1beta2.ResourceFlavorReference(customRuntimeResourceFlavor)).
 						WithResources(
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
 						),
 				),
 			).
-			WithStopPolicy(kueuev1beta1.Hold),
+			WithStopPolicy(kueuev1beta2.Hold),
 	)
-	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
+	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ClusterQueue %s with StopPolicy=Hold successfully", appliedClusterQueue.Name)
 
-	localQueue := kueueacv1beta1.LocalQueue(customRuntimeLocalQueue, customRuntimeNamespaceName).
+	localQueue := kueueacv1beta2.LocalQueue(customRuntimeLocalQueue, customRuntimeNamespaceName).
 		WithAnnotations(map[string]string{"kueue.x-k8s.io/default-queue": "true"}).
 		WithSpec(
-			kueueacv1beta1.LocalQueueSpec().WithClusterQueue(kueuev1beta1.ClusterQueueReference(customRuntimeClusterQueue)),
+			kueueacv1beta2.LocalQueueSpec().WithClusterQueue(kueuev1beta2.ClusterQueueReference(customRuntimeClusterQueue)),
 		)
-	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta1().LocalQueues(customRuntimeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
+	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta2().LocalQueues(customRuntimeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue LocalQueue %s/%s successfully", appliedLocalQueue.Namespace, appliedLocalQueue.Name)
 
@@ -374,7 +375,7 @@ func TestSetupCustomRuntimeUpgradeTrainJob(t *testing.T) {
 	// Verify Kueue Workload is Inadmissible
 	var workloadName string
 	test.Eventually(KueueWorkloads(test, customRuntimeNamespaceName), TestTimeoutShort).Should(
-		ContainElement(WithTransform(func(w *kueuev1beta1.Workload) bool {
+		ContainElement(WithTransform(func(w *kueuev1beta2.Workload) bool {
 			inadmissible, _ := KueueWorkloadInadmissible(w)
 			if inadmissible {
 				workloadName = w.Name
@@ -398,8 +399,8 @@ func TestRunCustomRuntimeUpgradeTrainJob(t *testing.T) {
 	namespace := GetNamespaceWithName(test, customRuntimeNamespaceName)
 
 	defer func() {
-		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), customRuntimeResourceFlavor, metav1.DeleteOptions{})
-		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), customRuntimeClusterQueue, metav1.DeleteOptions{})
+		_ = test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), customRuntimeResourceFlavor, metav1.DeleteOptions{})
+		_ = test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), customRuntimeClusterQueue, metav1.DeleteOptions{})
 		_ = test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Delete(test.Ctx(), customRuntimeCTRName, metav1.DeleteOptions{})
 		DeleteTestNamespace(test, namespace)
 	}()
@@ -410,8 +411,8 @@ func TestRunCustomRuntimeUpgradeTrainJob(t *testing.T) {
 	test.T().Logf("Custom ClusterTrainingRuntime %s is preserved after upgrade", customRuntimeCTRName)
 
 	// Enable ClusterQueue to process the TrainJob
-	clusterQueue := kueueacv1beta1.ClusterQueue(customRuntimeClusterQueue).WithSpec(kueueacv1beta1.ClusterQueueSpec().WithStopPolicy(kueuev1beta1.None))
-	_, err = test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
+	clusterQueue := kueueacv1beta2.ClusterQueue(customRuntimeClusterQueue).WithSpec(kueueacv1beta2.ClusterQueueSpec().WithStopPolicy(kueuev1beta2.None))
+	_, err = test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Enabled ClusterQueue %s by setting StopPolicy to None", customRuntimeClusterQueue)
 

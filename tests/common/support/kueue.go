@@ -20,19 +20,19 @@ import (
 	"github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
+	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
 )
 
 const (
 	KueueDefaultQueueName = "default"
 )
 
-func CreateKueueResourceFlavor(t Test, resourceFlavorSpec kueuev1beta1.ResourceFlavorSpec) *kueuev1beta1.ResourceFlavor {
+func CreateKueueResourceFlavor(t Test, resourceFlavorSpec kueuev1beta2.ResourceFlavorSpec) *kueuev1beta2.ResourceFlavor {
 	t.T().Helper()
 
-	resourceFlavor := &kueuev1beta1.ResourceFlavor{
+	resourceFlavor := &kueuev1beta2.ResourceFlavor{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: kueuev1beta1.SchemeGroupVersion.String(),
+			APIVersion: kueuev1beta2.SchemeGroupVersion.String(),
 			Kind:       "ResourceFlavor",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -41,19 +41,19 @@ func CreateKueueResourceFlavor(t Test, resourceFlavorSpec kueuev1beta1.ResourceF
 		Spec: resourceFlavorSpec,
 	}
 
-	resourceFlavor, err := t.Client().Kueue().KueueV1beta1().ResourceFlavors().Create(t.Ctx(), resourceFlavor, metav1.CreateOptions{})
+	resourceFlavor, err := t.Client().Kueue().KueueV1beta2().ResourceFlavors().Create(t.Ctx(), resourceFlavor, metav1.CreateOptions{})
 	t.Expect(err).NotTo(gomega.HaveOccurred())
 	t.T().Logf("Created Kueue ResourceFlavor %s successfully", resourceFlavor.Name)
 
 	return resourceFlavor
 }
 
-func CreateKueueClusterQueue(t Test, clusterQueueSpec kueuev1beta1.ClusterQueueSpec) *kueuev1beta1.ClusterQueue {
+func CreateKueueClusterQueue(t Test, clusterQueueSpec kueuev1beta2.ClusterQueueSpec) *kueuev1beta2.ClusterQueue {
 	t.T().Helper()
 
-	clusterQueue := &kueuev1beta1.ClusterQueue{
+	clusterQueue := &kueuev1beta2.ClusterQueue{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: kueuev1beta1.SchemeGroupVersion.String(),
+			APIVersion: kueuev1beta2.SchemeGroupVersion.String(),
 			Kind:       "ClusterQueue",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -62,14 +62,14 @@ func CreateKueueClusterQueue(t Test, clusterQueueSpec kueuev1beta1.ClusterQueueS
 		Spec: clusterQueueSpec,
 	}
 
-	clusterQueue, err := t.Client().Kueue().KueueV1beta1().ClusterQueues().Create(t.Ctx(), clusterQueue, metav1.CreateOptions{})
+	clusterQueue, err := t.Client().Kueue().KueueV1beta2().ClusterQueues().Create(t.Ctx(), clusterQueue, metav1.CreateOptions{})
 	t.Expect(err).NotTo(gomega.HaveOccurred())
 	t.T().Logf("Created Kueue ClusterQueue %s successfully", clusterQueue.Name)
 
 	return clusterQueue
 }
 
-var AsDefaultQueue = ErrorOption[*kueuev1beta1.LocalQueue](func(to *kueuev1beta1.LocalQueue) error {
+var AsDefaultQueue = ErrorOption[*kueuev1beta2.LocalQueue](func(to *kueuev1beta2.LocalQueue) error {
 	if to.Annotations == nil {
 		to.Annotations = make(map[string]string)
 	}
@@ -77,20 +77,20 @@ var AsDefaultQueue = ErrorOption[*kueuev1beta1.LocalQueue](func(to *kueuev1beta1
 	return nil
 })
 
-func CreateKueueLocalQueue(t Test, namespace string, clusterQueueName string, options ...Option[*kueuev1beta1.LocalQueue]) *kueuev1beta1.LocalQueue {
+func CreateKueueLocalQueue(t Test, namespace string, clusterQueueName string, options ...Option[*kueuev1beta2.LocalQueue]) *kueuev1beta2.LocalQueue {
 	t.T().Helper()
 
-	localQueue := &kueuev1beta1.LocalQueue{
+	localQueue := &kueuev1beta2.LocalQueue{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: kueuev1beta1.SchemeGroupVersion.String(),
+			APIVersion: kueuev1beta2.SchemeGroupVersion.String(),
 			Kind:       "LocalQueue",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "lq-",
 			Namespace:    namespace,
 		},
-		Spec: kueuev1beta1.LocalQueueSpec{
-			ClusterQueue: kueuev1beta1.ClusterQueueReference(clusterQueueName),
+		Spec: kueuev1beta2.LocalQueueSpec{
+			ClusterQueue: kueuev1beta2.ClusterQueueReference(clusterQueueName),
 		},
 	}
 
@@ -99,19 +99,19 @@ func CreateKueueLocalQueue(t Test, namespace string, clusterQueueName string, op
 		t.Expect(opt.ApplyTo(localQueue)).To(gomega.Succeed())
 	}
 
-	localQueue, err := t.Client().Kueue().KueueV1beta1().LocalQueues(localQueue.Namespace).Create(t.Ctx(), localQueue, metav1.CreateOptions{})
+	localQueue, err := t.Client().Kueue().KueueV1beta2().LocalQueues(localQueue.Namespace).Create(t.Ctx(), localQueue, metav1.CreateOptions{})
 	t.Expect(err).NotTo(gomega.HaveOccurred())
 	t.T().Logf("Created Kueue LocalQueue %s/%s successfully", localQueue.Namespace, localQueue.Name)
 
 	return localQueue
 }
 
-func KueueWorkloads(t Test, namespace string) func(g gomega.Gomega) []*kueuev1beta1.Workload {
-	return func(g gomega.Gomega) []*kueuev1beta1.Workload {
-		workloads, err := t.Client().Kueue().KueueV1beta1().Workloads(namespace).List(t.Ctx(), metav1.ListOptions{})
+func KueueWorkloads(t Test, namespace string) func(g gomega.Gomega) []*kueuev1beta2.Workload {
+	return func(g gomega.Gomega) []*kueuev1beta2.Workload {
+		workloads, err := t.Client().Kueue().KueueV1beta2().Workloads(namespace).List(t.Ctx(), metav1.ListOptions{})
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 
-		workloadsp := []*kueuev1beta1.Workload{}
+		workloadsp := []*kueuev1beta2.Workload{}
 		for _, v := range workloads.Items {
 			workloadsp = append(workloadsp, &v)
 		}
@@ -120,12 +120,21 @@ func KueueWorkloads(t Test, namespace string) func(g gomega.Gomega) []*kueuev1be
 	}
 }
 
-func GetKueueWorkloads(t Test, namespace string) []*kueuev1beta1.Workload {
+func GetKueueWorkloads(t Test, namespace string) []*kueuev1beta2.Workload {
 	t.T().Helper()
 	return KueueWorkloads(t, namespace)(t)
 }
 
-func KueueWorkloadAdmitted(workload *kueuev1beta1.Workload) bool {
+func KueueWorkloadOwnerKind(workload *kueuev1beta2.Workload) string {
+	for _, ref := range workload.OwnerReferences {
+		if ref.Controller != nil && *ref.Controller {
+			return ref.Kind
+		}
+	}
+	return ""
+}
+
+func KueueWorkloadAdmitted(workload *kueuev1beta2.Workload) bool {
 	for _, v := range workload.Status.Conditions {
 		if v.Type == "Admitted" && v.Status == "True" {
 			return true
@@ -134,7 +143,7 @@ func KueueWorkloadAdmitted(workload *kueuev1beta1.Workload) bool {
 	return false
 }
 
-func KueueWorkloadEvicted(workload *kueuev1beta1.Workload) bool {
+func KueueWorkloadEvicted(workload *kueuev1beta2.Workload) bool {
 	for _, v := range workload.Status.Conditions {
 		if v.Type == "Evicted" && v.Status == "True" {
 			return true
@@ -143,7 +152,7 @@ func KueueWorkloadEvicted(workload *kueuev1beta1.Workload) bool {
 	return false
 }
 
-func KueueWorkloadInadmissible(workload *kueuev1beta1.Workload) (bool, string) {
+func KueueWorkloadInadmissible(workload *kueuev1beta2.Workload) (bool, string) {
 	for _, v := range workload.Status.Conditions {
 		if v.Type == "QuotaReserved" && v.Status == "False" && v.Reason == "Inadmissible" {
 			return true, v.Message

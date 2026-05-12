@@ -25,7 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
+	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -45,30 +45,30 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 		"openmpi_cuda_smoke.py": readFile(test, "resources/openmpi_cuda_smoke.py"),
 	})
 
-	resourceFlavor := CreateKueueResourceFlavor(test, kueuev1beta1.ResourceFlavorSpec{
+	resourceFlavor := CreateKueueResourceFlavor(test, kueuev1beta2.ResourceFlavorSpec{
 		NodeLabels: map[string]string{
 			"nvidia.com/gpu.present": "true",
 		},
 	})
-	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 
-	clusterQueue := CreateKueueClusterQueue(test, kueuev1beta1.ClusterQueueSpec{
+	clusterQueue := CreateKueueClusterQueue(test, kueuev1beta2.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				"kubernetes.io/metadata.name": namespace,
 			},
 		},
-		ResourceGroups: []kueuev1beta1.ResourceGroup{
+		ResourceGroups: []kueuev1beta2.ResourceGroup{
 			{
 				CoveredResources: []corev1.ResourceName{
 					corev1.ResourceCPU,
 					corev1.ResourceMemory,
 					corev1.ResourceName(NVIDIA.ResourceLabel),
 				},
-				Flavors: []kueuev1beta1.FlavorQuotas{
+				Flavors: []kueuev1beta2.FlavorQuotas{
 					{
-						Name: kueuev1beta1.ResourceFlavorReference(resourceFlavor.Name),
-						Resources: []kueuev1beta1.ResourceQuota{
+						Name: kueuev1beta2.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []kueuev1beta2.ResourceQuota{
 							{
 								Name:         corev1.ResourceCPU,
 								NominalQuota: resource.MustParse("4"),
@@ -87,7 +87,7 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 			},
 		},
 	})
-	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 
 	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name)
 	trainJob := createOpenMPICudaKueueTrainJob(test, namespace, localQueue.Name, configMap.Name, "15")
@@ -96,8 +96,8 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 		And(
 			HaveLen(1),
 			ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrueBecause("OpenMPI workload failed to be admitted"))),
-			ContainElement(WithTransform(func(w *kueuev1beta1.Workload) string {
-				return w.Spec.QueueName
+			ContainElement(WithTransform(func(w *kueuev1beta2.Workload) string {
+				return string(w.Spec.QueueName)
 			}, Equal(localQueue.Name))),
 			ContainElement(WithTransform(openMPIPodSetNames, ConsistOf("launcher", "node"))),
 		),
@@ -147,30 +147,30 @@ func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
 		"openmpi_cuda_smoke.py": readFile(test, "resources/openmpi_cuda_smoke.py"),
 	})
 
-	resourceFlavor := CreateKueueResourceFlavor(test, kueuev1beta1.ResourceFlavorSpec{
+	resourceFlavor := CreateKueueResourceFlavor(test, kueuev1beta2.ResourceFlavorSpec{
 		NodeLabels: map[string]string{
 			"nvidia.com/gpu.present": "true",
 		},
 	})
-	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 
-	clusterQueue := CreateKueueClusterQueue(test, kueuev1beta1.ClusterQueueSpec{
+	clusterQueue := CreateKueueClusterQueue(test, kueuev1beta2.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				"kubernetes.io/metadata.name": namespace,
 			},
 		},
-		ResourceGroups: []kueuev1beta1.ResourceGroup{
+		ResourceGroups: []kueuev1beta2.ResourceGroup{
 			{
 				CoveredResources: []corev1.ResourceName{
 					corev1.ResourceCPU,
 					corev1.ResourceMemory,
 					corev1.ResourceName(NVIDIA.ResourceLabel),
 				},
-				Flavors: []kueuev1beta1.FlavorQuotas{
+				Flavors: []kueuev1beta2.FlavorQuotas{
 					{
-						Name: kueuev1beta1.ResourceFlavorReference(resourceFlavor.Name),
-						Resources: []kueuev1beta1.ResourceQuota{
+						Name: kueuev1beta2.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []kueuev1beta2.ResourceQuota{
 							{
 								Name:         corev1.ResourceCPU,
 								NominalQuota: resource.MustParse("4"),
@@ -189,7 +189,7 @@ func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
 			},
 		},
 	})
-	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 
 	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name)
 	trainJob := createOpenMPICudaKueueTrainJob(test, namespace, localQueue.Name, configMap.Name, "40")
@@ -198,8 +198,8 @@ func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
 		And(
 			HaveLen(1),
 			ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrueBecause("OpenMPI workload failed to be admitted"))),
-			ContainElement(WithTransform(func(w *kueuev1beta1.Workload) string {
-				return w.Spec.QueueName
+			ContainElement(WithTransform(func(w *kueuev1beta2.Workload) string {
+				return string(w.Spec.QueueName)
 			}, Equal(localQueue.Name))),
 			ContainElement(WithTransform(openMPIPodSetNames, ConsistOf("launcher", "node"))),
 		),
@@ -220,7 +220,7 @@ func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
 
 	workload := singleOpenMPIWorkload(test, namespace)
 	workload.Spec.Active = Ptr(false)
-	_, err := test.Client().Kueue().KueueV1beta1().Workloads(namespace).Update(
+	_, err := test.Client().Kueue().KueueV1beta2().Workloads(namespace).Update(
 		test.Ctx(),
 		workload,
 		metav1.UpdateOptions{},
@@ -237,7 +237,7 @@ func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
 
 	workload = singleOpenMPIWorkload(test, namespace)
 	workload.Spec.Active = Ptr(true)
-	_, err = test.Client().Kueue().KueueV1beta1().Workloads(namespace).Update(
+	_, err = test.Client().Kueue().KueueV1beta2().Workloads(namespace).Update(
 		test.Ctx(),
 		workload,
 		metav1.UpdateOptions{},
@@ -379,14 +379,14 @@ func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapNa
 	return createdTrainJob
 }
 
-func openMPIPodSetNames(workload *kueuev1beta1.Workload) []string {
+func openMPIPodSetNames(workload *kueuev1beta2.Workload) []string {
 	if workload == nil {
 		return nil
 	}
 
 	podSetNames := make([]string, 0, len(workload.Spec.PodSets))
 	for _, podSet := range workload.Spec.PodSets {
-		podSetNames = append(podSetNames, podSet.Name)
+		podSetNames = append(podSetNames, string(podSet.Name))
 	}
 
 	return podSetNames
@@ -456,7 +456,7 @@ func openMPIPodByRole(test Test, namespace, trainJobName, role string) corev1.Po
 	return *selected
 }
 
-func singleOpenMPIWorkload(test Test, namespace string) *kueuev1beta1.Workload {
+func singleOpenMPIWorkload(test Test, namespace string) *kueuev1beta2.Workload {
 	test.T().Helper()
 
 	workloads := GetKueueWorkloads(test, namespace)

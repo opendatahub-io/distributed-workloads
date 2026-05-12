@@ -26,8 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
-	kueueacv1beta1 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta1"
+	metav1ac "k8s.io/client-go/applyconfigurations/meta/v1"
+	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
+	kueueacv1beta2 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta2"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -65,38 +66,38 @@ func TestSetupPytorchjob(t *testing.T) {
 	config := CreateConfigMap(test, namespaceName, configData)
 
 	// Create Kueue resources
-	resourceFlavor := kueueacv1beta1.ResourceFlavor(resourceFlavorName)
-	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta1().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-PyTorchJob", Force: true})
+	resourceFlavor := kueueacv1beta2.ResourceFlavor(resourceFlavorName)
+	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta2().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-PyTorchJob", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ResourceFlavor %s successfully", appliedResourceFlavor.Name)
 
-	clusterQueue := kueueacv1beta1.ClusterQueue(clusterQueueName).WithSpec(
-		kueueacv1beta1.ClusterQueueSpec().
-			WithNamespaceSelector(metav1.LabelSelector{}).
+	clusterQueue := kueueacv1beta2.ClusterQueue(clusterQueueName).WithSpec(
+		kueueacv1beta2.ClusterQueueSpec().
+			WithNamespaceSelector(&metav1ac.LabelSelectorApplyConfiguration{}).
 			WithResourceGroups(
-				kueueacv1beta1.ResourceGroup().WithCoveredResources(
+				kueueacv1beta2.ResourceGroup().WithCoveredResources(
 					corev1.ResourceName("cpu"), corev1.ResourceName("memory"),
 				).WithFlavors(
-					kueueacv1beta1.FlavorQuotas().
-						WithName(kueuev1beta1.ResourceFlavorReference(resourceFlavorName)).
+					kueueacv1beta2.FlavorQuotas().
+						WithName(kueuev1beta2.ResourceFlavorReference(resourceFlavorName)).
 						WithResources(
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
 						),
 				),
 			).
-			WithStopPolicy(kueuev1beta1.Hold),
+			WithStopPolicy(kueuev1beta2.Hold),
 	)
-	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-PyTorchJob", Force: true})
+	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-PyTorchJob", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ClusterQueue %s successfully", appliedClusterQueue.Name)
 
-	localQueue := kueueacv1beta1.LocalQueue(localQueueName, namespaceName).
+	localQueue := kueueacv1beta2.LocalQueue(localQueueName, namespaceName).
 		WithAnnotations(map[string]string{"kueue.x-k8s.io/default-queue": "true"}).
 		WithSpec(
-			kueueacv1beta1.LocalQueueSpec().WithClusterQueue(kueuev1beta1.ClusterQueueReference(clusterQueueName)),
+			kueueacv1beta2.LocalQueueSpec().WithClusterQueue(kueuev1beta2.ClusterQueueReference(clusterQueueName)),
 		)
-	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta1().LocalQueues(namespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-PyTorchJob", Force: true})
+	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta2().LocalQueues(namespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-PyTorchJob", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue LocalQueue %s/%s successfully", appliedLocalQueue.Namespace, appliedLocalQueue.Name)
 
@@ -114,13 +115,13 @@ func TestRunPytorchjob(t *testing.T) {
 	namespace := GetNamespaceWithName(test, namespaceName)
 
 	// Cleanup everything in the end
-	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavorName, metav1.DeleteOptions{})
-	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueueName, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavorName, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueueName, metav1.DeleteOptions{})
 	defer DeleteTestNamespace(test, namespace)
 
 	// Enable ClusterQueue to process waiting PyTorchJob
-	clusterQueue := kueueacv1beta1.ClusterQueue(clusterQueueName).WithSpec(kueueacv1beta1.ClusterQueueSpec().WithStopPolicy(kueuev1beta1.None))
-	_, err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
+	clusterQueue := kueueacv1beta2.ClusterQueue(clusterQueueName).WithSpec(kueueacv1beta2.ClusterQueueSpec().WithStopPolicy(kueuev1beta2.None))
+	_, err := test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 
 	// PyTorch job should be started now

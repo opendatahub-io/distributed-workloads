@@ -27,7 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
+	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
 	common "github.com/opendatahub-io/distributed-workloads/tests/common"
 	support "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -156,13 +156,13 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 		test.Eventually(support.KueueWorkloads(test, namespace.Name), support.TestTimeoutDouble).Should(
 			And(
 				HaveLen(2),
-				ContainElement(WithTransform(func(w *kueuev1beta1.Workload) string {
-					return w.Spec.QueueName
+				ContainElement(WithTransform(func(w *kueuev1beta2.Workload) string {
+					return string(w.Spec.QueueName)
 				}, Equal(support.KueueDefaultQueueName))),
 				ContainElement(
 					And(
-						WithTransform(func(w *kueuev1beta1.Workload) string {
-							return w.Spec.QueueName
+						WithTransform(func(w *kueuev1beta2.Workload) string {
+							return string(w.Spec.QueueName)
 						}, Equal(localQueueName)),
 						WithTransform(support.KueueWorkloadAdmitted, BeTrue()),
 					),
@@ -191,28 +191,28 @@ func newMPITestNamespace(test support.Test, useKueue bool) *corev1.Namespace {
 func setupOpenMPIGpuKueue(test support.Test, namespaceName string, accelerator support.Accelerator) (string, func()) {
 	test.T().Helper()
 
-	resourceFlavor := support.CreateKueueResourceFlavor(test, kueuev1beta1.ResourceFlavorSpec{
+	resourceFlavor := support.CreateKueueResourceFlavor(test, kueuev1beta2.ResourceFlavorSpec{
 		NodeLabels: map[string]string{
 			accelerator.ResourceLabel + ".present": "true",
 		},
 	})
-	clusterQueue := support.CreateKueueClusterQueue(test, kueuev1beta1.ClusterQueueSpec{
+	clusterQueue := support.CreateKueueClusterQueue(test, kueuev1beta2.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				"kubernetes.io/metadata.name": namespaceName,
 			},
 		},
-		ResourceGroups: []kueuev1beta1.ResourceGroup{
+		ResourceGroups: []kueuev1beta2.ResourceGroup{
 			{
 				CoveredResources: []corev1.ResourceName{
 					corev1.ResourceCPU,
 					corev1.ResourceMemory,
 					corev1.ResourceName(accelerator.ResourceLabel),
 				},
-				Flavors: []kueuev1beta1.FlavorQuotas{
+				Flavors: []kueuev1beta2.FlavorQuotas{
 					{
-						Name: kueuev1beta1.ResourceFlavorReference(resourceFlavor.Name),
-						Resources: []kueuev1beta1.ResourceQuota{
+						Name: kueuev1beta2.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []kueuev1beta2.ResourceQuota{
 							{
 								Name:         corev1.ResourceCPU,
 								NominalQuota: resource.MustParse("4"),
@@ -234,13 +234,13 @@ func setupOpenMPIGpuKueue(test support.Test, namespaceName string, accelerator s
 	localQueue := support.CreateKueueLocalQueue(test, namespaceName, clusterQueue.Name)
 	test.T().Logf("Created custom LocalQueue %s for OpenMPI SDK TrainJob", localQueue.Name)
 	cleanup := func() {
-		if err := test.Client().Kueue().KueueV1beta1().LocalQueues(namespaceName).Delete(test.Ctx(), localQueue.Name, metav1.DeleteOptions{}); err != nil {
+		if err := test.Client().Kueue().KueueV1beta2().LocalQueues(namespaceName).Delete(test.Ctx(), localQueue.Name, metav1.DeleteOptions{}); err != nil {
 			test.T().Logf("failed to delete LocalQueue %s: %v", localQueue.Name, err)
 		}
-		if err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{}); err != nil {
+		if err := test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{}); err != nil {
 			test.T().Logf("failed to delete ClusterQueue %s: %v", clusterQueue.Name, err)
 		}
-		if err := test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{}); err != nil {
+		if err := test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{}); err != nil {
 			test.T().Logf("failed to delete ResourceFlavor %s: %v", resourceFlavor.Name, err)
 		}
 	}

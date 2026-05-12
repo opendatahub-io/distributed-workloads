@@ -22,13 +22,13 @@ import (
 	"github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
+	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
 )
 
 func TestCreateKueueResourceFlavor(t *testing.T) {
 	test := NewTest(t)
 
-	rfSpec := kueuev1beta1.ResourceFlavorSpec{}
+	rfSpec := kueuev1beta2.ResourceFlavorSpec{}
 
 	rf := CreateKueueResourceFlavor(test, rfSpec)
 
@@ -39,7 +39,7 @@ func TestCreateKueueResourceFlavor(t *testing.T) {
 func TestCreateKueueClusterQueue(t *testing.T) {
 	test := NewTest(t)
 
-	cqSpec := kueuev1beta1.ClusterQueueSpec{
+	cqSpec := kueuev1beta2.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{},
 	}
 
@@ -60,7 +60,7 @@ func TestCreateKueueLocalQueue(t *testing.T) {
 	_, exists := lq.Annotations[annotationKey]
 	test.Expect(exists).To(gomega.BeFalse(), "Annotation key %s should not exist", annotationKey)
 	test.Expect(lq.Namespace).To(gomega.Equal("ns-1"))
-	test.Expect(lq.Spec.ClusterQueue).To(gomega.Equal(kueuev1beta1.ClusterQueueReference("cq-1")))
+	test.Expect(lq.Spec.ClusterQueue).To(gomega.Equal(kueuev1beta2.ClusterQueueReference("cq-1")))
 
 	default_lq := CreateKueueLocalQueue(test, "ns-2", "cq-2", AsDefaultQueue)
 
@@ -68,16 +68,16 @@ func TestCreateKueueLocalQueue(t *testing.T) {
 	test.Expect(default_lq.GenerateName).To(gomega.Equal("lq-"))
 	test.Expect(default_lq.Annotations["kueue.x-k8s.io/default-queue"]).To(gomega.Equal("true"))
 	test.Expect(default_lq.Namespace).To(gomega.Equal("ns-2"))
-	test.Expect(default_lq.Spec.ClusterQueue).To(gomega.Equal(kueuev1beta1.ClusterQueueReference("cq-2")))
+	test.Expect(default_lq.Spec.ClusterQueue).To(gomega.Equal(kueuev1beta2.ClusterQueueReference("cq-2")))
 
 }
 
 func TestGetKueueWorkloads(t *testing.T) {
 	test := NewTest(t)
 
-	wl := &kueuev1beta1.Workload{
+	wl := &kueuev1beta2.Workload{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: kueuev1beta1.SchemeGroupVersion.String(),
+			APIVersion: kueuev1beta2.SchemeGroupVersion.String(),
 			Kind:       "Workload",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -85,7 +85,7 @@ func TestGetKueueWorkloads(t *testing.T) {
 		},
 	}
 
-	_, err := test.Client().Kueue().KueueV1beta1().Workloads("ns-1").Create(test.ctx, wl, metav1.CreateOptions{})
+	_, err := test.Client().Kueue().KueueV1beta2().Workloads("ns-1").Create(test.ctx, wl, metav1.CreateOptions{})
 	test.Expect(err).To(gomega.BeNil())
 
 	wls := GetKueueWorkloads(test, "ns-1")

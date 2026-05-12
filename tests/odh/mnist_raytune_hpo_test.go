@@ -27,7 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
+	"sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -51,17 +51,17 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 	ensureNotebookServiceAccount(test, namespace.Name)
 
 	// Create Kueue resources
-	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
-	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
-	cqSpec := v1beta1.ClusterQueueSpec{
+	resourceFlavor := CreateKueueResourceFlavor(test, v1beta2.ResourceFlavorSpec{})
+	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+	cqSpec := v1beta2.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{},
-		ResourceGroups: []v1beta1.ResourceGroup{
+		ResourceGroups: []v1beta2.ResourceGroup{
 			{
 				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory"), corev1.ResourceName("nvidia.com/gpu")},
-				Flavors: []v1beta1.FlavorQuotas{
+				Flavors: []v1beta2.FlavorQuotas{
 					{
-						Name: v1beta1.ResourceFlavorReference(resourceFlavor.Name),
-						Resources: []v1beta1.ResourceQuota{
+						Name: v1beta2.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []v1beta2.ResourceQuota{
 							{
 								Name:         corev1.ResourceCPU,
 								NominalQuota: resource.MustParse("12"),
@@ -81,7 +81,7 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 		},
 	}
 	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
-	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 	CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Test configuration
@@ -133,12 +133,14 @@ func mnistRayTuneHpo(t *testing.T, numGpus int) {
 			),
 		)
 
-	// Make sure the Workload is created and running
+	// Make sure the RayCluster Workload is created and admitted
 	test.Eventually(GetKueueWorkloads(test, namespace.Name), TestTimeoutMedium).
 		Should(
-			And(
-				HaveLen(1),
-				ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrueBecause("Workload failed to be admitted"))),
+			ContainElement(
+				And(
+					WithTransform(KueueWorkloadOwnerKind, Equal("RayCluster")),
+					WithTransform(KueueWorkloadAdmitted, BeTrueBecause("Workload failed to be admitted")),
+				),
 			),
 		)
 

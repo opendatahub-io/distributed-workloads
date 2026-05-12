@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
+	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -66,7 +66,7 @@ func TestKueueDefaultLocalQueueLabelInjection(t *testing.T) {
 	//Verify default LocalQueue is auto-created after namespace creation
 	test.T().Log("Verifying default LocalQueue is auto-created after namespace creation ...")
 	test.Eventually(func(g Gomega) {
-		lq, err := test.Client().Kueue().KueueV1beta1().LocalQueues(namespace).Get(
+		lq, err := test.Client().Kueue().KueueV1beta2().LocalQueues(namespace).Get(
 			test.Ctx(),
 			"default",
 			metav1.GetOptions{},
@@ -114,8 +114,8 @@ func TestKueueDefaultLocalQueueLabelInjection(t *testing.T) {
 	test.Eventually(KueueWorkloads(test, namespace), TestTimeoutShort).Should(
 		And(
 			HaveLen(1),
-			ContainElement(WithTransform(func(w *kueuev1beta1.Workload) string {
-				return w.Spec.QueueName
+			ContainElement(WithTransform(func(w *kueuev1beta2.Workload) string {
+				return string(w.Spec.QueueName)
 			}, Equal("default"))),
 		),
 	)
@@ -148,7 +148,7 @@ func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {
 	// Wait for default LocalQueue to be created
 	test.T().Log("Waiting for default LocalQueue to be created...")
 	test.Eventually(func(g Gomega) {
-		_, err := test.Client().Kueue().KueueV1beta1().LocalQueues(namespace).Get(
+		_, err := test.Client().Kueue().KueueV1beta2().LocalQueues(namespace).Get(
 			test.Ctx(),
 			"default",
 			metav1.GetOptions{},
@@ -199,7 +199,7 @@ func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {
 	// Preempt the workload
 	test.T().Logf("User is preempting workload '%s' now ...", workload.Name)
 	workload.Spec.Active = Ptr(false)
-	_, err = test.Client().Kueue().KueueV1beta1().Workloads(namespace).Update(
+	_, err = test.Client().Kueue().KueueV1beta2().Workloads(namespace).Update(
 		test.Ctx(),
 		workload,
 		metav1.UpdateOptions{},
@@ -269,7 +269,7 @@ func TestKueueWorkloadInadmissibleWithNonExistentLocalQueue(t *testing.T) {
 	test.Eventually(KueueWorkloads(test, namespace), TestTimeoutShort).Should(
 		And(
 			HaveLen(1),
-			ContainElement(WithTransform(func(w *kueuev1beta1.Workload) bool {
+			ContainElement(WithTransform(func(w *kueuev1beta2.Workload) bool {
 				inadmissible, msg := KueueWorkloadInadmissible(w)
 				inadmissibleMsg = msg
 				workloadName = w.Name

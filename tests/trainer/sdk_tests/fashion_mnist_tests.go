@@ -27,7 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
+	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
 	common "github.com/opendatahub-io/distributed-workloads/tests/common"
 	support "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -153,18 +153,18 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
 	// Create Kueue resources
-	resourceFlavor := support.CreateKueueResourceFlavor(test, kueuev1beta1.ResourceFlavorSpec{})
-	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+	resourceFlavor := support.CreateKueueResourceFlavor(test, kueuev1beta2.ResourceFlavorSpec{})
+	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 
-	cqSpec := kueuev1beta1.ClusterQueueSpec{
+	cqSpec := kueuev1beta2.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{},
-		ResourceGroups: []kueuev1beta1.ResourceGroup{
+		ResourceGroups: []kueuev1beta2.ResourceGroup{
 			{
 				CoveredResources: []corev1.ResourceName{corev1.ResourceCPU, corev1.ResourceMemory},
-				Flavors: []kueuev1beta1.FlavorQuotas{
+				Flavors: []kueuev1beta2.FlavorQuotas{
 					{
-						Name: kueuev1beta1.ResourceFlavorReference(resourceFlavor.Name),
-						Resources: []kueuev1beta1.ResourceQuota{
+						Name: kueuev1beta2.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []kueuev1beta2.ResourceQuota{
 							{
 								Name:         corev1.ResourceCPU,
 								NominalQuota: resource.MustParse("8"),
@@ -181,7 +181,7 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 	}
 
 	clusterQueue := support.CreateKueueClusterQueue(test, cqSpec)
-	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 
 	// Note: a default LocalQueue (named "default") is auto-created in Kueue-managed namespaces for the Notebook CR
 	// Custom LocalQueue for the TrainJob — demonstrates explicit local queue assignment via the SDK
@@ -274,13 +274,13 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 	test.Eventually(support.KueueWorkloads(test, namespace.Name), support.TestTimeoutDouble).Should(
 		And(
 			HaveLen(2),
-			ContainElement(WithTransform(func(w *kueuev1beta1.Workload) string {
-				return w.Spec.QueueName
+			ContainElement(WithTransform(func(w *kueuev1beta2.Workload) string {
+				return string(w.Spec.QueueName)
 			}, Equal(support.KueueDefaultQueueName))),
 			ContainElement(
 				And(
-					WithTransform(func(w *kueuev1beta1.Workload) string {
-						return w.Spec.QueueName
+					WithTransform(func(w *kueuev1beta2.Workload) string {
+						return string(w.Spec.QueueName)
 					}, Equal(customLocalQueue.Name)),
 					WithTransform(support.KueueWorkloadAdmitted, BeTrue()),
 				),
