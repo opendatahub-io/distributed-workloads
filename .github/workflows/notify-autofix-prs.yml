@@ -1,0 +1,97 @@
+name: Notify open jira-autofix PRs
+
+on:
+  pull_request_target:
+    types: [opened]
+  schedule:
+    - cron: '3 9 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  notify-new-pr:
+    permissions:
+      contents: read
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.user.login == 'jira-autofix-bot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post new autofix PR to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_AUTOFIX_WEBHOOK_URL }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "SLACK_AUTOFIX_WEBHOOK_URL secret is not configured, skipping"
+            exit 0
+          fi
+
+          payload=$(jq -n \
+            --arg pr_url "$PR_URL" \
+            --arg pr_number "$PR_NUMBER" \
+            --arg pr_title "$PR_TITLE" \
+            '{text: ":robot_face: jira-autofix opened a new PR for review\n\n• <\($pr_url)|#\($pr_number)> — \($pr_title)\n\ncc <!subteam^S07LB79MA1M>"}')
+
+          curl -sf -X POST -H 'Content-Type: application/json' \
+            -d "$payload" \
+            "$SLACK_WEBHOOK_URL"
+
+          echo "Posted new PR notification to Slack"
+
+  notify-daily-digest:
+    permissions:
+      contents: read
+      pull-requests: read
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: List open jira-autofix PRs and post to Slack
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_AUTOFIX_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "SLACK_AUTOFIX_WEBHOOK_URL secret is not configured, skipping"
+            exit 0
+          fi
+
+          prs=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --author jira-autofix-bot \
+            --state open \
+            --json number,title,url,createdAt \
+            --jq '.[] | "\(.number)\t\(.title)\t\(.url)\t\(.createdAt)"')
+
+          if [ -z "$prs" ]; then
+            echo "No open jira-autofix PRs, skipping notification"
+            exit 0
+          fi
+
+          count=0
+          pr_lines=""
+          while IFS=$'\t' read -r number title url created; do
+            days=$(( ($(date +%s) - $(date -d "$created" +%s)) / 86400 ))
+            if [ "$days" -eq 1 ]; then
+              age="1 day old"
+            else
+              age="${days} days old"
+            fi
+            pr_lines="${pr_lines}• <${url}|#${number}> — ${title} (${age})\n"
+            count=$((count + 1))
+          done <<< "$prs"
+
+          payload=$(jq -n \
+            --arg body ":robot_face: jira-autofix: ${count} open PR(s) awaiting review\n\n${pr_lines}\ncc <!subteam^S07LB79MA1M>" \
+            '{text: $body}')
+
+          curl -sf -X POST -H 'Content-Type: application/json' \
+            -d "$payload" \
+            "$SLACK_WEBHOOK_URL"
+
+          echo "Posted ${count} PR(s) to Slack"
