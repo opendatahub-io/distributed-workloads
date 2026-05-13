@@ -13,7 +13,7 @@ jobs:
       contents: read
     if: >-
       github.event_name == 'pull_request_target' &&
-      github.event.pull_request.user.login == 'jira-autofix-bot'
+      github.event.pull_request.user.login == 'jira-autofix[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Post new autofix PR to Slack
@@ -63,7 +63,7 @@ jobs:
 
           prs=$(gh pr list \
             --repo "$GITHUB_REPOSITORY" \
-            --author jira-autofix-bot \
+            --author app/jira-autofix \
             --state open \
             --json number,title,url,createdAt \
             --jq '.[] | "\(.number)\t\(.title)\t\(.url)\t\(.createdAt)"')
@@ -82,13 +82,17 @@ jobs:
             else
               age="${days} days old"
             fi
-            pr_lines="${pr_lines}• <${url}|#${number}> — ${title} (${age})\n"
+            pr_lines+="• <${url}|#${number}> — ${title} (${age})"$'\n'
             count=$((count + 1))
           done <<< "$prs"
 
+          header=":robot_face: jira-autofix: ${count} open PR(s) awaiting review"
+          footer="cc <!subteam^S07LB79MA1M>"
           payload=$(jq -n \
-            --arg body ":robot_face: jira-autofix: ${count} open PR(s) awaiting review\n\n${pr_lines}\ncc <!subteam^S07LB79MA1M>" \
-            '{text: $body}')
+            --arg header "$header" \
+            --arg prs "$pr_lines" \
+            --arg footer "$footer" \
+            '{text: ($header + "\n\n" + $prs + "\n" + $footer)}')
 
           curl -sf -X POST -H 'Content-Type: application/json' \
             -d "$payload" \
