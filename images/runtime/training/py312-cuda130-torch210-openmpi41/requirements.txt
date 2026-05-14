@@ -83,7 +83,7 @@ cloudpickle==3.1.2
     # via mlflow-skinny
 contourpy==1.3.3
     # via matplotlib
-cryptography==46.0.5
+cryptography==46.0.7
     # via
     #   google-auth
     #   mlflow
