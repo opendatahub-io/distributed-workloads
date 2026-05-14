@@ -5,7 +5,9 @@ import shutil
 import random
 
 MODEL_ID = "Qwen/Qwen2.5-1.5B-Instruct"
+MODEL_REVISION = "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
 HF_DATASET_ID = "LipengCS/Table-GPT"
+HF_DATASET_REVISION = "25754c7a072dffca92e18c56f33832936f53495a"
 HF_DATASET_SUBSET = "All"
 SUBSET_SIZE = 100
 
@@ -28,15 +30,23 @@ def download_from_s3(dataset_dir, model_dir):
         return False
 
     secure = True
+    allow_insecure = os.environ.get("AWS_ALLOW_INSECURE_ENDPOINT", "").lower() == "true"
     if endpoint.startswith("https://"):
         endpoint = endpoint[len("https://"):]
     elif endpoint.startswith("http://"):
+        if not allow_insecure:
+            raise RuntimeError("Refusing insecure S3 endpoint over HTTP")
         endpoint = endpoint[len("http://"):]
         secure = False
 
     print(f"[download] S3: endpoint={endpoint}, bucket={bucket}, prefix={prefix}")
-    client = Minio(endpoint, access_key=access_key, secret_key=secret_key,
-                   cert_check=False, secure=secure)
+    client = Minio(
+        endpoint,
+        access_key=access_key,
+        secret_key=secret_key,
+        secure=secure,
+        cert_check=secure,
+    )
 
     os.makedirs(dataset_dir, exist_ok=True)
     os.makedirs(model_dir, exist_ok=True)
@@ -47,14 +57,18 @@ def download_from_s3(dataset_dir, model_dir):
         if not rel:
             continue
 
+        rel_norm = os.path.normpath(rel).lstrip(os.sep)
+        if rel_norm.startswith(".."):
+            raise RuntimeError(f"Unsafe object key path: {item.object_name}")
+
         if "table-gpt" in rel.lower() or rel.endswith(".jsonl"):
-            dst = os.path.join(dataset_dir, os.path.basename(rel))
+            dst = os.path.join(dataset_dir, os.path.basename(rel_norm))
         elif "qwen" in rel.lower() or any(rel.endswith(ext) for ext in
                                            [".bin", ".json", ".model", ".safetensors", ".txt"]):
-            base = rel.split("Qwen2.5-1.5B-Instruct/")[-1] if "Qwen2.5-1.5B-Instruct" in rel else os.path.basename(rel)
+            base = rel_norm.split("Qwen2.5-1.5B-Instruct/")[-1] if "Qwen2.5-1.5B-Instruct" in rel_norm else os.path.basename(rel_norm)
             dst = os.path.join(model_dir, base)
         else:
-            dst = os.path.join(dataset_dir, rel)
+            dst = os.path.join(dataset_dir, rel_norm)
 
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         if not os.path.exists(dst):
@@ -85,7 +99,7 @@ def download_from_hf(dataset_dir, model_dir):
         print(f"[download] Downloading {HF_DATASET_ID} from HuggingFace...")
         from datasets import load_dataset
 
-        ds = load_dataset(HF_DATASET_ID, HF_DATASET_SUBSET)
+        ds = load_dataset(HF_DATASET_ID, HF_DATASET_SUBSET, revision=HF_DATASET_REVISION)
         train = ds["train"]
         random.seed(42)
         indices = random.sample(range(len(train)), min(SUBSET_SIZE, len(train)))
@@ -105,6 +119,7 @@ def download_from_hf(dataset_dir, model_dir):
         token = os.environ.get("HUGGINGFACE_HUB_TOKEN")
         snapshot_download(
             repo_id=MODEL_ID,
+            revision=MODEL_REVISION,
             local_dir=model_dir,
             token=token,
             resume_download=True,

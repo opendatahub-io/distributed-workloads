@@ -1,5 +1,5 @@
 # TRL and dependencies for stock SFTTrainer test
-trl
-datasets
+trl==1.4.0
+datasets==4.8.5
 minio==7.2.20
-huggingface_hub
+huggingface_hub==1.14.0
