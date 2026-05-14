@@ -18,6 +18,7 @@ package trainer
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
@@ -61,16 +62,16 @@ func runSftStockTrlTrainJob(t *testing.T, numNodes, numProcPerNode int32) {
 	pvc := CreatePersistentVolumeClaim(test, namespace, "20Gi", AccessModes(corev1.ReadWriteMany), StorageClassName(storageClass.Name))
 
 	files := map[string][]byte{
-		"sft_stock_trl.py":    readFile(test, "resources/sft_stock_trl.py"),
+		"sft_stock_trl.py":     readFile(test, "resources/sft_stock_trl.py"),
 		"download_sft_data.py": readFile(test, "resources/download_sft_data.py"),
-		"requirements.txt":    readFile(test, "resources/requirements-sft-stock-trl.txt"),
+		"requirements.txt":     readFile(test, "resources/requirements-sft-stock-trl.txt"),
 	}
 	config := CreateConfigMap(test, namespace, files)
 
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta2.ResourceFlavorSpec{})
 	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 
-	numGpus := numNodes*numProcPerNode + 1
+	numGpus := numNodes * numProcPerNode
 	cqSpec := v1beta2.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{},
 		ResourceGroups: []v1beta2.ResourceGroup{
@@ -203,14 +204,12 @@ echo "Dataset initialization completed!"
 `},
 													Resources: corev1.ResourceRequirements{
 														Requests: corev1.ResourceList{
-															corev1.ResourceCPU:                       resource.MustParse("2"),
-															corev1.ResourceMemory:                    resource.MustParse("8Gi"),
-															corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse("1"),
+															corev1.ResourceCPU:    resource.MustParse("2"),
+															corev1.ResourceMemory: resource.MustParse("8Gi"),
 														},
 														Limits: corev1.ResourceList{
-															corev1.ResourceCPU:                       resource.MustParse("4"),
-															corev1.ResourceMemory:                    resource.MustParse("16Gi"),
-															corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse("1"),
+															corev1.ResourceCPU:    resource.MustParse("4"),
+															corev1.ResourceMemory: resource.MustParse("16Gi"),
 														},
 													},
 													VolumeMounts: []corev1.VolumeMount{
@@ -306,13 +305,13 @@ echo "==================== Training Complete ===================="
 `},
 													Resources: corev1.ResourceRequirements{
 														Requests: corev1.ResourceList{
-															corev1.ResourceCPU:                       resource.MustParse("4"),
-															corev1.ResourceMemory:                    resource.MustParse("32Gi"),
+															corev1.ResourceCPU:                        resource.MustParse("4"),
+															corev1.ResourceMemory:                     resource.MustParse("32Gi"),
 															corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse(fmt.Sprint(numProcPerNode)),
 														},
 														Limits: corev1.ResourceList{
-															corev1.ResourceCPU:                       resource.MustParse("8"),
-															corev1.ResourceMemory:                    resource.MustParse("48Gi"),
+															corev1.ResourceCPU:                        resource.MustParse("8"),
+															corev1.ResourceMemory:                     resource.MustParse("48Gi"),
 															corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse(fmt.Sprint(numProcPerNode)),
 														},
 													},
@@ -462,13 +461,17 @@ func sftStorageBucketEnvVars(test Test) []corev1.EnvVar {
 
 	if endpointOK && accessKeyOK && secretKeyOK && bucketOK && sftDirOK {
 		test.T().Log("S3/Minio configuration detected, adding storage environment variables to dataset-initializer")
-		return []corev1.EnvVar{
+		envVars := []corev1.EnvVar{
 			{Name: "AWS_DEFAULT_ENDPOINT", Value: endpoint},
 			{Name: "AWS_ACCESS_KEY_ID", Value: accessKey},
 			{Name: "AWS_SECRET_ACCESS_KEY", Value: secretKey},
 			{Name: "AWS_STORAGE_BUCKET", Value: bucket},
 			{Name: "AWS_STORAGE_BUCKET_SFT_DIR", Value: sftDir},
 		}
+		if strings.HasPrefix(endpoint, "http://") {
+			envVars = append(envVars, corev1.EnvVar{Name: "AWS_ALLOW_INSECURE_ENDPOINT", Value: "true"})
+		}
+		return envVars
 	}
 
 	test.T().Log("S3/Minio configuration incomplete, dataset-initializer will download from HuggingFace")
