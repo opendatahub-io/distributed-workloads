@@ -64,6 +64,7 @@ const (
 	storageBucketSftDir            = "AWS_STORAGE_BUCKET_SFT_DIR"
 	storageBucketLoraDir           = "AWS_STORAGE_BUCKET_LORA_DIR"
 	storageBucketRayTrainingHubDir = "AWS_STORAGE_BUCKET_RAY_TRAINING_HUB_DIR"
+	storageBucketGrpoDir           = "AWS_STORAGE_BUCKET_GRPO_DIR"
 
 	// Name of existing namespace to be used for test
 	testNamespaceNameEnvVar = "TEST_NAMESPACE_NAME"
@@ -239,6 +240,11 @@ func GetStorageBucketSftDir() (string, bool) {
 func GetStorageBucketRayTrainingHubDir() (string, bool) {
 	dir, exists := os.LookupEnv(storageBucketRayTrainingHubDir)
 	return dir, exists
+}
+
+func GetStorageBucketGrpoDir() (string, bool) {
+	storage_bucket_grpo_dir, exists := os.LookupEnv(storageBucketGrpoDir)
+	return storage_bucket_grpo_dir, exists
 }
 
 func GetPipIndexURL() string {
