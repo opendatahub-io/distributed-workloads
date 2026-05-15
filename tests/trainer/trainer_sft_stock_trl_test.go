@@ -420,7 +420,7 @@ func createSftStockTrlTrainJob(test Test, namespace, runtimeName string, numNode
 							{Name: "MODEL_PATH", Value: "/workspace/model"},
 							{Name: "LIB_PATH", Value: "/workspace/lib"},
 						},
-						sftStorageBucketEnvVars(test)...,
+						sftStorageBucketEnvVars(test, namespace)...,
 					),
 				},
 			},
@@ -450,7 +450,7 @@ func createSftStockTrlTrainJob(test Test, namespace, runtimeName string, numNode
 	return created
 }
 
-func sftStorageBucketEnvVars(test Test) []corev1.EnvVar {
+func sftStorageBucketEnvVars(test Test, namespace string) []corev1.EnvVar {
 	test.T().Helper()
 
 	endpoint, endpointOK := GetStorageBucketDefaultEndpoint()
@@ -461,10 +461,32 @@ func sftStorageBucketEnvVars(test Test) []corev1.EnvVar {
 
 	if endpointOK && accessKeyOK && secretKeyOK && bucketOK && sftDirOK {
 		test.T().Log("S3/Minio configuration detected, adding storage environment variables to dataset-initializer")
+
+		secret := CreateSecret(test, namespace, map[string]string{
+			"accessKey": accessKey,
+			"secretKey": secretKey,
+		})
+
 		envVars := []corev1.EnvVar{
 			{Name: "AWS_DEFAULT_ENDPOINT", Value: endpoint},
-			{Name: "AWS_ACCESS_KEY_ID", Value: accessKey},
-			{Name: "AWS_SECRET_ACCESS_KEY", Value: secretKey},
+			{
+				Name: "AWS_ACCESS_KEY_ID",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: secret.Name},
+						Key:                  "accessKey",
+					},
+				},
+			},
+			{
+				Name: "AWS_SECRET_ACCESS_KEY",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: secret.Name},
+						Key:                  "secretKey",
+					},
+				},
+			},
 			{Name: "AWS_STORAGE_BUCKET", Value: bucket},
 			{Name: "AWS_STORAGE_BUCKET_SFT_DIR", Value: sftDir},
 		}
