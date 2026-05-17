@@ -536,9 +536,9 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 			"Expected metrics-port annotation to be '28080'")
 		test.T().Log("metrics-port annotation is '28080'")
 
-		test.Expect(annotations[annotationMetricsPollInterval]).To(Equal("8"),
-			"Expected metrics-poll-interval annotation to be '8'")
-		test.T().Log("metrics-poll-interval annotation is '8'")
+		test.Expect(annotations[annotationMetricsPollInterval]).To(Equal("5"),
+			"Expected metrics-poll-interval annotation to be '5'")
+		test.T().Log("metrics-poll-interval annotation is '5'")
 
 		// Verify training completed successfully by checking pod termination message.
 		// The termination message is written by the training process itself and is the authoritative source.
@@ -764,6 +764,19 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	}, TestTimeoutLong, 5*time.Second).Should(BeTrue(), "Training should complete at least 2 epochs before suspension")
 	test.T().Log("At least 2 epochs completed - ready to suspend")
 
+	// Wait for operator to poll metrics and capture progression before suspending.
+	// The operator polls the pod's HTTP metrics endpoint at the configured interval.
+	// We must wait for at least one successful poll while pods are still alive,
+	// otherwise suspending kills the pods before progress is ever captured.
+	if progressionEnabled {
+		test.T().Log("Waiting for progression tracking to be captured by operator...")
+		test.Eventually(func() int {
+			return getProgressPercentage(test, namespace, trainJobName)
+		}, TestTimeoutMedium, 1*time.Second).Should(BeNumerically(">", 0),
+			"Operator should capture progression while training pods are still running")
+		test.T().Log("Progression captured by operator")
+	}
+
 	// Verify cloud checkpoint upload is working (only for cloud storage mode, not PVC)
 	// This catches SDK monkey-patch failures early - if save_strategy override didn't apply,
 	// no checkpoints are saved and no uploads happen
@@ -849,20 +862,14 @@ func verifyCheckpoints(test Test, namespace, trainJobName, checkpointDir string,
 	test.Expect(TrainJobConditionSuspended(trainJob)).To(Equal(metav1.ConditionTrue), "TrainJob should be in suspended state")
 	test.T().Log("TrainJob is suspended")
 
-	// Step 5: Store progress before resume (only when progression tracking is enabled)
+	// Step 5: Read progress state for resume comparison
 	var preSuspendProgress int
 	var preSuspendEpoch float64
 	if progressionEnabled {
-		// Wait for operator to poll metrics and update TrainJob annotations.
-		// This ensures progress is recorded before suspending the job.
-		test.T().Log("Step 5: Waiting for progress to be tracked in TrainJob...")
-		test.Eventually(func() int {
-			return getProgressPercentage(test, namespace, trainJobName)
-		}, TestTimeoutMedium, 5*time.Second).Should(BeNumerically(">", 0), "Progress should be tracked before suspension")
-
+		test.T().Log("Step 5: Reading progression state after suspend...")
 		preSuspendProgress = getProgressPercentage(test, namespace, trainJobName)
 		preSuspendEpoch = getCurrentEpoch(test, namespace, trainJobName)
-		test.T().Logf("Pre-suspend state: epoch=%.2f, progress=%d%%", preSuspendEpoch, preSuspendProgress)
+		test.T().Logf("Pre-resume state: epoch=%.2f, progress=%d%%", preSuspendEpoch, preSuspendProgress)
 	}
 
 	// Step 6: Resume the TrainJob
