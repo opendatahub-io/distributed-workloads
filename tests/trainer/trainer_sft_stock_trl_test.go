@@ -284,13 +284,13 @@ echo "==================== Training Complete ===================="
 `},
 													Resources: corev1.ResourceRequirements{
 														Requests: corev1.ResourceList{
-															corev1.ResourceCPU:                            resource.MustParse("4"),
-															corev1.ResourceMemory:                         resource.MustParse("32Gi"),
+															corev1.ResourceCPU:                             resource.MustParse("4"),
+															corev1.ResourceMemory:                          resource.MustParse("32Gi"),
 															corev1.ResourceName(accelerator.ResourceLabel): resource.MustParse(fmt.Sprint(numProcPerNode)),
 														},
 														Limits: corev1.ResourceList{
-															corev1.ResourceCPU:                            resource.MustParse("8"),
-															corev1.ResourceMemory:                         resource.MustParse("48Gi"),
+															corev1.ResourceCPU:                             resource.MustParse("8"),
+															corev1.ResourceMemory:                          resource.MustParse("48Gi"),
 															corev1.ResourceName(accelerator.ResourceLabel): resource.MustParse(fmt.Sprint(numProcPerNode)),
 														},
 													},
