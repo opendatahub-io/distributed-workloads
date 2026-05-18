@@ -64,7 +64,6 @@ func runSftStockTrlTrainJob(t *testing.T, numNodes, numProcPerNode int32) {
 	files := map[string][]byte{
 		"sft_stock_trl.py":     readFile(test, "resources/sft_stock_trl.py"),
 		"download_sft_data.py": readFile(test, "resources/download_sft_data.py"),
-		"requirements.txt":     readFile(test, "resources/requirements-sft-stock-trl.txt"),
 	}
 	config := CreateConfigMap(test, namespace, files)
 
@@ -180,24 +179,6 @@ echo "=========================================="
 echo "    SFT Stock TRL Dataset Initializer     "
 echo "=========================================="
 
-LOCAL_LIB=/tmp/pip_packages
-mkdir -p ${LOCAL_LIB}
-mkdir -p ${LIB_PATH}
-
-echo "Installing dependencies from requirements.txt ..."
-while IFS= read -r line || [[ -n "$line" ]]; do
-    [[ -z "$line" || "$line" =~ ^[[:space:]]*# || "$line" =~ ^-- ]] && continue
-    pkg=$(echo "$line" | sed 's/[[:space:]]*#.*//')
-    echo "Installing $pkg ..."
-    pip install --no-cache-dir "$pkg" --target=${LOCAL_LIB} --verbose
-done < /mnt/scripts/requirements.txt
-
-echo ""
-echo "Copying installed packages to ${LIB_PATH}..."
-cp -r ${LOCAL_LIB}/* ${LIB_PATH}/
-echo "Dependencies installed successfully!"
-
-export PYTHONPATH=${LIB_PATH}:$PYTHONPATH
 python3 /mnt/scripts/download_sft_data.py
 
 echo "Dataset initialization completed!"
@@ -294,8 +275,6 @@ if [ ! -d "${MODEL_PATH}" ]; then
     echo "ERROR: Model not found at ${MODEL_PATH}"
     exit 1
 fi
-
-export PYTHONPATH=${LIB_PATH}:$PYTHONPATH
 
 echo "==================== Starting Stock TRL SFT Training ===================="
 torchrun /mnt/scripts/sft_stock_trl.py
@@ -418,7 +397,6 @@ func createSftStockTrlTrainJob(test Test, namespace, runtimeName string, numNode
 						[]corev1.EnvVar{
 							{Name: "DATASET_PATH", Value: "/workspace/data"},
 							{Name: "MODEL_PATH", Value: "/workspace/model"},
-							{Name: "LIB_PATH", Value: "/workspace/lib"},
 						},
 						sftStorageBucketEnvVars(test, namespace)...,
 					),
@@ -431,7 +409,6 @@ func createSftStockTrlTrainJob(test Test, namespace, runtimeName string, numNode
 					{Name: "DATASET_PATH", Value: "/workspace/data/train_All_100.jsonl"},
 					{Name: "MODEL_PATH", Value: "/workspace/model"},
 					{Name: "OUTPUT_DIR", Value: "/workspace/output"},
-					{Name: "LIB_PATH", Value: "/workspace/lib"},
 					{Name: "NCCL_DEBUG", Value: "INFO"},
 					{Name: "TORCH_DISTRIBUTED_DEBUG", Value: "DETAIL"},
 				},
