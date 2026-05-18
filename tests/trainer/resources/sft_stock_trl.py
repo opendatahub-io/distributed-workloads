@@ -19,9 +19,8 @@ logger.setLevel(logging.INFO)
 
 def format_table_gpt(example):
     return {
-        "text": f"### Instruction:\n{example['instruction']}\n\n"
-        f"### Input:\n{example['input']}\n\n"
-        f"### Output:\n{example['output']}"
+        "text": f"### Prompt:\n{example['prompt']}\n\n"
+        f"### Completion:\n{example['completion']}"
     }
 
 
@@ -67,7 +66,7 @@ def main():
         gradient_accumulation_steps=1,
         learning_rate=5e-6,
         lr_scheduler_type="cosine",
-        max_seq_length=512,
+        max_length=512,
         logging_steps=1,
         save_strategy="no",
         bf16=True,

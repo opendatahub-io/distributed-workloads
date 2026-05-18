@@ -14,9 +14,9 @@ SUBSET_SIZE = 100
 
 def download_from_s3(dataset_dir, model_dir):
     try:
-        from minio import Minio
+        import s3fs
     except ImportError:
-        print("[download] minio not installed, skipping S3")
+        print("[download] s3fs not installed, skipping S3")
         return False
 
     endpoint = os.environ.get("AWS_DEFAULT_ENDPOINT", "")
@@ -29,37 +29,30 @@ def download_from_s3(dataset_dir, model_dir):
         print("[download] S3 env vars incomplete, skipping S3")
         return False
 
-    secure = True
     allow_insecure = os.environ.get("AWS_ALLOW_INSECURE_ENDPOINT", "").lower() == "true"
-    if endpoint.startswith("https://"):
-        endpoint = endpoint[len("https://"):]
-    elif endpoint.startswith("http://"):
-        if not allow_insecure:
-            raise RuntimeError("Refusing insecure S3 endpoint over HTTP")
-        endpoint = endpoint[len("http://"):]
-        secure = False
+    if endpoint.startswith("http://") and not allow_insecure:
+        raise RuntimeError("Refusing insecure S3 endpoint over HTTP")
 
     print(f"[download] S3: endpoint={endpoint}, bucket={bucket}, prefix={prefix}")
-    client = Minio(
-        endpoint,
-        access_key=access_key,
-        secret_key=secret_key,
-        secure=secure,
-        cert_check=secure,
+    fs = s3fs.S3FileSystem(
+        key=access_key,
+        secret=secret_key,
+        endpoint_url=endpoint,
     )
 
     os.makedirs(dataset_dir, exist_ok=True)
     os.makedirs(model_dir, exist_ok=True)
 
+    s3_prefix = f"{bucket}/{prefix}".rstrip("/")
     pulled = 0
-    for item in client.list_objects(bucket, prefix=prefix, recursive=True):
-        rel = item.object_name[len(prefix):].lstrip("/")
+    for s3_path in fs.find(s3_prefix):
+        rel = s3_path[len(s3_prefix):].lstrip("/")
         if not rel:
             continue
 
         rel_norm = os.path.normpath(rel).lstrip(os.sep)
         if rel_norm.startswith(".."):
-            raise RuntimeError(f"Unsafe object key path: {item.object_name}")
+            raise RuntimeError(f"Unsafe object key path: {s3_path}")
 
         if "table-gpt" in rel.lower() or rel.endswith(".jsonl"):
             dst = os.path.join(dataset_dir, os.path.basename(rel_norm))
@@ -72,8 +65,8 @@ def download_from_s3(dataset_dir, model_dir):
 
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         if not os.path.exists(dst):
-            print(f"[download] S3 get: {item.object_name} -> {dst}")
-            client.fget_object(bucket, item.object_name, dst)
+            print(f"[download] S3 get: {s3_path} -> {dst}")
+            fs.get(s3_path, dst)
             pulled += 1
 
             if dst.endswith(".gz"):
