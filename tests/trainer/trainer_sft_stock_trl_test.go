@@ -39,17 +39,17 @@ import (
 
 func TestSftStockTrlSingleNodeSingleGPU(t *testing.T) {
 	Tags(t, KftoCuda, Gpu(NVIDIA))
-	runSftStockTrlTrainJob(t, 1, 1)
+	runSftStockTrlTrainJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, 1, 1)
 }
 
-func TestSftStockTrlMultiNodeSingleGPU(t *testing.T) {
-	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
-	runSftStockTrlTrainJob(t, 2, 1)
+func TestSftStockTrlSingleNodeSingleGPUWithTorchRocm(t *testing.T) {
+	Tags(t, KftoRocm, Gpu(AMD))
+	runSftStockTrlTrainJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, 1, 1)
 }
 
-func runSftStockTrlTrainJob(t *testing.T, numNodes, numProcPerNode int32) {
+func runSftStockTrlTrainJob(t *testing.T, accelerator Accelerator, clusterTrainingRuntime string, numNodes, numProcPerNode int32) {
 	test := With(t)
-	baseImage, err := trainerutils.GetImageFromClusterTrainingRuntime(test, trainerutils.DefaultClusterTrainingRuntimeCUDA)
+	baseImage, err := trainerutils.GetImageFromClusterTrainingRuntime(test, clusterTrainingRuntime)
 	test.Expect(err).ToNot(HaveOccurred(), "Failed to get image from ClusterTrainingRuntime: %v", err)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 
@@ -75,7 +75,7 @@ func runSftStockTrlTrainJob(t *testing.T, numNodes, numProcPerNode int32) {
 		NamespaceSelector: &metav1.LabelSelector{},
 		ResourceGroups: []v1beta2.ResourceGroup{
 			{
-				CoveredResources: []corev1.ResourceName{"cpu", "memory", corev1.ResourceName(NVIDIA.ResourceLabel)},
+				CoveredResources: []corev1.ResourceName{"cpu", "memory", corev1.ResourceName(accelerator.ResourceLabel)},
 				Flavors: []v1beta2.FlavorQuotas{
 					{
 						Name: v1beta2.ResourceFlavorReference(resourceFlavor.Name),
@@ -89,7 +89,7 @@ func runSftStockTrlTrainJob(t *testing.T, numNodes, numProcPerNode int32) {
 								NominalQuota: resource.MustParse("128Gi"),
 							},
 							{
-								Name:         corev1.ResourceName(NVIDIA.ResourceLabel),
+								Name:         corev1.ResourceName(accelerator.ResourceLabel),
 								NominalQuota: resource.MustParse(fmt.Sprint(numGpus)),
 							},
 						},
@@ -103,7 +103,7 @@ func runSftStockTrlTrainJob(t *testing.T, numNodes, numProcPerNode int32) {
 	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name, AsDefaultQueue)
 
-	trainingRuntime := createSftStockTrlTrainingRuntime(test, namespace, config.Name, pvc.Name, baseImage, numProcPerNode)
+	trainingRuntime := createSftStockTrlTrainingRuntime(test, namespace, config.Name, pvc.Name, baseImage, accelerator, numProcPerNode)
 
 	trainJob := createSftStockTrlTrainJob(test, namespace, trainingRuntime.Name, numNodes, numProcPerNode, localQueue.Name)
 
@@ -133,7 +133,7 @@ func runSftStockTrlTrainJob(t *testing.T, numNodes, numProcPerNode int32) {
 	test.T().Logf("TrainJob %s/%s completed", namespace, trainJob.Name)
 }
 
-func createSftStockTrlTrainingRuntime(test Test, namespace, configMapName, pvcName, baseImage string, numProcPerNode int32) *trainerv1alpha1.TrainingRuntime {
+func createSftStockTrlTrainingRuntime(test Test, namespace, configMapName, pvcName, baseImage string, accelerator Accelerator, numProcPerNode int32) *trainerv1alpha1.TrainingRuntime {
 	test.T().Helper()
 
 	trainingRuntime := &trainerv1alpha1.TrainingRuntime{
@@ -284,14 +284,14 @@ echo "==================== Training Complete ===================="
 `},
 													Resources: corev1.ResourceRequirements{
 														Requests: corev1.ResourceList{
-															corev1.ResourceCPU:                        resource.MustParse("4"),
-															corev1.ResourceMemory:                     resource.MustParse("32Gi"),
-															corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse(fmt.Sprint(numProcPerNode)),
+															corev1.ResourceCPU:                            resource.MustParse("4"),
+															corev1.ResourceMemory:                         resource.MustParse("32Gi"),
+															corev1.ResourceName(accelerator.ResourceLabel): resource.MustParse(fmt.Sprint(numProcPerNode)),
 														},
 														Limits: corev1.ResourceList{
-															corev1.ResourceCPU:                        resource.MustParse("8"),
-															corev1.ResourceMemory:                     resource.MustParse("48Gi"),
-															corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse(fmt.Sprint(numProcPerNode)),
+															corev1.ResourceCPU:                            resource.MustParse("8"),
+															corev1.ResourceMemory:                         resource.MustParse("48Gi"),
+															corev1.ResourceName(accelerator.ResourceLabel): resource.MustParse(fmt.Sprint(numProcPerNode)),
 														},
 													},
 													VolumeMounts: []corev1.VolumeMount{
@@ -434,9 +434,8 @@ func sftStorageBucketEnvVars(test Test, namespace string) []corev1.EnvVar {
 	accessKey, accessKeyOK := GetStorageBucketAccessKeyId()
 	secretKey, secretKeyOK := GetStorageBucketSecretKey()
 	bucket, bucketOK := GetStorageBucketName()
-	sftDir, sftDirOK := GetStorageBucketSftDir()
 
-	if endpointOK && accessKeyOK && secretKeyOK && bucketOK && sftDirOK {
+	if endpointOK && accessKeyOK && secretKeyOK && bucketOK {
 		test.T().Log("S3/Minio configuration detected, adding storage environment variables to dataset-initializer")
 
 		secret := CreateSecret(test, namespace, map[string]string{
@@ -465,7 +464,6 @@ func sftStorageBucketEnvVars(test Test, namespace string) []corev1.EnvVar {
 				},
 			},
 			{Name: "AWS_STORAGE_BUCKET", Value: bucket},
-			{Name: "AWS_STORAGE_BUCKET_SFT_DIR", Value: sftDir},
 		}
 		if strings.HasPrefix(endpoint, "http://") {
 			envVars = append(envVars, corev1.EnvVar{Name: "AWS_ALLOW_INSECURE_ENDPOINT", Value: "true"})

@@ -23,9 +23,8 @@ def download_from_s3(dataset_dir, model_dir):
     access_key = os.environ.get("AWS_ACCESS_KEY_ID", "")
     secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
     bucket = os.environ.get("AWS_STORAGE_BUCKET", "")
-    prefix = os.environ.get("AWS_STORAGE_BUCKET_SFT_DIR", "")
 
-    if not all([endpoint, access_key, secret_key, bucket, prefix]):
+    if not all([endpoint, access_key, secret_key, bucket]):
         print("[download] S3 env vars incomplete, skipping S3")
         return False
 
@@ -33,7 +32,7 @@ def download_from_s3(dataset_dir, model_dir):
     if endpoint.startswith("http://") and not allow_insecure:
         raise RuntimeError("Refusing insecure S3 endpoint over HTTP")
 
-    print(f"[download] S3: endpoint={endpoint}, bucket={bucket}, prefix={prefix}")
+    print(f"[download] S3: endpoint={endpoint}, bucket={bucket}")
     fs = s3fs.S3FileSystem(
         key=access_key,
         secret=secret_key,
@@ -43,7 +42,7 @@ def download_from_s3(dataset_dir, model_dir):
     os.makedirs(dataset_dir, exist_ok=True)
     os.makedirs(model_dir, exist_ok=True)
 
-    s3_prefix = f"{bucket}/{prefix}".rstrip("/")
+    s3_prefix = bucket.rstrip("/")
     pulled = 0
     for s3_path in fs.find(s3_prefix):
         rel = s3_path[len(s3_prefix):].lstrip("/")
@@ -61,7 +60,8 @@ def download_from_s3(dataset_dir, model_dir):
             base = rel_norm.split("Qwen2.5-1.5B-Instruct/")[-1] if "Qwen2.5-1.5B-Instruct" in rel_norm else os.path.basename(rel_norm)
             dst = os.path.join(model_dir, base)
         else:
-            dst = os.path.join(dataset_dir, rel_norm)
+            print(f"[download] Skipping unrelated file: {rel}")
+            continue
 
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         if not os.path.exists(dst):

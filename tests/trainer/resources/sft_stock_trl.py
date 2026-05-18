@@ -17,13 +17,6 @@ logger.addHandler(console_handler)
 logger.setLevel(logging.INFO)
 
 
-def format_table_gpt(example):
-    return {
-        "text": f"### Prompt:\n{example['prompt']}\n\n"
-        f"### Completion:\n{example['completion']}"
-    }
-
-
 def main():
     model_path = os.environ.get("MODEL_PATH", "/workspace/model")
     dataset_path = os.environ.get("DATASET_PATH", "/workspace/data/train_All_100.jsonl")
@@ -56,7 +49,6 @@ def main():
 
     logger.info("Loading dataset from %s", dataset_path)
     dataset = load_dataset("json", data_files=dataset_path, split="train")
-    dataset = dataset.map(format_table_gpt, remove_columns=dataset.column_names)
     logger.info("Dataset loaded: %d samples", len(dataset))
 
     training_args = SFTConfig(
