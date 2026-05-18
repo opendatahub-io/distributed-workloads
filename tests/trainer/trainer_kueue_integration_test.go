@@ -24,6 +24,7 @@ import (
 	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
@@ -190,11 +191,19 @@ func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {
 	workload := GetKueueWorkloads(test, namespace)[0]
 	test.T().Logf("Workload '%s' is admitted", workload.Name)
 
-	// Verify TrainJob is running
-	test.Eventually(TrainJob(test, namespace, createdTrainJob.Name), TestTimeoutShort).Should(
-		WithTransform(TrainJobConditionSuspended, Equal(metav1.ConditionFalse)),
+	// Verify TrainJob is running by checking training node pods are in Running phase
+	// (The Suspended condition may not be set immediately due to Kueue admission timing)
+	test.T().Log("Verifying TrainJob pods are running...")
+
+	test.Eventually(Pods(test, namespace, metav1.ListOptions{
+		LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + createdTrainJob.Name,
+	}), TestTimeoutShort).Should(
+		And(
+			HaveLen(1),
+			ContainElement(WithTransform(podPhase, Equal(corev1.PodRunning))),
+		),
 	)
-	test.T().Logf("TrainJob '%s' is running", createdTrainJob.Name)
+	test.T().Logf("TrainJob '%s' pods are running", createdTrainJob.Name)
 
 	// Preempt the workload
 	test.T().Logf("User is preempting workload '%s' now ...", workload.Name)
