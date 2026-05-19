@@ -11,6 +11,9 @@ HF_DATASET_REVISION = "25754c7a072dffca92e18c56f33832936f53495a"
 HF_DATASET_SUBSET = "All"
 SUBSET_SIZE = 100
 
+S3_MODEL_PREFIX = "models/qwen2_5-1_5b-instruct"
+S3_DATASET_PREFIX = "table-gpt-data/train"
+
 
 def download_from_s3(dataset_dir, model_dir):
     try:
@@ -42,39 +45,35 @@ def download_from_s3(dataset_dir, model_dir):
     os.makedirs(dataset_dir, exist_ok=True)
     os.makedirs(model_dir, exist_ok=True)
 
-    s3_prefix = bucket.rstrip("/")
+    bucket_root = bucket.rstrip("/")
     pulled = 0
-    for s3_path in fs.find(s3_prefix):
-        rel = s3_path[len(s3_prefix):].lstrip("/")
-        if not rel:
-            continue
 
-        rel_norm = os.path.normpath(rel).lstrip(os.sep)
-        if rel_norm.startswith(".."):
-            raise RuntimeError(f"Unsafe object key path: {s3_path}")
+    for s3_prefix, local_dir in [
+        (f"{bucket_root}/{S3_DATASET_PREFIX}", dataset_dir),
+        (f"{bucket_root}/{S3_MODEL_PREFIX}", model_dir),
+    ]:
+        for s3_path in fs.find(s3_prefix):
+            rel = s3_path[len(s3_prefix):].lstrip("/")
+            if not rel:
+                continue
 
-        if "table-gpt" in rel.lower() or rel.endswith(".jsonl"):
-            dst = os.path.join(dataset_dir, os.path.basename(rel_norm))
-        elif "qwen" in rel.lower() or any(rel.endswith(ext) for ext in
-                                           [".bin", ".json", ".model", ".safetensors", ".txt"]):
-            base = rel_norm.split("Qwen2.5-1.5B-Instruct/")[-1] if "Qwen2.5-1.5B-Instruct" in rel_norm else os.path.basename(rel_norm)
-            dst = os.path.join(model_dir, base)
-        else:
-            print(f"[download] Skipping unrelated file: {rel}")
-            continue
+            rel_norm = os.path.normpath(rel).lstrip(os.sep)
+            if rel_norm.startswith(".."):
+                raise RuntimeError(f"Unsafe object key path: {s3_path}")
 
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        if not os.path.exists(dst):
-            print(f"[download] S3 get: {s3_path} -> {dst}")
-            fs.get(s3_path, dst)
-            pulled += 1
+            dst = os.path.join(local_dir, rel_norm)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if not os.path.exists(dst):
+                print(f"[download] S3 get: {s3_path} -> {dst}")
+                fs.get(s3_path, dst)
+                pulled += 1
 
-            if dst.endswith(".gz"):
-                out = os.path.splitext(dst)[0]
-                if not os.path.exists(out):
-                    with gzip.open(dst, "rb") as fin, open(out, "wb") as fout:
-                        shutil.copyfileobj(fin, fout)
-                    os.remove(dst)
+                if dst.endswith(".gz"):
+                    out = os.path.splitext(dst)[0]
+                    if not os.path.exists(out):
+                        with gzip.open(dst, "rb") as fin, open(out, "wb") as fout:
+                            shutil.copyfileobj(fin, fout)
+                        os.remove(dst)
 
     dataset_file = os.path.join(dataset_dir, "train_All_100.jsonl")
     if os.path.exists(dataset_file) and os.listdir(model_dir):
