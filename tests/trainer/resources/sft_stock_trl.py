@@ -49,7 +49,18 @@ def main():
 
     logger.info("Loading dataset from %s", dataset_path)
     dataset = load_dataset("json", data_files=dataset_path, split="train")
-    logger.info("Dataset loaded: %d samples", len(dataset))
+    logger.info("Dataset loaded: %d samples, columns: %s", len(dataset), dataset.column_names)
+
+    def format_example(ex):
+        if "prompt" in ex and "completion" in ex:
+            return {"text": f"### Instruction:\n{ex['prompt']}\n\n### Response:\n{ex['completion']}"}
+        msgs = ex["messages"]
+        user_msg = next(m["content"] for m in msgs if m["role"] == "user")
+        asst_msg = next(m["content"] for m in msgs if m["role"] == "assistant")
+        return {"text": f"### Instruction:\n{user_msg}\n\n### Response:\n{asst_msg}"}
+
+    dataset = dataset.map(format_example)
+    logger.info("Formatted dataset with 'text' field")
 
     training_args = SFTConfig(
         output_dir=output_dir,
@@ -58,6 +69,7 @@ def main():
         gradient_accumulation_steps=1,
         learning_rate=5e-6,
         lr_scheduler_type="cosine",
+        dataset_text_field="text",
         max_length=512,
         logging_steps=1,
         save_strategy="no",
