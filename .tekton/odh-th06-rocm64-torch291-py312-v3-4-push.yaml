@@ -33,7 +33,7 @@ spec:
   - name: output-image
     value: quay.io/rhoai/odh-th06-rocm64-torch291-py312-rhel9:{{target_branch}}
   - name: rhoai-version
-    value: "3.4.0"
+    value: "3.4.1"
   - name: dockerfile
     value: Dockerfile.konflux.rocm
   - name: path-context

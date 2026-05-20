@@ -33,7 +33,7 @@ spec:
   - name: output-image
     value: quay.io/rhoai/odh-th06-cuda130-torch210-py312-rhel9:{{target_branch}}
   - name: rhoai-version
-    value: "3.4.0"
+    value: "3.4.1"
   - name: dockerfile
     value: Dockerfile.konflux.cuda
   - name: path-context
