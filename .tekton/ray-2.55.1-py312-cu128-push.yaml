@@ -45,6 +45,12 @@ spec:
               resources:
                 requests:
                   storage: 30Gi
+        - name: push
+          computeResources:
+            limits:
+              memory: 8Gi
+            requests:
+              memory: 4Gi
     - pipelineTaskName: prefetch-dependencies
       computeResources:
         requests:
