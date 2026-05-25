@@ -41,7 +41,7 @@ ENV CUDA_HOME="/usr/local/cuda" \
 
 # Install InfiniBand and RDMA packages
 RUN dnf config-manager \
-        --add-repo https://linux.mellanox.com/public/repo/mlnx_ofed/latest/rhel9.5/mellanox_mlnx_ofed.repo \
+        --add-repo https://linux.mellanox.com/public/repo/mlnx_ofed/24.10-1.1.4.0/rhel9.5/mellanox_mlnx_ofed.repo \
     && dnf install -y \
         libibverbs-utils \
         infiniband-diags \

@@ -62,7 +62,7 @@ ENV CUDA_HOME="/usr/local/cuda" \
 
 # Install InfiniBand and RDMA packages
 RUN dnf config-manager \
-        --add-repo https://linux.mellanox.com/public/repo/mlnx_ofed/latest/rhel9.5/mellanox_mlnx_ofed.repo 
+        --add-repo https://linux.mellanox.com/public/repo/mlnx_ofed/24.10-1.1.4.0/rhel9.5/mellanox_mlnx_ofed.repo 
 
 RUN dnf install -y --disablerepo="*" --enablerepo="cuda-rhel9-x86_64,mlnx_ofed_24.10-1.1.4.0_base,ubi-9-appstream-rpms,ubi-9-baseos-rpms" \
         libibverbs-utils \
