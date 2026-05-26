@@ -45,6 +45,14 @@ spec:
           memory: 4Gi
         limits:
           memory: 16Gi
+  - pipelineTaskName: clamav-scan
+    stepSpecs:
+    - name: extract-and-scan-image
+      computeResources:
+        requests:
+          memory: 4Gi
+        limits:
+          memory: 16Gi
   pipelineRef:
     resolver: git
     params:
