@@ -731,7 +731,7 @@ unsloth==2026.3.3
     #   training-hub
 unsloth-zoo==2026.4.7
     # via unsloth
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   botocore
     #   docker
