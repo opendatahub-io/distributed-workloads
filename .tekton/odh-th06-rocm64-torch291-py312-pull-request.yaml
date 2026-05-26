@@ -41,6 +41,15 @@ spec:
   - name: build-platforms
     value:
     - linux-d160-m8xlarge/amd64
+  taskRunSpecs:
+  - pipelineTaskName: clair-scan
+    stepSpecs:
+    - name: get-vulnerabilities
+      computeResources:
+        requests:
+          memory: 4Gi
+        limits:
+          memory: 16Gi
   pipelineRef:
     resolver: git
     params:
