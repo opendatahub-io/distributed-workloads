@@ -67,6 +67,10 @@ build-osu-benchmark-cuda-image:
 push-osu-benchmark-cuda-image:
 	podman push "${OSU_BENCHMARK_CUDA_IMAGE}"
 
+.PHONY: unit-test
+unit-test: ## Run unit tests for support packages.
+	go test ./tests/common/support/...
+
 .PHONY: precommit
 precommit:
 	pre-commit run --all-files
