@@ -50,6 +50,7 @@ pyasn1 = "==0.6.3"
 mlflow = "==3.10.1"
 simpleeval = "==1.0.7"
 urllib3 = ">=2.7.0"
+starlette = ">=1.0.1"
 
 [dev-packages]
 
