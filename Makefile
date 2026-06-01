@@ -70,6 +70,17 @@ push-osu-benchmark-cuda-image:
 .PHONY: unit-test
 unit-test: ## Run unit tests for support packages.
 	go test ./tests/common/support/...
+GOLANGCI_LINT_VERSION ?= v2.12.1
+LINT_PKG ?= ./...
+GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
+
+.PHONY: golangci-lint-install
+golangci-lint-install: $(LOCALBIN) ## Download golangci-lint locally.
+	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+
+.PHONY: golangci-lint
+golangci-lint: golangci-lint-install ## Run golangci-lint on the codebase.
+	$(GOLANGCI_LINT) run --timeout 5m $(LINT_PKG)
 
 .PHONY: precommit
 precommit:

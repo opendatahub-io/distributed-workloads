@@ -40,13 +40,6 @@ const (
 //go:embed resources/*
 var files embed.FS
 
-func readFile(t Test, fileName string) []byte {
-	t.T().Helper()
-	file, err := files.ReadFile(fileName)
-	t.Expect(err).NotTo(gomega.HaveOccurred())
-	return file
-}
-
 var (
 	SmallContainerResources = ContainerResources{
 		Limits:   ResourceConfig{CPU: "2", Memory: "3Gi"},
