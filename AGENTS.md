@@ -40,6 +40,30 @@ go test -run TestRhaiS3FsdpSharedStateCheckpointingCuda -v -timeout 60m ./tests/
 
 See the [Common environment variables](README.md#common-environment-variables) section in `README.md` for the full env var reference.
 
+## Lint/format & pre-commit
+
+```bash
+make golangci-lint                                # Run golangci-lint project-wide
+go vet ./...                                      # Vet all Go code
+make verify-imports                               # Verify import ordering
+make precommit                                    # Run all pre-commit hooks
+```
+
+### Targeted lint/format
+
+For quick feedback on specific files instead of running project-wide:
+
+```bash
+# Go
+make golangci-lint LINT_PKG=./tests/common/support/...    # Lint a single Go package
+go vet ./tests/common/support/...                         # Vet a single Go package
+gofmt -w path/to/file.go                                  # Format a single Go file
+
+# Python
+pre-commit run --files path/to/file.py                    # Run all hooks on a single file
+
+```
+
 ## Writing Tests
 
 ### Namespace isolation

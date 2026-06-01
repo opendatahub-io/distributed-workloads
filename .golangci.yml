@@ -1,0 +1,14 @@
+version: "2"
+
+run:
+  allow-parallel-runners: true
+
+linters:
+  default: none
+  enable:
+    - govet
+    - unused
+    - ineffassign
+
+issues:
+  max-same-issues: 0
