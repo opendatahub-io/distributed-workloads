@@ -155,3 +155,7 @@ Tests in `tests/trainer/` **must** declare a tag — this is mandatory. Apply it
 | `MultiNode(n)` | Requires n worker nodes |
 | `MultiNodeGpu(n, accelerator)` | Requires n nodes each with at least one GPU |
 | `MultiNodeMultiGpu(n, accelerator, gpus)` | Requires n nodes each with at least gpus GPUs |
+
+## CVE Fixes — Python dependency updates
+
+See [images/universal/training/README.md](images/universal/training/README.md#cve-fixes--python-dependency-updates) for instructions on updating Python dependencies in training images. Key point: dependencies come from a private AIPCC PyPI index, not public PyPI — always query the index for available versions before pinning.
