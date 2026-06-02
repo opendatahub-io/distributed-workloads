@@ -15,7 +15,7 @@ metadata:
     appstudio.openshift.io/application: opendatahub-builds
     appstudio.openshift.io/component: odh-th06-rocm64-torch291-py312-ci
     pipelines.appstudio.openshift.io/type: build
-  name: odh-th06-rocm64-torch291-py312-ci-on-push
+  name: odh-th06-rocm64-torch291-py312-on-push
   namespace: open-data-hub-tenant
 spec:
   timeouts:
@@ -34,7 +34,24 @@ spec:
     value: images/universal/training/th06-rocm64-torch291-py312
   - name: build-platforms
     value:
-    - linux-extra-fast/amd64
+    - linux-d160-m8xlarge/amd64
+  taskRunSpecs:
+  - pipelineTaskName: clair-scan
+    stepSpecs:
+    - name: get-vulnerabilities
+      computeResources:
+        requests:
+          memory: 4Gi
+        limits:
+          memory: 16Gi
+  - pipelineTaskName: clamav-scan
+    stepSpecs:
+    - name: extract-and-scan-image
+      computeResources:
+        requests:
+          memory: 4Gi
+        limits:
+          memory: 16Gi
   pipelineRef:
     resolver: git
     params:
