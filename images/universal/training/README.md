@@ -85,6 +85,19 @@ The `entrypoint-universal.sh` script handles mode detection:
 
 ---
 
+## CVE Fixes — Python dependency updates
+
+The training images install Python packages from a **private AIPCC PyPI index** (not public PyPI). Each image's Dockerfile specifies its index URL via `--index-url` — read it from the Dockerfile of the affected image.
+
+When fixing a CVE that requires bumping a Python dependency version:
+
+1. **Do NOT assume the upstream fix version is available.** The private index may not mirror every version from public PyPI.
+2. **Query the index to find available versions.** Read the `--index-url` from the affected image's Dockerfile, then fetch `{index-url}/{package}/` to find which versions are available.
+3. **If the package is a direct dependency** listed in `pyproject.toml`, update the version constraint there and **regenerate `requirements.txt`** using `uv pip compile` with the index URL from the Dockerfile (see [Regenerate Requirements](#regenerate-requirements-with-hashes) below).
+4. **If the package is a transitive dependency** (only in `requirements.txt`, not in `pyproject.toml`), update the pinned version directly in `requirements.txt` using the exact pin format (`package==x.y.z`).
+
+---
+
 ## How to Update
 
 Both scenarios require coordination with:
