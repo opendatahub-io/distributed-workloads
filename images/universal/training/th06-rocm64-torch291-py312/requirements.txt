@@ -592,7 +592,7 @@ sqlalchemy==2.0.49
     #   mlflow
 sqlparse==0.5.5
     # via mlflow-skinny
-starlette==1.2.0
+starlette==1.1.0
     # via fastapi
 sympy==1.14.0
     # via
