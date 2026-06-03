@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "e23e095ff9ada712a42d0417c2cdb0579f058fd8af2f2821d11423289e3a4ee4"
+            "sha256": "9d3fb6d62a177a64fc438a99fde7341c5934701f8ff2c83b989f28a324663616"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -1715,28 +1715,28 @@
         },
         "mlflow": {
             "hashes": [
-                "sha256:17bfbd76d4071498d6199c3fc53945e5f50997d14e3e2a6bfd4dc3cb8957f209",
-                "sha256:609509ccc15eb9c17861748e537cbffa57d2caf488ff3e30efed62951a6977cf"
+                "sha256:84e54c4be91b5b2a19039a2673fe688b1d7307ceddacc08af51f8df05b19ee56",
+                "sha256:8f6bf1238ac04f97664c229dd480380c5c254a78bdb3c0e433e3a0397508b1af"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.10'",
-            "version": "==3.10.1"
+            "version": "==3.11.1"
         },
         "mlflow-skinny": {
             "hashes": [
-                "sha256:3d1c5c30245b6e7065b492b09dd47be7528e0a14c4266b782fe58f9bcd1e0be0",
-                "sha256:df1dd507d8ddadf53bfab2423c76cdcafc235cd1a46921a06d1a6b4dd04b023c"
+                "sha256:82ffd5f6980320b4ac19f741e7a754faa1d01707e632b002ea68e04fd25a0535",
+                "sha256:86ce63491349f6713afc8a4ef0bf77a8314d0e79e03753cb150d6c860a0b0475"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==3.10.1"
+            "version": "==3.11.1"
         },
         "mlflow-tracing": {
             "hashes": [
-                "sha256:649c722cc58d54f1f40559023a6bd6f3f08150c3ce3c3bb27972b3e795890f47",
-                "sha256:9e54d63cf776d29bb9e2278d35bf27352b93f7b35c8fe8452e9ba5e2a3c5b78f"
+                "sha256:cb63cee16385d081467ec5bee4807fe1af59ddfdf04be4c79e7a7813b1002193",
+                "sha256:fa82df64dacf8293b714ae666440fe7c1902c6470c024df389bb91e9de3106d9"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==3.10.1"
+            "version": "==3.11.1"
         },
         "mpmath": {
             "hashes": [
