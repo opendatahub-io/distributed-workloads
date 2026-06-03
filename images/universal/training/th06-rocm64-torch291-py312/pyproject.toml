@@ -73,7 +73,7 @@ dependencies = [
     # Kubeflow SDK
     "kubeflow==0.3.0+rhaiv.2",
     "kubeflow_spark_api==2.4.0",
-    "pyspark_connect==4.0.1",
+    "pyspark_connect==4.1.1",
     
     # Model Management
     "model_registry==0.3.7",

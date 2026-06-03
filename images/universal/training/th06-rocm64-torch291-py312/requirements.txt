@@ -485,9 +485,9 @@ pyparsing==3.3.2
     # via
     #   matplotlib
     #   training-hub
-pyspark==4.0.1
+pyspark==4.1.1
     # via pyspark-connect
-pyspark-connect==4.0.1
+pyspark-connect==4.1.1
     # via th06-rocm-universal-image (pyproject.toml)
 pytest==9.0.2
     # via training-hub
@@ -514,6 +514,7 @@ pyyaml==6.0.3
     #   kubernetes
     #   mlflow-skinny
     #   peft
+    #   pyspark-connect
     #   transformers
 regex==2026.4.4
     # via
@@ -749,3 +750,5 @@ yarl==1.23.0
     # via aiohttp
 zipp==3.23.0
     # via importlib-metadata
+zstandard==0.25.0
+    # via pyspark-connect
