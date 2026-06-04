@@ -185,7 +185,7 @@
                 "sha256:f79bfd2847513a7ac801bbafd1de02348a37926ac439eeb4bfe96fcff4eada15",
                 "sha256:ff82be7f1ef73634cb77890a770743239bc3d487b848669be1c599889336dc0a"
             ],
-            "markers": "python_version >= \"3.9\"",
+            "markers": "python_version >= \"3.10\"",
             "version": "==3.14.0"
         },
         "aioitertools": {
