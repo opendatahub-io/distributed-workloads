@@ -665,7 +665,7 @@ tqdm==4.67.3
     #   unsloth-zoo
 training-hub==0.6.0
     # via py312-rocm64-torch29-openmpi41 (pyproject.toml)
-transformers==4.57.6
+transformers==5.5.4
     # via
     #   py312-rocm64-torch29-openmpi41 (pyproject.toml)
     #   instructlab-training
