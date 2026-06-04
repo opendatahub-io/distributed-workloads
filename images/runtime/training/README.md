@@ -5,11 +5,12 @@ This guide explains how to add new Python dependencies to the training runtime i
 ## Quick Start
 
 1. **Edit the Pipfile** for the image you want to update (e.g., `py312-cuda128-torch280/Pipfile`)
-2. **Add your dependencies** under `[packages]`:
+2. **Add your dependencies** under `[packages]` with a compatible release constraint to prevent supply-chain drift:
    ```toml
    [packages]
-   your-package = ">=1.0.0"
+   your-package = "~=1.0.0"
    ```
+   `~=X.Y.Z` is equivalent to `>=X.Y.Z,<X.(Y+1).0`, pinning to the current minor series. Unbounded `>=` allows silent upgrades that may introduce new vulnerabilities on lock refresh.
 3. **Generate the lock file** using the pre-built image (see below)
 
 ## Generating Lock Files

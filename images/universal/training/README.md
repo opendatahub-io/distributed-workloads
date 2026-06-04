@@ -95,6 +95,7 @@ When fixing a CVE that requires bumping a Python dependency version:
 2. **Query the index to find available versions.** Read the `--index-url` from the affected image's Dockerfile, then fetch `{index-url}/{package}/` to find which versions are available.
 3. **If the package is a direct dependency** listed in `pyproject.toml`, update the version constraint there and **regenerate `requirements.txt`** using `uv pip compile` with the index URL from the Dockerfile (see [Regenerate Requirements](#regenerate-requirements-with-hashes) below).
 4. **If the package is a transitive dependency** (only in `requirements.txt`, not in `pyproject.toml`), update the pinned version directly in `requirements.txt` using the exact pin format (`package==x.y.z`).
+5. **Use compatible release constraints** when adding or updating constraints in `pyproject.toml` or `Pipfile`. Use `~=X.Y.Z` (equivalent to `>=X.Y.Z,<X.(Y+1).0`) to pin to the current minor series (e.g., `~=3.14.0`). Unbounded `>=X.Y.Z` allows silent upgrades on lock refresh that may introduce new vulnerabilities.
 
 ---
 
