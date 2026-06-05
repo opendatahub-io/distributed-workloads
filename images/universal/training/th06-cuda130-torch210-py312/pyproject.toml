@@ -17,22 +17,22 @@ dependencies = [
     # Base image deps are NOT listed here - pip install is additive
     # Strict AIPCC-only: all packages must be available in AIPCC index
     # ===================================================================
-
+    
     # PyTorch with CUDA 13.0
     "torch==2.10.0",
-
+    
     # Triton (GPU kernel compiler)
     "triton==3.6.0",
-
+    
     # xformers (efficient transformers)
     "xformers==0.0.35",
-
+    
     # ML Training and Inference Libraries
     "accelerate==1.12.0",
-    "transformers~=5.5.0",
+    "transformers==4.57.6",
     "peft==0.18.1",
     "datasets==4.3.0",
-
+    
     # Core Dependencies
     "tqdm>=4.67.1",
     "pydantic>=2.11.7",
@@ -43,7 +43,7 @@ dependencies = [
     "simpleeval>=0.9.13",
     "safetensors==0.7.0",
     "py-cpuinfo>=9.0.0",
-
+    
     # Deep Learning Utilities
     "numba>=0.61.2",
     "numpy>=2.0.0",
@@ -53,43 +53,43 @@ dependencies = [
     "liger-kernel>=0.6.2",
     "einops>=0.8.1",
     "kernels>=0.10.3",
-
+    
     # Tokenization
     "sentencepiece>=0.1.99",
     "tokenizers>=0.22.0",
-
+    
     # Training Libraries
     "trl==0.24.0",
     "deepspeed>=0.18.4",
-
+    
     # Networking
     "async-timeout==5.0.1",
-
+    
     # HuggingFace
     "hf-xet>=1.1.8",
     "huggingface-hub>=0.34.4",
     "mlflow==3.10.1+rhaiv.3",
-
+    
     # Storage
     "s3fs==2025.9.0",
-
+    
     # Training Frameworks
     "training_hub[lora]==0.6.0",
     "instructlab-training==0.14.2",
     "rhai-innovation-mini-trainer==0.6.1",
-    "unsloth~=2026.4.5",
-
+    "unsloth==2026.3.3",
+    
     # Kubeflow SDK
     "kubeflow==0.3.0+rhaiv.2",
     "kubeflow_spark_api==2.4.0",
     "pyspark_connect==4.0.1",
-
+    
     # Model Management
     "model_registry==0.3.7",
-
+    
     # Flash Attention (pre-built wheel from AIPCC)
     "flash-attn==2.8.3",
-
+    
     # Mamba dependencies (pre-built wheels from AIPCC)
     "causal-conv1d>=1.5.3",
     "mamba-ssm>=2.2.6",

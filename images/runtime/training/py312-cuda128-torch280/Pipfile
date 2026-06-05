@@ -11,7 +11,7 @@ name = "pytorch-cu128"
 [packages]
 torch = {version = "==2.8.0", index = "pytorch-cu128"}
 accelerate = "==1.10.0"
-transformers = "~=5.5.4"
+transformers = ">=4.55.2"
 peft = "==0.17.0"
 tqdm = "==4.67.1"
 datasets = "==4.0.0"
