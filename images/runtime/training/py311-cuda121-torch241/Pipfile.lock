@@ -2273,8 +2273,8 @@
         },
         "transformers": {
             "hashes": [
-                "sha256:6ee590e2c30e5f5d93bf571b70c2b3babe2ece31efd4c47069a94db4499f1423",
-                "sha256:a23e30e7f1a0c5e31c152f0ce53b0cd1dddbdafe02b5ba4c389ea1e809247d70"
+                "sha256:821a9ff0961abbb29eb1eb686d78df1c85929fdf213a3fe49dc6bd94f9efa944",
+                "sha256:c8db656cf51c600cd8c75f06b20ef85c72e8b8ff9abc880c5d3e8bc70e0ddcbd"
             ],
             "index": "pypi",
             "markers": "python_full_version >= '3.10.0'",
