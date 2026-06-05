@@ -89,6 +89,22 @@ The `entrypoint-universal.sh` script handles mode detection:
 
 The training images install Python packages from a **private AIPCC PyPI index** (not public PyPI). Each image's Dockerfile specifies its index URL via `--index-url` — read it from the Dockerfile of the affected image.
 
+### Determining the fix version
+
+**Do NOT rely on the CVE description text to determine affected versions.** The description often mentions only the version where the vulnerability was discovered (e.g., "version 5.2.0"), but the actual affected range may be much wider.
+
+Check the **Product Status** field in the official CVE record at `https://www.cve.org/CVERecord?id=<CVE-ID>`. This field states the authoritative affected version range (e.g., "affected before 5.5.0"). The fix version must be **at or above** the boundary stated in the product status — not just one patch above the version mentioned in the description.
+
+### Scope discipline
+
+Each CVE ticket targets a **single container image** identified by the image name in the ticket summary (e.g., `rhoai/odh-training-cuda124-torch25-py311-rhel9`). When fixing a CVE:
+
+- **Only modify files in the image directory that matches the ticket's target image.** Do not touch other image directories, even if they have the same vulnerability — those are tracked by separate tickets.
+- Map the image name to its directory: `odh-training-*` maps to `images/runtime/training/`, `odh-th*` maps to `images/universal/training/`.
+- If the image name does not map to any existing directory, flag it — do not modify unrelated directories as a substitute.
+
+### Updating the dependency
+
 When fixing a CVE that requires bumping a Python dependency version:
 
 1. **Do NOT assume the upstream fix version is available.** The private index may not mirror every version from public PyPI.
