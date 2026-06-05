@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "e8e6c61d9622fbb783a2dbe07080eccb33bba44933aeefcca130877180416817"
+            "sha256": "bb2ac9ab3547b79ef193099cb7f0820ef786233636e4d0d04b0600f04bb29387"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -2278,12 +2278,12 @@
         },
         "transformers": {
             "hashes": [
-                "sha256:0088b8b46ccc9eff1a1dca72b5d618a5ee3b1befc3e418c9512b35dea9f9a650",
-                "sha256:9ecaf243dc45bee11a7d93f8caf03746accc0cb069181bbf4ad8566c53e854b4"
+                "sha256:009555b364029da9e2946d41f1c5de9f15e6b1df46b189b7293f33a161b9c557",
+                "sha256:50ac8c89c3c7033444fb3f9f53138096b997ebb70d4b5e50a2e810bf12d3d29a"
             ],
             "index": "pypi",
             "markers": "python_full_version >= '3.10.0'",
-            "version": "==5.2.0"
+            "version": "==5.3.0"
         },
         "triton": {
             "hashes": [
