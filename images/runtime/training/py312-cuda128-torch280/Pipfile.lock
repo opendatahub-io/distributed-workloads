@@ -272,13 +272,6 @@
             "markers": "python_version >= '3.9'",
             "version": "==1.41.5"
         },
-        "causal-conv1d": {
-            "hashes": [
-                "sha256:245e314ea21064ded7a5bf6b3b842b644aa6f92e45cecfe3e935629744c35ff4"
-            ],
-            "markers": "python_version >= '3.9'",
-            "version": "==1.6.2.post1"
-        },
         "certifi": {
             "hashes": [
                 "sha256:3c52e209ba0a4ad7aebe60436a4ab349c39e1e602e8c134221e546902ad25897",
@@ -477,13 +470,6 @@
             ],
             "markers": "python_version >= '3.10'",
             "version": "==3.29.1"
-        },
-        "flash-attn": {
-            "hashes": [
-                "sha256:1e71dd64a9e0280e0447b8a0c2541bad4bf6ac65bdeaa2f90e51a9e57de0370d"
-            ],
-            "markers": "python_version >= '3.9'",
-            "version": "==2.8.3"
         },
         "frozenlist": {
             "hashes": [
@@ -861,16 +847,6 @@
             ],
             "markers": "python_version >= '3.10'",
             "version": "==0.47.0"
-        },
-        "mamba-ssm": {
-            "extras": [
-                "causal-conv1d"
-            ],
-            "hashes": [
-                "sha256:4d529477ad94753962216d583fc8f1c127c717b7d7c875d6bbb9376366d0d761"
-            ],
-            "markers": "python_version >= '3.9'",
-            "version": "==2.3.1"
         },
         "markdown": {
             "hashes": [
