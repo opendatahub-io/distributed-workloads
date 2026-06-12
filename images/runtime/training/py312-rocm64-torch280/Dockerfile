@@ -53,6 +53,11 @@ RUN dnf install -y cmake rocm-developer-tools rocm-ml-sdk rocm-openmp-sdk rocm-u
 # Install micropipenv to deploy packages from Pipfile.lock
 RUN pip install --no-cache-dir -U "micropipenv[toml]"
 
+# Upgrade pip to AIPCC-patched build that includes CVE-2026-8643 fix
+RUN pip install --no-cache-dir \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9/simple/ \
+    "pip~=26.0.1"
+
 # Install Python dependencies from Pipfile.lock file
 COPY Pipfile.lock ./
 
