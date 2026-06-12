@@ -1,0 +1,80 @@
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: "emergency-cluster-queue"
+spec:
+  description: "Cluster queue for the emergency training jobs (Climate Change, Alzheimer, Cancer)."
+  cohort: "ai-for-humanity"
+  namespaceSelector: {} # match all.
+  flavorFungibility:
+    whenCanBorrow: Borrow
+    whenCanPreempt: Preempt
+  preemption:
+    reclaimWithinCohort: Any
+    borrowWithinCohort:
+      policy: LowerPriority
+    withinClusterQueue: LowerPriority
+  resourceGroups:
+  - coveredResources: ["cpu", "memory"]
+    flavors:
+    - name: "default-flavor"
+      resources:
+      - name: "cpu"
+        nominalQuota: 1
+      - name: "memory"
+        nominalQuota: 2000Mi
+        borrowingLimit: 500Mi
+
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: llm-cluster-queue
+spec:
+  description: "Cluster queue for LLM model workloads"
+  cohort: ai-for-humanity
+  namespaceSelector: {}
+  flavorFungibility:
+    whenCanBorrow: Borrow
+    whenCanPreempt: TryNextFlavor
+  preemption:
+    reclaimWithinCohort: LowerPriority # only preempt Workloads in the cohort that have lower priority than the pending Workload.
+  namespaceSelector: {} # match all.
+  resourceGroups:
+  - coveredResources:
+    - "cpu"
+    - "memory"
+    flavors:
+    - name: "default-flavor"
+      resources:
+      - name: "cpu"
+        nominalQuota: 500m 
+      - name: "memory"
+        nominalQuota: 500Mi
+        borrowingLimit: 500Mi
+
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: gai-cluster-queue
+spec:
+  description: "Cluster queue for GAI model workloads"
+  cohort: ai-against-humanity
+  namespaceSelector: {}
+  preemption:
+    reclaimWithinCohort: Never # do not preempt Workloads in the cohort.
+  flavorFungibility:
+    whenCanBorrow: Borrow  # this is the default but I'm making it explicit here
+    whenCanPreempt: Preempt  # ensures that accelerators aren't hit with compute workloads
+  resourceGroups:
+  - coveredResources:
+    - "gpu"
+    flavors:
+    - name: "gpu"
+      resources:
+      - name: "gpu"
+        nominalQuota: 48Gi
+
+
