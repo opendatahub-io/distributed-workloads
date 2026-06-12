@@ -19,6 +19,9 @@ COPY LICENSE.md /licenses/rocm-license.md
 USER 0
 WORKDIR /app
 
+# upgrade pip to fix CVE-2026-8643 (path traversal in wheel installation)
+RUN pip install --no-cache-dir --upgrade pip==26.1.2
+
 # upgrade requests package
 RUN pip install --no-cache-dir --upgrade requests==2.32.3
 
