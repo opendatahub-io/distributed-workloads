@@ -1,5 +1,5 @@
 /*
-Copyright 2025.
+Copyright 2026.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,8 +35,8 @@ const (
 	grpoNotebookPath = "resources/" + grpoNotebookName
 )
 
-// Multi-GPU - Distributed Training with LORA_GRPO and TrainingHubTrainer
-func RunGrpoTrainingHubMultiGpuDistributedTraining(t *testing.T, nnodes int) {
+// Single-node Training with LORA_GRPO and TrainingHubTrainer
+func RunGrpoTrainingHubTraining(t *testing.T, nnodes int) {
 	test := support.With(t)
 
 	// Create a new test namespace
