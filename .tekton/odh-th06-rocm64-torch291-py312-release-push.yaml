@@ -9,7 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "release/odh-3.5-ea.1" && ( "images/universal/training/th06-rocm64-torch291-py312/**".pathChanged() || ".tekton/odh-th06-rocm64-torch291-py312-release-push.yaml".pathChanged() )
+      == "release/odh-3.4-ga" && ( "images/universal/training/th06-rocm64-torch291-py312/**".pathChanged() || ".tekton/odh-th06-rocm64-torch291-py312-release-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
@@ -27,7 +27,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-th06-rocm64-torch291-py312:odh-3.5-ea1
+    value: quay.io/opendatahub/odh-th06-rocm64-torch291-py312:odh-3.4
   - name: dockerfile
     value: Dockerfile
   - name: path-context

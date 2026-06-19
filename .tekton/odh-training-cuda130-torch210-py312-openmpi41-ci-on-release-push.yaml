@@ -9,7 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push"
-      && target_branch == "release/odh-3.5-ea.1"
+      && target_branch == "release/odh-3.4-ga"
       && ( "images/runtime/training/py312-cuda130-torch210-openmpi41/**".pathChanged()
             || ".tekton/odh-training-cuda130-torch210-py312-openmpi41-ci-on-release-push.yaml".pathChanged() )
   creationTimestamp: null
@@ -26,7 +26,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-training-cuda130-torch210-py312-openmpi41:odh-3.5-ea1
+    value: quay.io/opendatahub/odh-training-cuda130-torch210-py312-openmpi41:odh-3.4
   - name: dockerfile
     value: Dockerfile
   - name: path-context
