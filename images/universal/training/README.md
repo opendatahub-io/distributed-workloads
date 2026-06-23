@@ -89,13 +89,29 @@ The `entrypoint-universal.sh` script handles mode detection:
 
 The training images install Python packages from a **private AIPCC PyPI index** (not public PyPI). Each image's Dockerfile specifies its index URL via `--index-url` — read it from the Dockerfile of the affected image.
 
+### Determining the fix version
+
+**Do NOT rely on the CVE description text to determine affected versions.** The description often mentions only the version where the vulnerability was discovered (e.g., "version 5.2.0"), but the actual affected range may be much wider.
+
+Check the **Product Status** field in the official CVE record at `https://www.cve.org/CVERecord?id=<CVE-ID>`. This field states the authoritative affected version range (e.g., "affected before 5.5.0"). The fix version must be **at or above** the boundary stated in the product status — not just one patch above the version mentioned in the description.
+
+### Scope discipline
+
+Each CVE ticket targets a **single container image** identified by the image name in the ticket summary (e.g., `rhoai/odh-training-cuda124-torch25-py311-rhel9`). When fixing a CVE:
+
+- **Only modify files in the image directory that matches the ticket's target image.** Do not touch other image directories, even if they have the same vulnerability — those are tracked by separate tickets.
+- Map the image name to its directory: `odh-training-*` maps to `images/runtime/training/`, `odh-th*` maps to `images/universal/training/`.
+- If the image name does not map to any existing directory, flag it — do not modify unrelated directories as a substitute.
+
+### Updating the dependency
+
 When fixing a CVE that requires bumping a Python dependency version:
 
 1. **Do NOT assume the upstream fix version is available.** The private index may not mirror every version from public PyPI.
 2. **Query the index to find available versions.** Read the `--index-url` from the affected image's Dockerfile, then fetch `{index-url}/{package}/` to find which versions are available.
-3. **If the package is a direct dependency** listed in `pyproject.toml`, update the version constraint there and **regenerate `requirements.txt`** using `uv pip compile` with the index URL from the Dockerfile (see [Regenerate Requirements](#regenerate-requirements-with-hashes) below).
+3. **If the package is a direct dependency** listed in `pyproject.toml`, update the version constraint there and **regenerate `requirements.txt`** using `uv pip compile` with the index URL from the Dockerfile (see [Regenerate Requirements](#regenerate-requirements-with-hashes) below). **Important:** `uv pip compile` does not emit the `--index-url` line in its output. After regenerating, verify the first line of `requirements.txt` still contains `--index-url=<AIPCC_INDEX_URL>` — if missing, restore it. Without this line, `pip install -r requirements.txt` resolves against public PyPI instead of the AIPCC index, breaking downstream builds.
 4. **If the package is a transitive dependency** (only in `requirements.txt`, not in `pyproject.toml`), update the pinned version directly in `requirements.txt` using the exact pin format (`package==x.y.z`).
-5. **Use compatible release constraints** when adding or updating constraints in `pyproject.toml` or `Pipfile`. Use `~=X.Y.Z` (equivalent to `>=X.Y.Z,<X.(Y+1).0`) to pin to the current minor series (e.g., `~=3.14.0`). Unbounded `>=X.Y.Z` allows silent upgrades on lock refresh that may introduce new vulnerabilities.
+5. **Use compatible release constraints** when adding or updating constraints in `pyproject.toml`. Use `~=X.Y.Z` (equivalent to `>=X.Y.Z,<X.(Y+1).0`) to pin to the current minor series (e.g., `~=3.14.0`). Unbounded `>=X.Y.Z` allows silent upgrades on lock refresh that may introduce new vulnerabilities.
 
 ---
 
