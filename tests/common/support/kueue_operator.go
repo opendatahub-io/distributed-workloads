@@ -17,10 +17,14 @@ limitations under the License.
 package support
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"time"
 
 	"github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -90,6 +94,12 @@ func KueueCRFrameworks(kueue *kueueoperatorv1.Kueue) []string {
 }
 
 func SetupKueue(test Test, initialKueueState string, expectedFrameworks ...string) {
+	test.T().Cleanup(func() {
+		if test.T().Failed() {
+			StoreKueueDiagnostics(test)
+		}
+	})
+
 	if initialKueueState == "Unmanaged" {
 		test.T().Log("SetupKueue: Kueue managementState was already Unmanaged, next verify status of 'Kueue CR'")
 		VerifyKueueReady(test, expectedFrameworks...)
@@ -112,6 +122,90 @@ func SetupKueue(test Test, initialKueueState string, expectedFrameworks ...strin
 	test.T().Log("SetupKueue: Kueue is set to Unmanaged managementState successfully")
 
 	VerifyKueueReady(test, expectedFrameworks...)
+}
+
+func StoreKueueDiagnostics(t Test) {
+	t.T().Helper()
+	t.T().Log("Collecting Kueue diagnostics...")
+
+	storeKueueCRState(t)
+	storeDSCState(t)
+	storeKueueOperatorLogs(t)
+}
+
+func storeKueueCRState(t Test) {
+	t.T().Helper()
+	kueueCR, err := GetKueueCR(t, KueueCRName)
+	if err != nil {
+		t.T().Logf("Failed to get Kueue CR for diagnostics: %v", err)
+		return
+	}
+	data, err := json.MarshalIndent(kueueCR, "", "  ")
+	if err != nil {
+		t.T().Logf("Failed to marshal Kueue CR: %v", err)
+		return
+	}
+	WriteToOutputDir(t, "kueue-cr-state", Log, data)
+	t.T().Log("Stored Kueue CR state")
+}
+
+func storeDSCState(t Test) {
+	t.T().Helper()
+	dsc, err := GetDSC(t, DefaultDSCName)
+	if err != nil {
+		t.T().Logf("Failed to get DSC for diagnostics: %v", err)
+		return
+	}
+	data, err := json.MarshalIndent(dsc.Object, "", "  ")
+	if err != nil {
+		t.T().Logf("Failed to marshal DSC: %v", err)
+		return
+	}
+	WriteToOutputDir(t, "dsc-state", Log, data)
+	t.T().Log("Stored DSC state")
+}
+
+func storeKueueOperatorLogs(t Test) {
+	t.T().Helper()
+
+	namespace, pods := findKueueOperatorPods(t)
+	if len(pods) == 0 {
+		t.T().Log("No Kueue operator pods found")
+		return
+	}
+
+	tailLines := int64(500)
+	for _, pod := range pods {
+		for _, container := range pod.Spec.Containers {
+			options := corev1.PodLogOptions{Container: container.Name, TailLines: &tailLines}
+			stream, err := t.Client().Core().CoreV1().Pods(namespace).GetLogs(pod.Name, &options).Stream(t.Ctx())
+			if err != nil {
+				t.T().Logf("Failed to get logs for %s/%s: %v", pod.Name, container.Name, err)
+				continue
+			}
+			data, readErr := io.ReadAll(stream)
+			_ = stream.Close()
+			if readErr != nil {
+				t.T().Logf("Failed to read logs for %s/%s: %v", pod.Name, container.Name, readErr)
+				continue
+			}
+			fileName := fmt.Sprintf("kueue-operator-%s-%s", pod.Name, container.Name)
+			WriteToOutputDir(t, fileName, Log, data)
+			t.T().Logf("Stored Kueue operator logs for %s/%s", pod.Name, container.Name)
+		}
+	}
+}
+
+func findKueueOperatorPods(t Test) (string, []corev1.Pod) {
+	t.T().Helper()
+	selector := "control-plane=controller-manager,app.kubernetes.io/name=kueue"
+	for _, namespace := range []string{"openshift-kueue-operator", "kueue-system"} {
+		pods := GetPods(t, namespace, metav1.ListOptions{LabelSelector: selector})
+		if len(pods) > 0 {
+			return namespace, pods
+		}
+	}
+	return "", nil
 }
 
 func VerifyKueueReady(test Test, expectedFrameworks ...string) {
