@@ -1051,10 +1051,12 @@ func listTrainingPods(test Test, namespace, trainJobName string) []corev1.Pod {
 }
 
 // hasCompletedEpochFromLogs checks if training has completed the required number of epochs by examining pod logs
-// HuggingFace Trainer logs: {'loss': X, ..., 'epoch': 1.0} - matches epochs >= minEpoch
+// HuggingFace Trainer logs: {'loss': X, ..., 'epoch': 1.0} or {'epoch': '2'} - matches epochs >= minEpoch
 func hasCompletedEpochFromLogs(test Test, namespace, trainJobName string, minEpoch int) bool {
-	// Match epoch values in HuggingFace Trainer log format: 'epoch': N or 'epoch': N.M
-	pattern := regexp.MustCompile(`'epoch':\s*(\d+)(?:\.\d+)?`)
+	// Match epoch values in HuggingFace Trainer log format:
+	//   Transformers <5.x:  'epoch': 2.0   (bare number)
+	//   Transformers 5.x+:  'epoch': '2'   (quoted string)
+	pattern := regexp.MustCompile(`'epoch':\s*'?(\d+)(?:\.\d+)?'?`)
 
 	for _, pod := range listTrainingPods(test, namespace, trainJobName) {
 		if pod.Status.Phase != corev1.PodRunning {
