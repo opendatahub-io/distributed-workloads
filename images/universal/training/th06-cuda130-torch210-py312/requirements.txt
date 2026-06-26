@@ -141,7 +141,6 @@ filelock==3.25.2
     #   huggingface-hub
     #   torch
     #   training-hub
-    #   transformers
     #   unsloth-zoo
 flash-attn==2.8.3
     # via th06-cuda-universal-image (pyproject.toml)
@@ -214,9 +213,10 @@ httpx==0.28.1
     # via
     #   datasets
     #   diffusers
+    #   huggingface-hub
 huey==2.6.0
     # via mlflow
-huggingface-hub==0.36.2
+huggingface-hub==1.10.2
     # via
     #   th06-cuda-universal-image (pyproject.toml)
     #   accelerate
@@ -323,6 +323,8 @@ multiprocess==0.70.16
     # via
     #   datasets
     #   training-hub
+nest-asyncio==1.6.0
+    # via unsloth
 nest-asyncio2==1.7.2
     # via model-registry
 networkx==3.6.1
@@ -490,6 +492,7 @@ pydantic==2.12.5
     #   mlflow-tracing
     #   model-registry
     #   training-hub
+    #   unsloth
 pydantic-core==2.41.5
     # via pydantic
 pygments==2.20.0
@@ -530,6 +533,7 @@ pyyaml==6.0.3
     #   mlflow-skinny
     #   peft
     #   transformers
+    #   unsloth
 regex==2026.4.4
     # via
     #   diffusers
@@ -542,12 +546,10 @@ requests==2.33.1
     #   datasets
     #   diffusers
     #   docker
-    #   huggingface-hub
     #   kubernetes
     #   mlflow-skinny
     #   requests-oauthlib
     #   training-hub
-    #   transformers
 requests-oauthlib==2.0.0
     # via kubernetes
 rhai-innovation-mini-trainer==0.6.1
@@ -659,7 +661,7 @@ tqdm==4.67.3
     #   unsloth-zoo
 training-hub==0.6.0
     # via th06-cuda-universal-image (pyproject.toml)
-transformers==4.57.6
+transformers==5.5.0
     # via
     #   th06-cuda-universal-image (pyproject.toml)
     #   instructlab-training
@@ -691,7 +693,10 @@ typeguard==4.5.1
 typer==0.24.1
     # via
     #   th06-cuda-universal-image (pyproject.toml)
+    #   huggingface-hub
     #   rhai-innovation-mini-trainer
+    #   transformers
+    #   unsloth
 typing-extensions==4.15.0
     # via
     #   aiosignal
@@ -725,7 +730,7 @@ tyro==1.0.13
     #   unsloth-zoo
 tzdata==2026.1
     # via pandas
-unsloth==2026.3.3
+unsloth==2026.4.5
     # via
     #   th06-cuda-universal-image (pyproject.toml)
     #   training-hub

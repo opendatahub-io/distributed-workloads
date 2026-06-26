@@ -17,6 +17,7 @@ limitations under the License.
 package trainer
 
 import (
+	"strings"
 	"testing"
 
 	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
@@ -296,6 +297,12 @@ func verifyPodContainerImages(test Test, namespace, trainJobName string) {
 			test.Expect(image).To(HavePrefix(imagePrefix), "Image %s should have prefix %s", image, imagePrefix)
 			test.Expect(image).To(MatchRegexp(`@sha256:[a-f0-9]{64}$`),
 				"Image %s should be SHA-based with valid digest", image)
+
+			// Universal images (th06) are not listed in CSV relatedImages
+			if strings.Contains(image, "/odh-th06-") {
+				test.T().Logf("Skipping CSV relatedImages check for universal image %s", image)
+				continue
+			}
 
 			// Verify image is listed in CSV related images
 			test.Expect(csv.Spec.RelatedImages).To(ContainElement(HaveField("Image", Equal(image))),
