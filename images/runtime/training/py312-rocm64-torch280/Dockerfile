@@ -56,7 +56,7 @@ RUN pip install --no-cache-dir -U "micropipenv[toml]"
 # Install Python dependencies from Pipfile.lock file
 COPY Pipfile.lock ./
 
-RUN micropipenv install -- --no-cache-dir && \
+RUN PIP_NO_BUILD_ISOLATION=1 micropipenv install -- --no-cache-dir && \
     rm -f ./Pipfile.lock && \
     # Fix permissions to support pip in OpenShift environments \
     chmod -R g+w /opt/app-root/lib/python3.12/site-packages && \
