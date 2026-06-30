@@ -605,13 +605,6 @@
             "markers": "python_version >= '3.10'",
             "version": "==3.29.1"
         },
-        "flash-attn": {
-            "hashes": [
-                "sha256:1e71dd64a9e0280e0447b8a0c2541bad4bf6ac65bdeaa2f90e51a9e57de0370d"
-            ],
-            "markers": "python_version >= '3.9'",
-            "version": "==2.8.3"
-        },
         "frozenlist": {
             "hashes": [
                 "sha256:0325024fe97f94c41c08872db482cf8ac4800d80e79222c6b0b7b162d5b13686",
