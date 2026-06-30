@@ -78,6 +78,10 @@ RUN export TMP_DIR=$(mktemp -d) \
 RUN chmod -R g+w /opt/app-root/lib/python3.12/site-packages && \
     fix-permissions /opt/app-root -P
 
+# Install flash-attn outside lockfile resolution; it needs torch visible at build time.
+RUN pip install --no-build-isolation --no-cache-dir --no-deps flash-attn==2.8.3 && \
+    fix-permissions /opt/app-root -P
+
 # Restore user workspace
 USER 1001
 
