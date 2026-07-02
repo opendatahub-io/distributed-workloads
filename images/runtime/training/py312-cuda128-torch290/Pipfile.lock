@@ -729,11 +729,10 @@
         },
         "diffusers": {
             "hashes": [
-                "sha256:525d42abc74bfc3b2db594999961295c054b48ef40a11724dacf50e6abd1af98",
-                "sha256:a9cde8721b415bde6a678f2d02abb85396487e1b0e0d2b4abb462d14a9825ab0"
+                "sha256:18e53f9e539096320470f62c6360a6fd5727ff28cffda566265316e13fcdb612"
             ],
             "markers": "python_full_version >= '3.8.0'",
-            "version": "==0.36.0"
+            "version": "==0.38.0"
         },
         "dill": {
             "hashes": [
