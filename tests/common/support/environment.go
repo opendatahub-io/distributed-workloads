@@ -68,6 +68,11 @@ const (
 	// Name of the image that triggered the Konflux ITS pipeline run, used to
 	// filter which ClusterTrainingRuntimes are exercised in e2e tests.
 	TriggerImageName = "TRIGGER_IMAGE_NAME"
+
+	// The environment variable referring to image containing bloom-560m model
+	bloomModelImageEnvVar = "BLOOM_MODEL_IMAGE"
+	// The environment variable referring to image containing Stanford Alpaca dataset
+	alpacaDatasetImageEnvVar = "ALPACA_DATASET_IMAGE"
 )
 
 type ClusterType string
@@ -238,6 +243,14 @@ func GetTestNamespaceName() (string, bool) {
 
 func GetTriggerImageName() (string, bool) {
 	return os.LookupEnv(TriggerImageName)
+}
+
+func GetBloomModelImage() string {
+	return lookupEnvOrDefault(bloomModelImageEnvVar, "quay.io/ksuta/bloom-560m@sha256:f6db02bb7b5d09a8d698c04994d747bfb9e581bbb4c07d00290244d207623733")
+}
+
+func GetAlpacaDatasetImage() string {
+	return lookupEnvOrDefault(alpacaDatasetImageEnvVar, "quay.io/ksuta/alpaca-dataset@sha256:2e90f631180c7b2c916f9569b914b336b612e8ae86efad82546adc5c9fcbbb8d")
 }
 
 func lookupEnvOrDefault(key, value string) string {
