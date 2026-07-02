@@ -68,6 +68,14 @@ pre-commit run --files path/to/file.py                    # Run all hooks on a s
 
 See [`.claude/skills/add-e2e-test/SKILL.md`](.claude/skills/add-e2e-test/SKILL.md) for the full guide on writing E2E tests (namespace isolation, resource naming, cleanup, tags, notebook editing, environment variables).
 
+## Benchmarks
+
+See [`.claude/skills/add-benchmark/SKILL.md`](.claude/skills/add-benchmark/SKILL.md) for the guide on adding new benchmarks (Dockerfile, ClusterTrainingRuntime, TrainJob, CI workflow).
+
+## Support Library
+
+See [`.claude/skills/update-support-lib/SKILL.md`](.claude/skills/update-support-lib/SKILL.md) for the guide on modifying the shared test support library (getters, condition checkers, client abstraction, option pattern).
+
 ## CVE Fixes — Python dependency updates
 
 See [images/universal/training/README.md](images/universal/training/README.md#cve-fixes--python-dependency-updates) for instructions on updating Python dependencies in training images. Key point: dependencies come from a private AIPCC PyPI index, not public PyPI — always query the index for available versions before pinning.
