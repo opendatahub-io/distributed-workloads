@@ -35,7 +35,6 @@ import (
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
-	"github.com/opendatahub-io/distributed-workloads/tests/odh"
 )
 
 func TestKftoSftLlmLlama3_1_8BInstructWithCudaPyTorch251(t *testing.T) {
@@ -113,7 +112,8 @@ func kftoSftLlm(test Test, image string, gpu Accelerator, modelName string) {
 	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Read and update the notebook content
-	notebookContent := odh.ReadFileExt(test, workingDirectory+"/../../examples/kfto-sft-llm/sft.ipynb")
+	notebookContent, err := os.ReadFile(workingDirectory + "/../../examples/kfto-sft-llm/sft.ipynb")
+	test.Expect(err).NotTo(HaveOccurred())
 	updatedNotebookContent := string(notebookContent)
 
 	// Update notebook parameters for testing

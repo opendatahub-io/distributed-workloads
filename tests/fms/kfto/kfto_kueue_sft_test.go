@@ -31,7 +31,6 @@ import (
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 	"github.com/opendatahub-io/distributed-workloads/tests/fms"
-	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 )
 
 func TestPytorchjobWithSFTtrainerFinetuning(t *testing.T) {
@@ -271,7 +270,7 @@ func createPyTorchJob(test Test, namespace, localQueueName string, config corev1
 							InitContainers: []corev1.Container{
 								{
 									Name:            "copy-dataset",
-									Image:           kfto.GetAlpacaDatasetImage(),
+									Image:           GetAlpacaDatasetImage(),
 									ImagePullPolicy: corev1.PullIfNotPresent,
 									VolumeMounts: []corev1.VolumeMount{
 										{
