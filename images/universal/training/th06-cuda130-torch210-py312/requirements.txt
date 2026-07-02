@@ -21,8 +21,9 @@ aiofiles==25.1.0
     #   training-hub
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.13.5
+aiohttp==3.14.1
     # via
+    #   -c (workspace)
     #   aiobotocore
     #   aiohttp-retry
     #   fsspec
@@ -699,6 +700,7 @@ typer==0.24.1
     #   unsloth
 typing-extensions==4.15.0
     # via
+    #   aiohttp
     #   aiosignal
     #   alembic
     #   anyio

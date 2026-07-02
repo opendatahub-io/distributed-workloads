@@ -101,3 +101,6 @@ environments = [
 ]
 index-strategy = "unsafe-best-match"
 index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/cuda13.0-ubi9/simple/"
+constraint-dependencies = [
+    "aiohttp~=3.14.0",
+]
