@@ -41,6 +41,10 @@ const (
 	testTierEnvVar = "TEST_TIER"
 	// The environment variable for HuggingFace token to download models which require authentication
 	huggingfaceTokenEnvVar = "HF_TOKEN"
+	// Data Science Pipelines (KFP) connectivity
+	dspRouteURL    = "DSP_ROUTE_URL"
+	dspBearerToken = "DSP_BEARER_TOKEN"
+	dspNamespace   = "DSP_NAMESPACE"
 )
 
 const (
@@ -205,4 +209,24 @@ func lookupEnvOrDefault(key, value string) string {
 		return v
 	}
 	return value
+}
+
+func GetDspRouteURL(t Test) string {
+	url, ok := os.LookupEnv(dspRouteURL)
+	if !ok {
+		t.T().Fatalf("Required env var %s not set. Set it to the DSP API route URL, e.g. https://ds-pipeline-dspa-<project>.apps.<cluster>.", dspRouteURL)
+	}
+	return url
+}
+
+func GetDspBearerToken(t Test) string {
+	token, ok := os.LookupEnv(dspBearerToken)
+	if !ok {
+		t.T().Fatalf("Required env var %s not set. Set it to an OpenShift service account token with access to the DSP namespace.", dspBearerToken)
+	}
+	return token
+}
+
+func GetDspNamespace() (string, bool) {
+	return os.LookupEnv(dspNamespace)
 }

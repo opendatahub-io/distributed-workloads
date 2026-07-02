@@ -64,6 +64,12 @@ func TestLoraTrainingHubSingleNodeSingleGPU(t *testing.T) {
 	sdktests.RunLoraTrainingHubMultiGpuDistributedTraining(t, 1)
 }
 
+// TestGrpoTrainingHubSingleNodeSingleGPU tests GRPO (RL) training on a single node with a single GPU
+func TestGrpoTrainingHubSingleNodeSingleGPU(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunGrpoTrainingHubMultiGpuDistributedTraining(t, 1)
+}
+
 // Multi-node, multi-GPU tests (2 nodes, 1 GPU each)
 
 // TestOsftTrainingHubMultiNodeMultiGPU tests OSFT training using TrainingHubTrainer
