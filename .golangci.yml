@@ -9,6 +9,54 @@ linters:
     - govet
     - unused
     - ineffassign
+    - depguard
+  settings:
+    depguard:
+      rules:
+        kfto-boundaries:
+          list-mode: lax
+          files:
+            - "**/tests/kfto/**"
+          deny:
+            - pkg: github.com/opendatahub-io/distributed-workloads/tests/trainer
+              desc: "test suites must not import across suite boundaries; use tests/common/support/ for shared code"
+            - pkg: github.com/opendatahub-io/distributed-workloads/tests/fms
+              desc: "test suites must not import across suite boundaries; use tests/common/support/ for shared code"
+            - pkg: github.com/opendatahub-io/distributed-workloads/tests/odh
+              desc: "test suites must not import across suite boundaries; use tests/common/support/ for shared code"
+        trainer-boundaries:
+          list-mode: lax
+          files:
+            - "**/tests/trainer/**"
+          deny:
+            - pkg: github.com/opendatahub-io/distributed-workloads/tests/kfto
+              desc: "test suites must not import across suite boundaries; use tests/common/support/ for shared code"
+            - pkg: github.com/opendatahub-io/distributed-workloads/tests/fms
+              desc: "test suites must not import across suite boundaries; use tests/common/support/ for shared code"
+            - pkg: github.com/opendatahub-io/distributed-workloads/tests/odh
+              desc: "test suites must not import across suite boundaries; use tests/common/support/ for shared code"
+        odh-boundaries:
+          list-mode: lax
+          files:
+            - "**/tests/odh/**"
+          deny:
+            - pkg: github.com/opendatahub-io/distributed-workloads/tests/trainer
+              desc: "test suites must not import across suite boundaries; use tests/common/support/ for shared code"
+            - pkg: github.com/opendatahub-io/distributed-workloads/tests/kfto
+              desc: "test suites must not import across suite boundaries; use tests/common/support/ for shared code"
+            - pkg: github.com/opendatahub-io/distributed-workloads/tests/fms
+              desc: "test suites must not import across suite boundaries; use tests/common/support/ for shared code"
+        fms-boundaries:
+          list-mode: lax
+          files:
+            - "**/tests/fms/**"
+          deny:
+            - pkg: github.com/opendatahub-io/distributed-workloads/tests/trainer
+              desc: "test suites must not import across suite boundaries; use tests/common/support/ for shared code"
+            - pkg: github.com/opendatahub-io/distributed-workloads/tests/kfto
+              desc: "test suites must not import across suite boundaries; use tests/common/support/ for shared code"
+            - pkg: github.com/opendatahub-io/distributed-workloads/tests/odh
+              desc: "test suites must not import across suite boundaries; use tests/common/support/ for shared code"
 
 issues:
   max-same-issues: 0
