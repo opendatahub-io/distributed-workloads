@@ -1,3 +1,9 @@
+---
+description: "Guide for adding benchmarks to benchmarks/"
+globs: "benchmarks/**/*"
+alwaysApply: false
+---
+
 # Add Benchmark
 
 Guide for adding a new benchmark to `benchmarks/` in the distributed-workloads repo.
