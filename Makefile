@@ -85,3 +85,7 @@ golangci-lint: golangci-lint-install ## Run golangci-lint on the codebase.
 .PHONY: precommit
 precommit:
 	pre-commit run --all-files
+
+.PHONY: sync-agent-skills
+sync-agent-skills: ## Sync AI agent skills from .claude/skills/ to other tools (Cursor, etc.)
+	@./hack/sync-agent-skills.sh

@@ -4,7 +4,7 @@ E2E test suite for distributed workloads on Red Hat OpenShift AI (RHOAI), coveri
 
 ## Test suites
 
-```
+```text
 tests/
 ├── kfto/           KFTO v1 — PyTorchJob-based distributed training
 ├── trainer/        Kubeflow Trainer v2 — TrainJob / JobSet-based training
@@ -96,3 +96,75 @@ Each suite has a `support.go` that imports `tests/common/support` and adds suite
 | `environment.go` | Shared env var getters (test tier, notebook config, HuggingFace token) |
 | `notebook.go` | Notebook creation with GPU allocation and Kueue integration |
 | `template.go` | Go template parsing for dynamic Kubernetes manifests |
+
+## Benchmarks
+
+```text
+benchmarks/
+├── kftv2-mpi-ddp-sft/    MPI DDP SFT training (Qwen 2.5 + GSM8K)
+│   ├── README.md
+│   ├── mpi-runtime.yaml       ClusterTrainingRuntime
+│   ├── train_sft_ddp.py       Training script (mounted via ConfigMap)
+│   └── trainjob.yaml          TrainJob manifest
+└── osu-benchmarks/        OSU MPI micro-benchmarks (point-to-point + collective)
+    ├── Dockerfile             CPU variant
+    ├── Dockerfile.cuda        CUDA variant
+    ├── mpi-runtime-cpu.yaml   ClusterTrainingRuntime (CPU)
+    ├── mpi-runtime-gpu.yaml   ClusterTrainingRuntime (GPU)
+    ├── osu-trainjob-cpu.yaml  TrainJob (CPU)
+    ├── osu-trainjob-gpu.yaml  TrainJob (GPU)
+    └── uid_entrypoint.sh      UID entrypoint for OpenShift
+```
+
+Each benchmark defines a **ClusterTrainingRuntime** (MPI execution environment) and a **TrainJob** (workload submission). See the [add-benchmark skill](.claude/skills/add-benchmark/SKILL.md) for the full guide.
+
+## Images
+
+```text
+images/
+├── dataset/
+│   └── alpaca/                    Alpaca dataset image
+├── model/
+│   └── bloom560m/                 BLOOM-560M model image
+├── runtime/
+│   ├── training/                  Runtime training images (~10 variants)
+│   │   ├── py311-cuda121-torch241/
+│   │   ├── py311-cuda124-torch251/
+│   │   ├── ...
+│   │   └── py312-rocm64-torch290/
+│   ├── ray/                       Ray runtime images
+│   │   ├── cuda/                    CUDA variants
+│   │   └── rocm/                    ROCm variants
+│   └── examples/                  Example-specific runtime images
+├── universal/
+│   └── training/                  Universal training images (3 variants)
+│       ├── th06-cpu-torch210-py312/
+│       ├── th06-cuda130-torch210-py312/
+│       └── th06-rocm64-torch291-py312/
+├── tests/                         Test runner image
+└── util/
+    └── mc-cli/                    MinIO client utility image
+```
+
+Key distinction for dependency management (matters for CVE fixes):
+
+- **Runtime training images** (`images/runtime/training/`) use `Pipfile`/`Pipfile.lock` (pipenv) and pull from public PyPI. Two openmpi41 variants are exceptions that use `pyproject.toml`/`requirements.txt` instead. See `images/runtime/training/README.md`.
+- **Universal training images** (`images/universal/training/`) use `pyproject.toml`/`requirements.txt` (pip) and pull from a private AIPCC PyPI index. See `images/universal/training/README.md`.
+
+## Examples
+
+```text
+examples/
+├── hpo-raytune/                    Ray Tune HPO on OpenShift AI
+├── kfto-dreambooth/                Stable Diffusion DreamBooth with KFTO
+├── kfto-feast/                     Fine-tuning with Feast feature store
+├── kfto-sft-feast-rag/             SFT + Feast + RAG pipeline
+├── kfto-sft-llm/                   LLM SFT with KFTO
+├── kfto_feast_rag/                 End-to-end RAG with Feast + Milvus
+├── rag-llm/                        RAG with HuggingFace + sentence-transformers
+├── ray-docling/                    Batch document processing with Ray + Docling
+├── ray-finetune-llm-deepspeed/     LLM fine-tuning with Ray + DeepSpeed
+└── stable-diffusion-dreambooth/    Stable Diffusion DreamBooth (standalone)
+```
+
+Each example contains a README, one or more Jupyter notebooks, and supporting resources (datasets, configs, Kubernetes manifests).
