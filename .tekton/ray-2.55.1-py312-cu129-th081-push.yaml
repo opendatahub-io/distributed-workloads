@@ -9,12 +9,12 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push" 
       && target_branch == "main" 
-      && ( "images/runtime/ray/cuda/2.55.1-py312-cu129/**".pathChanged() || ".tekton/ray-2.55.1-py312-cu129-push.yaml".pathChanged() )
+      && ( "images/runtime/ray/cuda/2.55.1-py312-cu129-th081/**".pathChanged() || ".tekton/ray-2.55.1-py312-cu129-th081-push.yaml".pathChanged() )
   labels:
     appstudio.openshift.io/application: runtime-ray
     appstudio.openshift.io/component: ray-cuda
     pipelines.appstudio.openshift.io/type: build
-  name: ray-cuda-2.55.1-py312-cu129-on-push
+  name: ray-cuda-2.55.1-py312-cu129-th081-on-push
   namespace: rhoai-tenant
 spec:
   params:
@@ -23,14 +23,14 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/ray:2.55.1-py312-cu129
+    value: quay.io/modh/ray:2.55.1-py312-cu129-th081
   - name: additional-tags
     value:
-      - 2.55.1-py312-cu129-{{revision}}
+      - 2.55.1-py312-cu129-th081-{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
-    value: images/runtime/ray/cuda/2.55.1-py312-cu129
+    value: images/runtime/ray/cuda/2.55.1-py312-cu129-th081
   taskRunSpecs:
     - pipelineTaskName: build-images
       stepSpecs:
