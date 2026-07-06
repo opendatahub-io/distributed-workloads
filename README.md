@@ -77,6 +77,17 @@ To download models and datasets from S3 compatible storage for TrainingHub SDK t
 
 See `tests/trainer/resources/disconnected_env/README.md` for instructions on pre-staging S3 data for disconnected environments.
 
+### Environment variables for Training Hub on Ray (RayJob) test suite
+
+* `TEST_RAY_TRAINING_HUB_IMAGE` (Optional) - Ray image with Training Hub pre-installed, used for RayJob cluster configuration. Defaults to `quay.io/modh/ray:2.55.1-py312-cu129-th081` (pinned by digest).
+
+To download models and datasets from S3 compatible storage for Training Hub RayJob tests, use the environment variables mentioned below:
+* `AWS_DEFAULT_ENDPOINT` - Storage bucket endpoint
+* `AWS_ACCESS_KEY_ID` - Storage bucket access key
+* `AWS_SECRET_ACCESS_KEY` - Storage bucket secret key
+* `AWS_STORAGE_BUCKET` - Storage bucket name
+* `AWS_STORAGE_BUCKET_RAY_TRAINING_HUB_DIR` (Optional) - S3 prefix for Training Hub RayJob test data (Qwen model + GRPO dataset subset). When not set, notebooks fall back to downloading from HuggingFace.
+
 ### Running Tests
 
 Execute tests like standard Go unit tests.

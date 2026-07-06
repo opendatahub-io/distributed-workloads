@@ -34,6 +34,8 @@ const (
 	TestTrainingRocmPyTorch251Image = "TEST_TRAINING_ROCM_PYTORCH_251_IMAGE"
 	TestTrainingRocmPyTorch28Image  = "TEST_TRAINING_ROCM_PYTORCH_28_IMAGE"
 
+	TestRayTrainingHubImage = "TEST_RAY_TRAINING_HUB_IMAGE"
+
 	// The testing output directory, to write output files into.
 	TestOutputDir = "TEST_OUTPUT_DIR"
 
@@ -51,16 +53,17 @@ const (
 	pipTrustedHost = "PIP_TRUSTED_HOST"
 
 	// Storage bucket credentials
-	storageDefaultEndpoint       = "AWS_DEFAULT_ENDPOINT"
-	storageDefaultRegion         = "AWS_DEFAULT_REGION"
-	storageAccessKeyId           = "AWS_ACCESS_KEY_ID"
-	storageSecretKey             = "AWS_SECRET_ACCESS_KEY"
-	storageBucketName            = "AWS_STORAGE_BUCKET"
-	storageBucketMnistDir        = "AWS_STORAGE_BUCKET_MNIST_DIR"
-	storageBucketFashionMnistDir = "AWS_STORAGE_BUCKET_FASHION_MNIST_DIR"
-	storageBucketOsftDir         = "AWS_STORAGE_BUCKET_OSFT_DIR"
-	storageBucketSftDir          = "AWS_STORAGE_BUCKET_SFT_DIR"
-	storageBucketLoraDir         = "AWS_STORAGE_BUCKET_LORA_DIR"
+	storageDefaultEndpoint         = "AWS_DEFAULT_ENDPOINT"
+	storageDefaultRegion           = "AWS_DEFAULT_REGION"
+	storageAccessKeyId             = "AWS_ACCESS_KEY_ID"
+	storageSecretKey               = "AWS_SECRET_ACCESS_KEY"
+	storageBucketName              = "AWS_STORAGE_BUCKET"
+	storageBucketMnistDir          = "AWS_STORAGE_BUCKET_MNIST_DIR"
+	storageBucketFashionMnistDir   = "AWS_STORAGE_BUCKET_FASHION_MNIST_DIR"
+	storageBucketOsftDir           = "AWS_STORAGE_BUCKET_OSFT_DIR"
+	storageBucketSftDir            = "AWS_STORAGE_BUCKET_SFT_DIR"
+	storageBucketLoraDir           = "AWS_STORAGE_BUCKET_LORA_DIR"
+	storageBucketRayTrainingHubDir = "AWS_STORAGE_BUCKET_RAY_TRAINING_HUB_DIR"
 
 	// Name of existing namespace to be used for test
 	testNamespaceNameEnvVar = "TEST_NAMESPACE_NAME"
@@ -139,6 +142,10 @@ func lookupTrainingImage(test Test, envVar, relatedImageEnvVar, defaultImage str
 	}
 	test.T().Logf("Operator RELATED_IMAGE %s not found, using default: %s", relatedImageEnvVar, defaultImage)
 	return defaultImage
+}
+
+func GetRayTrainingHubImage() string {
+	return lookupEnvOrDefault(TestRayTrainingHubImage, RayTrainingHubCudaImage)
 }
 
 func GetClusterType(t Test) ClusterType {
@@ -222,6 +229,11 @@ func GetStorageBucketLoraDir() (string, bool) {
 func GetStorageBucketSftDir() (string, bool) {
 	storage_bucket_sft_dir, exists := os.LookupEnv(storageBucketSftDir)
 	return storage_bucket_sft_dir, exists
+}
+
+func GetStorageBucketRayTrainingHubDir() (string, bool) {
+	dir, exists := os.LookupEnv(storageBucketRayTrainingHubDir)
+	return dir, exists
 }
 
 func GetPipIndexURL() string {
