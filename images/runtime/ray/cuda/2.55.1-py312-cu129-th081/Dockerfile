@@ -5,11 +5,11 @@ FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG}
 
 ARG TARGETARCH
 
-LABEL name="ray-ubi9-py312-cu129" \
-      summary="CUDA 12.9 Python 3.12 image based on UBI9 for Ray" \
-      description="CUDA 12.9 Python 3.12 image based on UBI9 for Ray" \
-      io.k8s.display-name="CUDA 12.9 Python 3.12 base image for Ray" \
-      io.k8s.description="CUDA 12.9 Python 3.12 image based on UBI9 for Ray" \
+LABEL name="ray-ubi9-py312-cu129-th081" \
+      summary="CUDA 12.9 Python 3.12 image based on UBI9 for Ray with Training Hub 0.8.1" \
+      description="CUDA 12.9 Python 3.12 image based on UBI9 for Ray with Training Hub 0.8.1" \
+      io.k8s.display-name="CUDA 12.9 Python 3.12 base image for Ray with Training Hub 0.8.1" \
+      io.k8s.description="CUDA 12.9 Python 3.12 image based on UBI9 for Ray with Training Hub 0.8.1" \
       authoritative-source-url="https://github.com/opendatahub-io/distributed-workloads"
 
 # Install CUDA base from:
