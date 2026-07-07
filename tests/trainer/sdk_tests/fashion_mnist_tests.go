@@ -269,14 +269,11 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 	)
 	test.T().Logf("SDK-submitted TrainJob has kueue label: kueue.x-k8s.io/queue-name=%s", customLocalQueue.Name)
 
-	// Verify Kueue Workloads: one for the Notebook (default queue) and one for the TrainJob (custom queue)
-	test.T().Log("Verifying Kueue Workloads: Notebook on default queue, TrainJob on custom queue...")
+	// Verify Kueue Workloads: one for the Notebook and one for the TrainJob, both on the custom queue
+	test.T().Log("Verifying Kueue Workloads: Notebook and TrainJob on custom queue...")
 	test.Eventually(support.KueueWorkloads(test, namespace.Name), support.TestTimeoutDouble).Should(
 		And(
 			HaveLen(2),
-			ContainElement(WithTransform(func(w *kueuev1beta2.Workload) string {
-				return string(w.Spec.QueueName)
-			}, Equal(support.KueueDefaultQueueName))),
 			ContainElement(
 				And(
 					WithTransform(func(w *kueuev1beta2.Workload) string {

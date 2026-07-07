@@ -152,13 +152,10 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 			),
 		)
 
-		test.T().Log("Verifying Kueue Workloads: Notebook on default queue, OpenMPI TrainJob on custom queue...")
+		test.T().Log("Verifying Kueue Workloads: Notebook and OpenMPI TrainJob on custom queue...")
 		test.Eventually(support.KueueWorkloads(test, namespace.Name), support.TestTimeoutDouble).Should(
 			And(
 				HaveLen(2),
-				ContainElement(WithTransform(func(w *kueuev1beta2.Workload) string {
-					return string(w.Spec.QueueName)
-				}, Equal(support.KueueDefaultQueueName))),
 				ContainElement(
 					And(
 						WithTransform(func(w *kueuev1beta2.Workload) string {

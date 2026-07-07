@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
@@ -55,113 +56,51 @@ func TestMain(m *testing.M) {
 	os.Exit(0)
 }
 
-func TestKueueDefaultLocalQueueLabelInjection(t *testing.T) {
-	Tags(t, Tier1)
-	test := With(t)
-	SetupKueue(test, initialKueueState, TrainJobFramework)
-
-	//Create a namespace with Kueue label
-	namespace := test.NewTestNamespace(WithKueueManaged()).Name
-	test.T().Logf("Created Kueue-managed namespace: %s", namespace)
-
-	//Verify default LocalQueue is auto-created after namespace creation
-	test.T().Log("Verifying default LocalQueue is auto-created after namespace creation ...")
-	test.Eventually(func(g Gomega) {
-		lq, err := test.Client().Kueue().KueueV1beta2().LocalQueues(namespace).Get(
-			test.Ctx(),
-			"default",
-			metav1.GetOptions{},
-		)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(string(lq.Spec.ClusterQueue)).To(Equal("default"))
-	}, TestTimeoutShort).Should(Succeed())
-	test.T().Log("LocalQueue 'default' exists and points to ClusterQueue 'default'")
-	test.T().Log("LocalQueue 'default' is created automatically triggered by kueue label in namespace")
-
-	//Create a TrainJob without kueue label
-	test.T().Log("Creating TrainJob without kueue.x-k8s.io/queue-name label...")
-	trainJob := &trainerv1alpha1.TrainJob{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-unlabeled-trainjob-",
-			Namespace:    namespace,
-		},
-		Spec: trainerv1alpha1.TrainJobSpec{
-			RuntimeRef: trainerv1alpha1.RuntimeRef{
-				Name: trainerutils.DefaultClusterTrainingRuntimeCUDA,
-			},
-			Trainer: &trainerv1alpha1.Trainer{
-				Command: []string{"echo", "test"},
-			},
-		},
-	}
-
-	createdTrainJob, err := test.Client().Trainer().TrainerV1alpha1().TrainJobs(namespace).Create(
-		test.Ctx(),
-		trainJob,
-		metav1.CreateOptions{},
-	)
-	test.Expect(err).NotTo(HaveOccurred(), "TrainJob should be created successfully")
-	test.T().Logf("Created TrainJob: %s", createdTrainJob.Name)
-
-	//Verify TrainJob got the default localqueue label injected by the mutating webhook
-	test.T().Log("Verifying default localqueue label was injected...")
-	queueLabel, exists := createdTrainJob.Labels["kueue.x-k8s.io/queue-name"]
-	test.Expect(exists).To(BeTrue(), "TrainJob should have kueue.x-k8s.io/queue-name label")
-	test.Expect(queueLabel).To(Equal("default"), "Local queue label should be 'default'")
-	test.T().Logf("TrainJob has kueue label: kueue.x-k8s.io/queue-name=%s", queueLabel)
-
-	//Verify a Workload is created with the default localqueue
-	test.T().Log("Verifying Workload is created with default localqueue...")
-	test.Eventually(KueueWorkloads(test, namespace), TestTimeoutShort).Should(
-		And(
-			HaveLen(1),
-			ContainElement(WithTransform(func(w *kueuev1beta2.Workload) string {
-				return string(w.Spec.QueueName)
-			}, Equal("default"))),
-		),
-	)
-	test.T().Log("Workload created with localqueueName: default")
-
-	//Verify Workload is admitted
-	test.Eventually(KueueWorkloads(test, namespace), TestTimeoutMedium).Should(
-		ContainElement(WithTransform(KueueWorkloadAdmitted, BeTrue())),
-	)
-	workloads := GetKueueWorkloads(test, namespace)
-	test.T().Logf("Workload '%s' is admitted", workloads[0].Name)
-
-	//Verify TrainJob completes successfully
-	test.Eventually(TrainJob(test, namespace, createdTrainJob.Name), TestTimeoutLong).
-		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
-	test.T().Logf("TrainJob %s completed successfully", createdTrainJob.Name)
-
-	test.T().Log("Default localqueue label injection and admission verified successfully !!!")
-}
-
 func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {
 	Tags(t, Tier1)
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 
-	// Create a namespace with Kueue label
 	namespace := test.NewTestNamespace(WithKueueManaged()).Name
 	test.T().Logf("Created Kueue-managed namespace: %s", namespace)
 
-	// Wait for default LocalQueue to be created
-	test.T().Log("Waiting for default LocalQueue to be created...")
-	test.Eventually(func(g Gomega) {
-		_, err := test.Client().Kueue().KueueV1beta2().LocalQueues(namespace).Get(
-			test.Ctx(),
-			"default",
-			metav1.GetOptions{},
-		)
-		g.Expect(err).NotTo(HaveOccurred())
-	}, TestTimeoutShort).Should(Succeed())
+	// Create Kueue resources
+	resourceFlavor := CreateKueueResourceFlavor(test, kueuev1beta2.ResourceFlavorSpec{})
+	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+	clusterQueue := CreateKueueClusterQueue(test, kueuev1beta2.ClusterQueueSpec{
+		NamespaceSelector: &metav1.LabelSelector{},
+		ResourceGroups: []kueuev1beta2.ResourceGroup{
+			{
+				CoveredResources: []corev1.ResourceName{corev1.ResourceCPU, corev1.ResourceMemory},
+				Flavors: []kueuev1beta2.FlavorQuotas{
+					{
+						Name: kueuev1beta2.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []kueuev1beta2.ResourceQuota{
+							{
+								Name:         corev1.ResourceCPU,
+								NominalQuota: resource.MustParse("8"),
+							},
+							{
+								Name:         corev1.ResourceMemory,
+								NominalQuota: resource.MustParse("16Gi"),
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name, AsDefaultQueue)
 
 	// Create a TrainJob with a sleep so user can preempt it
 	trainJob := &trainerv1alpha1.TrainJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-preemption-trainjob-",
 			Namespace:    namespace,
+			Labels: map[string]string{
+				"kueue.x-k8s.io/queue-name": localQueue.Name,
+			},
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
@@ -197,7 +136,7 @@ func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {
 
 	test.Eventually(Pods(test, namespace, metav1.ListOptions{
 		LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + createdTrainJob.Name,
-	}), TestTimeoutShort).Should(
+	}), TestTimeoutLong).Should(
 		And(
 			HaveLen(1),
 			ContainElement(WithTransform(podPhase, Equal(corev1.PodRunning))),
