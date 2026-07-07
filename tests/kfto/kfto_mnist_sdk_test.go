@@ -117,7 +117,7 @@ func runMnistSDK(test Test, trainingImage string) {
 	notebookCommand := []string{
 		"/bin/sh",
 		"-c",
-		fmt.Sprintf("pip install papermill && papermill /opt/app-root/notebooks/%s"+
+		fmt.Sprintf("pip install papermill 'kubernetes<36' && papermill /opt/app-root/notebooks/%s"+
 			" /opt/app-root/src/mnist-kfto-out.ipynb -p namespace %s -p openshift_api_url %s"+
 			" -p token %s -p num_gpus %d -p training_image %s -p localQueue %s --log-output && sleep infinity",
 			jupyterNotebookConfigMapFileName, namespace.Name, GetOpenShiftApiUrl(test), userToken, 0, trainingImage, localQueue.Name)}

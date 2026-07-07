@@ -24,10 +24,12 @@ import (
 	gomega "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
@@ -178,15 +180,49 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 	err = yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(parsedNotebookTemplate), 8192).Decode(notebookCR)
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 
-	// If namespace is Kueue-managed, inject the kueue queue-name label on the Notebook CR
 	if namespace.Labels["kueue.openshift.io/managed"] == "true" {
+		cpuQuota := resource.MustParse("3")
+		memQuota := resource.MustParse("4Gi")
+		if containerSize == ContainerSizeMedium {
+			cpuQuota = resource.MustParse("7")
+			memQuota = resource.MustParse("25Gi")
+		}
+
+		rf := CreateKueueResourceFlavor(test, kueuev1beta2.ResourceFlavorSpec{})
+		test.T().Cleanup(func() {
+			test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), rf.Name, metav1.DeleteOptions{})
+		})
+
+		cq := CreateKueueClusterQueue(test, kueuev1beta2.ClusterQueueSpec{
+			NamespaceSelector: &metav1.LabelSelector{},
+			ResourceGroups: []kueuev1beta2.ResourceGroup{
+				{
+					CoveredResources: []corev1.ResourceName{corev1.ResourceCPU, corev1.ResourceMemory},
+					Flavors: []kueuev1beta2.FlavorQuotas{
+						{
+							Name: kueuev1beta2.ResourceFlavorReference(rf.Name),
+							Resources: []kueuev1beta2.ResourceQuota{
+								{Name: corev1.ResourceCPU, NominalQuota: cpuQuota},
+								{Name: corev1.ResourceMemory, NominalQuota: memQuota},
+							},
+						},
+					},
+				},
+			},
+		})
+		test.T().Cleanup(func() {
+			test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), cq.Name, metav1.DeleteOptions{})
+		})
+
+		lq := CreateKueueLocalQueue(test, namespace.Name, cq.Name)
+
 		labels := notebookCR.GetLabels()
 		if labels == nil {
 			labels = map[string]string{}
 		}
-		labels["kueue.x-k8s.io/queue-name"] = KueueDefaultQueueName
+		labels["kueue.x-k8s.io/queue-name"] = lq.Name
 		notebookCR.SetLabels(labels)
-		test.T().Log("Injected kueue.x-k8s.io/queue-name=default label on Notebook CR for Kueue-managed namespace")
+		test.T().Logf("Created Kueue resources for Notebook: LocalQueue %s -> ClusterQueue %s", lq.Name, cq.Name)
 	}
 
 	_, err = test.Client().Dynamic().Resource(notebookResource).Namespace(namespace.Name).Create(test.Ctx(), notebookCR, metav1.CreateOptions{})
