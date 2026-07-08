@@ -3,7 +3,7 @@ set -euo pipefail
 
 ./hack/sync-agents-config.sh > /dev/null
 
-bad_files=$(git diff --name-only -- .claude .cursor)
+bad_files=$(git status --porcelain -- .claude .cursor)
 
 if [[ -n ${bad_files} ]]; then
     echo "!!! AI agent config is out of sync with ai/:"
