@@ -13,11 +13,11 @@ For a shorter SDK-focused walkthrough, see the [CodeFlare SDK guided demo](https
 
 ## Requirements
 
-* An OpenShift cluster with OpenShift AI (RHOAI) 2.25+ installed:
+* An OpenShift cluster with OpenShift AI (RHOAI) 3.5+ installed:
   * The `codeflare`, `dashboard`, `ray`, and `workbenches` components enabled;
+  * CodeFlare SDK with `enable_autoscaling` support in the workbench image (or install manually);
 * A data science project namespace **without Kueue admission** for RayClusters (see note above);
 * Sufficient worker node capacity for at least `max_workers + 1` Ray pods (head + workers);
-* CodeFlare SDK with autoscaling support installed in the workbench (RHOAI 3.5+).
 
 ## Setup
 
