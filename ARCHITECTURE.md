@@ -116,7 +116,7 @@ benchmarks/
     └── uid_entrypoint.sh      UID entrypoint for OpenShift
 ```
 
-Each benchmark defines a **ClusterTrainingRuntime** (MPI execution environment) and a **TrainJob** (workload submission). See the [add-benchmark skill](.claude/skills/add-benchmark/SKILL.md) for the full guide.
+Each benchmark defines a **ClusterTrainingRuntime** (MPI execution environment) and a **TrainJob** (workload submission). See the [add-benchmark skill](ai/skills/add-benchmark/SKILL.md) for the full guide.
 
 ## Images
 
