@@ -94,4 +94,4 @@ Each image variant is updated independently with its own commit.
 
 ## AI Agent Skills
 
-`.claude/skills/` is the canonical source for AI agent skills. Run `make sync-agent-skills` after editing any skill to sync to other tools (Cursor, etc.).
+`ai/skills/` is the canonical source for AI agent skills. Run `make sync-agents-config` after editing any skill to sync to `.claude/skills/` and `.cursor/skills/`.

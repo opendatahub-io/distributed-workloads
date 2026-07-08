@@ -1,9 +1,3 @@
----
-description: "Guide for adding E2E tests to the distributed-workloads repo"
-globs: "tests/**/*.go"
-alwaysApply: false
----
-
 # Add E2E Test
 
 Guide for adding a new end-to-end test to the distributed-workloads repo.
