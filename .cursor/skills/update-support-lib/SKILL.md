@@ -1,9 +1,3 @@
----
-description: "Guide for modifying the shared test support library"
-globs: "tests/common/support/**/*.go"
-alwaysApply: false
----
-
 # Update Support Library
 
 Guide for modifying the shared test support library at `tests/common/support/`.

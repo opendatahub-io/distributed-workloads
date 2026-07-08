@@ -7,6 +7,9 @@ on:
       - '**.go'
       - '**go.mod'
       - '**go.sum'
+      - 'ai/**'
+      - '.claude/**'
+      - '.cursor/**'
     tags-ignore:
       - 'v*'
   pull_request:
@@ -14,6 +17,9 @@ on:
       - '**.go'
       - '**go.mod'
       - '**go.sum'
+      - 'ai/**'
+      - '.claude/**'
+      - '.cursor/**'
 jobs:
   verify-imports:
     runs-on: ubuntu-latest
@@ -25,3 +31,9 @@ jobs:
         go-version-file: './go.mod'
     - name: Verify that imports are organized
       run: make verify-imports
+  verify-agents-config:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Verify AI agent config is in sync
+      run: make verify-agents-config
