@@ -94,6 +94,7 @@ func TestPyTorchJobMnistMultiNodeSingleGpuWithROCmPyTorch251(t *testing.T) {
 }
 
 func TestPyTorchJobMnistMultiNodeMultiGpuWithROCmPyTorch241(t *testing.T) {
+	t.Skip("RHOAIENG-76553: ROCm 6.2 + PyTorch 2.4.1 RCCL is unstable for multi-node multi-GPU, causes cross-node communication hangs")
 	Tags(t, KftoRocm)
 	test := With(t)
 	runKFTOPyTorchMnistJob(test, AMD, GetTrainingROCmPyTorch241Image(test), "resources/requirements-rocm.txt", 1, 2)
