@@ -90,5 +90,6 @@ index-strategy = "unsafe-best-match"
 index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/rocm6.4-ubi9/simple/"
 constraint-dependencies = [
     "aiohttp~=3.14.0",
+    "gitpython~=3.1.50",
     "starlette~=1.3.1",
 ]
