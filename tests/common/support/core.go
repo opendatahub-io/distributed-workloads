@@ -188,14 +188,19 @@ func startPeriodicPodLogCapture(t Test, namespace *corev1.Namespace) context.Can
 	done := make(chan struct{})
 	client := t.Client().Core().CoreV1()
 
+	// Track restart counts to preserve logs from every container crash.
+	// Key: "podName/containerName", value: last observed restartCount.
+	lastRestartCount := map[string]int32{}
+
 	writeFile := func(filePath string, data []byte) {
 		if err := os.WriteFile(filePath, data, 0o600); err != nil {
 			t.T().Logf("periodic pod capture: failed writing %s: %v", filePath, err)
 		}
 	}
 
-	fetchLog := func(outputDir, podName, containerName string, previous bool) {
+	fetchLog := func(outputDir, podName, containerName, suffix string) {
 		tailLines := int64(10000)
+		previous := suffix != ""
 		options := corev1.PodLogOptions{Container: containerName, Previous: previous, TailLines: &tailLines}
 		stream, err := client.Pods(namespace.Name).GetLogs(podName, &options).Stream(ctx)
 		if err != nil {
@@ -208,11 +213,40 @@ func startPeriodicPodLogCapture(t Test, namespace *corev1.Namespace) context.Can
 			return
 		}
 
-		suffix := ""
-		if previous {
-			suffix = "-previous"
-		}
 		writeFile(path.Join(outputDir, "pod-"+podName+"-"+containerName+suffix+".log"), data)
+	}
+
+	containerRestartCount := func(pod corev1.Pod, containerName string) int32 {
+		for _, cs := range pod.Status.ContainerStatuses {
+			if cs.Name == containerName {
+				return cs.RestartCount
+			}
+		}
+		for _, cs := range pod.Status.InitContainerStatuses {
+			if cs.Name == containerName {
+				return cs.RestartCount
+			}
+		}
+		return 0
+	}
+
+	captureContainerLogs := func(outputDir string, pod corev1.Pod, containerName string) {
+		fetchLog(outputDir, pod.Name, containerName, "")
+
+		restartCount := containerRestartCount(pod, containerName)
+		key := pod.Name + "/" + containerName
+
+		if restartCount > 0 {
+			fetchLog(outputDir, pod.Name, containerName, "-previous")
+		}
+
+		if restartCount > lastRestartCount[key] {
+			// Restart count increased — save the previous log with the restart
+			// number so it is not overwritten by subsequent crashes.
+			fetchLog(outputDir, pod.Name, containerName, fmt.Sprintf("-restart-%d", restartCount))
+		}
+
+		lastRestartCount[key] = restartCount
 	}
 
 	go func() {
@@ -234,13 +268,11 @@ func startPeriodicPodLogCapture(t Test, namespace *corev1.Namespace) context.Can
 
 				for _, pod := range pods.Items {
 					for _, container := range pod.Spec.InitContainers {
-						fetchLog(outputDir, pod.Name, container.Name, false)
-						fetchLog(outputDir, pod.Name, container.Name, true)
+						captureContainerLogs(outputDir, pod, container.Name)
 					}
 
 					for _, container := range pod.Spec.Containers {
-						fetchLog(outputDir, pod.Name, container.Name, false)
-						fetchLog(outputDir, pod.Name, container.Name, true)
+						captureContainerLogs(outputDir, pod, container.Name)
 					}
 
 					status := map[string]any{
