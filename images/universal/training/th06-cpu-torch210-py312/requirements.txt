@@ -351,7 +351,7 @@ peft==0.18.1
     #   th06-cpu-universal-image (pyproject.toml)
     #   instructlab-training
     #   training-hub
-pillow==12.2.0
+pillow==12.3.0
     # via
     #   matplotlib
     #   tensorboard
