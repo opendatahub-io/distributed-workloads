@@ -104,5 +104,6 @@ index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/cuda13.0-
 constraint-dependencies = [
     "aiohttp~=3.14.0",
     "gitpython~=3.1.50",
+    "pillow~=12.3.0",
     "starlette~=1.3.1",
 ]
