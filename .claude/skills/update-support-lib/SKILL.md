@@ -1,3 +1,10 @@
+---
+name: update-support-lib
+description: Guide for modifying the shared test support library in tests/common/support/,
+  covering getters, condition checkers, the client abstraction, and the option pattern.
+  Use when changing shared test infrastructure.
+---
+
 # Update Support Library
 
 Guide for modifying the shared test support library at `tests/common/support/`.

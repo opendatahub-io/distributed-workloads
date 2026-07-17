@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-./hack/sync-agents-config.sh > /dev/null
+uv run ./hack/sync_agents_config.py > /dev/null
 
 bad_files=$(git status --porcelain -- .claude .cursor)
 

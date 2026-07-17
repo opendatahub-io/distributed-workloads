@@ -1,6 +1,7 @@
 ---
-globs:
-- tests/**
+description: General test conventions
+globs: tests/**
+alwaysApply: false
 ---
 
 # General test conventions

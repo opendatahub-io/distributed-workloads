@@ -1,0 +1,6 @@
+{
+  "description": "Shared test infrastructure conventions",
+  "globs": [
+    "tests/common/support/**"
+  ]
+}

@@ -1,8 +1,3 @@
----
-globs:
-- tests/trainer/**
----
-
 # Trainer test suite conventions
 
 ## Mandatory tag declaration

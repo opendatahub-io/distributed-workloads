@@ -1,8 +1,3 @@
----
-globs:
-- tests/**
----
-
 # General test conventions
 
 ## Namespace isolation

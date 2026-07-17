@@ -92,6 +92,6 @@ Two image families with different dependency management:
 
 Each image variant is updated independently with its own commit.
 
-## AI Agent Skills
+## AI Agent Skills and Rules
 
-`ai/skills/` is the canonical source for AI agent skills. Run `make sync-agents-config` after editing any skill to sync to `.claude/skills/` and `.cursor/skills/`.
+`ai/` is the canonical source for AI agent skills (`ai/skills/`) and rules (`ai/rules/`). Each skill or rule holds a markdown body plus a `metadata.json` with agent-specific fields. Run `make sync-agents-config` after editing any of them to regenerate `.claude/` and `.cursor/`. The sync script declares its dependencies inline (PEP 723) and runs through [uv](https://docs.astral.sh/uv/), so `uv` must be installed.

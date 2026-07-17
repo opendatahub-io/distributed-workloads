@@ -87,8 +87,8 @@ precommit:
 	pre-commit run --all-files
 
 .PHONY: sync-agents-config
-sync-agents-config: ## Sync AI agent skills from ai/ to .claude/ and .cursor/
-	@./hack/sync-agents-config.sh
+sync-agents-config: ## Sync AI agent skills and rules from ai/ to .claude/ and .cursor/
+	@uv run ./hack/sync_agents_config.py
 
 .PHONY: verify-agents-config
 verify-agents-config: ## Verify AI agent config is in sync with ai/

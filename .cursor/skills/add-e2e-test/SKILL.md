@@ -1,3 +1,10 @@
+---
+name: add-e2e-test
+description: Guide for writing E2E tests in tests/, covering namespace isolation,
+  resource naming, cleanup, tags, notebook editing, and environment variables. Use
+  when adding or modifying E2E tests.
+---
+
 # Add E2E Test
 
 Guide for adding a new end-to-end test to the distributed-workloads repo.
