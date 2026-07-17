@@ -252,7 +252,7 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 														while IFS= read -r line || [[ -n "$line" ]]; do
 															# Skip empty lines, comments, and pip options (like --extra-index-url)
 															[[ -z "$line" || "$line" =~ ^[[:space:]]*# || "$line" =~ ^-- ]] && continue
-															
+
 															# Check if line has "# no-deps" marker
 															if [[ "$line" =~ "# no-deps" ]]; then
 																pkg=$(echo "$line" | sed 's/[[:space:]]*#.*//')
@@ -265,7 +265,7 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 																pip install --no-cache-dir $EXTRA_INDEX "$pkg" --target=${LOCAL_LIB} --verbose
 															fi
 														done < /mnt/scripts/requirements.txt
-														
+
 														echo ""
 														echo "Copying installed packages to ${LIB_PATH}..."
 														cp -r ${LOCAL_LIB}/* ${LIB_PATH}/
@@ -378,7 +378,7 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 														echo " Using dependencies from shared volume: ${LIB_PATH}"
 														echo ""
 
-														# Set Python path for dependencies 
+														# Set Python path for dependencies
 														export PYTHONPATH=${LIB_PATH}:$PYTHONPATH
 
 															echo "==================== Starting Distributed Training ===================="

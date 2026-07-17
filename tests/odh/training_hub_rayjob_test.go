@@ -29,7 +29,6 @@ import (
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
-	trainerutils "github.com/opendatahub-io/distributed-workloads/tests/trainer/utils"
 )
 
 func TestGrpoRayJobSingleNodeMultiGpu(t *testing.T) {
@@ -107,7 +106,7 @@ func trainingHubRayJob(t *testing.T, algorithm string, numGpus int) {
 		)
 
 	// Poll notebook logs for definitive status using the shared helper.
-	err = trainerutils.PollNotebookLogsForStatus(test, namespace.Name,
+	err = PollNotebookLogsForStatus(test, namespace.Name,
 		NOTEBOOK_POD_NAME, NOTEBOOK_CONTAINER_NAME, TestTimeoutGpuProvisioning)
 	test.Expect(err).ShouldNot(HaveOccurred(),
 		fmt.Sprintf("%s notebook execution reported FAILURE", algorithm))

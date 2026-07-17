@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"path"
 	"reflect"
 	"time"
@@ -144,6 +145,33 @@ func PodLog(t Test, namespace, name string, options corev1.PodLogOptions) func(g
 func GetPodLog(t Test, namespace, name string, options corev1.PodLogOptions) string {
 	t.T().Helper()
 	return PodLog(t, namespace, name, options)(t)
+}
+
+func PollNotebookLogsForStatus(test Test, namespace, podName, containerName string, timeout time.Duration) error {
+	var tail int64 = 2000
+	getLogs := PodLog(test, namespace, podName, corev1.PodLogOptions{
+		Container: containerName,
+		TailLines: &tail,
+	})
+
+	sawFailure := false
+	test.Eventually(func() bool {
+		logs := getLogs(test)
+		switch {
+		case strings.Contains(logs, "NOTEBOOK_STATUS: SUCCESS"):
+			return true
+		case strings.Contains(logs, "NOTEBOOK_STATUS: FAILURE"):
+			sawFailure = true
+			return true
+		default:
+			return false
+		}
+	}, timeout).Should(gomega.BeTrue(), "Notebook did not reach definitive state")
+
+	if sawFailure {
+		return fmt.Errorf("Notebook execution failed")
+	}
+	return nil
 }
 
 func storeAllPodLogs(t Test, namespace *corev1.Namespace) {

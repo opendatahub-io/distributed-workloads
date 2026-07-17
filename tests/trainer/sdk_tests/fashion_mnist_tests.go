@@ -129,7 +129,7 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
 
 	// Poll logs to check if the notebook execution completed successfully
-	err = trainerutils.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	err = support.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
 	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 
 }
@@ -290,6 +290,6 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
 
 	// Poll logs to check if the notebook execution completed successfully
-	err = trainerutils.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	err = support.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
 	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 }

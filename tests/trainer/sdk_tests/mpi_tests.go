@@ -170,7 +170,7 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 
 	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
 
-	err = trainerutils.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	err = support.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
 	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 }
 

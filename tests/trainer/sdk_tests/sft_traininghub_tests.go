@@ -133,6 +133,6 @@ func RunSftTrainingHubMultiGpuDistributedTraining(t *testing.T, nnodes int) {
 
 	// Poll logs to check if the notebook execution completed successfully
 	// Use extra long timeout for multi-GPU distributed training (40 minutes)
-	err = trainerutils.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	err = support.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
 	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 }
