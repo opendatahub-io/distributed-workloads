@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"path"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/onsi/gomega"
