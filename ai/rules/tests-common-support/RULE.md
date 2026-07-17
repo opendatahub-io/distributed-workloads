@@ -1,8 +1,3 @@
----
-globs:
-- tests/common/support/**
----
-
 # Shared test infrastructure conventions
 
 ## Purpose

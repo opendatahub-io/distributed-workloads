@@ -1,6 +1,7 @@
 ---
-globs:
-- tests/common/support/**
+description: Shared test infrastructure conventions
+globs: tests/common/support/**
+alwaysApply: false
 ---
 
 # Shared test infrastructure conventions

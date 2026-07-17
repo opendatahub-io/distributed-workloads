@@ -1,3 +1,10 @@
+---
+name: add-benchmark
+description: Guide for adding a new benchmark to benchmarks/, covering the Dockerfile,
+  ClusterTrainingRuntime, TrainJob, and CI workflow. Use when adding or modifying
+  benchmarks.
+---
+
 # Add Benchmark
 
 Guide for adding a new benchmark to `benchmarks/` in the distributed-workloads repo.

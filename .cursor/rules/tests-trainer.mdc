@@ -1,6 +1,7 @@
 ---
-globs:
-- tests/trainer/**
+description: Trainer test suite conventions
+globs: tests/trainer/**
+alwaysApply: false
 ---
 
 # Trainer test suite conventions
