@@ -28,7 +28,9 @@ RUN NVIDIA_GPGKEY_SUM=d0664fbbdb8c32356d45de36c5984617217b2d0bef41b93ccecd326ba3
 ENV CUDA_VERSION=12.8.0
 
 COPY cuda.repo-* ./
-COPY NGC-DL-CONTAINER-LICENSE /
+
+RUN mkdir -p /licenses
+COPY NGC-DL-CONTAINER-LICENSE /licenses/
 
 RUN if [ "${TARGETARCH}" = "arm64" ]; then \
         cp cuda.repo-arm64 /etc/yum.repos.d/cuda.repo; \
@@ -129,7 +131,8 @@ RUN yum install -y \
     ${NV_CUDNN_PACKAGE} \
     ${NV_CUDNN_PACKAGE_DEV} \
     && yum clean all \
-    && rm -rf /var/cache/yum/*
+    && rm -rf /var/cache/yum/* \
+    && rpm --restore redhat-rpm-config
 
 # Install Python packages
 
