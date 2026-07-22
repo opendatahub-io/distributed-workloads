@@ -101,12 +101,14 @@ func TestPyTorchJobMnistMultiNodeMultiGpuWithROCmPyTorch241(t *testing.T) {
 }
 
 func TestPyTorchJobMnistMultiNodeMultiGpuWithROCmPyTorch251(t *testing.T) {
+	t.Skip("RHOAIENG-76553: ROCm multi-node multi-GPU RCCL is unstable, causes cross-node communication hangs")
 	Tags(t, KftoRocm)
 	test := With(t)
 	runKFTOPyTorchMnistJob(test, AMD, GetTrainingROCmPyTorch251Image(test), "resources/requirements-rocm.txt", 1, 2)
 }
 
 func TestPyTorchJobMnistMultiNodeMultiGpuWithROCmPyTorch28(t *testing.T) {
+	t.Skip("RHOAIENG-76553: ROCm multi-node multi-GPU RCCL is unstable, causes cross-node communication hangs")
 	Tags(t, KftoRocm)
 	test := With(t)
 	runKFTOPyTorchMnistJob(test, AMD, GetTrainingRocmPyTorch28Image(test), "resources/requirements-rocm.txt", 1, 2)
