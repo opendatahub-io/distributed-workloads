@@ -53,7 +53,7 @@ To upload trained model into S3 compatible storage, use the environment variable
 * `NOTEBOOK_USER_TOKEN` - Login token of user used for running Workbench
 * `NOTEBOOK_IMAGE` - Image used for running Workbench
 
-To download MNIST training script datasets from S3 compatible storage, use the environment variables mentioned below : 
+To download MNIST training script datasets from S3 compatible storage, use the environment variables mentioned below :
 * `AWS_DEFAULT_ENDPOINT` - Storage bucket endpoint from which to download MNIST datasets
 * `AWS_ACCESS_KEY_ID` - Storage bucket access key
 * `AWS_SECRET_ACCESS_KEY` - Storage bucket secret key
@@ -87,6 +87,25 @@ To download models and datasets from S3 compatible storage for Training Hub RayJ
 * `AWS_SECRET_ACCESS_KEY` - Storage bucket secret key
 * `AWS_STORAGE_BUCKET` - Storage bucket name
 * `AWS_STORAGE_BUCKET_RAY_TRAINING_HUB_DIR` (Optional) - S3 prefix for Training Hub RayJob test data (Qwen model + GRPO dataset subset). When not set, notebooks fall back to downloading from HuggingFace.
+
+### AI Agents
+
+AI agents configuration lives in the `ai/` directory as the single source of truth. Agent-specific config files are generated from it.
+
+#### Structure
+
+- `ai/skills/<name>/SKILL.md` -- skill body (markdown)
+- `ai/skills/<name>/metadata.json` -- skill metadata (description, globs, etc.)
+- `ai/rules/<name>/RULE.md` -- rule body (markdown)
+- `ai/rules/<name>/metadata.json` -- rule metadata (description, globs for path-scoping)
+
+#### Adding or updating a skill/rule
+
+1. Create or edit files under `ai/skills/<name>/` or `ai/rules/<name>/`.
+2. Run `make sync-agents-config` to regenerate agents directories e.g. `.claude/`.
+3. Commit both the `ai/` source files and the generated output together.
+
+> **Note:** `make sync-agents-config` requires [uv](https://docs.astral.sh/uv/) to be installed. CI runs `make verify-agents-config` to ensure generated files stay in sync.
 
 ### Running Tests
 
