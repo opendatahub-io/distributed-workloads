@@ -148,6 +148,7 @@ func GetPodLog(t Test, namespace, name string, options corev1.PodLogOptions) str
 }
 
 func PollNotebookLogsForStatus(test Test, namespace, podName, containerName string, timeout time.Duration) error {
+	test.T().Helper()
 	var tail int64 = 2000
 	getLogs := PodLog(test, namespace, podName, corev1.PodLogOptions{
 		Container: containerName,

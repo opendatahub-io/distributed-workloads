@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Set up uv
-      uses: astral-sh/setup-uv@v7
+    - name: Install uv
+      run: pip install uv==0.7.14
     - name: Verify AI agent config is in sync
       run: make verify-agents-config
