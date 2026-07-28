@@ -223,3 +223,21 @@ func TestRhaiS3DeepspeedStage0CheckpointingMultiGpuCuda(t *testing.T) {
 	Tags(t, KftoCuda, MultiNodeMultiGpu(2, support.NVIDIA, 2))
 	sdktests.RunRhaiS3DeepspeedStage0MultiGpuTest(t, support.NVIDIA, 2, 2)
 }
+
+// Speculator pipeline: DATA_ONLY → TRAIN_ONLY, single GPU (1 vLLM + 1 training)
+func TestRhaiSpeculatorPipelineSingleGpuCuda(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunSpeculatorPipelineTest(t, 1, 1)
+}
+
+// Speculator pipeline: DATA_ONLY → TRAIN_ONLY, multi GPU (1 vLLM + 2 training)
+func TestRhaiSpeculatorPipelineMultiGpuCuda(t *testing.T) {
+	Tags(t, KftoCuda, MultiGpu(support.NVIDIA, 2))
+	sdktests.RunSpeculatorPipelineTest(t, 1, 2)
+}
+
+// Speculator failure scenarios — DATA_ONLY + TRAIN_ONLY failures
+func TestRhaiSpeculatorFailureCuda(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunSpeculatorFailureScenariosTest(t)
+}
