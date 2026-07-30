@@ -1,0 +1,15 @@
+[therock]
+name=TheRock ROCm 7.14
+baseurl=https://repo.amd.com/rocm/packages-multi-arch/rhel9/x86_64/
+enabled=1
+priority=150
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-AMD-ROCM
+       file:///etc/pki/rpm-gpg/RPM-GPG-KEY-AMD-ROCM-THEROCK
+
+[rocm-frameworks]
+name=ROCm Frameworks (migraphx)
+baseurl=https://rocm.frameworks.amd.com/rpm-multi-arch/amdrocm-migraphx/
+enabled=1
+priority=200
+gpgcheck=0
