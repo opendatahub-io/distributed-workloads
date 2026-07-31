@@ -138,9 +138,9 @@ images/
 │   └── examples/                  Example-specific runtime images
 ├── universal/
 │   └── training/                  Universal training images (3 variants)
-│       ├── th06-cpu-torch210-py312/
-│       ├── th06-cuda130-torch210-py312/
-│       └── th06-rocm64-torch291-py312/
+│       ├── th-torch-cpu-py312/
+│       ├── th-torch-cuda-py312/
+│       └── th-torch-rocm-py312/
 ├── tests/                         Test runner image
 └── util/
     └── mc-cli/                    MinIO client utility image
