@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - 'rhoai-*'
     paths:
       - '**.go'
       - '**go.mod'
