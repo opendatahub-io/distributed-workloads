@@ -34,7 +34,7 @@ When fixing a CVE that requires bumping a Python dependency version:
 
 ### Quick Start
 
-1. **Edit the Pipfile** for the image you want to update (e.g., `py312-cuda128-torch280/Pipfile`)
+1. **Edit the Pipfile** for the image you want to update (e.g., `py312-cuda130-torch210-openmpi41/Pipfile`)
 2. **Add your dependencies** under `[packages]` with a compatible release constraint to prevent supply-chain drift:
    ```toml
    [packages]
@@ -50,22 +50,22 @@ When fixing a CVE that requires bumping a Python dependency version:
 Python 3.12 images with PyTorch 2.8+ include flash-attn, which needs special handling. You should use an image containing relevant Pytorch and Python version and set `PIP_NO_BUILD_ISOLATION=1`:
 
 ```bash
-# Example: py312-cuda128-torch280
+# Example: py312-cuda130-torch210-openmpi41
 
 # 1. Start container
 podman run --rm -d --name pipenv-lock \
-    quay.io/opendatahub/odh-training-cuda128-torch28-py312-rhel9:odh-stable \
+    quay.io/opendatahub/odh-training-cuda130-torch210-py312-rhel9:odh-stable \
     sleep 3600
 
 # 2. Copy Pipfile
-podman cp py312-cuda128-torch280/Pipfile pipenv-lock:/opt/app-root/src/
+podman cp py312-cuda130-torch210-openmpi41/Pipfile pipenv-lock:/opt/app-root/src/
 
 # 3. Run pipenv lock
 podman exec pipenv-lock bash -c \
     "pip install pipenv && PIP_NO_BUILD_ISOLATION=1 pipenv lock"
 
 # 4. Copy lock file back
-podman cp pipenv-lock:/opt/app-root/src/Pipfile.lock py312-cuda128-torch280/
+podman cp pipenv-lock:/opt/app-root/src/Pipfile.lock py312-cuda130-torch210-openmpi41/
 
 # 5. Clean up
 podman stop pipenv-lock
@@ -92,8 +92,8 @@ grep -l "flash-attn" */Pipfile.lock
 ```
 
 Currently:
-- ✅ Has flash-attn: `py312-cuda128-torch280`, `py312-rocm64-torch280`
-- ❌ No flash-attn: Most py311 images, py312 torch 2.9+ images
+- ✅ Has flash-attn: `py312-cuda130-torch210-openmpi41`
+- Check `py312-rocm64-torch29-openmpi41` for ROCm variant
 
 ## Pre-built Image URLs
 
