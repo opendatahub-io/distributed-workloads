@@ -127,11 +127,9 @@ images/
 ├── model/
 │   └── bloom560m/                 BLOOM-560M model image
 ├── runtime/
-│   ├── training/                  Runtime training images (~10 variants)
-│   │   ├── py311-cuda121-torch241/
-│   │   ├── py311-cuda124-torch251/
-│   │   ├── ...
-│   │   └── py312-rocm64-torch290/
+│   ├── training/                  Runtime training images (Trainer v2)
+│   │   ├── py312-cuda130-torch210-openmpi41/
+│   │   └── py312-rocm64-torch29-openmpi41/
 │   ├── ray/                       Ray runtime images
 │   │   ├── cuda/                    CUDA variants
 │   │   └── rocm/                    ROCm variants
