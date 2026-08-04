@@ -109,9 +109,11 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 
 	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
 	regenerateResponses := "true"
+	datasetName := "yahma/alpaca-cleaned"
 	if s3Endpoint != "" {
 		regenerateResponses = "false"
-		t.Log("Disconnected environment detected (S3 configured): skipping response regeneration")
+		datasetName = fmt.Sprintf("pvc://%s/datasets/alpaca-cleaned", env.rwxPvc.Name)
+		t.Log("Disconnected environment detected (S3 configured): using PVC dataset, skipping response regeneration")
 	}
 
 	shellCmd := fmt.Sprintf(
@@ -123,7 +125,7 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 			"export VLLM_GPU_COUNT='%d'; "+
 			"export TRAIN_GPU_COUNT='%d'; "+
 			"export TEST_TYPE='extraction'; "+
-			"export DATASET_NAME='yahma/alpaca-cleaned'; "+
+			"export DATASET_NAME=%s; "+
 			"export OUTPUT_DIR='pvc://%s/speculator-output/extract'; "+
 			"export TRAIN_OUTPUT_DIR='pvc://%s/speculator-output/train'; "+
 			"export TARGET_LAYER_IDS='2,14,25,28'; "+
@@ -151,6 +153,7 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 		shellQuote(env.rwxPvc.Name),
 		vllmGpuCount,
 		trainGpuCount,
+		shellQuote(datasetName),
 		env.rwxPvc.Name,
 		env.rwxPvc.Name,
 		regenerateResponses,
@@ -544,15 +547,21 @@ func buildSpeculatorS3Exports(test Test) string {
 		modelS3Prefix = "models/Qwen3-1.7B"
 	}
 
+	datasetS3Prefix := os.Getenv("DATASET_S3_PREFIX")
+	if datasetS3Prefix == "" {
+		datasetS3Prefix = "alpaca-cleaned-datasets"
+	}
+
 	if s3Endpoint != "" && modelsBucket != "" {
 		return fmt.Sprintf(
 			"export AWS_DEFAULT_ENDPOINT=%s; "+
 				"export AWS_ACCESS_KEY_ID=%s; "+
 				"export AWS_SECRET_ACCESS_KEY=%s; "+
 				"export AWS_STORAGE_BUCKET=%s; "+
-				"export MODEL_S3_PREFIX=%s; ",
+				"export MODEL_S3_PREFIX=%s; "+
+				"export DATASET_S3_PREFIX=%s; ",
 			shellQuote(s3InternalEndpoint), shellQuote(s3AccessKey), shellQuote(s3SecretKey),
-			shellQuote(modelsBucket), shellQuote(modelS3Prefix),
+			shellQuote(modelsBucket), shellQuote(modelS3Prefix), shellQuote(datasetS3Prefix),
 		)
 	}
 
