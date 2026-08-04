@@ -109,11 +109,13 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 
 	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
 	regenerateResponses := "true"
-	datasetName := "yahma/alpaca-cleaned"
+	datasetName := "ultrachat"
+	verifierModel := "Qwen/Qwen3-0.6B"
 	if s3Endpoint != "" {
 		regenerateResponses = "false"
-		datasetName = fmt.Sprintf("pvc://%s/datasets/alpaca-cleaned", env.rwxPvc.Name)
-		t.Log("Disconnected environment detected (S3 configured): using PVC dataset, skipping response regeneration")
+		datasetName = fmt.Sprintf("pvc://%s/datasets/ultrachat.jsonl", env.rwxPvc.Name)
+		verifierModel = fmt.Sprintf("pvc://%s/models/Qwen3-0.6B", env.rwxPvc.Name)
+		t.Log("Disconnected environment detected (S3 configured): using PVC model and dataset, skipping response regeneration")
 	}
 
 	shellCmd := fmt.Sprintf(
@@ -126,6 +128,7 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 			"export TRAIN_GPU_COUNT='%d'; "+
 			"export TEST_TYPE='extraction'; "+
 			"export DATASET_NAME=%s; "+
+			"export VERIFIER_MODEL=%s; "+
 			"export OUTPUT_DIR='pvc://%s/speculator-output/extract'; "+
 			"export TRAIN_OUTPUT_DIR='pvc://%s/speculator-output/train'; "+
 			"export TARGET_LAYER_IDS='2,14,25,28'; "+
@@ -154,6 +157,7 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 		vllmGpuCount,
 		trainGpuCount,
 		shellQuote(datasetName),
+		shellQuote(verifierModel),
 		env.rwxPvc.Name,
 		env.rwxPvc.Name,
 		regenerateResponses,
@@ -537,12 +541,12 @@ func buildSpeculatorS3Exports(test Test) string {
 
 	modelS3Prefix := os.Getenv("MODEL_S3_PREFIX")
 	if modelS3Prefix == "" {
-		modelS3Prefix = "models/Qwen3-1.7B"
+		modelS3Prefix = "models/Qwen3-0.6B"
 	}
 
 	datasetS3Prefix := os.Getenv("DATASET_S3_PREFIX")
 	if datasetS3Prefix == "" {
-		datasetS3Prefix = "alpaca-cleaned-datasets"
+		datasetS3Prefix = "datasets/ultrachat.jsonl"
 	}
 
 	if s3Endpoint != "" && modelsBucket != "" {
