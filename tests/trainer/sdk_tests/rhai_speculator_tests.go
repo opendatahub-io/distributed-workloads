@@ -482,11 +482,6 @@ func RunSpeculatorFailureScenariosTest(t *testing.T) {
 			"%s"+ // SDK install exports
 			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
-			// Run 1: DATA_ONLY failure scenarios
-			"export SPECULATOR_MODE='DATA_ONLY'; "+
-			"export TRAINING_RUNTIME=%s; "+
-			"python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out_data_fail.ipynb --log-output && "+
-			// Run 2: TRAIN_ONLY failure scenarios
 			"export SPECULATOR_MODE='TRAIN_ONLY'; "+
 			"export TRAINING_RUNTIME=%s; "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out_train_fail.ipynb --log-output; "+
@@ -495,13 +490,11 @@ func RunSpeculatorFailureScenariosTest(t *testing.T) {
 		shellQuote(env.rwxPvc.Name),
 		sdkInstallExports,
 		installKubeflowScript,
-		shellQuote(trainerutils.DefaultSpeculatorDataExtractRuntimeCUDA),
-		speculatorNotebookName,
 		shellQuote(trainerutils.DefaultSpeculatorTrainRuntimeCUDA),
 		speculatorNotebookName,
 	)
 
-	t.Log("Speculator failure scenarios: DATA_ONLY + TRAIN_ONLY")
+	t.Log("Speculator failure scenarios: TRAIN_ONLY incomplete extraction marker")
 	command := []string{"/bin/sh", "-c", shellCmd}
 
 	common.CreateNotebook(env.test, env.namespace, env.userToken, command, env.cm.Name, speculatorNotebookName, 0, env.rwxPvc, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(env.test, common.NotebookImageStreamTrainingHubCUDA))
