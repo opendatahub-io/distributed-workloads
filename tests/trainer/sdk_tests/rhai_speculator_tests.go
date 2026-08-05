@@ -57,7 +57,7 @@ func setupSpeculatorTestEnv(t *testing.T, pvcSize string) speculatorTestEnv {
 	trainerutils.EnsureNotebookServiceAccount(t, test, namespace.Name)
 
 	userName := common.GetNotebookUserName(test)
-	userToken := common.GetNotebookUserToken(test)
+	userToken := common.GenerateNotebookUserToken(test)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
 	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
 
