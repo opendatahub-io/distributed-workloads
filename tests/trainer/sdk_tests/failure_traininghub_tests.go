@@ -110,7 +110,7 @@ func RunTrainingFailureScenariosTest(t *testing.T) {
 
 	// Poll logs — each scenario polls until the expected error appears in logs
 	// and failure is confirmed via get_job()/get_job_events(), typically ~1 minute each
-	err = trainerutils.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	err = support.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
 	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 }
 
@@ -205,6 +205,6 @@ func RunTorchrunTrainingFailureTest(t *testing.T) {
 	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
 
 	// Poll logs — use double timeout for model download + training attempt
-	err = trainerutils.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	err = support.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
 	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 }

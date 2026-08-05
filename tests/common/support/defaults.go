@@ -29,6 +29,9 @@ const (
 	TrainingRocmPyTorch251Image = "quay.io/rhoai/odh-training-rocm62-torch25-py311-rhel9:rhoai-3.4"
 	TrainingRocmPyTorch28Image  = "quay.io/rhoai/odh-training-rocm64-torch28-py312-rhel9:rhoai-3.4"
 
+	// quay.io/modh/ray:2.55.1-py312-cu129-th081
+	RayTrainingHubCudaImage = "quay.io/modh/ray@sha256:f63a015302758f805e5332605669b886e4d7ac60ec929413a2ffc19a904211c6"
+
 	// Operator RELATED_IMAGE env var names for training images
 	RelatedImageTrainingCudaPyTorch241 = "RELATED_IMAGE_ODH_TRAINING_CUDA121_TORCH24_PY311_IMAGE"
 	RelatedImageTrainingCudaPyTorch251 = "RELATED_IMAGE_ODH_TRAINING_CUDA124_TORCH25_PY311_IMAGE"

@@ -29,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	jobsetv1alpha2 "sigs.k8s.io/jobset/api/jobset/v1alpha2"
-	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
+	"sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -107,18 +107,18 @@ func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, clusterRun
 	config := CreateConfigMap(test, namespace, files)
 
 	// Create Kueue resources
-	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
-	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+	resourceFlavor := CreateKueueResourceFlavor(test, v1beta2.ResourceFlavorSpec{})
+	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 
-	cqSpec := v1beta1.ClusterQueueSpec{
+	cqSpec := v1beta2.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{},
-		ResourceGroups: []v1beta1.ResourceGroup{
+		ResourceGroups: []v1beta2.ResourceGroup{
 			{
 				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory")},
-				Flavors: []v1beta1.FlavorQuotas{
+				Flavors: []v1beta2.FlavorQuotas{
 					{
-						Name: v1beta1.ResourceFlavorReference(resourceFlavor.Name),
-						Resources: []v1beta1.ResourceQuota{
+						Name: v1beta2.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []v1beta2.ResourceQuota{
 							{
 								Name:         corev1.ResourceCPU,
 								NominalQuota: resource.MustParse("10"),
@@ -142,7 +142,7 @@ func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, clusterRun
 		)
 		cqSpec.ResourceGroups[0].Flavors[0].Resources = append(
 			cqSpec.ResourceGroups[0].Flavors[0].Resources,
-			v1beta1.ResourceQuota{
+			v1beta2.ResourceQuota{
 				Name:         corev1.ResourceName(accelerator.ResourceLabel),
 				NominalQuota: resource.MustParse(fmt.Sprint(numGpus)),
 			},
@@ -150,7 +150,7 @@ func runPyTorchDDPMultiNodeJob(t *testing.T, accelerator Accelerator, clusterRun
 	}
 
 	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
-	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name, AsDefaultQueue)
 
 	// Create TrainingRuntime with dataset-initializer
@@ -252,7 +252,7 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 														while IFS= read -r line || [[ -n "$line" ]]; do
 															# Skip empty lines, comments, and pip options (like --extra-index-url)
 															[[ -z "$line" || "$line" =~ ^[[:space:]]*# || "$line" =~ ^-- ]] && continue
-															
+
 															# Check if line has "# no-deps" marker
 															if [[ "$line" =~ "# no-deps" ]]; then
 																pkg=$(echo "$line" | sed 's/[[:space:]]*#.*//')
@@ -265,7 +265,7 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 																pip install --no-cache-dir $EXTRA_INDEX "$pkg" --target=${LOCAL_LIB} --verbose
 															fi
 														done < /mnt/scripts/requirements.txt
-														
+
 														echo ""
 														echo "Copying installed packages to ${LIB_PATH}..."
 														cp -r ${LOCAL_LIB}/* ${LIB_PATH}/
@@ -378,7 +378,7 @@ func createFashionMNISTTrainingRuntime(test Test, namespace, configMapName, pvcN
 														echo " Using dependencies from shared volume: ${LIB_PATH}"
 														echo ""
 
-														# Set Python path for dependencies 
+														# Set Python path for dependencies
 														export PYTHONPATH=${LIB_PATH}:$PYTHONPATH
 
 															echo "==================== Starting Distributed Training ===================="

@@ -67,6 +67,29 @@ build-osu-benchmark-cuda-image:
 push-osu-benchmark-cuda-image:
 	podman push "${OSU_BENCHMARK_CUDA_IMAGE}"
 
+.PHONY: unit-test
+unit-test: ## Run unit tests for support packages.
+	go test ./tests/common/support/...
+GOLANGCI_LINT_VERSION ?= v2.12.1
+LINT_PKG ?= ./...
+GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
+
+.PHONY: golangci-lint-install
+golangci-lint-install: $(LOCALBIN) ## Download golangci-lint locally.
+	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+
+.PHONY: golangci-lint
+golangci-lint: golangci-lint-install ## Run golangci-lint on the codebase.
+	$(GOLANGCI_LINT) run --timeout 5m $(LINT_PKG)
+
 .PHONY: precommit
 precommit:
 	pre-commit run --all-files
+
+.PHONY: sync-agents-config
+sync-agents-config: ## Sync AI agent skills and rules from ai/ to .claude/ and .cursor/
+	@uv run ./hack/sync_agents_config.py
+
+.PHONY: verify-agents-config
+verify-agents-config: ## Verify AI agent config is in sync with ai/
+	@./hack/verify-agents-config.sh

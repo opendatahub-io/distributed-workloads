@@ -2,6 +2,8 @@
 
 E2E test suite for distributed workloads on RHOAI covering KFTO v1, Trainer v2, and KubeRay, plus training examples and runtime/test images. Built with Go, Python, Kubernetes, Ray, PyTorch.
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full repository structure including test suites, images, benchmarks, and examples.
+
 ## Structure
 
 - `tests/` - E2E test suites (Go)
@@ -40,94 +42,56 @@ go test -run TestRhaiS3FsdpSharedStateCheckpointingCuda -v -timeout 60m ./tests/
 
 See the [Common environment variables](README.md#common-environment-variables) section in `README.md` for the full env var reference.
 
+## Lint/format & pre-commit
+
+```bash
+make golangci-lint                                # Run golangci-lint project-wide
+go vet ./...                                      # Vet all Go code
+make verify-imports                               # Verify import ordering
+make precommit                                    # Run all pre-commit hooks
+```
+
+### Targeted lint/format
+
+```bash
+make golangci-lint LINT_PKG=./path/to/package/...    # Lint a single Go package
+go vet ./path/to/package/...                         # Vet a single Go package
+gofmt -w path/to/file.go                             # Format a single Go file
+pre-commit run --files path/to/file.py               # Run all hooks on a single file
+```
+
 ## Writing Tests
 
-### Namespace isolation
+See [`.claude/skills/add-e2e-test/SKILL.md`](.claude/skills/add-e2e-test/SKILL.md) for the full guide on writing E2E tests (namespace isolation, resource naming, cleanup, tags, notebook editing, environment variables).
 
-Every test must operate in its own dedicated namespace. Use `test.NewTestNamespace()` — it creates a uniquely named namespace and registers automatic cleanup (log collection + deletion) via `t.Cleanup`:
+## Benchmarks
 
-```go
-namespace := test.NewTestNamespace().Name
-```
+See [`.claude/skills/add-benchmark/SKILL.md`](.claude/skills/add-benchmark/SKILL.md) for the guide on adding new benchmarks (Dockerfile, ClusterTrainingRuntime, TrainJob, CI workflow).
 
-Never use a fixed namespace name unless driven by an env var for a specific scenario (e.g., pre-upgrade/post-upgrade tests). Shared namespaces cause interference between tests.
+## Support Library
 
-### Resource naming
+See [`.claude/skills/update-support-lib/SKILL.md`](.claude/skills/update-support-lib/SKILL.md) for the guide on modifying the shared test support library (getters, condition checkers, client abstraction, option pattern).
 
-All Kubernetes resources must use `GenerateName` instead of a fixed `Name` to avoid collisions:
+## Common Workflows
 
-```go
-// Good
-ObjectMeta: metav1.ObjectMeta{GenerateName: "test-trainjob-"}
+The most frequent tasks in this repo, based on commit history:
 
-// Bad
-ObjectMeta: metav1.ObjectMeta{Name: "my-trainjob"}
-```
+- **CVE-driven Python dependency updates** -- updating a single dependency across training image variants (see CVE Fixes below)
+- **Adding E2E tests** -- see [Writing Tests](#writing-tests)
+- **Adding benchmarks** -- see [Benchmarks](#benchmarks)
+- **Updating the support library** -- see [Support Library](#support-library)
 
-### Cleanup
+Commit message format for JIRA-tracked work: `RHOAIENG-NNNNN: <description> in <image-variant-name>`
 
-Namespace-scoped resources are deleted automatically when the test namespace is cleaned up. Cluster-scoped resources (e.g., `ClusterRole`, `ClusterRoleBinding`) are not namespace-bound and may need to be explicitly cleaned up if the helper creating them does not already register a cleanup hook via `t.T().Cleanup(...)`.
+## CVE Fixes -- Python dependency updates
 
-### Test structure
+Two image families with different dependency management:
 
-```go
-func TestMyFeature(t *testing.T) {
-    Tags(t, Tier1)         // 1. tag / skip checks
-    test := With(t)        // 2. create test context
+- **Runtime training images** (`images/runtime/training/`) use `Pipfile`/`Pipfile.lock` (pipenv) and pull from public PyPI. See [images/runtime/training/README.md](images/runtime/training/README.md).
+- **Universal training images** (`images/universal/training/`) use `pyproject.toml`/`requirements.txt` (pip) and pull from a **private AIPCC PyPI index** -- always query the index for available versions before pinning. See [images/universal/training/README.md](images/universal/training/README.md#cve-fixes--python-dependency-updates).
 
-    namespace := test.NewTestNamespace().Name  // 3. isolated namespace
+Each image variant is updated independently with its own commit.
 
-    // 4. create resources with GenerateName
-    // 5. ensure cleanup of cluster-scoped resources
-    // 6. assert with test.Eventually(...)
-}
-```
+## AI Agent Skills and Rules
 
-### Editing notebooks
-
-Test notebooks (`tests/**/resources/*.ipynb`) use 1-space JSON indentation with no trailing newline. When editing notebook cells, preserve the array-of-lines source format — do not collapse source arrays into single strings:
-
-```json
-// Good — array of lines, readable in raw JSON
-"source": [
- "import os\n",
- "print('hello')"
-]
-
-// Bad — single string, hard to read in raw JSON
-"source": "import os\nprint('hello')"
-```
-
-If a tool (e.g. `NotebookEdit`) converts the edited cell's source to a single string, convert it back to array-of-lines before committing. You can use a Python script:
-
-```python
-import json
-with open(path, encoding="utf-8") as f:
-    nb = json.load(f)
-for cell in nb["cells"]:
-    if isinstance(cell["source"], str):
-        cell["source"] = cell["source"].splitlines(True)
-        # Ensure last line has no trailing newline (notebook convention)
-        if cell["source"] and cell["source"][-1].endswith("\n"):
-            cell["source"][-1] = cell["source"][-1][:-1]
-with open(path, "w", encoding="utf-8") as f:
-    json.dump(nb, f, indent=1, ensure_ascii=False)
-```
-
-### Environment variables
-
-Declare env var constants and getter functions in `tests/common/support/environment.go`. Never use `os.Getenv` directly in test files — always go through a getter.
-
-### Tags
-
-Tests in `tests/trainer/` **must** declare a tag — this is mandatory. Apply it as the first statement so tests are skipped early when `TEST_TIER` is set:
-
-| Tag | When to use |
-|-----|-------------|
-| `Smoke` | Minimal deployment verification |
-| `Tier1`–`Tier3` | Progressively deeper coverage |
-| `Gpu(accelerator)` | Requires at least one GPU node |
-| `MultiGpu(accelerator, n)` | Requires n GPUs per node |
-| `MultiNode(n)` | Requires n worker nodes |
-| `MultiNodeGpu(n, accelerator)` | Requires n nodes each with at least one GPU |
-| `MultiNodeMultiGpu(n, accelerator, gpus)` | Requires n nodes each with at least gpus GPUs |
+`ai/` is the canonical source for AI agent skills (`ai/skills/`) and rules (`ai/rules/`). Each skill or rule holds a markdown body plus a `metadata.json` with agent-specific fields. Run `make sync-agents-config` after editing any of them to regenerate `.claude/` and `.cursor/`. The sync script declares its dependencies inline (PEP 723) and runs through [uv](https://docs.astral.sh/uv/), so `uv` must be installed.

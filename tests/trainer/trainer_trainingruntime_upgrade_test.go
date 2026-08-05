@@ -35,6 +35,9 @@ import (
 var (
 	runtimeNamespaceName = "test-trainer-upgrade-runtime"
 	customRuntimeName    = "custom-sleep-runtime"
+	runtimeConfigMapName = "runtime-upgrade-baseline"
+	runtimeGenerationKey = "runtime-generation"
+	runtimeSpecKey       = "runtime-spec"
 )
 
 func TestSetupTrainingRuntime(t *testing.T) {
@@ -53,6 +56,11 @@ func TestSetupTrainingRuntime(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred())
 	test.Expect(runtime.Name).To(Equal(customRuntimeName))
 	test.T().Logf("Custom TrainingRuntime %s/%s created successfully", runtimeNamespaceName, customRuntimeName)
+
+	// Store baseline for post-upgrade verification
+	data := map[string]string{}
+	addResourceBaseline(test, data, runtimeGenerationKey, runtimeSpecKey, runtime.Generation, runtime.Spec)
+	storeUpgradeBaseline(test, runtimeNamespaceName, runtimeConfigMapName, data)
 }
 
 func TestVerifyTrainingRuntime(t *testing.T) {
@@ -75,6 +83,18 @@ func TestVerifyTrainingRuntime(t *testing.T) {
 	test.Expect(runtimeNames).To(ContainElement(customRuntimeName),
 		"Custom TrainingRuntime should exist after upgrade. Found runtimes: %v", runtimeNames)
 	test.T().Logf("TrainingRuntime %s/%s is preserved after upgrade", runtimeNamespaceName, customRuntimeName)
+
+	// Check spec integrity across upgrade
+	runtime, err := test.Client().Trainer().TrainerV1alpha1().TrainingRuntimes(runtimeNamespaceName).Get(
+		test.Ctx(), customRuntimeName, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+
+	configMap, err := test.Client().Core().CoreV1().ConfigMaps(runtimeNamespaceName).Get(
+		test.Ctx(), runtimeConfigMapName, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred(), "Baseline ConfigMap should exist")
+
+	verifySpecIntegrity(test, "TrainingRuntime", runtime.Generation, runtime.Spec,
+		configMap, runtimeGenerationKey, runtimeSpecKey)
 }
 
 func createCustomTrainingRuntime(test Test, namespace string) *trainerv1alpha1.TrainingRuntime {

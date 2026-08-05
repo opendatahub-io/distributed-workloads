@@ -1,0 +1,6 @@
+{
+  "description": "General test conventions",
+  "globs": [
+    "tests/**"
+  ]
+}

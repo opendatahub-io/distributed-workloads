@@ -27,7 +27,9 @@ import (
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -45,6 +47,41 @@ func rayFinetuneLlmDeepspeed(t *testing.T, numGpus int, modelName string, modelC
 
 	// Create a namespace
 	namespace := test.NewTestNamespace(WithKueueManaged())
+
+	// Create Kueue resources
+	resourceFlavor := CreateKueueResourceFlavor(test, v1beta2.ResourceFlavorSpec{})
+	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+	cqSpec := v1beta2.ClusterQueueSpec{
+		NamespaceSelector: &metav1.LabelSelector{},
+		ResourceGroups: []v1beta2.ResourceGroup{
+			{
+				CoveredResources: []corev1.ResourceName{corev1.ResourceCPU, corev1.ResourceMemory, corev1.ResourceName("nvidia.com/gpu")},
+				Flavors: []v1beta2.FlavorQuotas{
+					{
+						Name: v1beta2.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []v1beta2.ResourceQuota{
+							{
+								Name:         corev1.ResourceCPU,
+								NominalQuota: resource.MustParse("16"),
+							},
+							{
+								Name:         corev1.ResourceMemory,
+								NominalQuota: resource.MustParse("256Gi"),
+							},
+							{
+								Name:         corev1.ResourceName("nvidia.com/gpu"),
+								NominalQuota: resource.MustParse(fmt.Sprint(numGpus)),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
+	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
+
 	var workingDirectory, err = os.Getwd()
 	test.Expect(err).ToNot(HaveOccurred())
 

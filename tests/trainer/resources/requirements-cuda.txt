@@ -1,7 +1,2 @@
 # Install only packages which are not present in base image
-# Use "# no-deps" marker for packages that should be installed without dependencies
---extra-index-url https://download.pytorch.org/whl/cu130
-
 minio==7.2.20
-torchvision==0.25.0+cu130  # no-deps
-pillow==11.0.0  # no-deps

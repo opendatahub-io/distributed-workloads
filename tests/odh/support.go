@@ -22,7 +22,6 @@ import (
 	"os"
 	"time"
 
-	gonanoid "github.com/matoous/go-nanoid/v2"
 	gomega "github.com/onsi/gomega"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
@@ -232,12 +231,6 @@ func ensureNotebookServiceAccount(test support.Test, namespace string) {
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		test.T().Fatalf("Failed to create ServiceAccount %s/%s: %v", namespace, saName, err)
 	}
-}
-
-// Adds a unique suffix to the provided string
-func uniqueSuffix(prefix string) string {
-	suffix := gonanoid.MustGenerate("1234567890abcdef", 4)
-	return prefix + "-" + suffix
 }
 
 // TryMonitorRayJob attempts to monitor the Ray job via the external dashboard.

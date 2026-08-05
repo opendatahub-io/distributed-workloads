@@ -1,5 +1,5 @@
 # Use the official Go image as a base image
-FROM golang:1.24
+FROM golang:1.25
 
 ENV KUBECONFIG=/distributed-workloads/tests/.kube/config
 

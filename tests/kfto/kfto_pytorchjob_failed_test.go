@@ -9,7 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
+	"sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -48,17 +48,17 @@ func runFailedPyTorchJobTest(test Test, image string) {
 	test.T().Logf("Created Kueue-managed namespace: %s", namespace.Name)
 
 	// Create Kueue resources
-	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
-	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
-	cqSpec := v1beta1.ClusterQueueSpec{
+	resourceFlavor := CreateKueueResourceFlavor(test, v1beta2.ResourceFlavorSpec{})
+	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+	cqSpec := v1beta2.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{},
-		ResourceGroups: []v1beta1.ResourceGroup{
+		ResourceGroups: []v1beta2.ResourceGroup{
 			{
 				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory")},
-				Flavors: []v1beta1.FlavorQuotas{
+				Flavors: []v1beta2.FlavorQuotas{
 					{
-						Name: v1beta1.ResourceFlavorReference(resourceFlavor.Name),
-						Resources: []v1beta1.ResourceQuota{
+						Name: v1beta2.ResourceFlavorReference(resourceFlavor.Name),
+						Resources: []v1beta2.ResourceQuota{
 							{
 								Name:         corev1.ResourceCPU,
 								NominalQuota: resource.MustParse("8"),
@@ -75,7 +75,7 @@ func runFailedPyTorchJobTest(test Test, image string) {
 	}
 
 	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
-	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Create training PyTorch job
@@ -86,7 +86,7 @@ func runFailedPyTorchJobTest(test Test, image string) {
 		Should(WithTransform(PyTorchJobConditionFailed, Equal(corev1.ConditionTrue)))
 }
 
-func createFailedPyTorchJob(test Test, namespace string, baseImage string, localQueue *v1beta1.LocalQueue) *kftov1.PyTorchJob {
+func createFailedPyTorchJob(test Test, namespace string, baseImage string, localQueue *v1beta2.LocalQueue) *kftov1.PyTorchJob {
 	tuningJob := &kftov1.PyTorchJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),

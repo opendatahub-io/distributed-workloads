@@ -329,7 +329,7 @@ func SetupComponent(dscName, component, desiredState string) error {
 	}
 
 	fmt.Printf("Setup: Setting %s managementState to %s in DataScienceCluster...\n", component, desiredState)
-	err = SetComponentStateAndWait(dynamicClient, context.Background(), dscName, component, desiredState, 2*time.Minute)
+	err = SetComponentStateAndWait(dynamicClient, context.Background(), dscName, component, desiredState, 10*time.Minute)
 	if err != nil {
 		return err
 	}
@@ -345,7 +345,7 @@ func TearDownComponent(dscName, component string) error {
 	}
 
 	fmt.Printf("TearDown: Setting %s managementState to Removed in DataScienceCluster...\n", component)
-	err = SetComponentStateAndWait(dynamicClient, context.Background(), dscName, component, StateRemoved, 2*time.Minute)
+	err = SetComponentStateAndWait(dynamicClient, context.Background(), dscName, component, StateRemoved, 10*time.Minute)
 	if err != nil {
 		return fmt.Errorf("TearDown: failed to set %s to Removed: %w", component, err)
 	}

@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT\" == *\".go\"* ]]; then ./bin/openshift-goimports 2>/dev/null; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

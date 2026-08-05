@@ -85,6 +85,11 @@ PRESETS: Dict[str, Dict[str, List[str]]] = {
         "datasets": ["b-mc2/sql-create-context:txt-sql-data"],
         "description": "LoRA Training test - Qwen model + Unsloth 4-bit variant + sql-create-context dataset",
     },
+    "grpo-ray": {
+        "models": ["Qwen/Qwen2.5-1.5B-Instruct:models/Qwen2.5-1.5B-Instruct"],
+        "datasets": ["Agent-Ark/Toucan-1.5M:grpo-dataset"],
+        "description": "GRPO Ray E2E test - Qwen model + Toucan-1.5M dataset subset for GRPO on Ray",
+    },
     "all": {
         "models": [
             "distilgpt2:models/distilgpt2",
@@ -95,8 +100,9 @@ PRESETS: Dict[str, Dict[str, List[str]]] = {
             "yahma/alpaca-cleaned:alpaca-cleaned-datasets",
             "LipengCS/Table-GPT:table-gpt-data",
             "b-mc2/sql-create-context:txt-sql-data",
+            "Agent-Ark/Toucan-1.5M:grpo-dataset",
         ],
-        "description": "All models and datasets for trainer tests",
+        "description": "All models and datasets for trainer and Ray tests",
     },
 }
 

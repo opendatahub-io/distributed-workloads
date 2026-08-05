@@ -1,0 +1,6 @@
+{
+  "description": "Trainer test suite conventions",
+  "globs": [
+    "tests/trainer/**"
+  ]
+}

@@ -1,0 +1,168 @@
+name: Universal Image Lockfile Refresh
+
+on:
+  schedule:
+    # Daily 6:00 UTC (morning CET/CEST)
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: universal-lockfile-refresh-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh-lockfiles:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      IMAGES_DIR: images/universal/training
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        run: pip install uv==0.7.14
+
+      - name: Refresh lockfiles
+        run: |
+          set -euo pipefail
+
+          changed=0
+
+          for dir in "$IMAGES_DIR"/th*/; do
+            [ -f "$dir/pyproject.toml" ] || continue
+            [ -f "$dir/requirements.txt" ] || continue
+
+            dir="${dir%/}"
+            flavor=$(basename "$dir")
+            echo "::group::$flavor — compile requirements.txt"
+
+            index_url_line=$(head -1 "$dir/requirements.txt")
+            index_url="${index_url_line#--index-url=}"
+
+            py_raw=$(echo "$flavor" | grep -oP 'py\K\d+')
+            py_version="${py_raw:0:1}.${py_raw:1}"
+
+            # Run from inside the directory so uv comments match the original format
+            (cd "$dir" && uv pip compile \
+              --upgrade \
+              --python-platform=linux \
+              "--python-version=$py_version" \
+              --index-strategy=unsafe-best-match \
+              "--index-url=$index_url" \
+              -o requirements.txt \
+              pyproject.toml)
+
+            # Restore --index-url first line (uv pip compile does not emit it)
+            if ! head -1 "$dir/requirements.txt" | grep -q "^--index-url="; then
+              sed -i "1i\\$index_url_line" "$dir/requirements.txt"
+            fi
+
+            if git diff --quiet -- "$dir/"; then
+              echo "No changes for $flavor"
+            else
+              echo "Changes detected for $flavor"
+              changed=1
+            fi
+
+            echo "::endgroup::"
+          done
+
+          echo "changed=$changed" >> "$GITHUB_ENV"
+
+      - name: Check for substantive changes
+        if: env.changed == '1'
+        id: check_changes
+        run: |
+          git add "$IMAGES_DIR"/th*/requirements.txt
+
+          if git diff --cached --quiet -I '^#'; then
+            echo "Only comment changes detected, skipping"
+            echo "substantive=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "substantive=true" >> "$GITHUB_OUTPUT"
+          fi
+          git reset HEAD
+
+      - name: Check for existing lockfile PR
+        if: env.changed == '1' && steps.check_changes.outputs.substantive == 'true'
+        id: check_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LABEL="automated-lockfile-update"
+          PR_LIST=$(gh pr list --label "$LABEL" --state open --json number,headRefName)
+
+          if [ "$PR_LIST" = "[]" ]; then
+            echo "pr_exists=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PR_NUMBER=$(echo "$PR_LIST" | jq -r '.[0].number')
+          PR_BRANCH=$(echo "$PR_LIST" | jq -r '.[0].headRefName')
+          echo "Found existing PR #${PR_NUMBER} on branch ${PR_BRANCH}"
+
+          # Check if the existing PR already has the same changes
+          git fetch origin "$PR_BRANCH"
+          git add "$IMAGES_DIR"/th*/requirements.txt
+          if git diff --cached --quiet "origin/$PR_BRANCH"; then
+            echo "Existing PR already contains the same changes, skipping"
+            echo "pr_exists=true" >> "$GITHUB_OUTPUT"
+            echo "pr_current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Existing PR is outdated, will replace"
+            echo "pr_exists=true" >> "$GITHUB_OUTPUT"
+            echo "pr_current=false" >> "$GITHUB_OUTPUT"
+            echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "pr_branch=${PR_BRANCH}" >> "$GITHUB_OUTPUT"
+          fi
+          git reset HEAD
+
+      - name: Close outdated PR
+        if: env.changed == '1' && steps.check_changes.outputs.substantive == 'true' && steps.check_pr.outputs.pr_exists == 'true' && steps.check_pr.outputs.pr_current == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.check_pr.outputs.pr_number }}
+          PR_BRANCH: ${{ steps.check_pr.outputs.pr_branch }}
+        run: |
+          echo "Closing outdated PR #${PR_NUMBER}"
+          gh pr close "$PR_NUMBER" --comment "Superseded by a newer lockfile refresh run."
+
+          if [[ "$PR_BRANCH" =~ ^universal-lockfile-update- ]]; then
+            git push origin --delete "$PR_BRANCH" || true
+          fi
+
+      - name: Create pull request
+        if: env.changed == '1' && steps.check_changes.outputs.substantive == 'true' && steps.check_pr.outputs.pr_current != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          branch="universal-lockfile-update-$(date -u +%Y%m%d-%H%M)"
+          git checkout -b "$branch"
+          git add "$IMAGES_DIR"/th*/requirements.txt
+
+          git commit -m "chore: refresh universal image lockfiles"
+          git push origin "$branch"
+
+          gh pr create \
+            --title "chore: refresh universal image lockfiles" \
+            --label "automated-lockfile-update" \
+            --body "$(cat <<'EOF'
+          Regenerated `requirements.txt` for universal training images using
+          `uv pip compile --upgrade` against the AIPCC index.
+          No `pyproject.toml` constraint changes.
+
+          > Created automatically by the daily lockfile refresh workflow.
+          > Review the diff to verify no unexpected version changes were introduced.
+          EOF
+          )"

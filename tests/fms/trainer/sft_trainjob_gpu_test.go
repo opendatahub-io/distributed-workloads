@@ -35,7 +35,6 @@ import (
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 	"github.com/opendatahub-io/distributed-workloads/tests/fms"
-	"github.com/opendatahub-io/distributed-workloads/tests/kfto"
 )
 
 func TestMultiGpuTrainJobAllamBeta13bChatGptq(t *testing.T) {
@@ -406,7 +405,7 @@ func createMultiGpuTrainingRuntime(test Test, namespace string, numberOfGpus int
 											InitContainers: []corev1.Container{
 												{
 													Name:            "copy-dataset",
-													Image:           kfto.GetAlpacaDatasetImage(),
+													Image:           GetAlpacaDatasetImage(),
 													ImagePullPolicy: corev1.PullIfNotPresent,
 													VolumeMounts: []corev1.VolumeMount{
 														{

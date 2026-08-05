@@ -34,6 +34,8 @@ const (
 	TestTrainingRocmPyTorch251Image = "TEST_TRAINING_ROCM_PYTORCH_251_IMAGE"
 	TestTrainingRocmPyTorch28Image  = "TEST_TRAINING_ROCM_PYTORCH_28_IMAGE"
 
+	TestRayTrainingHubImage = "TEST_RAY_TRAINING_HUB_IMAGE"
+
 	// The testing output directory, to write output files into.
 	TestOutputDir = "TEST_OUTPUT_DIR"
 
@@ -51,16 +53,18 @@ const (
 	pipTrustedHost = "PIP_TRUSTED_HOST"
 
 	// Storage bucket credentials
-	storageDefaultEndpoint       = "AWS_DEFAULT_ENDPOINT"
-	storageDefaultRegion         = "AWS_DEFAULT_REGION"
-	storageAccessKeyId           = "AWS_ACCESS_KEY_ID"
-	storageSecretKey             = "AWS_SECRET_ACCESS_KEY"
-	storageBucketName            = "AWS_STORAGE_BUCKET"
-	storageBucketMnistDir        = "AWS_STORAGE_BUCKET_MNIST_DIR"
-	storageBucketFashionMnistDir = "AWS_STORAGE_BUCKET_FASHION_MNIST_DIR"
-	storageBucketOsftDir         = "AWS_STORAGE_BUCKET_OSFT_DIR"
-	storageBucketSftDir          = "AWS_STORAGE_BUCKET_SFT_DIR"
-	storageBucketLoraDir         = "AWS_STORAGE_BUCKET_LORA_DIR"
+	storageDefaultEndpoint         = "AWS_DEFAULT_ENDPOINT"
+	storageDefaultRegion           = "AWS_DEFAULT_REGION"
+	storageAccessKeyId             = "AWS_ACCESS_KEY_ID"
+	storageSecretKey               = "AWS_SECRET_ACCESS_KEY"
+	storageBucketName              = "AWS_STORAGE_BUCKET"
+	storageBucketMnistDir          = "AWS_STORAGE_BUCKET_MNIST_DIR"
+	storageBucketFashionMnistDir   = "AWS_STORAGE_BUCKET_FASHION_MNIST_DIR"
+	storageBucketOsftDir           = "AWS_STORAGE_BUCKET_OSFT_DIR"
+	storageBucketSftDir            = "AWS_STORAGE_BUCKET_SFT_DIR"
+	storageBucketLoraDir           = "AWS_STORAGE_BUCKET_LORA_DIR"
+	storageBucketRayTrainingHubDir = "AWS_STORAGE_BUCKET_RAY_TRAINING_HUB_DIR"
+	storageBucketGrpoDir           = "AWS_STORAGE_BUCKET_GRPO_DIR"
 
 	// Name of existing namespace to be used for test
 	testNamespaceNameEnvVar = "TEST_NAMESPACE_NAME"
@@ -68,6 +72,11 @@ const (
 	// Name of the image that triggered the Konflux ITS pipeline run, used to
 	// filter which ClusterTrainingRuntimes are exercised in e2e tests.
 	TriggerImageName = "TRIGGER_IMAGE_NAME"
+
+	// The environment variable referring to image containing bloom-560m model
+	bloomModelImageEnvVar = "BLOOM_MODEL_IMAGE"
+	// The environment variable referring to image containing Stanford Alpaca dataset
+	alpacaDatasetImageEnvVar = "ALPACA_DATASET_IMAGE"
 )
 
 type ClusterType string
@@ -139,6 +148,10 @@ func lookupTrainingImage(test Test, envVar, relatedImageEnvVar, defaultImage str
 	}
 	test.T().Logf("Operator RELATED_IMAGE %s not found, using default: %s", relatedImageEnvVar, defaultImage)
 	return defaultImage
+}
+
+func GetRayTrainingHubImage() string {
+	return lookupEnvOrDefault(TestRayTrainingHubImage, RayTrainingHubCudaImage)
 }
 
 func GetClusterType(t Test) ClusterType {
@@ -224,6 +237,16 @@ func GetStorageBucketSftDir() (string, bool) {
 	return storage_bucket_sft_dir, exists
 }
 
+func GetStorageBucketRayTrainingHubDir() (string, bool) {
+	dir, exists := os.LookupEnv(storageBucketRayTrainingHubDir)
+	return dir, exists
+}
+
+func GetStorageBucketGrpoDir() (string, bool) {
+	storage_bucket_grpo_dir, exists := os.LookupEnv(storageBucketGrpoDir)
+	return storage_bucket_grpo_dir, exists
+}
+
 func GetPipIndexURL() string {
 	return lookupEnvOrDefault(pipIndexURL, "https://pypi.python.org/simple")
 }
@@ -238,6 +261,14 @@ func GetTestNamespaceName() (string, bool) {
 
 func GetTriggerImageName() (string, bool) {
 	return os.LookupEnv(TriggerImageName)
+}
+
+func GetBloomModelImage() string {
+	return lookupEnvOrDefault(bloomModelImageEnvVar, "quay.io/ksuta/bloom-560m@sha256:f6db02bb7b5d09a8d698c04994d747bfb9e581bbb4c07d00290244d207623733")
+}
+
+func GetAlpacaDatasetImage() string {
+	return lookupEnvOrDefault(alpacaDatasetImageEnvVar, "quay.io/ksuta/alpaca-dataset@sha256:2e90f631180c7b2c916f9569b914b336b612e8ae86efad82546adc5c9fcbbb8d")
 }
 
 func lookupEnvOrDefault(key, value string) string {

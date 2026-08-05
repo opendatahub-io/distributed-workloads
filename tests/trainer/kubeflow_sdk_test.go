@@ -36,6 +36,14 @@ func TestKubeflowSdkKueueIntegration(t *testing.T) {
 	sdktests.RunFashionMnistKueueCpuDistributedTraining(t)
 }
 
+func TestKubeflowSdkOpenMPICudaKueueIntegration(t *testing.T) {
+	t.Skip("Skip due to issue RHOAIENG-61966")
+	Tags(t, KftoCuda, MultiNodeGpu(2, support.NVIDIA))
+	test := support.With(t)
+	support.SetupKueue(test, initialKueueState, support.TrainJobFramework)
+	sdktests.RunOpenMPICudaKueueDistributedTraining(t, support.NVIDIA)
+}
+
 // Single-node, single-GPU tests (1 node, 1 GPU)
 
 // TestSftTrainingHubSingleNodeSingleGPU tests SFT training on a single node with a single GPU
@@ -54,6 +62,12 @@ func TestOsftTrainingHubSingleNodeSingleGPU(t *testing.T) {
 func TestLoraTrainingHubSingleNodeSingleGPU(t *testing.T) {
 	Tags(t, KftoCuda, Gpu(support.NVIDIA))
 	sdktests.RunLoraTrainingHubMultiGpuDistributedTraining(t, 1)
+}
+
+// TestGrpoTrainingHubSingleNodeSingleGPU tests GRPO (RL) training on a single node with a single GPU
+func TestGrpoTrainingHubSingleNodeSingleGPU(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunGrpoTrainingHubTraining(t, 1)
 }
 
 // Multi-node, multi-GPU tests (2 nodes, 1 GPU each)

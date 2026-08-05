@@ -20,7 +20,6 @@ import (
 	"embed"
 	"time"
 
-	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
 	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -75,10 +74,4 @@ func withEnvVarName(name string) compare[corev1.EnvVar] {
 	return func(e1, e2 corev1.EnvVar) bool {
 		return e1.Name == name
 	}
-}
-
-// Adds a unique suffix to the provided string
-func uniqueSuffix(prefix string) string {
-	suffix := gonanoid.MustGenerate("1234567890abcdef", 4)
-	return prefix + "-" + suffix
 }

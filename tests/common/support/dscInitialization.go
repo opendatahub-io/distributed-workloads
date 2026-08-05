@@ -47,6 +47,24 @@ func GetApplicationsNamespace(test Test) (string, error) {
 	return GetApplicationsNamespaceFromDSCI(test, DefaultDSCIName)
 }
 
+func GetRHOAIVersionFromDSCI(test Test) string {
+	dsci, err := GetDSCI(test, DefaultDSCIName)
+	if err != nil {
+		test.T().Logf("Failed to get DSCI for version: %v", err)
+		return ""
+	}
+	version, found, err := unstructured.NestedString(dsci.Object, "status", "release", "version")
+	if err != nil {
+		test.T().Logf("Failed to read status.release.version from DSCI %s: %v", DefaultDSCIName, err)
+		return ""
+	}
+	if !found {
+		test.T().Logf("DSCI %s is missing status.release.version", DefaultDSCIName)
+		return ""
+	}
+	return version
+}
+
 func GetApplicationsNamespaceFromDSCI(test Test, dsciName string) (string, error) {
 	dsci, err := GetDSCI(test, dsciName)
 	if err != nil {

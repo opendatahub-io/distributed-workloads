@@ -17,6 +17,8 @@ limitations under the License.
 package trainer
 
 import (
+	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -28,9 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1ac "k8s.io/client-go/applyconfigurations/meta/v1"
 	jobsetv1alpha2 "sigs.k8s.io/jobset/api/jobset/v1alpha2"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
-	kueueacv1beta1 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta1"
+	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
+	kueueacv1beta2 "sigs.k8s.io/kueue/client-go/applyconfiguration/kueue/v1beta2"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -38,11 +41,15 @@ import (
 )
 
 var (
-	upgradeNamespaceName = "test-trainer-upgrade"
-	resourceFlavorName   = "rf-trainer-upgrade"
-	clusterQueueName     = "cq-trainer-upgrade"
-	localQueueName       = "lq-trainer-upgrade"
-	upgradeTrainJobName  = "trainjob-upgrade"
+	upgradeNamespaceName   = "test-trainer-upgrade"
+	resourceFlavorName     = "rf-trainer-upgrade"
+	clusterQueueName       = "cq-trainer-upgrade"
+	localQueueName         = "lq-trainer-upgrade"
+	upgradeTrainJobName    = "trainjob-upgrade"
+	upgradeConfigMapName   = "default-runtime-upgrade-baseline"
+	upgradeTrainJobGenKey  = "trainjob-generation"
+	upgradeTrainJobSpecKey = "trainjob-spec"
+	rhoaiVersionKey        = "rhoai-version"
 
 	// Specific runtime upgrade test variables
 	specificRuntimeNamespaceName  = "test-trainer-upgrade-specific"
@@ -52,6 +59,10 @@ var (
 	specificRuntimeTrainJobName   = "trainjob-upgrade-specific"
 	specificRuntimeConfigMapName  = "specific-runtime-upgrade"
 	specificRuntimeConfigMapKey   = "runtime-name"
+	specificRuntimeGenerationKey  = "runtime-generation"
+	specificRuntimeSpecKey        = "runtime-spec"
+	specificTrainJobGenerationKey = "trainjob-generation"
+	specificTrainJobSpecKey       = "trainjob-spec"
 
 	// Custom runtime upgrade test variables
 	customRuntimeNamespaceName  = "test-trainer-upgrade-custom-rt"
@@ -60,6 +71,11 @@ var (
 	customRuntimeLocalQueue     = "lq-trainer-upgrade-custom-rt"
 	customRuntimeTrainJobName   = "trainjob-upgrade-custom-rt"
 	customRuntimeCTRName        = "custom-upgrade-runtime"
+	customRuntimeConfigMapName  = "custom-runtime-upgrade-baseline"
+	customRuntimeGenerationKey  = "ctr-generation"
+	customRuntimeSpecKey        = "ctr-spec"
+	customTrainJobGenerationKey = "trainjob-generation"
+	customTrainJobSpecKey       = "trainjob-spec"
 )
 
 func TestSetupUpgradeTrainJob(t *testing.T) {
@@ -74,38 +90,38 @@ func TestSetupUpgradeTrainJob(t *testing.T) {
 	test.T().Logf("Created Kueue-managed namespace: %s", upgradeNamespaceName)
 
 	// Create Kueue resources with StopPolicy
-	resourceFlavor := kueueacv1beta1.ResourceFlavor(resourceFlavorName)
-	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta1().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-TrainJob", Force: true})
+	resourceFlavor := kueueacv1beta2.ResourceFlavor(resourceFlavorName)
+	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta2().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-TrainJob", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ResourceFlavor %s successfully", appliedResourceFlavor.Name)
 
-	clusterQueue := kueueacv1beta1.ClusterQueue(clusterQueueName).WithSpec(
-		kueueacv1beta1.ClusterQueueSpec().
-			WithNamespaceSelector(metav1.LabelSelector{}).
+	clusterQueue := kueueacv1beta2.ClusterQueue(clusterQueueName).WithSpec(
+		kueueacv1beta2.ClusterQueueSpec().
+			WithNamespaceSelector(&metav1ac.LabelSelectorApplyConfiguration{}).
 			WithResourceGroups(
-				kueueacv1beta1.ResourceGroup().WithCoveredResources(
+				kueueacv1beta2.ResourceGroup().WithCoveredResources(
 					corev1.ResourceName("cpu"), corev1.ResourceName("memory"),
 				).WithFlavors(
-					kueueacv1beta1.FlavorQuotas().
-						WithName(kueuev1beta1.ResourceFlavorReference(resourceFlavorName)).
+					kueueacv1beta2.FlavorQuotas().
+						WithName(kueuev1beta2.ResourceFlavorReference(resourceFlavorName)).
 						WithResources(
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
 						),
 				),
 			).
-			WithStopPolicy(kueuev1beta1.Hold),
+			WithStopPolicy(kueuev1beta2.Hold),
 	)
-	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-TrainJob", Force: true})
+	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-TrainJob", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ClusterQueue %s with StopPolicy=Hold successfully", appliedClusterQueue.Name)
 
-	localQueue := kueueacv1beta1.LocalQueue(localQueueName, upgradeNamespaceName).
+	localQueue := kueueacv1beta2.LocalQueue(localQueueName, upgradeNamespaceName).
 		WithAnnotations(map[string]string{"kueue.x-k8s.io/default-queue": "true"}).
 		WithSpec(
-			kueueacv1beta1.LocalQueueSpec().WithClusterQueue(kueuev1beta1.ClusterQueueReference(clusterQueueName)),
+			kueueacv1beta2.LocalQueueSpec().WithClusterQueue(kueuev1beta2.ClusterQueueReference(clusterQueueName)),
 		)
-	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta1().LocalQueues(upgradeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-TrainJob", Force: true})
+	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta2().LocalQueues(upgradeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-TrainJob", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue LocalQueue %s/%s successfully", appliedLocalQueue.Namespace, appliedLocalQueue.Name)
 
@@ -115,7 +131,7 @@ func TestSetupUpgradeTrainJob(t *testing.T) {
 	// Verify Kueue Workload is Inadmissible
 	var workloadName string
 	test.Eventually(KueueWorkloads(test, upgradeNamespaceName), TestTimeoutShort).Should(
-		ContainElement(WithTransform(func(w *kueuev1beta1.Workload) bool {
+		ContainElement(WithTransform(func(w *kueuev1beta2.Workload) bool {
 			inadmissible, _ := KueueWorkloadInadmissible(w)
 			if inadmissible {
 				workloadName = w.Name
@@ -129,6 +145,13 @@ func TestSetupUpgradeTrainJob(t *testing.T) {
 	test.Eventually(TrainJob(test, trainJob.Namespace, upgradeTrainJobName), TestTimeoutShort).
 		Should(WithTransform(TrainJobConditionSuspended, Equal(metav1.ConditionTrue)))
 	test.T().Logf("TrainJob %s/%s is suspended, waiting for ClusterQueue to be enabled after upgrade", trainJob.Namespace, upgradeTrainJobName)
+
+	// Store TrainJob baseline for post-upgrade integrity check
+	trainJob, err = test.Client().Trainer().TrainerV1alpha1().TrainJobs(upgradeNamespaceName).Get(test.Ctx(), upgradeTrainJobName, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	data := map[string]string{}
+	addResourceBaseline(test, data, upgradeTrainJobGenKey, upgradeTrainJobSpecKey, trainJob.Generation, trainJob.Spec)
+	storeUpgradeBaseline(test, upgradeNamespaceName, upgradeConfigMapName, data)
 }
 
 func TestRunUpgradeTrainJob(t *testing.T) {
@@ -139,13 +162,24 @@ func TestRunUpgradeTrainJob(t *testing.T) {
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 	namespace := GetNamespaceWithName(test, upgradeNamespaceName)
 
-	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavorName, metav1.DeleteOptions{})
-	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueueName, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavorName, metav1.DeleteOptions{})
+	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueueName, metav1.DeleteOptions{})
 	defer DeleteTestNamespace(test, namespace)
 
+	// Check TrainJob spec integrity
+	configMap, err := test.Client().Core().CoreV1().ConfigMaps(upgradeNamespaceName).Get(
+		test.Ctx(), upgradeConfigMapName, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred(), "Baseline ConfigMap should exist")
+
+	trainJob, err := test.Client().Trainer().TrainerV1alpha1().TrainJobs(upgradeNamespaceName).Get(test.Ctx(), upgradeTrainJobName, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred(), "TrainJob should exist after upgrade")
+
+	verifySpecIntegrity(test, "TrainJob", trainJob.Generation, trainJob.Spec,
+		configMap, upgradeTrainJobGenKey, upgradeTrainJobSpecKey)
+
 	// Enable ClusterQueue to process waiting TrainJob
-	clusterQueue := kueueacv1beta1.ClusterQueue(clusterQueueName).WithSpec(kueueacv1beta1.ClusterQueueSpec().WithStopPolicy(kueuev1beta1.None))
-	_, err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
+	clusterQueue := kueueacv1beta2.ClusterQueue(clusterQueueName).WithSpec(kueueacv1beta2.ClusterQueueSpec().WithStopPolicy(kueuev1beta2.None))
+	_, err = test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Enabled ClusterQueue %s by setting StopPolicy to None", clusterQueueName)
 
@@ -185,42 +219,45 @@ func TestSetupSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 	CreateOrGetTestNamespaceWithName(test, specificRuntimeNamespaceName, WithKueueManaged())
 	test.T().Logf("Created Kueue-managed namespace: %s", specificRuntimeNamespaceName)
 
-	// Store the runtime name in ConfigMap for post-upgrade verification
-	storeSpecificRuntimeInConfigMap(test, specificRuntime)
+	// Store the runtime baseline in ConfigMap for post-upgrade verification
+	ctr, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(test.Ctx(), specificRuntime, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	baselineData := map[string]string{specificRuntimeConfigMapKey: specificRuntime}
+	addResourceBaseline(test, baselineData, specificRuntimeGenerationKey, specificRuntimeSpecKey, ctr.Generation, ctr.Spec)
 
 	// Create Kueue resources with StopPolicy=Hold
-	resourceFlavor := kueueacv1beta1.ResourceFlavor(specificRuntimeResourceFlavor)
-	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta1().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-specific-runtime", Force: true})
+	resourceFlavor := kueueacv1beta2.ResourceFlavor(specificRuntimeResourceFlavor)
+	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta2().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-specific-runtime", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ResourceFlavor %s successfully", appliedResourceFlavor.Name)
 
-	clusterQueue := kueueacv1beta1.ClusterQueue(specificRuntimeClusterQueue).WithSpec(
-		kueueacv1beta1.ClusterQueueSpec().
-			WithNamespaceSelector(metav1.LabelSelector{}).
+	clusterQueue := kueueacv1beta2.ClusterQueue(specificRuntimeClusterQueue).WithSpec(
+		kueueacv1beta2.ClusterQueueSpec().
+			WithNamespaceSelector(&metav1ac.LabelSelectorApplyConfiguration{}).
 			WithResourceGroups(
-				kueueacv1beta1.ResourceGroup().WithCoveredResources(
+				kueueacv1beta2.ResourceGroup().WithCoveredResources(
 					corev1.ResourceName("cpu"), corev1.ResourceName("memory"),
 				).WithFlavors(
-					kueueacv1beta1.FlavorQuotas().
-						WithName(kueuev1beta1.ResourceFlavorReference(specificRuntimeResourceFlavor)).
+					kueueacv1beta2.FlavorQuotas().
+						WithName(kueuev1beta2.ResourceFlavorReference(specificRuntimeResourceFlavor)).
 						WithResources(
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
 						),
 				),
 			).
-			WithStopPolicy(kueuev1beta1.Hold),
+			WithStopPolicy(kueuev1beta2.Hold),
 	)
-	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-specific-runtime", Force: true})
+	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-specific-runtime", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ClusterQueue %s with StopPolicy=Hold successfully", appliedClusterQueue.Name)
 
-	localQueue := kueueacv1beta1.LocalQueue(specificRuntimeLocalQueue, specificRuntimeNamespaceName).
+	localQueue := kueueacv1beta2.LocalQueue(specificRuntimeLocalQueue, specificRuntimeNamespaceName).
 		WithAnnotations(map[string]string{"kueue.x-k8s.io/default-queue": "true"}).
 		WithSpec(
-			kueueacv1beta1.LocalQueueSpec().WithClusterQueue(kueuev1beta1.ClusterQueueReference(specificRuntimeClusterQueue)),
+			kueueacv1beta2.LocalQueueSpec().WithClusterQueue(kueuev1beta2.ClusterQueueReference(specificRuntimeClusterQueue)),
 		)
-	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta1().LocalQueues(specificRuntimeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-specific-runtime", Force: true})
+	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta2().LocalQueues(specificRuntimeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-specific-runtime", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue LocalQueue %s/%s successfully", appliedLocalQueue.Namespace, appliedLocalQueue.Name)
 
@@ -230,7 +267,7 @@ func TestSetupSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 	// Verify Kueue Workload is Inadmissible
 	var workloadName string
 	test.Eventually(KueueWorkloads(test, specificRuntimeNamespaceName), TestTimeoutShort).Should(
-		ContainElement(WithTransform(func(w *kueuev1beta1.Workload) bool {
+		ContainElement(WithTransform(func(w *kueuev1beta2.Workload) bool {
 			inadmissible, _ := KueueWorkloadInadmissible(w)
 			if inadmissible {
 				workloadName = w.Name
@@ -244,6 +281,12 @@ func TestSetupSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 	test.Eventually(TrainJob(test, trainJob.Namespace, specificRuntimeTrainJobName), TestTimeoutShort).
 		Should(WithTransform(TrainJobConditionSuspended, Equal(metav1.ConditionTrue)))
 	test.T().Logf("TrainJob %s/%s using runtime %s is suspended, waiting for upgrade", trainJob.Namespace, specificRuntimeTrainJobName, specificRuntime)
+
+	// Store TrainJob baseline and persist ConfigMap
+	trainJob, err = test.Client().Trainer().TrainerV1alpha1().TrainJobs(specificRuntimeNamespaceName).Get(test.Ctx(), specificRuntimeTrainJobName, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	addResourceBaseline(test, baselineData, specificTrainJobGenerationKey, specificTrainJobSpecKey, trainJob.Generation, trainJob.Spec)
+	storeUpgradeBaseline(test, specificRuntimeNamespaceName, specificRuntimeConfigMapName, baselineData)
 }
 
 // TestRunSpecificRuntimeUpgradeTrainJob verifies that a TrainJob using a specific cluster training runtime
@@ -265,14 +308,19 @@ func TestRunSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 	namespace := GetNamespaceWithName(test, specificRuntimeNamespaceName)
 
 	defer func() {
-		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), specificRuntimeResourceFlavor, metav1.DeleteOptions{})
-		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), specificRuntimeClusterQueue, metav1.DeleteOptions{})
+		_ = test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), specificRuntimeResourceFlavor, metav1.DeleteOptions{})
+		_ = test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), specificRuntimeClusterQueue, metav1.DeleteOptions{})
 		_ = test.Client().Core().CoreV1().ConfigMaps(specificRuntimeNamespaceName).Delete(test.Ctx(), specificRuntimeConfigMapName, metav1.DeleteOptions{})
 		DeleteTestNamespace(test, namespace)
 	}()
 
-	// Verify the ClusterTrainingRuntime still exists
-	_, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(test.Ctx(), specificRuntime, metav1.GetOptions{})
+	// Load baselines from ConfigMap
+	configMap, err := test.Client().Core().CoreV1().ConfigMaps(specificRuntimeNamespaceName).Get(
+		test.Ctx(), specificRuntimeConfigMapName, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred(), "Baseline ConfigMap should exist")
+
+	// Check ClusterTrainingRuntime spec integrity
+	ctr, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(test.Ctx(), specificRuntime, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			test.T().Logf("ClusterTrainingRuntime %s was removed during upgrade (expected for versioned runtimes)", specificRuntime)
@@ -281,16 +329,21 @@ func TestRunSpecificRuntimeUpgradeTrainJob(t *testing.T) {
 		}
 	} else {
 		test.T().Logf("ClusterTrainingRuntime %s still exists after upgrade", specificRuntime)
+		verifySpecIntegrity(test, "ClusterTrainingRuntime", ctr.Generation, ctr.Spec,
+			configMap, specificRuntimeGenerationKey, specificRuntimeSpecKey)
 	}
 
-	// Verify TrainJob is still suspended
+	// Check TrainJob spec integrity
 	trainJob, err := test.Client().Trainer().TrainerV1alpha1().TrainJobs(specificRuntimeNamespaceName).Get(test.Ctx(), specificRuntimeTrainJobName, metav1.GetOptions{})
 	test.Expect(err).NotTo(HaveOccurred(), "TrainJob should exist after upgrade")
 	test.T().Logf("TrainJob %s/%s exists after upgrade with RuntimeRef: %s", trainJob.Namespace, trainJob.Name, trainJob.Spec.RuntimeRef.Name)
 
+	verifySpecIntegrity(test, "TrainJob", trainJob.Generation, trainJob.Spec,
+		configMap, specificTrainJobGenerationKey, specificTrainJobSpecKey)
+
 	// Enable ClusterQueue to process the TrainJob
-	clusterQueue := kueueacv1beta1.ClusterQueue(specificRuntimeClusterQueue).WithSpec(kueueacv1beta1.ClusterQueueSpec().WithStopPolicy(kueuev1beta1.None))
-	_, err = test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
+	clusterQueue := kueueacv1beta2.ClusterQueue(specificRuntimeClusterQueue).WithSpec(kueueacv1beta2.ClusterQueueSpec().WithStopPolicy(kueuev1beta2.None))
+	_, err = test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Enabled ClusterQueue %s by setting StopPolicy to None", specificRuntimeClusterQueue)
 
@@ -333,48 +386,48 @@ func TestSetupCustomRuntimeUpgradeTrainJob(t *testing.T) {
 	test.T().Logf("Created Kueue-managed namespace: %s", customRuntimeNamespaceName)
 
 	// Create Kueue resources with StopPolicy=Hold
-	resourceFlavor := kueueacv1beta1.ResourceFlavor(customRuntimeResourceFlavor)
-	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta1().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
+	resourceFlavor := kueueacv1beta2.ResourceFlavor(customRuntimeResourceFlavor)
+	appliedResourceFlavor, err := test.Client().Kueue().KueueV1beta2().ResourceFlavors().Apply(test.Ctx(), resourceFlavor, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ResourceFlavor %s successfully", appliedResourceFlavor.Name)
 
-	clusterQueue := kueueacv1beta1.ClusterQueue(customRuntimeClusterQueue).WithSpec(
-		kueueacv1beta1.ClusterQueueSpec().
-			WithNamespaceSelector(metav1.LabelSelector{}).
+	clusterQueue := kueueacv1beta2.ClusterQueue(customRuntimeClusterQueue).WithSpec(
+		kueueacv1beta2.ClusterQueueSpec().
+			WithNamespaceSelector(&metav1ac.LabelSelectorApplyConfiguration{}).
 			WithResourceGroups(
-				kueueacv1beta1.ResourceGroup().WithCoveredResources(
+				kueueacv1beta2.ResourceGroup().WithCoveredResources(
 					corev1.ResourceName("cpu"), corev1.ResourceName("memory"),
 				).WithFlavors(
-					kueueacv1beta1.FlavorQuotas().
-						WithName(kueuev1beta1.ResourceFlavorReference(customRuntimeResourceFlavor)).
+					kueueacv1beta2.FlavorQuotas().
+						WithName(kueuev1beta2.ResourceFlavorReference(customRuntimeResourceFlavor)).
 						WithResources(
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
-							kueueacv1beta1.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceCPU).WithNominalQuota(resource.MustParse("8")),
+							kueueacv1beta2.ResourceQuota().WithName(corev1.ResourceMemory).WithNominalQuota(resource.MustParse("18Gi")),
 						),
 				),
 			).
-			WithStopPolicy(kueuev1beta1.Hold),
+			WithStopPolicy(kueuev1beta2.Hold),
 	)
-	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
+	appliedClusterQueue, err := test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue ClusterQueue %s with StopPolicy=Hold successfully", appliedClusterQueue.Name)
 
-	localQueue := kueueacv1beta1.LocalQueue(customRuntimeLocalQueue, customRuntimeNamespaceName).
+	localQueue := kueueacv1beta2.LocalQueue(customRuntimeLocalQueue, customRuntimeNamespaceName).
 		WithAnnotations(map[string]string{"kueue.x-k8s.io/default-queue": "true"}).
 		WithSpec(
-			kueueacv1beta1.LocalQueueSpec().WithClusterQueue(kueuev1beta1.ClusterQueueReference(customRuntimeClusterQueue)),
+			kueueacv1beta2.LocalQueueSpec().WithClusterQueue(kueuev1beta2.ClusterQueueReference(customRuntimeClusterQueue)),
 		)
-	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta1().LocalQueues(customRuntimeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
+	appliedLocalQueue, err := test.Client().Kueue().KueueV1beta2().LocalQueues(customRuntimeNamespaceName).Apply(test.Ctx(), localQueue, metav1.ApplyOptions{FieldManager: "setup-custom-runtime", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue LocalQueue %s/%s successfully", appliedLocalQueue.Namespace, appliedLocalQueue.Name)
 
-	// Create TrainJob using the custom CTR
-	trainJob := createUpgradeTrainJob(test, customRuntimeNamespaceName, appliedLocalQueue.Name, customRuntimeTrainJobName, customRuntimeCTRName)
+	// Create TrainJob using the custom CTR with PodTemplateOverrides to exercise API surface coverage
+	trainJob := createCustomRuntimeUpgradeTrainJob(test, customRuntimeNamespaceName, appliedLocalQueue.Name)
 
 	// Verify Kueue Workload is Inadmissible
 	var workloadName string
 	test.Eventually(KueueWorkloads(test, customRuntimeNamespaceName), TestTimeoutShort).Should(
-		ContainElement(WithTransform(func(w *kueuev1beta1.Workload) bool {
+		ContainElement(WithTransform(func(w *kueuev1beta2.Workload) bool {
 			inadmissible, _ := KueueWorkloadInadmissible(w)
 			if inadmissible {
 				workloadName = w.Name
@@ -388,6 +441,17 @@ func TestSetupCustomRuntimeUpgradeTrainJob(t *testing.T) {
 	test.Eventually(TrainJob(test, trainJob.Namespace, customRuntimeTrainJobName), TestTimeoutShort).
 		Should(WithTransform(TrainJobConditionSuspended, Equal(metav1.ConditionTrue)))
 	test.T().Logf("TrainJob %s/%s using custom runtime %s is suspended, waiting for upgrade", trainJob.Namespace, customRuntimeTrainJobName, customRuntimeCTRName)
+
+	// Store baselines for post-upgrade integrity check
+	ctr, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(test.Ctx(), customRuntimeCTRName, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	trainJob, err = test.Client().Trainer().TrainerV1alpha1().TrainJobs(customRuntimeNamespaceName).Get(test.Ctx(), customRuntimeTrainJobName, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+
+	data := map[string]string{}
+	addResourceBaseline(test, data, customRuntimeGenerationKey, customRuntimeSpecKey, ctr.Generation, ctr.Spec)
+	addResourceBaseline(test, data, customTrainJobGenerationKey, customTrainJobSpecKey, trainJob.Generation, trainJob.Spec)
+	storeUpgradeBaseline(test, customRuntimeNamespaceName, customRuntimeConfigMapName, data)
 }
 
 func TestRunCustomRuntimeUpgradeTrainJob(t *testing.T) {
@@ -398,20 +462,36 @@ func TestRunCustomRuntimeUpgradeTrainJob(t *testing.T) {
 	namespace := GetNamespaceWithName(test, customRuntimeNamespaceName)
 
 	defer func() {
-		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), customRuntimeResourceFlavor, metav1.DeleteOptions{})
-		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), customRuntimeClusterQueue, metav1.DeleteOptions{})
+		_ = test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), customRuntimeResourceFlavor, metav1.DeleteOptions{})
+		_ = test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), customRuntimeClusterQueue, metav1.DeleteOptions{})
 		_ = test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Delete(test.Ctx(), customRuntimeCTRName, metav1.DeleteOptions{})
+		_ = test.Client().Core().CoreV1().ConfigMaps(customRuntimeNamespaceName).Delete(test.Ctx(), customRuntimeConfigMapName, metav1.DeleteOptions{})
 		DeleteTestNamespace(test, namespace)
 	}()
 
-	// Verify custom CTR still exists after upgrade
-	_, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(test.Ctx(), customRuntimeCTRName, metav1.GetOptions{})
+	// Load baselines from ConfigMap
+	configMap, err := test.Client().Core().CoreV1().ConfigMaps(customRuntimeNamespaceName).Get(
+		test.Ctx(), customRuntimeConfigMapName, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred(), "Baseline ConfigMap should exist")
+
+	// Check custom CTR spec integrity
+	ctr, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(test.Ctx(), customRuntimeCTRName, metav1.GetOptions{})
 	test.Expect(err).NotTo(HaveOccurred(), "Custom ClusterTrainingRuntime should exist after upgrade")
 	test.T().Logf("Custom ClusterTrainingRuntime %s is preserved after upgrade", customRuntimeCTRName)
 
+	verifySpecIntegrity(test, "Custom CTR", ctr.Generation, ctr.Spec,
+		configMap, customRuntimeGenerationKey, customRuntimeSpecKey)
+
+	// Check TrainJob spec integrity
+	trainJob, err := test.Client().Trainer().TrainerV1alpha1().TrainJobs(customRuntimeNamespaceName).Get(test.Ctx(), customRuntimeTrainJobName, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred(), "TrainJob should exist after upgrade")
+
+	verifySpecIntegrity(test, "TrainJob", trainJob.Generation, trainJob.Spec,
+		configMap, customTrainJobGenerationKey, customTrainJobSpecKey)
+
 	// Enable ClusterQueue to process the TrainJob
-	clusterQueue := kueueacv1beta1.ClusterQueue(customRuntimeClusterQueue).WithSpec(kueueacv1beta1.ClusterQueueSpec().WithStopPolicy(kueuev1beta1.None))
-	_, err = test.Client().Kueue().KueueV1beta1().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
+	clusterQueue := kueueacv1beta2.ClusterQueue(customRuntimeClusterQueue).WithSpec(kueueacv1beta2.ClusterQueueSpec().WithStopPolicy(kueuev1beta2.None))
+	_, err = test.Client().Kueue().KueueV1beta2().ClusterQueues().Apply(test.Ctx(), clusterQueue, metav1.ApplyOptions{FieldManager: "application/apply-patch", Force: true})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Enabled ClusterQueue %s by setting StopPolicy to None", customRuntimeClusterQueue)
 
@@ -433,6 +513,26 @@ func TestRunCustomRuntimeUpgradeTrainJob(t *testing.T) {
 }
 
 // Helper functions
+
+func verifySpecIntegrity(test Test, resourceName string, generation int64, spec interface{},
+	configMap *corev1.ConfigMap, genKey, specKey string) {
+	expectedGen := configMap.Data[genKey]
+	actualGen := fmt.Sprintf("%d", generation)
+	if actualGen != expectedGen {
+		preVersion := configMap.Data[rhoaiVersionKey]
+		postVersion := GetRHOAIVersionFromDSCI(test)
+		currentSpecJSON, _ := json.Marshal(spec)
+		test.T().Logf("%s generation changed during upgrade (%s to %s)", resourceName, expectedGen, actualGen)
+		test.T().Logf("Pre-upgrade %s spec: %s", resourceName, configMap.Data[specKey])
+		test.T().Logf("Post-upgrade %s spec: %s", resourceName, currentSpecJSON)
+		test.Expect(preVersion).NotTo(BeEmpty(), "Pre-upgrade RHOAI version missing from baseline ConfigMap")
+		test.Expect(postVersion).NotTo(BeEmpty(), "Post-upgrade RHOAI version not available from DSCI")
+		test.Expect(trainerutils.IsSpecMutationExpected(preVersion, postVersion)).To(BeTrue(),
+			"Unexpected %s spec mutation for upgrade %s → %s", resourceName, preVersion, postVersion)
+	} else {
+		test.T().Logf("%s generation unchanged after upgrade: %s", resourceName, actualGen)
+	}
+}
 
 func createUpgradeTrainJob(test Test, namespace, localQueueName, jobName, runtimeName string) *trainerv1alpha1.TrainJob {
 	// Delete existing TrainJob if present
@@ -473,6 +573,65 @@ func createUpgradeTrainJob(test Test, namespace, localQueueName, jobName, runtim
 	return trainJob
 }
 
+func createCustomRuntimeUpgradeTrainJob(test Test, namespace, localQueueName string) *trainerv1alpha1.TrainJob {
+	_, err := test.Client().Trainer().TrainerV1alpha1().TrainJobs(namespace).Get(test.Ctx(), customRuntimeTrainJobName, metav1.GetOptions{})
+	if err == nil {
+		err := test.Client().Trainer().TrainerV1alpha1().TrainJobs(namespace).Delete(test.Ctx(), customRuntimeTrainJobName, metav1.DeleteOptions{})
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Eventually(TrainJobs(test, namespace), TestTimeoutShort).Should(BeEmpty())
+	} else if !errors.IsNotFound(err) {
+		test.T().Fatalf("Error retrieving TrainJob with name `%s`: %v", customRuntimeTrainJobName, err)
+	}
+
+	trainJob := &trainerv1alpha1.TrainJob{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: customRuntimeTrainJobName,
+			Labels: map[string]string{
+				"kueue.x-k8s.io/queue-name": localQueueName,
+			},
+		},
+		Spec: trainerv1alpha1.TrainJobSpec{
+			RuntimeRef: trainerv1alpha1.RuntimeRef{
+				Name: customRuntimeCTRName,
+			},
+			Trainer: &trainerv1alpha1.Trainer{
+				Command: []string{
+					"python",
+					"-c",
+					"import torch; print(f'PyTorch version: {torch.__version__}'); import time; time.sleep(5); print('Training completed successfully')",
+				},
+			},
+			PodTemplateOverrides: []trainerv1alpha1.PodTemplateOverride{
+				{
+					TargetJobs: []trainerv1alpha1.PodTemplateOverrideTargetJob{
+						{Name: "node"},
+					},
+					Metadata: &metav1.ObjectMeta{
+						Labels: map[string]string{
+							"upgrade-test": "custom-runtime",
+						},
+					},
+					Spec: &trainerv1alpha1.PodTemplateSpecOverride{
+						Tolerations: []corev1.Toleration{
+							{
+								Key:      "upgrade-test",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoSchedule,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	trainJob, err = test.Client().Trainer().TrainerV1alpha1().TrainJobs(namespace).Create(test.Ctx(), trainJob, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created TrainJob %s/%s with runtime %s and PodTemplateOverrides", trainJob.Namespace, trainJob.Name, customRuntimeCTRName)
+
+	return trainJob
+}
+
 func findSpecificRuntime(test Test) string {
 	runtimes, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().List(test.Ctx(), metav1.ListOptions{})
 	test.Expect(err).NotTo(HaveOccurred(), "Failed to list ClusterTrainingRuntimes")
@@ -494,24 +653,26 @@ func findSpecificRuntime(test Test) string {
 	return specificRuntimes[0]
 }
 
-// storeSpecificRuntimeInConfigMap stores the specific runtime name for post-upgrade verification
-func storeSpecificRuntimeInConfigMap(test Test, runtimeName string) {
+func addResourceBaseline(test Test, data map[string]string, genKey, specKey string, generation int64, spec interface{}) {
+	specJSON, err := json.Marshal(spec)
+	test.Expect(err).NotTo(HaveOccurred())
+	data[genKey] = fmt.Sprintf("%d", generation)
+	data[specKey] = string(specJSON)
+}
+
+func storeUpgradeBaseline(test Test, namespace, configMapName string, data map[string]string) {
+	data[rhoaiVersionKey] = GetRHOAIVersionFromDSCI(test)
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      specificRuntimeConfigMapName,
-			Namespace: specificRuntimeNamespaceName,
+			Name:      configMapName,
+			Namespace: namespace,
 		},
-		Data: map[string]string{
-			specificRuntimeConfigMapKey: runtimeName,
-		},
+		Data: data,
 	}
-
-	// Delete existing ConfigMap if present
-	_ = test.Client().Core().CoreV1().ConfigMaps(specificRuntimeNamespaceName).Delete(test.Ctx(), specificRuntimeConfigMapName, metav1.DeleteOptions{})
-
-	_, err := test.Client().Core().CoreV1().ConfigMaps(specificRuntimeNamespaceName).Create(test.Ctx(), configMap, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred(), "Failed to create ConfigMap for specific runtime")
-	test.T().Logf("Stored specific runtime name in ConfigMap %s/%s: %s", specificRuntimeNamespaceName, specificRuntimeConfigMapName, runtimeName)
+	_ = test.Client().Core().CoreV1().ConfigMaps(namespace).Delete(test.Ctx(), configMapName, metav1.DeleteOptions{})
+	_, err := test.Client().Core().CoreV1().ConfigMaps(namespace).Create(test.Ctx(), configMap, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Stored upgrade baseline in ConfigMap %s/%s", namespace, configMapName)
 }
 
 // getSpecificRuntimeFromConfigMap retrieves the specific runtime name from ConfigMap

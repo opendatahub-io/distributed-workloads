@@ -56,7 +56,7 @@ RUN pip install --no-cache-dir -U "micropipenv[toml]"
 # Install Python dependencies from Pipfile.lock file
 COPY Pipfile.lock ./
 
-RUN micropipenv install -- --no-cache-dir && \
+RUN PIP_NO_BUILD_ISOLATION=1 micropipenv install -- --no-cache-dir && \
     rm -f ./Pipfile.lock && \
     # Fix permissions to support pip in OpenShift environments \
     chmod -R g+w /opt/app-root/lib/python3.12/site-packages && \
@@ -76,6 +76,10 @@ RUN export TMP_DIR=$(mktemp -d) \
 
 # Reapply write permissions on site‑packages
 RUN chmod -R g+w /opt/app-root/lib/python3.12/site-packages && \
+    fix-permissions /opt/app-root -P
+
+# Install flash-attn outside lockfile resolution; it needs torch visible at build time.
+RUN pip install --no-build-isolation --no-cache-dir --no-deps flash-attn==2.8.3 && \
     fix-permissions /opt/app-root -P
 
 # Restore user workspace

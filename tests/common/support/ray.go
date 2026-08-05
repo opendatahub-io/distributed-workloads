@@ -52,6 +52,24 @@ func GetRayJobId(t Test, namespace, name string) string {
 	return job.Status.JobId
 }
 
+func RayJobs(t Test, namespace string) func(g gomega.Gomega) []*rayv1.RayJob {
+	return func(g gomega.Gomega) []*rayv1.RayJob {
+		jobs, err := t.Client().Ray().RayV1().RayJobs(namespace).List(t.Ctx(), metav1.ListOptions{})
+		g.Expect(err).NotTo(gomega.HaveOccurred())
+
+		result := []*rayv1.RayJob{}
+		for _, v := range jobs.Items {
+			result = append(result, &v)
+		}
+		return result
+	}
+}
+
+func GetRayJobs(t Test, namespace string) []*rayv1.RayJob {
+	t.T().Helper()
+	return RayJobs(t, namespace)(t)
+}
+
 func RayCluster(t Test, namespace, name string) func(g gomega.Gomega) *rayv1.RayCluster {
 	return func(g gomega.Gomega) *rayv1.RayCluster {
 		cluster, err := t.Client().Ray().RayV1().RayClusters(namespace).Get(t.Ctx(), name, metav1.GetOptions{})
