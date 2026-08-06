@@ -788,8 +788,8 @@ func RunSpeculatorOfflineFailureTest(t *testing.T) {
 
 	podName, containerName := trainerutils.WaitForNotebookPodRunning(env.test, env.namespace.Name)
 
-	// Use longer timeout: the bad-endpoint pod waits 1200s for vLLM health check before failing
-	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutGpuProvisioning)
+	// vllm_readiness_timeout=10 makes the pod fail fast; job reaches Failed after backoff retries
+	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
 	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 
 	var tail int64 = 2000
