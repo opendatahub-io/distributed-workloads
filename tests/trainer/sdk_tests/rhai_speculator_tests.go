@@ -704,7 +704,7 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 			env.test.Expect(status).To(HaveKey("progressPercentage"), "trainerStatus should contain progressPercentage")
 			env.test.Expect(status).To(HaveKey("estimatedRemainingSeconds"), "trainerStatus should contain estimatedRemainingSeconds")
 			env.test.Expect(status).To(HaveKey("lastUpdatedTime"), "trainerStatus should contain lastUpdatedTime")
-			t.Logf("Scenario 2: trainerStatus fields verified: progress=%.0f%%, summary=%v",
+			t.Logf("Verified trainerStatus fields: progress=%.0f%%, summary=%v",
 				status["progressPercentage"], status["estimatedRemainingTimeSummary"])
 		}
 	}
@@ -712,7 +712,7 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 	// SpeculatorConfig overrides verified via pod logs
 	// The config (target_layer_ids, datagen_concurrency, hidden_states_dtype=bfloat16)
 	// is passed to the TrainJob; extraction completion confirms the config was applied.
-	t.Log("Scenario 3: Verifying OFFLINE training pod logs (config overrides applied)...")
+	t.Log("Verifying OFFLINE training pod logs (config overrides applied)...")
 	verifySpeculatorOfflinePodLogs(env.test, env.namespace.Name, offlineJobName)
 
 	// Wait for checkpoint resume TrainJob
