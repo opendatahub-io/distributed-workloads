@@ -328,6 +328,7 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 
 	t.Log("Verifying checkpoint resume training pod logs...")
 	verifySpeculatorTrainOnlyPodLogs(env.test, env.namespace.Name, resumeJobName)
+	verifySpeculatorResumeFromCheckpointLogs(env.test, env.namespace.Name, resumeJobName)
 
 	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
 	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
@@ -382,7 +383,7 @@ func verifySpeculatorPodLogs(test Test, namespace, trainJobName string, expectRe
 
 	required := []string{
 		"[Kubeflow] Speculator progression tracking enabled",
-		"[Kubeflow] vLLM sidecar is ready",
+		"[Kubeflow] vLLM server is ready",
 		"[Kubeflow] Saved preprocessed dataset to",
 		"[Kubeflow] Data extraction complete",
 	}
@@ -445,6 +446,40 @@ func verifySpeculatorTrainOnlyPodLogs(test Test, namespace, trainJobName string)
 	}
 
 	test.T().Fatalf("Required TRAIN_ONLY log markers not found in any completed training pod: %v", required)
+}
+
+func verifySpeculatorResumeFromCheckpointLogs(test Test, namespace, trainJobName string) {
+	test.T().Helper()
+
+	pods := listTrainingPods(test, namespace, trainJobName)
+	test.Expect(len(pods)).NotTo(Equal(0), "No training pods found to verify checkpoint resume logs")
+
+	required := []string{
+		"Found checkpoint at",
+		"Resuming training on",
+	}
+
+	for _, pod := range pods {
+		if pod.Status.Phase != corev1.PodSucceeded {
+			continue
+		}
+		logs := PodLog(test, namespace, pod.Name, corev1.PodLogOptions{Container: "node"})(test)
+
+		allFound := true
+		for _, marker := range required {
+			if strings.Contains(logs, marker) {
+				test.T().Logf("Verified in pod %s: %s", pod.Name, marker)
+			} else {
+				test.T().Logf("Missing in pod %s: %s", pod.Name, marker)
+				allFound = false
+			}
+		}
+		if allFound {
+			return
+		}
+	}
+
+	test.T().Fatalf("Checkpoint resume log markers not found in any completed training pod: %v", required)
 }
 
 func verifySpeculatorPodLogContains(test Test, namespace, trainJobName, expected, failMsg string) {
