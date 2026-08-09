@@ -56,11 +56,11 @@ const (
 	// DefaultClusterTrainingRuntimeCPU is the default runtime for CPU-only torch-distributed workloads
 	DefaultClusterTrainingRuntimeCPU = "torch-distributed-cpu"
 
-	// DefaultSpeculatorDataExtractRuntimeCUDA is the CUDA runtime for speculator data extraction (DATA_ONLY mode)
-	DefaultSpeculatorDataExtractRuntimeCUDA = "hrathina-speculator-data-extract-cuda"
+	// DefaultSpeculatorVllmExtractRuntimeCUDA is the CUDA runtime for speculator vLLM data extraction (DATA_ONLY mode)
+	DefaultSpeculatorvLLMExtractRuntimeCUDA = "speculator-vllm-extract-cuda"
 
-	// DefaultSpeculatorTrainRuntimeCUDA is the CUDA runtime for speculator training (TRAIN_ONLY mode)
-	DefaultSpeculatorTrainRuntimeCUDA = "dev-speculator-model-opt-cuda"
+	// DefaultSpeculatorModelOptRuntimeCUDA is the CUDA runtime for speculator model optimization (TRAIN_ONLY mode)
+	DefaultSpeculatorModelOptRuntimeCUDA = "speculator-model-opt-cuda"
 )
 
 var DefaultClusterTrainingRuntimes = []string{

@@ -111,7 +111,7 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 	regenerateResponses := "true"
 	datasetName := "ultrachat"
 	verifierModel := "Qwen/Qwen3-0.6B"
-	if s3Endpoint != "" {
+	if s3Endpoint != "" && s3Exports != "" {
 		regenerateResponses = "false"
 		datasetName = fmt.Sprintf("pvc://%s/datasets/ultrachat.jsonl", env.rwxPvc.Name)
 		verifierModel = fmt.Sprintf("pvc://%s/models/Qwen3-0.6B", env.rwxPvc.Name)
@@ -164,9 +164,9 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 		s3Exports,
 		sdkInstallExports,
 		installKubeflowScript,
-		shellQuote(trainerutils.DefaultSpeculatorDataExtractRuntimeCUDA),
+		shellQuote(trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA),
 		speculatorNotebookName,
-		shellQuote(trainerutils.DefaultSpeculatorTrainRuntimeCUDA),
+		shellQuote(trainerutils.DefaultSpeculatorModelOptRuntimeCUDA),
 		speculatorNotebookName,
 	)
 
@@ -332,6 +332,16 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 
 	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
 	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
+
+	// Verify notebook-side PVC artifact check ran successfully
+	var tail int64 = 5000
+	notebookLogs := PodLog(env.test, env.namespace.Name, podName, corev1.PodLogOptions{
+		Container: containerName,
+		TailLines: &tail,
+	})(env.test)
+	env.test.Expect(notebookLogs).To(ContainSubstring("Output artifact verification: PASSED"),
+		"Notebook should have verified PVC output artifacts (Arrow, token_freq.pt, safetensors)")
+	t.Log("Verified notebook-side PVC output artifact check: PASSED")
 
 	t.Log("All speculator pipeline checklist items passed!")
 }
@@ -529,7 +539,7 @@ func RunSpeculatorFailureScenariosTest(t *testing.T) {
 		shellQuote(env.rwxPvc.Name),
 		sdkInstallExports,
 		installKubeflowScript,
-		shellQuote(trainerutils.DefaultSpeculatorTrainRuntimeCUDA),
+		shellQuote(trainerutils.DefaultSpeculatorModelOptRuntimeCUDA),
 		speculatorNotebookName,
 	)
 
@@ -585,6 +595,23 @@ func buildSpeculatorS3Exports(test Test) string {
 	}
 
 	if s3Endpoint != "" && modelsBucket != "" {
+		provider, err := trainerutils.GetS3Provider()
+		if err != nil {
+			test.T().Logf("Warning: Failed to create S3 provider to verify bucket: %v. Skipping S3 mode.", err)
+			return ""
+		}
+		ctx := test.Ctx()
+		exists, err := provider.BucketExists(ctx, modelsBucket)
+		if err != nil {
+			test.T().Logf("Warning: Failed to verify bucket existence for %s: %v. Skipping S3 mode.", modelsBucket, err)
+			return ""
+		}
+		if !exists {
+			test.T().Logf("Warning: Bucket %s does not exist. Skipping S3 mode. Will use HuggingFace.", modelsBucket)
+			return ""
+		}
+
+		test.T().Logf("S3 mode for models/datasets: endpoint=%s, bucket=%s", s3InternalEndpoint, modelsBucket)
 		return fmt.Sprintf(
 			"export AWS_DEFAULT_ENDPOINT=%s; "+
 				"export AWS_ACCESS_KEY_ID=%s; "+
