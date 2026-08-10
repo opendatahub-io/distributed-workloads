@@ -172,7 +172,7 @@ func createTrainingRuntimeWithInitializers(test Test, namespace, pvcName, nodeIm
 													},
 													VolumeMounts: []corev1.VolumeMount{
 														{
-															Name:      "workspace",
+															Name:      "initializer",
 															MountPath: "/workspace",
 														},
 													},
@@ -180,7 +180,7 @@ func createTrainingRuntimeWithInitializers(test Test, namespace, pvcName, nodeIm
 											},
 											Volumes: []corev1.Volume{
 												{
-													Name: "workspace",
+													Name: "initializer",
 													VolumeSource: corev1.VolumeSource{
 														PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 															ClaimName: pvcName,
@@ -248,7 +248,7 @@ func createTrainingRuntimeWithInitializers(test Test, namespace, pvcName, nodeIm
 													},
 													VolumeMounts: []corev1.VolumeMount{
 														{
-															Name:      "workspace",
+															Name:      "initializer",
 															MountPath: "/workspace",
 														},
 													},
@@ -256,7 +256,7 @@ func createTrainingRuntimeWithInitializers(test Test, namespace, pvcName, nodeIm
 											},
 											Volumes: []corev1.Volume{
 												{
-													Name: "workspace",
+													Name: "initializer",
 													VolumeSource: corev1.VolumeSource{
 														PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 															ClaimName: pvcName,
