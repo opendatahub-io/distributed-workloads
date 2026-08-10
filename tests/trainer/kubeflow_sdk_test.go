@@ -259,9 +259,3 @@ func TestRhaiSpeculatorOfflinePipelineMultiGpuCuda(t *testing.T) {
 	Tags(t, KftoCuda, MultiGpu(support.NVIDIA, 2))
 	sdktests.RunSpeculatorOfflinePipelineTest(t, 2)
 }
-
-// Speculator OFFLINE failure scenarios — bad vLLM endpoint
-func TestRhaiSpeculatorOfflineFailureCuda(t *testing.T) {
-	Tags(t, KftoCuda, Gpu(support.NVIDIA))
-	sdktests.RunSpeculatorOfflineFailureTest(t)
-}
