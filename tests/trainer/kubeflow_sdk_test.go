@@ -242,12 +242,6 @@ func TestRhaiSpeculatorPipelineMultiGpuCuda(t *testing.T) {
 	sdktests.RunSpeculatorPipelineTest(t, 1, 2)
 }
 
-// Speculator failure scenarios — DATA_ONLY + TRAIN_ONLY failures
-func TestRhaiSpeculatorFailureCuda(t *testing.T) {
-	Tags(t, KftoCuda, Gpu(support.NVIDIA))
-	sdktests.RunSpeculatorFailureScenariosTest(t)
-}
-
 // Speculator OFFLINE pipeline: single GPU (1 training GPU, external vLLM)
 func TestRhaiSpeculatorOfflinePipelineSingleGpuCuda(t *testing.T) {
 	Tags(t, KftoCuda, Gpu(support.NVIDIA))

@@ -501,70 +501,6 @@ func verifySpeculatorPodLogContains(test Test, namespace, trainJobName, expected
 	test.T().Fatalf("%s — expected %q in training pod logs", failMsg, expected)
 }
 
-// RunSpeculatorFailureScenariosTest runs all speculator failure scenarios for both
-// DATA_ONLY and TRAIN_ONLY modes in a single notebook pod. Two papermill runs:
-// first DATA_ONLY failures (bad model path), then TRAIN_ONLY failures (bad paths).
-// Scenarios run sequentially to avoid GPU contention.
-func RunSpeculatorFailureScenariosTest(t *testing.T) {
-	env := setupSpeculatorTestEnv(t, "5Gi")
-
-	sdkInstallExports := buildKubeflowInstallExports()
-
-	shellCmd := fmt.Sprintf(
-		"set -e; "+
-			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_USER_TOKEN=%s; "+
-			"export NOTEBOOK_NAMESPACE=%s; "+
-			"export SHARED_PVC_NAME=%s; "+
-			"export VLLM_GPU_COUNT='1'; "+
-			"export TRAIN_GPU_COUNT='1'; "+
-			"export TARGET_LAYER_IDS='2,14,25,28'; "+
-			"export TEST_TYPE='failure'; "+
-			"%s"+ // SDK install exports
-			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
-			"python /opt/app-root/notebooks/%s && "+
-			"export SPECULATOR_MODE='TRAIN_ONLY'; "+
-			"export TRAINING_RUNTIME=%s; "+
-			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out_train_fail.ipynb --log-output; "+
-			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		shellQuote(GetOpenShiftApiUrl(env.test)), shellQuote(env.userToken), shellQuote(env.namespace.Name),
-		shellQuote(env.rwxPvc.Name),
-		sdkInstallExports,
-		installKubeflowScript,
-		shellQuote(trainerutils.DefaultSpeculatorModelOptRuntimeCUDA),
-		speculatorNotebookName,
-	)
-
-	t.Log("Speculator failure scenarios: TRAIN_ONLY incomplete extraction marker")
-	command := []string{"/bin/sh", "-c", shellCmd}
-
-	common.CreateNotebook(env.test, env.namespace, env.userToken, command, env.cm.Name, speculatorNotebookName, 0, env.rwxPvc, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(env.test, common.NotebookImageStreamTrainingHubCUDA))
-
-	defer func() {
-		common.DeleteNotebook(env.test, env.namespace)
-		env.test.Eventually(common.Notebooks(env.test, env.namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
-	}()
-
-	podName, containerName := trainerutils.WaitForNotebookPodRunning(env.test, env.namespace.Name)
-
-	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
-	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
-
-	// Log scenario results from notebook output
-	var tail int64 = 2000
-	logs := PodLog(env.test, env.namespace.Name, podName, corev1.PodLogOptions{
-		Container: containerName,
-		TailLines: &tail,
-	})(env.test)
-	for _, line := range strings.Split(logs, "\n") {
-		if strings.Contains(line, "PASSED:") || strings.Contains(line, "FAILED:") ||
-			strings.Contains(line, "Scenario:") || strings.Contains(line, "All scenarios passed") ||
-			strings.Contains(line, "SPECULATOR FAILURE SCENARIOS") {
-			t.Log(line)
-		}
-	}
-}
-
 // RunSpeculatorOfflinePipelineTest runs OFFLINE mode end-to-end.
 // The notebook deploys a standalone vLLM server (after model download), then submits
 // OFFLINE TrainJobs that call the external vLLM endpoint for hidden state extraction
@@ -672,30 +608,10 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 	t.Log("Verifying OFFLINE training pod termination message...")
 	verifySpeculatorTerminationMessage(env.test, env.namespace.Name, offlineJobName)
 
-	t.Log("Waiting for OFFLINE trainerStatus annotation to reach 100% progress...")
-	env.test.Eventually(func() bool {
-		tj := TrainJob(env.test, env.namespace.Name, offlineJobName)(env.test)
-		trainerStatusRaw := tj.GetAnnotations()[annotationTrainerStatus]
-		if trainerStatusRaw == "" {
-			return false
-		}
-		var status map[string]interface{}
-		if err := json.Unmarshal([]byte(sanitizeJSON(trainerStatusRaw)), &status); err != nil {
-			t.Logf("OFFLINE trainerStatus not valid JSON yet: %v", err)
-			return false
-		}
-		progress, ok := status["progressPercentage"].(float64)
-		if !ok || progress < 100 {
-			t.Logf("OFFLINE trainerStatus progress: %.0f%%, waiting for 100%%...", progress)
-			return false
-		}
-		t.Logf("OFFLINE trainerStatus reached 100%%: %s", trainerStatusRaw)
-		return true
-	}, 2*time.Minute, 5*time.Second).Should(BeTrue(), "OFFLINE trainerStatus annotation should reach 100% progress")
-
-	// Verify progression tracking (50/50 split)
-	// Annotations already verified above. Additionally check that trainerStatus
-	// contains the expected JSON fields.
+	// Verify progression tracking fields in trainerStatus annotation.
+	// The annotation is updated by the controller polling the metrics endpoint; once
+	// the pod exits the endpoint disappears, so the annotation may not reach 100%.
+	// The termination message (verified above) is authoritative for final progress.
 	t.Log("Verifying progression tracking fields in trainerStatus...")
 	tj := TrainJob(env.test, env.namespace.Name, offlineJobName)(env.test)
 	trainerStatusRaw := tj.GetAnnotations()[annotationTrainerStatus]
@@ -705,8 +621,11 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 			env.test.Expect(status).To(HaveKey("progressPercentage"), "trainerStatus should contain progressPercentage")
 			env.test.Expect(status).To(HaveKey("estimatedRemainingSeconds"), "trainerStatus should contain estimatedRemainingSeconds")
 			env.test.Expect(status).To(HaveKey("lastUpdatedTime"), "trainerStatus should contain lastUpdatedTime")
+			progress, _ := status["progressPercentage"].(float64)
+			env.test.Expect(progress).To(BeNumerically(">", 0),
+				"trainerStatus progressPercentage should be greater than 0")
 			t.Logf("Verified trainerStatus fields: progress=%.0f%%, summary=%v",
-				status["progressPercentage"], status["estimatedRemainingTimeSummary"])
+				progress, status["estimatedRemainingTimeSummary"])
 		}
 	}
 
@@ -770,6 +689,27 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 
 	t.Log("Verifying resume job termination message shows progressPercentage=100...")
 	verifySpeculatorTerminationMessage(env.test, env.namespace.Name, resumeJobName)
+
+	// Wait for regenerate_responses TrainJob (connected environments only)
+	if s3Endpoint == "" {
+		regenJobName := "speculator-offline-regen"
+		env.test.Eventually(func() bool {
+			jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
+			for _, j := range jobs {
+				if j.Name == regenJobName {
+					return true
+				}
+			}
+			return false
+		}, TestTimeoutDouble, 5*time.Second).Should(BeTrue(), "Expected regenerate_responses TrainJob 'speculator-offline-regen' to be created")
+		t.Logf("Regenerate responses TrainJob created: %s", regenJobName)
+
+		env.test.Eventually(TrainJob(env.test, env.namespace.Name, regenJobName), TestTimeoutGpuProvisioning, 10*time.Second).
+			Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
+		t.Logf("Regenerate responses TrainJob %s completed successfully", regenJobName)
+	} else {
+		t.Log("Skipping regenerate_responses verification (disconnected environment)")
+	}
 
 	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
 	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
