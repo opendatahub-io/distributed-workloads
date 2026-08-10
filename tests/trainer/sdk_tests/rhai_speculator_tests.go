@@ -493,7 +493,6 @@ func verifySpeculatorPodLogContains(test Test, namespace, trainJobName, expected
 	test.T().Fatalf("%s — expected %q in training pod logs", failMsg, expected)
 }
 
-
 func buildSpeculatorS3Exports(test Test) string {
 	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
 	s3AccessKey, _ := GetStorageBucketAccessKeyId()

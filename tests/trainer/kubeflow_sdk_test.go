@@ -241,4 +241,3 @@ func TestRhaiSpeculatorPipelineMultiGpuCuda(t *testing.T) {
 	Tags(t, KftoCuda, MultiGpu(support.NVIDIA, 2))
 	sdktests.RunSpeculatorPipelineTest(t, 1, 2)
 }
-
