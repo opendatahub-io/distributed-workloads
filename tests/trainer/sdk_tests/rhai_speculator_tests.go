@@ -716,6 +716,212 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 
 	t.Log("All speculator OFFLINE pipeline checklist items passed!")
 }
+// RunSpeculatorOnlinePipelineTest runs ONLINE mode end-to-end.
+// The SDK manages a vLLM sidecar within the same TrainJob pod — no external vLLM
+// deployment is needed. Hidden states are generated on-the-fly during training.
+func RunSpeculatorOnlinePipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int) {
+	env := setupSpeculatorTestEnv(t, "40Gi")
+
+	s3Exports := buildSpeculatorS3Exports(env.test)
+	sdkInstallExports := buildKubeflowInstallExports()
+
+	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
+	datasetName := "ultrachat"
+	verifierModel := "Qwen/Qwen3-0.6B"
+	if s3Endpoint != "" {
+		datasetName = fmt.Sprintf("pvc://%s/datasets/ultrachat.jsonl", env.rwxPvc.Name)
+		verifierModel = fmt.Sprintf("pvc://%s/models/Qwen3-0.6B", env.rwxPvc.Name)
+		t.Log("Disconnected environment detected (S3 configured): using PVC model and dataset, skipping response regeneration")
+	}
+
+	shellCmd := fmt.Sprintf(
+		"set -e; "+
+			"export IPYTHONDIR='/tmp/.ipython'; "+
+			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_USER_TOKEN=%s; "+
+			"export NOTEBOOK_NAMESPACE=%s; "+
+			"export SHARED_PVC_NAME=%s; "+
+			"export SPECULATOR_MODE='ONLINE'; "+
+			"export TEST_TYPE='extraction'; "+
+			"export VLLM_GPU_COUNT='%d'; "+
+			"export TRAIN_GPU_COUNT='%d'; "+
+			"export DATASET_NAME=%s; "+
+			"export VERIFIER_MODEL=%s; "+
+			"export OUTPUT_DIR='pvc://%s/speculator-output/online'; "+
+			"export TARGET_LAYER_IDS='2,14,25,28'; "+
+			"export MAX_SAMPLES='20'; "+
+			"export ENABLE_PROGRESSION_TRACKING='true'; "+
+			"export HIDDEN_STATES_DTYPE='bfloat16'; "+
+			"export TEST_IDEMPOTENCY='true'; "+
+			"export TRAINING_RUNTIME=%s; "+
+			"%s"+ // S3 exports
+			"%s"+ // SDK install exports
+			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
+			"python /opt/app-root/notebooks/%s && "+
+			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out_online.ipynb --log-output; "+
+			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
+		shellQuote(GetOpenShiftApiUrl(env.test)), shellQuote(env.userToken), shellQuote(env.namespace.Name),
+		shellQuote(env.rwxPvc.Name),
+		vllmGpuCount,
+		trainGpuCount,
+		shellQuote(datasetName),
+		shellQuote(verifierModel),
+		env.rwxPvc.Name,
+		shellQuote(trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA),
+		s3Exports,
+		sdkInstallExports,
+		installKubeflowScript,
+		speculatorNotebookName,
+	)
+
+	t.Logf("Speculator ONLINE pipeline test: vllmGpuCount=%d, trainGpuCount=%d", vllmGpuCount, trainGpuCount)
+	command := []string{"/bin/sh", "-c", shellCmd}
+
+	common.CreateNotebook(env.test, env.namespace, env.userToken, command, env.cm.Name, speculatorNotebookName, 0, env.rwxPvc, common.ContainerSizeMedium, common.GetRecommendedNotebookImageFromImageStream(env.test, common.NotebookImageStreamTrainingHubCUDA))
+
+	defer func() {
+		common.DeleteNotebook(env.test, env.namespace)
+		env.test.Eventually(common.Notebooks(env.test, env.namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
+	}()
+
+	podName, containerName := trainerutils.WaitForNotebookPodRunning(env.test, env.namespace.Name)
+
+	// Wait for the ONLINE TrainJob (basic e2e + progression + config overrides + sidecar)
+	onlineJobName := "speculator-online"
+	env.test.Eventually(func() bool {
+		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
+		for _, j := range jobs {
+			if j.Name == onlineJobName {
+				return true
+			}
+		}
+		return false
+	}, TestTimeoutGpuProvisioning, 5*time.Second).Should(BeTrue(), "Expected ONLINE TrainJob 'speculator-online' to be created")
+	t.Logf("ONLINE TrainJob created: %s", onlineJobName)
+
+	// Verify progression tracking annotations
+	trainJob := TrainJob(env.test, env.namespace.Name, onlineJobName)(env.test)
+	annotations := trainJob.GetAnnotations()
+	env.test.Expect(annotations[annotationProgressionTracking]).To(Equal("true"),
+		"Expected progression-tracking annotation to be 'true'")
+	env.test.Expect(annotations[annotationMetricsPort]).To(Equal("28080"),
+		"Expected metrics-port annotation to be '28080'")
+	env.test.Expect(annotations[annotationMetricsPollInterval]).To(Equal("30"),
+		"Expected metrics-poll-interval annotation to be '30'")
+	t.Logf("Progression annotations verified on ONLINE TrainJob %s", onlineJobName)
+
+	env.test.Eventually(TrainJob(env.test, env.namespace.Name, onlineJobName), TestTimeoutGpuProvisioning, 10*time.Second).
+		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
+	t.Logf("ONLINE TrainJob %s completed successfully", onlineJobName)
+
+	t.Log("Verifying ONLINE training pod termination message...")
+	verifySpeculatorTerminationMessage(env.test, env.namespace.Name, onlineJobName)
+
+	t.Log("Waiting for ONLINE trainerStatus annotation to reach 100% progress...")
+	env.test.Eventually(func() bool {
+		tj := TrainJob(env.test, env.namespace.Name, onlineJobName)(env.test)
+		trainerStatusRaw := tj.GetAnnotations()[annotationTrainerStatus]
+		if trainerStatusRaw == "" {
+			return false
+		}
+		var status map[string]interface{}
+		if err := json.Unmarshal([]byte(sanitizeJSON(trainerStatusRaw)), &status); err != nil {
+			t.Logf("ONLINE trainerStatus not valid JSON yet: %v", err)
+			return false
+		}
+		progress, ok := status["progressPercentage"].(float64)
+		if !ok || progress < 100 {
+			t.Logf("ONLINE trainerStatus progress: %.0f%%, waiting for 100%%...", progress)
+			return false
+		}
+		t.Logf("ONLINE trainerStatus reached 100%%: %s", trainerStatusRaw)
+		return true
+	}, 2*time.Minute, 5*time.Second).Should(BeTrue(), "ONLINE trainerStatus annotation should reach 100% progress")
+
+	t.Log("Verifying progression tracking fields in trainerStatus...")
+	tj := TrainJob(env.test, env.namespace.Name, onlineJobName)(env.test)
+	trainerStatusRaw := tj.GetAnnotations()[annotationTrainerStatus]
+	if trainerStatusRaw != "" {
+		var status map[string]interface{}
+		if err := json.Unmarshal([]byte(sanitizeJSON(trainerStatusRaw)), &status); err == nil {
+			env.test.Expect(status).To(HaveKey("progressPercentage"), "trainerStatus should contain progressPercentage")
+			env.test.Expect(status).To(HaveKey("estimatedRemainingSeconds"), "trainerStatus should contain estimatedRemainingSeconds")
+			env.test.Expect(status).To(HaveKey("lastUpdatedTime"), "trainerStatus should contain lastUpdatedTime")
+			t.Logf("Verified trainerStatus fields: progress=%.0f%%, summary=%v",
+				status["progressPercentage"], status["estimatedRemainingTimeSummary"])
+		}
+	}
+
+	t.Log("Verifying ONLINE training pod logs...")
+	verifySpeculatorOfflinePodLogs(env.test, env.namespace.Name, onlineJobName,
+		"[Kubeflow] Speculator progression tracking enabled",
+		"[Kubeflow] vLLM sidecar is ready",
+		"[Kubeflow] Complete. Final metrics saved.",
+	)
+
+	t.Log("Verifying vLLM sidecar container in ONLINE pod...")
+	verifySpeculatorOnlineSidecar(env.test, env.namespace.Name, onlineJobName, vllmGpuCount)
+
+	// Wait for interrupt TrainJob (will be deleted by notebook after first checkpoint is saved)
+	interruptJobName := "speculator-online-interrupt"
+	env.test.Eventually(func() bool {
+		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
+		for _, j := range jobs {
+			if j.Name == interruptJobName {
+				return true
+			}
+		}
+		return false
+	}, TestTimeoutDouble, 5*time.Second).Should(BeTrue(), "Expected interrupt TrainJob 'speculator-online-interrupt' to be created")
+	t.Logf("Interrupt TrainJob created: %s", interruptJobName)
+
+	// Wait for interrupt job to be deleted (notebook deletes after detecting checkpoint)
+	env.test.Eventually(func() bool {
+		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
+		for _, j := range jobs {
+			if j.Name == interruptJobName {
+				return false
+			}
+		}
+		return true
+	}, TestTimeoutGpuProvisioning, 10*time.Second).Should(BeTrue(), "Expected interrupt TrainJob to be deleted after checkpoint detection")
+	t.Log("Interrupt TrainJob deleted after checkpoint detection")
+
+	// Wait for checkpoint resume TrainJob
+	resumeJobName := "speculator-online-resume"
+	env.test.Eventually(func() bool {
+		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
+		for _, j := range jobs {
+			if j.Name == resumeJobName {
+				return true
+			}
+		}
+		return false
+	}, TestTimeoutDouble, 5*time.Second).Should(BeTrue(), "Expected checkpoint resume TrainJob 'speculator-online-resume' to be created")
+	t.Logf("Checkpoint resume TrainJob created: %s", resumeJobName)
+
+	env.test.Eventually(TrainJob(env.test, env.namespace.Name, resumeJobName), TestTimeoutGpuProvisioning, 10*time.Second).
+		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
+	t.Logf("Checkpoint resume TrainJob %s completed successfully", resumeJobName)
+
+	t.Log("Verifying checkpoint resume log markers...")
+	verifySpeculatorResumeFromCheckpointLogs(env.test, env.namespace.Name, resumeJobName)
+
+	t.Log("Verifying checkpoint resume training pod logs...")
+	verifySpeculatorOfflinePodLogs(env.test, env.namespace.Name, resumeJobName,
+		"[Kubeflow] Speculator progression tracking enabled",
+		"[Kubeflow] vLLM sidecar is ready",
+		"[Kubeflow] Complete. Final metrics saved.",
+	)
+
+	t.Log("Verifying resume job termination message shows progressPercentage=100...")
+	verifySpeculatorTerminationMessage(env.test, env.namespace.Name, resumeJobName)
+
+	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
+	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
+
+	t.Log("All speculator ONLINE pipeline checklist items passed!")
+}
+
 
 func verifySpeculatorOfflinePodLogs(test Test, namespace, trainJobName string, markers ...string) {
 	test.T().Helper()
@@ -753,6 +959,55 @@ func verifySpeculatorOfflinePodLogs(test Test, namespace, trainJobName string, m
 	}
 
 	test.T().Fatalf("Required OFFLINE log markers not found in any completed training pod: %v", required)
+}
+
+func verifySpeculatorOnlineSidecar(test Test, namespace, trainJobName string, expectedVllmGpus int) {
+	test.T().Helper()
+
+	pods := listTrainingPods(test, namespace, trainJobName)
+	test.Expect(len(pods)).NotTo(Equal(0), "No training pods found to verify ONLINE sidecar")
+
+	for _, pod := range pods {
+		if pod.Status.Phase != corev1.PodSucceeded {
+			continue
+		}
+
+		test.Expect(len(pod.Spec.Containers)).To(BeNumerically(">=", 2),
+			fmt.Sprintf("ONLINE pod %s should have at least 2 containers (node + vLLM sidecar), got %d",
+				pod.Name, len(pod.Spec.Containers)))
+
+		var sidecarFound bool
+		for _, c := range pod.Spec.Containers {
+			if c.Name == "node" {
+				continue
+			}
+			gpuQty := c.Resources.Requests[corev1.ResourceName("nvidia.com/gpu")]
+			if !gpuQty.IsZero() {
+				sidecarFound = true
+				actualGpus := int(gpuQty.Value())
+				test.Expect(actualGpus).To(Equal(expectedVllmGpus),
+					fmt.Sprintf("Sidecar container %s GPU requests should be %d, got %d",
+						c.Name, expectedVllmGpus, actualGpus))
+				test.T().Logf("Verified sidecar container %s in pod %s: nvidia.com/gpu=%d",
+					c.Name, pod.Name, actualGpus)
+
+				for _, cs := range pod.Status.ContainerStatuses {
+					if cs.Name == c.Name {
+						test.Expect(cs.State.Terminated).NotTo(BeNil(),
+							fmt.Sprintf("Sidecar container %s should be terminated after training completes", c.Name))
+						test.T().Logf("Confirmed sidecar container %s terminated (exit code %d)",
+							c.Name, cs.State.Terminated.ExitCode)
+					}
+				}
+				break
+			}
+		}
+		test.Expect(sidecarFound).To(BeTrue(),
+			fmt.Sprintf("No vLLM sidecar container with GPU resources found in pod %s", pod.Name))
+		return
+	}
+
+	test.T().Fatalf("No completed training pod found to verify ONLINE sidecar for job %s", trainJobName)
 }
 
 func buildSpeculatorS3Exports(test Test) string {
