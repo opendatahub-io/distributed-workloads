@@ -57,7 +57,7 @@ const (
 	DefaultClusterTrainingRuntimeCPU = "torch-distributed-cpu"
 
 	// DefaultSpeculatorVllmExtractRuntimeCUDA is the CUDA runtime for speculator vLLM data extraction (DATA_ONLY mode)
-	DefaultSpeculatorvLLMExtractRuntimeCUDA = "speculator-vllm-extract-cuda"
+	DefaultSpeculatorvLLMExtractRuntimeCUDA = "vllm-extract-cuda"
 
 	// DefaultSpeculatorModelOptRuntimeCUDA is the CUDA runtime for speculator model optimization (TRAIN_ONLY mode)
 	DefaultSpeculatorModelOptRuntimeCUDA = "speculator-model-opt-cuda"
