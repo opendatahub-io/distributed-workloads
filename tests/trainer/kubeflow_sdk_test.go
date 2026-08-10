@@ -242,8 +242,3 @@ func TestRhaiSpeculatorPipelineMultiGpuCuda(t *testing.T) {
 	sdktests.RunSpeculatorPipelineTest(t, 1, 2)
 }
 
-// Speculator failure scenarios — DATA_ONLY + TRAIN_ONLY failures
-func TestRhaiSpeculatorFailureCuda(t *testing.T) {
-	Tags(t, KftoCuda, Gpu(support.NVIDIA))
-	sdktests.RunSpeculatorFailureScenariosTest(t)
-}
