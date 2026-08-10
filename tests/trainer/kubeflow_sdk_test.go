@@ -253,3 +253,15 @@ func TestRhaiSpeculatorOfflinePipelineMultiGpuCuda(t *testing.T) {
 	Tags(t, KftoCuda, MultiGpu(support.NVIDIA, 2))
 	sdktests.RunSpeculatorOfflinePipelineTest(t, 2)
 }
+
+// Speculator ONLINE pipeline: single GPU (1 training + 1 vLLM sidecar in same pod)
+func TestRhaiSpeculatorOnlinePipelineSingleGpuCuda(t *testing.T) {
+	Tags(t, KftoCuda, MultiGpu(support.NVIDIA, 2))
+	sdktests.RunSpeculatorOnlinePipelineTest(t, 1, 1)
+}
+
+// Speculator ONLINE pipeline: multi GPU (2 training + 1 vLLM sidecar in same pod)
+func TestRhaiSpeculatorOnlinePipelineMultiGpuCuda(t *testing.T) {
+	Tags(t, KftoCuda, MultiGpu(support.NVIDIA, 3))
+	sdktests.RunSpeculatorOnlinePipelineTest(t, 1, 2)
+}
