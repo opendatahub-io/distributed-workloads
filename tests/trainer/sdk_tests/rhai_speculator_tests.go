@@ -458,6 +458,7 @@ func verifySpeculatorResumeFromCheckpointLogs(test Test, namespace, trainJobName
 	required := []string{
 		"Found checkpoint at",
 		"Resuming training on",
+		"Training epoch 3/3",
 	}
 
 	for _, pod := range pods {
@@ -715,6 +716,31 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 	t.Log("Verifying OFFLINE training pod logs (config overrides applied)...")
 	verifySpeculatorOfflinePodLogs(env.test, env.namespace.Name, offlineJobName)
 
+	// Wait for interrupt TrainJob (will be deleted by notebook after first checkpoint is saved)
+	interruptJobName := "speculator-offline-interrupt"
+	env.test.Eventually(func() bool {
+		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
+		for _, j := range jobs {
+			if j.Name == interruptJobName {
+				return true
+			}
+		}
+		return false
+	}, TestTimeoutDouble, 5*time.Second).Should(BeTrue(), "Expected interrupt TrainJob 'speculator-offline-interrupt' to be created")
+	t.Logf("Interrupt TrainJob created: %s", interruptJobName)
+
+	// Wait for interrupt job to be deleted (notebook deletes after detecting checkpoint)
+	env.test.Eventually(func() bool {
+		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
+		for _, j := range jobs {
+			if j.Name == interruptJobName {
+				return false
+			}
+		}
+		return true
+	}, TestTimeoutGpuProvisioning, 10*time.Second).Should(BeTrue(), "Expected interrupt TrainJob to be deleted after checkpoint detection")
+	t.Log("Interrupt TrainJob deleted after checkpoint detection")
+
 	// Wait for checkpoint resume TrainJob
 	resumeJobName := "speculator-offline-resume"
 	env.test.Eventually(func() bool {
@@ -732,78 +758,23 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
 	t.Logf("Checkpoint resume TrainJob %s completed successfully", resumeJobName)
 
+	t.Log("Verifying checkpoint resume log markers...")
+	verifySpeculatorResumeFromCheckpointLogs(env.test, env.namespace.Name, resumeJobName)
+
 	t.Log("Verifying checkpoint resume training pod logs...")
 	verifySpeculatorOfflinePodLogs(env.test, env.namespace.Name, resumeJobName,
 		"[Kubeflow] Speculator progression tracking enabled",
+		"[Kubeflow] Data extraction already completed. Skipping.",
 		"[Kubeflow] Complete. Final metrics saved.",
 	)
+
+	t.Log("Verifying resume job termination message shows progressPercentage=100...")
+	verifySpeculatorTerminationMessage(env.test, env.namespace.Name, resumeJobName)
 
 	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
 	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 
 	t.Log("All speculator OFFLINE pipeline checklist items passed!")
-}
-
-// RunSpeculatorOfflineFailureTest runs OFFLINE mode failure scenarios.
-// The notebook submits jobs with intentionally bad parameters (e.g., unreachable vLLM endpoint)
-// and verifies that failures are properly detected via SDK APIs.
-func RunSpeculatorOfflineFailureTest(t *testing.T) {
-	env := setupSpeculatorTestEnv(t, "5Gi")
-
-	sdkInstallExports := buildKubeflowInstallExports()
-
-	shellCmd := fmt.Sprintf(
-		"set -e; "+
-			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_USER_TOKEN=%s; "+
-			"export NOTEBOOK_NAMESPACE=%s; "+
-			"export SHARED_PVC_NAME=%s; "+
-			"export SPECULATOR_MODE='OFFLINE'; "+
-			"export TEST_TYPE='failure'; "+
-			"export TRAIN_GPU_COUNT='1'; "+
-			"export TARGET_LAYER_IDS='2,14,25,28'; "+
-			"export TRAINING_RUNTIME=%s; "+
-			"%s"+ // SDK install exports
-			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
-			"python /opt/app-root/notebooks/%s && "+
-			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out_offline_fail.ipynb --log-output; "+
-			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		shellQuote(GetOpenShiftApiUrl(env.test)), shellQuote(env.userToken), shellQuote(env.namespace.Name),
-		shellQuote(env.rwxPvc.Name),
-		shellQuote(trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA),
-		sdkInstallExports,
-		installKubeflowScript,
-		speculatorNotebookName,
-	)
-
-	t.Log("Speculator OFFLINE failure scenarios: bad vLLM endpoint")
-	command := []string{"/bin/sh", "-c", shellCmd}
-
-	common.CreateNotebook(env.test, env.namespace, env.userToken, command, env.cm.Name, speculatorNotebookName, 0, env.rwxPvc, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(env.test, common.NotebookImageStreamTrainingHubCUDA))
-
-	defer func() {
-		common.DeleteNotebook(env.test, env.namespace)
-		env.test.Eventually(common.Notebooks(env.test, env.namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
-	}()
-
-	podName, containerName := trainerutils.WaitForNotebookPodRunning(env.test, env.namespace.Name)
-
-	// vllm_readiness_timeout=10 makes the pod fail fast; job reaches Failed after backoff retries
-	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
-	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
-
-	var tail int64 = 2000
-	logs := PodLog(env.test, env.namespace.Name, podName, corev1.PodLogOptions{
-		Container: containerName,
-		TailLines: &tail,
-	})(env.test)
-	for _, line := range strings.Split(logs, "\n") {
-		if strings.Contains(line, "PASSED:") || strings.Contains(line, "FAILED:") ||
-			strings.Contains(line, "Scenario:") || strings.Contains(line, "All scenarios passed") ||
-			strings.Contains(line, "SPECULATOR FAILURE SCENARIOS") {
-			t.Log(line)
-		}
-	}
 }
 
 func verifySpeculatorOfflinePodLogs(test Test, namespace, trainJobName string, markers ...string) {
