@@ -37,9 +37,6 @@ import (
 const (
 	speculatorNotebookName = "rhai_speculator.ipynb"
 	speculatorNotebookPath = "resources/" + speculatorNotebookName
-
-	speculatorPullSecretName     = "aipcc-pull-secret"
-	speculatorPullSecretSourceNs = "test-hrathina"
 )
 
 type speculatorTestEnv struct {
@@ -81,19 +78,6 @@ func setupSpeculatorTestEnv(t *testing.T, pvcSize string) speculatorTestEnv {
 		AccessModes(corev1.ReadWriteMany),
 		StorageClassName(storageClass.Name),
 	)
-
-	srcSecret, err := test.Client().Core().CoreV1().Secrets(speculatorPullSecretSourceNs).Get(test.Ctx(), speculatorPullSecretName, metav1.GetOptions{})
-	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to get %s from namespace %s", speculatorPullSecretName, speculatorPullSecretSourceNs))
-	_, err = test.Client().Core().CoreV1().Secrets(namespace.Name).Create(test.Ctx(), &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      speculatorPullSecretName,
-			Namespace: namespace.Name,
-		},
-		Type: srcSecret.Type,
-		Data: srcSecret.Data,
-	}, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to create %s in namespace %s", speculatorPullSecretName, namespace.Name))
-	t.Logf("Copied pull secret %s to namespace %s", speculatorPullSecretName, namespace.Name)
 
 	return speculatorTestEnv{test, namespace, userToken, rwxPvc, cm}
 }
