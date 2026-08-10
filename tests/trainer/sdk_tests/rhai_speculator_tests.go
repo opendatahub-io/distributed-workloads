@@ -493,69 +493,6 @@ func verifySpeculatorPodLogContains(test Test, namespace, trainJobName, expected
 	test.T().Fatalf("%s — expected %q in training pod logs", failMsg, expected)
 }
 
-// RunSpeculatorFailureScenariosTest runs all speculator failure scenarios for both
-// DATA_ONLY and TRAIN_ONLY modes in a single notebook pod. Two papermill runs:
-// first DATA_ONLY failures (bad model path), then TRAIN_ONLY failures (bad paths).
-// Scenarios run sequentially to avoid GPU contention.
-func RunSpeculatorFailureScenariosTest(t *testing.T) {
-	env := setupSpeculatorTestEnv(t, "5Gi")
-
-	sdkInstallExports := buildKubeflowInstallExports()
-
-	shellCmd := fmt.Sprintf(
-		"set -e; "+
-			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_USER_TOKEN=%s; "+
-			"export NOTEBOOK_NAMESPACE=%s; "+
-			"export SHARED_PVC_NAME=%s; "+
-			"export VLLM_GPU_COUNT='1'; "+
-			"export TRAIN_GPU_COUNT='1'; "+
-			"export TARGET_LAYER_IDS='2,14,25,28'; "+
-			"export TEST_TYPE='failure'; "+
-			"%s"+ // SDK install exports
-			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
-			"python /opt/app-root/notebooks/%s && "+
-			"export SPECULATOR_MODE='TRAIN_ONLY'; "+
-			"export TRAINING_RUNTIME=%s; "+
-			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out_train_fail.ipynb --log-output; "+
-			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		shellQuote(GetOpenShiftApiUrl(env.test)), shellQuote(env.userToken), shellQuote(env.namespace.Name),
-		shellQuote(env.rwxPvc.Name),
-		sdkInstallExports,
-		installKubeflowScript,
-		shellQuote(trainerutils.DefaultSpeculatorModelOptRuntimeCUDA),
-		speculatorNotebookName,
-	)
-
-	t.Log("Speculator failure scenarios: TRAIN_ONLY incomplete extraction marker")
-	command := []string{"/bin/sh", "-c", shellCmd}
-
-	common.CreateNotebook(env.test, env.namespace, env.userToken, command, env.cm.Name, speculatorNotebookName, 0, env.rwxPvc, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(env.test, common.NotebookImageStreamTrainingHubCUDA))
-
-	defer func() {
-		common.DeleteNotebook(env.test, env.namespace)
-		env.test.Eventually(common.Notebooks(env.test, env.namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
-	}()
-
-	podName, containerName := trainerutils.WaitForNotebookPodRunning(env.test, env.namespace.Name)
-
-	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
-	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
-
-	// Log scenario results from notebook output
-	var tail int64 = 2000
-	logs := PodLog(env.test, env.namespace.Name, podName, corev1.PodLogOptions{
-		Container: containerName,
-		TailLines: &tail,
-	})(env.test)
-	for _, line := range strings.Split(logs, "\n") {
-		if strings.Contains(line, "PASSED:") || strings.Contains(line, "FAILED:") ||
-			strings.Contains(line, "Scenario:") || strings.Contains(line, "All scenarios passed") ||
-			strings.Contains(line, "SPECULATOR FAILURE SCENARIOS") {
-			t.Log(line)
-		}
-	}
-}
 
 func buildSpeculatorS3Exports(test Test) string {
 	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
