@@ -18,7 +18,6 @@ package support
 
 import (
 	trainerclient "github.com/kubeflow/trainer/v2/pkg/client/clientset/versioned"
-	kubeflowclient "github.com/kubeflow/training-operator/pkg/client/clientset/versioned"
 	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	rayclient "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned"
 
@@ -42,7 +41,6 @@ import (
 type Client interface {
 	Core() kubernetes.Interface
 	Trainer() trainerclient.Interface
-	Kubeflow() kubeflowclient.Interface
 	JobSet() jobsetclient.Interface
 	Kueue() kueueclient.Interface
 	KueueOperator() kueueoperatorclient.Interface
@@ -58,7 +56,6 @@ type Client interface {
 type testClient struct {
 	core          kubernetes.Interface
 	trainer       trainerclient.Interface
-	kubeflow      kubeflowclient.Interface
 	jobset        jobsetclient.Interface
 	kueue         kueueclient.Interface
 	kueueOperator kueueoperatorclient.Interface
@@ -79,10 +76,6 @@ func (t *testClient) Core() kubernetes.Interface {
 
 func (t *testClient) Trainer() trainerclient.Interface {
 	return t.trainer
-}
-
-func (t *testClient) Kubeflow() kubeflowclient.Interface {
-	return t.kubeflow
 }
 
 func (t *testClient) JobSet() jobsetclient.Interface {
@@ -147,11 +140,6 @@ func newTestClient(cfg *rest.Config) (Client, *rest.Config, error) {
 		return nil, nil, err
 	}
 
-	kubeflowClient, err := kubeflowclient.NewForConfig(cfg)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	jobsetClient, err := jobsetclient.NewForConfig(cfg)
 	if err != nil {
 		return nil, nil, err
@@ -205,7 +193,6 @@ func newTestClient(cfg *rest.Config) (Client, *rest.Config, error) {
 	return &testClient{
 		core:          kubeClient,
 		trainer:       trainerClient,
-		kubeflow:      kubeflowClient,
 		jobset:        jobsetClient,
 		kueue:         kueueClient,
 		kueueOperator: kueueOperatorClient,

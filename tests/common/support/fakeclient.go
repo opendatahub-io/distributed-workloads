@@ -19,7 +19,6 @@ package support
 import (
 	"testing"
 
-	fakekfto "github.com/kubeflow/training-operator/pkg/client/clientset/versioned/fake"
 	fakeray "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned/fake"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,19 +38,17 @@ func NewTest(t *testing.T) *T {
 	fakerouteClient := fakeroute.NewSimpleClientset()
 	fakerayClient := fakeray.NewSimpleClientset()
 	fakekueueClient := fakekueue.NewSimpleClientset()
-	fakeKftoClient := fakekfto.NewSimpleClientset()
 	fakedynamicClient := fakeDynamic.NewSimpleDynamicClient(runtime.NewScheme())
 
 	test := With(t).(*T)
 	test.client = &testClient{
-		core:     fakeCoreClient,
-		machine:  fakemachineClient,
-		image:    fakeimageClient,
-		route:    fakerouteClient,
-		ray:      fakerayClient,
-		kueue:    fakekueueClient,
-		kubeflow: fakeKftoClient,
-		dynamic:  fakedynamicClient,
+		core:    fakeCoreClient,
+		machine: fakemachineClient,
+		image:   fakeimageClient,
+		route:   fakerouteClient,
+		ray:     fakerayClient,
+		kueue:   fakekueueClient,
+		dynamic: fakedynamicClient,
 	}
 	return test
 }
