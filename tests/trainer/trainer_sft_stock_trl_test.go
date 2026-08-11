@@ -195,7 +195,7 @@ echo "Dataset initialization completed!"
 													},
 													VolumeMounts: []corev1.VolumeMount{
 														{
-															Name:      "workspace",
+															Name:      "initializer",
 															MountPath: "/workspace",
 														},
 														{
@@ -208,7 +208,7 @@ echo "Dataset initialization completed!"
 											},
 											Volumes: []corev1.Volume{
 												{
-													Name: "workspace",
+													Name: "initializer",
 													VolumeSource: corev1.VolumeSource{
 														PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 															ClaimName: pvcName,
