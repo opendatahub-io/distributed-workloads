@@ -543,7 +543,6 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 			"export ENABLE_PROGRESSION_TRACKING='true'; "+
 			"export DATAGEN_CONCURRENCY='2'; "+
 			"export HIDDEN_STATES_DTYPE='bfloat16'; "+
-			"export TEST_IDEMPOTENCY='true'; "+
 			"export TRAINING_RUNTIME=%s; "+
 			"%s"+ // S3 exports
 			"%s"+ // SDK install exports
@@ -577,7 +576,7 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 
 	podName, containerName := trainerutils.WaitForNotebookPodRunning(env.test, env.namespace.Name)
 
-	// Wait for the first OFFLINE TrainJob (basic e2e)
+	// Step 1: Wait for the OFFLINE TrainJob (will be interrupted after first checkpoint)
 	offlineJobName := "speculator-offline"
 	env.test.Eventually(func() bool {
 		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
@@ -601,66 +600,19 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 		"Expected metrics-poll-interval annotation to be '30'")
 	t.Logf("Progression annotations verified on OFFLINE TrainJob %s", offlineJobName)
 
-	env.test.Eventually(TrainJob(env.test, env.namespace.Name, offlineJobName), TestTimeoutGpuProvisioning, 10*time.Second).
-		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
-	t.Logf("OFFLINE TrainJob %s completed successfully", offlineJobName)
-
-	t.Log("Verifying OFFLINE training pod termination message...")
-	verifySpeculatorTerminationMessage(env.test, env.namespace.Name, offlineJobName)
-
-	// Verify progression tracking fields in trainerStatus annotation.
-	// The annotation is updated by the controller polling the metrics endpoint; once
-	// the pod exits the endpoint disappears, so the annotation may not reach 100%.
-	// The termination message (verified above) is authoritative for final progress.
-	t.Log("Verifying progression tracking fields in trainerStatus...")
-	tj := TrainJob(env.test, env.namespace.Name, offlineJobName)(env.test)
-	trainerStatusRaw := tj.GetAnnotations()[annotationTrainerStatus]
-	if trainerStatusRaw != "" {
-		var status map[string]interface{}
-		if err := json.Unmarshal([]byte(sanitizeJSON(trainerStatusRaw)), &status); err == nil {
-			env.test.Expect(status).To(HaveKey("progressPercentage"), "trainerStatus should contain progressPercentage")
-			env.test.Expect(status).To(HaveKey("estimatedRemainingSeconds"), "trainerStatus should contain estimatedRemainingSeconds")
-			env.test.Expect(status).To(HaveKey("lastUpdatedTime"), "trainerStatus should contain lastUpdatedTime")
-			progress, _ := status["progressPercentage"].(float64)
-			env.test.Expect(progress).To(BeNumerically(">", 0),
-				"trainerStatus progressPercentage should be greater than 0")
-			t.Logf("Verified trainerStatus fields: progress=%.0f%%, summary=%v",
-				progress, status["estimatedRemainingTimeSummary"])
-		}
-	}
-
-	// SpeculatorConfig overrides verified via pod logs
-	// The config (target_layer_ids, datagen_concurrency, hidden_states_dtype=bfloat16)
-	// is passed to the TrainJob; extraction completion confirms the config was applied.
-	t.Log("Verifying OFFLINE training pod logs (config overrides applied)...")
-	verifySpeculatorOfflinePodLogs(env.test, env.namespace.Name, offlineJobName)
-
-	// Wait for interrupt TrainJob (will be deleted by notebook after first checkpoint is saved)
-	interruptJobName := "speculator-offline-interrupt"
+	// Wait for TrainJob to be deleted (notebook interrupts it after first checkpoint)
 	env.test.Eventually(func() bool {
 		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
 		for _, j := range jobs {
-			if j.Name == interruptJobName {
-				return true
-			}
-		}
-		return false
-	}, TestTimeoutDouble, 5*time.Second).Should(BeTrue(), "Expected interrupt TrainJob 'speculator-offline-interrupt' to be created")
-	t.Logf("Interrupt TrainJob created: %s", interruptJobName)
-
-	// Wait for interrupt job to be deleted (notebook deletes after detecting checkpoint)
-	env.test.Eventually(func() bool {
-		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
-		for _, j := range jobs {
-			if j.Name == interruptJobName {
+			if j.Name == offlineJobName {
 				return false
 			}
 		}
 		return true
-	}, TestTimeoutGpuProvisioning, 10*time.Second).Should(BeTrue(), "Expected interrupt TrainJob to be deleted after checkpoint detection")
-	t.Log("Interrupt TrainJob deleted after checkpoint detection")
+	}, TestTimeoutGpuProvisioning, 5*time.Second).Should(BeTrue(), "Expected OFFLINE TrainJob to be deleted after checkpoint detection")
+	t.Log("OFFLINE TrainJob deleted (interrupted after checkpoint)")
 
-	// Wait for checkpoint resume TrainJob
+	// Step 2: Wait for resume TrainJob to appear and complete
 	resumeJobName := "speculator-offline-resume"
 	env.test.Eventually(func() bool {
 		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
@@ -670,27 +622,24 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 			}
 		}
 		return false
-	}, TestTimeoutDouble, 5*time.Second).Should(BeTrue(), "Expected checkpoint resume TrainJob 'speculator-offline-resume' to be created")
-	t.Logf("Checkpoint resume TrainJob created: %s", resumeJobName)
-
+	}, TestTimeoutDouble, 5*time.Second).Should(BeTrue(), "Expected resume TrainJob 'speculator-offline-resume' to be created")
+	t.Logf("Resume TrainJob created: %s", resumeJobName)
 	env.test.Eventually(TrainJob(env.test, env.namespace.Name, resumeJobName), TestTimeoutGpuProvisioning, 10*time.Second).
-		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
-	t.Logf("Checkpoint resume TrainJob %s completed successfully", resumeJobName)
+	Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
+	t.Logf("Resume TrainJob %s completed successfully", resumeJobName)
 
-	t.Log("Verifying checkpoint resume log markers...")
-	verifySpeculatorResumeFromCheckpointLogs(env.test, env.namespace.Name, resumeJobName)
+	t.Log("Verifying resume termination message shows progressPercentage=100...")
+	verifySpeculatorTerminationMessage(env.test, env.namespace.Name, resumeJobName)
 
 	t.Log("Verifying checkpoint resume training pod logs...")
 	verifySpeculatorOfflinePodLogs(env.test, env.namespace.Name, resumeJobName,
 		"[Kubeflow] Speculator progression tracking enabled",
 		"[Kubeflow] Data extraction already completed. Skipping.",
+		"Removed interrupted checkpoint",
 		"[Kubeflow] Complete. Final metrics saved.",
 	)
 
-	t.Log("Verifying resume job termination message shows progressPercentage=100...")
-	verifySpeculatorTerminationMessage(env.test, env.namespace.Name, resumeJobName)
-
-	// Wait for regenerate_responses TrainJob (connected environments only)
+	// Step 3: Wait for regenerate_responses TrainJob (connected environments only)
 	if s3Endpoint == "" {
 		regenJobName := "speculator-offline-regen"
 		env.test.Eventually(func() bool {
@@ -707,6 +656,9 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 		env.test.Eventually(TrainJob(env.test, env.namespace.Name, regenJobName), TestTimeoutGpuProvisioning, 10*time.Second).
 			Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
 		t.Logf("Regenerate responses TrainJob %s completed successfully", regenJobName)
+
+		t.Log("Verifying regen job termination message...")
+		verifySpeculatorTerminationMessage(env.test, env.namespace.Name, regenJobName)
 	} else {
 		t.Log("Skipping regenerate_responses verification (disconnected environment)")
 	}
@@ -714,7 +666,7 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
 	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 
-	t.Log("All speculator OFFLINE pipeline checklist items passed!")
+	t.Log("All speculator OFFLINE pipeline steps passed!")
 }
 // RunSpeculatorOnlinePipelineTest runs ONLINE mode end-to-end.
 // The SDK manages a vLLM sidecar within the same TrainJob pod — no external vLLM
