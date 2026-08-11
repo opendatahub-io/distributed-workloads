@@ -17,7 +17,6 @@ limitations under the License.
 package trainer
 
 import (
-	"strings"
 	"testing"
 
 	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
@@ -139,7 +138,7 @@ func TestOpenMPICudaClusterTrainingRuntime(t *testing.T) {
 }
 
 // TestDefaultTrainingHubRuntimesMatchDefaultClusterRuntimes is a smoke test that verifies
-// Training Hub and pinned torch-distributed CTR resources (th06) have exactly the same
+// Training Hub and pinned torch-distributed CTR resources have exactly the same
 // spec as their corresponding DefaultClusterTrainingRuntime resources.
 func TestDefaultTrainingHubRuntimesMatchDefaultClusterRuntimes(t *testing.T) {
 	Tags(t, Smoke)
@@ -298,13 +297,7 @@ func verifyPodContainerImages(test Test, namespace, trainJobName string) {
 			test.Expect(image).To(MatchRegexp(`@sha256:[a-f0-9]{64}$`),
 				"Image %s should be SHA-based with valid digest", image)
 
-			// Universal images (th06) are not listed in CSV relatedImages
-			if strings.Contains(image, "/odh-th06-") {
-				test.T().Logf("Skipping CSV relatedImages check for universal image %s", image)
-				continue
-			}
-
-			// Verify image is listed in CSV related images
+			// Verify image is listed in CSV related images (including odh-th-torch-* universal images)
 			test.Expect(csv.Spec.RelatedImages).To(ContainElement(HaveField("Image", Equal(image))),
 				"Image %s is not listed in CSV %s related images", image, csv.Name)
 			test.T().Logf("Image %s is verified in CSV related images", image)
