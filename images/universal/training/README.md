@@ -33,14 +33,14 @@ When `DOWNSTREAM=true`:
 
 | Flavor | Directory | Use Case |
 |--------|-----------|----------|
-| **CUDA** | `th<VERSION>-cuda<VERSION>-torch<VERSION>-py<VERSION>/` | NVIDIA GPU training |
-| **ROCm** | `th<VERSION>-rocm<VERSION>-torch<VERSION>-py<VERSION>/` | AMD GPU training |
-| **CPU** | `th<VERSION>-cpu-torch<VERSION>-py<VERSION>/` | CPU-only training |
+| **CUDA** | `th-torch-cuda-py312/` | NVIDIA GPU training |
+| **ROCm** | `th-torch-rocm-py312/` | AMD GPU training |
+| **CPU** | `th-torch-cpu-py312/` | CPU-only training |
 
 All flavors include:
 - **Training Hub** with LoRA support
-- **PyTorch <VERSION>**
-- **Python <VERSION>**
+- **PyTorch**
+- **Python 3.12**
 - **JupyterLab** (workbench mode)
 
 ### CUDA Image
@@ -163,9 +163,9 @@ Update to dependencies **other than** CUDA, ROCm, PyTorch, or Training Hub.
 2. Coordinate with AIPCC team for the new index with updated major packages
 3. Coordinate with Notebooks team for the new base image
 4. Create new directory following naming convention:
-   - CUDA: `th<TH_VERSION>-cuda<CUDA_VERSION>-torch<TORCH_VERSION>-py<PYTHON_VERSION>/`
-   - ROCm: `th<TH_VERSION>-rocm<ROCM_VERSION>-torch<TORCH_VERSION>-py<PYTHON_VERSION>/`
-   - CPU: `th<TH_VERSION>-cpu-torch<TORCH_VERSION>-py<PYTHON_VERSION>/`
+   - CUDA: `th-torch-cuda-py<PYTHON_VERSION>/`
+   - ROCm: `th-torch-rocm-py<PYTHON_VERSION>/`
+   - CPU: `th-torch-cpu-py<PYTHON_VERSION>/`
 5. Copy files from previous version and update:
    - `Dockerfile` - update base image, package versions
    - `pyproject.toml` - update dependencies to match `training-hub` requirements

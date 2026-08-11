@@ -42,7 +42,7 @@ kubectl apply --server-side -k "https://github.com/opendatahub-io/trainer.git/ma
 kubectl get deployments -n opendatahub kubeflow-trainer-controller-manager
 
 
-#Verify all four ClusterTrainingRuntimes are created
+# Verify ClusterTrainingRuntimes are created (defaults + pinned th09)
 
 ```bash
 kubectl get clustertrainingruntimes
@@ -101,5 +101,5 @@ Post-upgrade tests compare resource `metadata.generation` against pre-upgrade ba
 
 ## GPU Requirements
 
-> **Note:** The TrainingHub SDK tests (`TestOsftTrainingHubMultiNodeMultiGPU`, `TestLoraTrainingHubMultiNodeMultiGPU`, `TestSftTrainingHubMultiNodeMultiGPU`) require **NVIDIA Ampere or newer GPUs** (e.g. A100, H100). The training runtime image (`odh-training-cuda128-torch29-py312-rhel9`, referenced as `DefaultTrainingHubRuntimeCUDA` in [`tests/trainer/utils/utils_runtimes.go`](utils/utils_runtimes.go)) ships with `flash_attn==2.8.3`, which requires compute capability >= 8.0. These tests will not work on pre-Ampere GPUs such as T4 or V100.
+> **Note:** The TrainingHub SDK tests (`TestOsftTrainingHubMultiNodeMultiGPU`, `TestLoraTrainingHubMultiNodeMultiGPU`, `TestSftTrainingHubMultiNodeMultiGPU`) require **NVIDIA Ampere or newer GPUs** (e.g. A100, H100). The training runtime image (`odh-th-torch-cuda-py312`, referenced as `DefaultTrainingHubRuntimeCUDA` in [`tests/trainer/utils/utils_runtimes.go`](utils/utils_runtimes.go)) ships with `flash-attn==2.8.3.post1`, which requires compute capability >= 8.0. These tests will not work on pre-Ampere GPUs such as T4 or V100.
 

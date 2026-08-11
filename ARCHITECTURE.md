@@ -127,20 +127,18 @@ images/
 ├── model/
 │   └── bloom560m/                 BLOOM-560M model image
 ├── runtime/
-│   ├── training/                  Runtime training images (~10 variants)
-│   │   ├── py311-cuda121-torch241/
-│   │   ├── py311-cuda124-torch251/
-│   │   ├── ...
-│   │   └── py312-rocm64-torch290/
+│   ├── training/                  Runtime training images (Trainer v2)
+│   │   ├── py312-cuda130-torch210-openmpi41/
+│   │   └── py312-rocm64-torch29-openmpi41/
 │   ├── ray/                       Ray runtime images
 │   │   ├── cuda/                    CUDA variants
 │   │   └── rocm/                    ROCm variants
 │   └── examples/                  Example-specific runtime images
 ├── universal/
 │   └── training/                  Universal training images (3 variants)
-│       ├── th06-cpu-torch210-py312/
-│       ├── th06-cuda130-torch210-py312/
-│       └── th06-rocm64-torch291-py312/
+│       ├── th-torch-cpu-py312/
+│       ├── th-torch-cuda-py312/
+│       └── th-torch-rocm-py312/
 ├── tests/                         Test runner image
 └── util/
     └── mc-cli/                    MinIO client utility image
