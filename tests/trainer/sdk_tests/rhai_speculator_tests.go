@@ -625,7 +625,7 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 	}, TestTimeoutDouble, 5*time.Second).Should(BeTrue(), "Expected resume TrainJob 'speculator-offline-resume' to be created")
 	t.Logf("Resume TrainJob created: %s", resumeJobName)
 	env.test.Eventually(TrainJob(env.test, env.namespace.Name, resumeJobName), TestTimeoutGpuProvisioning, 10*time.Second).
-	Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
+		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
 	t.Logf("Resume TrainJob %s completed successfully", resumeJobName)
 
 	t.Log("Verifying resume termination message shows progressPercentage=100...")
@@ -668,6 +668,7 @@ func RunSpeculatorOfflinePipelineTest(t *testing.T, trainGpuCount int) {
 
 	t.Log("All speculator OFFLINE pipeline steps passed!")
 }
+
 // RunSpeculatorOnlinePipelineTest runs ONLINE mode end-to-end.
 // The SDK manages a vLLM sidecar within the same TrainJob pod — no external vLLM
 // deployment is needed. Hidden states are generated on-the-fly during training.
@@ -836,8 +837,6 @@ func RunSpeculatorOnlinePipelineTest(t *testing.T, vllmGpuCount int, trainGpuCou
 
 	t.Log("All speculator ONLINE pipeline steps passed!")
 }
-
-
 
 func verifySpeculatorOfflinePodLogs(test Test, namespace, trainJobName string, markers ...string) {
 	test.T().Helper()
