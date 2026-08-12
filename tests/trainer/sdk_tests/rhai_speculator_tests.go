@@ -242,7 +242,7 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 		"Data extraction already completed. Skipping", "Idempotency job should skip extraction")
 	t.Log("Idempotency: confirmed extraction was skipped")
 
-	// Wait for TRAIN_ONLY TrainJob by known name
+	// Step 1: Wait for TRAIN_ONLY TrainJob (will be interrupted after first checkpoint)
 	trainJobName := "speculator-train"
 	env.test.Eventually(func() bool {
 		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
@@ -262,38 +262,19 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 		"Expected TRAIN_ONLY progression-tracking annotation to be 'true'")
 	t.Logf("TRAIN_ONLY progression annotations verified on TrainJob %s", trainJobName)
 
-	env.test.Eventually(TrainJob(env.test, env.namespace.Name, trainJobName), TestTimeoutGpuProvisioning, 10*time.Second).
-		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
-	t.Logf("TRAIN_ONLY TrainJob %s completed successfully", trainJobName)
-
-	t.Log("Verifying TRAIN_ONLY training pod termination message...")
-	verifySpeculatorTerminationMessage(env.test, env.namespace.Name, trainJobName)
-
-	t.Log("Waiting for TRAIN_ONLY trainerStatus annotation to reach 100% progress...")
+	// Wait for TrainJob to be deleted (notebook interrupts it after first checkpoint, during epoch 2)
 	env.test.Eventually(func() bool {
-		tj := TrainJob(env.test, env.namespace.Name, trainJobName)(env.test)
-		trainerStatusRaw := tj.GetAnnotations()[annotationTrainerStatus]
-		if trainerStatusRaw == "" {
-			return false
+		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
+		for _, j := range jobs {
+			if j.Name == trainJobName {
+				return false
+			}
 		}
-		var status map[string]interface{}
-		if err := json.Unmarshal([]byte(sanitizeJSON(trainerStatusRaw)), &status); err != nil {
-			t.Logf("TRAIN_ONLY trainerStatus not valid JSON yet: %v", err)
-			return false
-		}
-		progress, ok := status["progressPercentage"].(float64)
-		if !ok || progress < 100 {
-			t.Logf("TRAIN_ONLY trainerStatus progress: %.0f%%, waiting for 100%%...", progress)
-			return false
-		}
-		t.Logf("TRAIN_ONLY trainerStatus reached 100%%: %s", trainerStatusRaw)
 		return true
-	}, 2*time.Minute, 5*time.Second).Should(BeTrue(), "TRAIN_ONLY trainerStatus annotation should reach 100% progress")
+	}, TestTimeoutGpuProvisioning, 5*time.Second).Should(BeTrue(), "Expected TRAIN_ONLY TrainJob to be deleted after interrupt")
+	t.Log("TRAIN_ONLY TrainJob deleted (interrupted during epoch 2)")
 
-	t.Log("Verifying TRAIN_ONLY training pod logs...")
-	verifySpeculatorTrainOnlyPodLogs(env.test, env.namespace.Name, trainJobName)
-
-	// Wait for checkpoint resume TrainJob by known name
+	// Step 2: Wait for checkpoint resume TrainJob — should find interrupted checkpoint, remove it, resume from epoch 0
 	resumeJobName := "speculator-train-resume"
 	env.test.Eventually(func() bool {
 		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
@@ -310,9 +291,35 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 		Should(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)))
 	t.Logf("Checkpoint resume TrainJob %s completed successfully", resumeJobName)
 
+	t.Log("Verifying checkpoint resume termination message...")
+	verifySpeculatorTerminationMessage(env.test, env.namespace.Name, resumeJobName)
+
+	t.Log("Waiting for TRAIN_ONLY resume trainerStatus annotation to reach 100% progress...")
+	env.test.Eventually(func() bool {
+		tj := TrainJob(env.test, env.namespace.Name, resumeJobName)(env.test)
+		trainerStatusRaw := tj.GetAnnotations()[annotationTrainerStatus]
+		if trainerStatusRaw == "" {
+			return false
+		}
+		var status map[string]interface{}
+		if err := json.Unmarshal([]byte(sanitizeJSON(trainerStatusRaw)), &status); err != nil {
+			t.Logf("TRAIN_ONLY resume trainerStatus not valid JSON yet: %v", err)
+			return false
+		}
+		progress, ok := status["progressPercentage"].(float64)
+		if !ok || progress < 100 {
+			t.Logf("TRAIN_ONLY resume trainerStatus progress: %.0f%%, waiting for 100%%...", progress)
+			return false
+		}
+		t.Logf("TRAIN_ONLY resume trainerStatus reached 100%%: %s", trainerStatusRaw)
+		return true
+	}, 2*time.Minute, 5*time.Second).Should(BeTrue(), "TRAIN_ONLY resume trainerStatus annotation should reach 100% progress")
+
 	t.Log("Verifying checkpoint resume training pod logs...")
 	verifySpeculatorTrainOnlyPodLogs(env.test, env.namespace.Name, resumeJobName)
 	verifySpeculatorResumeFromCheckpointLogs(env.test, env.namespace.Name, resumeJobName)
+	verifySpeculatorPodLogContains(env.test, env.namespace.Name, resumeJobName,
+		"[Kubeflow] Removed interrupted checkpoint at", "Resume job should detect and remove the interrupted checkpoint")
 
 	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
 	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
