@@ -32,7 +32,7 @@ import (
 )
 
 func TestMultiNodeOpenMPITrainJob(t *testing.T) {
-	t.Skip("Skip due to issue RHOAIENG-61966")
+	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	test := With(t)
 
@@ -99,31 +99,79 @@ func createMPITrainJob(test Test, namespace, scriptConfigMapName string) *traine
 					},
 				},
 			},
-			PodTemplateOverrides: []trainerv1alpha1.PodTemplateOverride{
+			RuntimePatches: []trainerv1alpha1.RuntimePatch{
 				{
-					TargetJobs: []trainerv1alpha1.PodTemplateOverrideTargetJob{
-						{Name: "launcher"},
-						{Name: "node"},
-					},
-					Spec: &trainerv1alpha1.PodTemplateSpecOverride{
-						Containers: []trainerv1alpha1.ContainerOverride{
-							{
-								Name: "node",
-								VolumeMounts: []corev1.VolumeMount{
+					Manager: "test-mpi",
+					TrainingRuntimeSpec: &trainerv1alpha1.TrainingRuntimeSpecPatch{
+						Template: &trainerv1alpha1.JobSetTemplatePatch{
+							Spec: &trainerv1alpha1.JobSetSpecPatch{
+								ReplicatedJobs: []trainerv1alpha1.ReplicatedJobPatch{
 									{
-										Name:      "mpi-test-script",
-										MountPath: "/etc/mpi-test",
+										Name: "launcher",
+										Template: &trainerv1alpha1.JobTemplatePatch{
+											Spec: &trainerv1alpha1.JobSpecPatch{
+												Template: &trainerv1alpha1.PodTemplatePatch{
+													Spec: &trainerv1alpha1.PodSpecPatch{
+														Containers: []trainerv1alpha1.ContainerPatch{
+															{
+																Name: "node",
+																VolumeMounts: []corev1.VolumeMount{
+																	{
+																		Name:      "mpi-test-script",
+																		MountPath: "/etc/mpi-test",
+																	},
+																},
+															},
+														},
+														Volumes: []corev1.Volume{
+															{
+																Name: "mpi-test-script",
+																VolumeSource: corev1.VolumeSource{
+																	ConfigMap: &corev1.ConfigMapVolumeSource{
+																		LocalObjectReference: corev1.LocalObjectReference{
+																			Name: scriptConfigMapName,
+																		},
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
 									},
-								},
-							},
-						},
-						Volumes: []corev1.Volume{
-							{
-								Name: "mpi-test-script",
-								VolumeSource: corev1.VolumeSource{
-									ConfigMap: &corev1.ConfigMapVolumeSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: scriptConfigMapName,
+									{
+										Name: "node",
+										Template: &trainerv1alpha1.JobTemplatePatch{
+											Spec: &trainerv1alpha1.JobSpecPatch{
+												Template: &trainerv1alpha1.PodTemplatePatch{
+													Spec: &trainerv1alpha1.PodSpecPatch{
+														Containers: []trainerv1alpha1.ContainerPatch{
+															{
+																Name: "node",
+																VolumeMounts: []corev1.VolumeMount{
+																	{
+																		Name:      "mpi-test-script",
+																		MountPath: "/etc/mpi-test",
+																	},
+																},
+															},
+														},
+														Volumes: []corev1.Volume{
+															{
+																Name: "mpi-test-script",
+																VolumeSource: corev1.VolumeSource{
+																	ConfigMap: &corev1.ConfigMapVolumeSource{
+																		LocalObjectReference: corev1.LocalObjectReference{
+																			Name: scriptConfigMapName,
+																		},
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
 										},
 									},
 								},

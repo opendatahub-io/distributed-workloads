@@ -106,6 +106,7 @@ func TestMultiGpuTrainJobMerlinite7b(t *testing.T) {
 }
 
 func runMultiGpuTrainJob(t *testing.T, modelConfigFile string, numberOfGpus int, options ...Option[*trainerv1alpha1.TrainJob]) {
+	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	test := With(t)
 
 	namespace := test.CreateOrGetTestNamespace().Name
@@ -192,96 +193,111 @@ func createAlpacaTrainJob(test Test, namespace, runtimeName string, config corev
 					},
 				},
 			},
-			PodTemplateOverrides: []trainerv1alpha1.PodTemplateOverride{
+			RuntimePatches: []trainerv1alpha1.RuntimePatch{
 				{
-					TargetJobs: []trainerv1alpha1.PodTemplateOverrideTargetJob{
-						{Name: "node"},
-					},
-					Spec: &trainerv1alpha1.PodTemplateSpecOverride{
-						Tolerations: []corev1.Toleration{
-							{
-								Key:      "nvidia.com/gpu",
-								Operator: corev1.TolerationOpExists,
-							},
-						},
-						InitContainers: []trainerv1alpha1.ContainerOverride{
-							{
-								Name: "copy-dataset",
-								VolumeMounts: []corev1.VolumeMount{
+					Manager: "test-sft-gpu",
+					TrainingRuntimeSpec: &trainerv1alpha1.TrainingRuntimeSpecPatch{
+						Template: &trainerv1alpha1.JobSetTemplatePatch{
+							Spec: &trainerv1alpha1.JobSetSpecPatch{
+								ReplicatedJobs: []trainerv1alpha1.ReplicatedJobPatch{
 									{
-										Name:      "tmp-volume",
-										MountPath: "/tmp",
-									},
-									{
-										Name:      "scratch-volume",
-										MountPath: "/mnt/scratch",
-									},
-								},
-							},
-						},
-						Containers: []trainerv1alpha1.ContainerOverride{
-							{
-								Name: "node",
-								VolumeMounts: []corev1.VolumeMount{
-									{
-										Name:      "tmp-volume",
-										MountPath: "/tmp",
-									},
-									{
-										Name:      "config-volume",
-										MountPath: "/etc/config",
-									},
-									{
-										Name:      "scratch-volume",
-										MountPath: "/mnt/scratch",
-									},
-									{
-										Name:      "output-volume",
-										MountPath: "/mnt/output",
-									},
-								},
-							},
-						},
-						Volumes: []corev1.Volume{
-							{
-								Name: "tmp-volume",
-								VolumeSource: corev1.VolumeSource{
-									EmptyDir: &corev1.EmptyDirVolumeSource{},
-								},
-							},
-							{
-								Name: "config-volume",
-								VolumeSource: corev1.VolumeSource{
-									ConfigMap: &corev1.ConfigMapVolumeSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: config.Name,
-										},
-									},
-								},
-							},
-							{
-								Name: "scratch-volume",
-								VolumeSource: corev1.VolumeSource{
-									Ephemeral: &corev1.EphemeralVolumeSource{
-										VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
-											Spec: corev1.PersistentVolumeClaimSpec{
-												AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-												Resources: corev1.VolumeResourceRequirements{
-													Requests: corev1.ResourceList{
-														corev1.ResourceStorage: resource.MustParse("2000Gi"),
+										Name: "node",
+										Template: &trainerv1alpha1.JobTemplatePatch{
+											Spec: &trainerv1alpha1.JobSpecPatch{
+												Template: &trainerv1alpha1.PodTemplatePatch{
+													Spec: &trainerv1alpha1.PodSpecPatch{
+														Tolerations: []corev1.Toleration{
+															{
+																Key:      "nvidia.com/gpu",
+																Operator: corev1.TolerationOpExists,
+															},
+														},
+														InitContainers: []trainerv1alpha1.ContainerPatch{
+															{
+																Name: "copy-dataset",
+																VolumeMounts: []corev1.VolumeMount{
+																	{
+																		Name:      "tmp-volume",
+																		MountPath: "/tmp",
+																	},
+																	{
+																		Name:      "scratch-volume",
+																		MountPath: "/mnt/scratch",
+																	},
+																},
+															},
+														},
+														Containers: []trainerv1alpha1.ContainerPatch{
+															{
+																Name: "node",
+																VolumeMounts: []corev1.VolumeMount{
+																	{
+																		Name:      "tmp-volume",
+																		MountPath: "/tmp",
+																	},
+																	{
+																		Name:      "config-volume",
+																		MountPath: "/etc/config",
+																	},
+																	{
+																		Name:      "scratch-volume",
+																		MountPath: "/mnt/scratch",
+																	},
+																	{
+																		Name:      "output-volume",
+																		MountPath: "/mnt/output",
+																	},
+																},
+															},
+														},
+														Volumes: []corev1.Volume{
+															{
+																Name: "tmp-volume",
+																VolumeSource: corev1.VolumeSource{
+																	EmptyDir: &corev1.EmptyDirVolumeSource{},
+																},
+															},
+															{
+																Name: "config-volume",
+																VolumeSource: corev1.VolumeSource{
+																	ConfigMap: &corev1.ConfigMapVolumeSource{
+																		LocalObjectReference: corev1.LocalObjectReference{
+																			Name: config.Name,
+																		},
+																	},
+																},
+															},
+															{
+																Name: "scratch-volume",
+																VolumeSource: corev1.VolumeSource{
+																	Ephemeral: &corev1.EphemeralVolumeSource{
+																		VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
+																			Spec: corev1.PersistentVolumeClaimSpec{
+																				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+																				Resources: corev1.VolumeResourceRequirements{
+																					Requests: corev1.ResourceList{
+																						corev1.ResourceStorage: resource.MustParse("2000Gi"),
+																					},
+																				},
+																				VolumeMode: Ptr(corev1.PersistentVolumeFilesystem),
+																			},
+																		},
+																	},
+																},
+															},
+															{
+																Name: "output-volume",
+																VolumeSource: corev1.VolumeSource{
+																	PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+																		ClaimName: outputPvc,
+																	},
+																},
+															},
+														},
 													},
 												},
-												VolumeMode: Ptr(corev1.PersistentVolumeFilesystem),
 											},
 										},
-									},
-								},
-							},
-							{
-								Name: "output-volume",
-								VolumeSource: corev1.VolumeSource{
-									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-										ClaimName: outputPvc,
 									},
 								},
 							},
@@ -341,17 +357,19 @@ var mountModelVolumeIntoTrainer = ErrorOption[*trainerv1alpha1.TrainJob](func(to
 		MountPath: "/mnt/model",
 	}
 
-	// Find the trainer/node pod template override and add the volume and volume mount
-	for i := range to.Spec.PodTemplateOverrides {
-		for _, target := range to.Spec.PodTemplateOverrides[i].TargetJobs {
-			if target.Name == "node" && to.Spec.PodTemplateOverrides[i].Spec != nil {
-				to.Spec.PodTemplateOverrides[i].Spec.Volumes = append(to.Spec.PodTemplateOverrides[i].Spec.Volumes, modelVolume)
-
-				// Find the node container and add the volume mount
-				for j := range to.Spec.PodTemplateOverrides[i].Spec.Containers {
-					if to.Spec.PodTemplateOverrides[i].Spec.Containers[j].Name == "node" {
-						to.Spec.PodTemplateOverrides[i].Spec.Containers[j].VolumeMounts = append(
-							to.Spec.PodTemplateOverrides[i].Spec.Containers[j].VolumeMounts,
+	for i := range to.Spec.RuntimePatches {
+		rp := &to.Spec.RuntimePatches[i]
+		if rp.TrainingRuntimeSpec == nil || rp.TrainingRuntimeSpec.Template == nil || rp.TrainingRuntimeSpec.Template.Spec == nil {
+			continue
+		}
+		for j := range rp.TrainingRuntimeSpec.Template.Spec.ReplicatedJobs {
+			rj := &rp.TrainingRuntimeSpec.Template.Spec.ReplicatedJobs[j]
+			if rj.Name == "node" && rj.Template != nil && rj.Template.Spec != nil && rj.Template.Spec.Template != nil && rj.Template.Spec.Template.Spec != nil {
+				rj.Template.Spec.Template.Spec.Volumes = append(rj.Template.Spec.Template.Spec.Volumes, modelVolume)
+				for k := range rj.Template.Spec.Template.Spec.Containers {
+					if rj.Template.Spec.Template.Spec.Containers[k].Name == "node" {
+						rj.Template.Spec.Template.Spec.Containers[k].VolumeMounts = append(
+							rj.Template.Spec.Template.Spec.Containers[k].VolumeMounts,
 							modelVolumeMount,
 						)
 						break

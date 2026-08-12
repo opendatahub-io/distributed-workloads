@@ -33,7 +33,7 @@ import (
 )
 
 func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
-	t.Skip("Skip due to issue RHOAIENG-61966")
+	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
@@ -135,7 +135,7 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 }
 
 func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
-	t.Skip("Skip due to issue RHOAIENG-61966")
+	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
@@ -287,9 +287,6 @@ func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapNa
 			},
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
-			Labels: map[string]string{
-				"kueue.x-k8s.io/queue-name": queueName,
-			},
 			RuntimeRef: trainerv1alpha1.RuntimeRef{
 				Name: trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA,
 			},
@@ -318,46 +315,113 @@ func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapNa
 					},
 				}),
 			},
-			PodTemplateOverrides: []trainerv1alpha1.PodTemplateOverride{
+			RuntimePatches: []trainerv1alpha1.RuntimePatch{
 				{
-					TargetJobs: []trainerv1alpha1.PodTemplateOverrideTargetJob{
-						{Name: "launcher"},
-						{Name: "node"},
-					},
-					Spec: &trainerv1alpha1.PodTemplateSpecOverride{
-						Containers: []trainerv1alpha1.ContainerOverride{
-							{
-								Name: "node",
-								VolumeMounts: []corev1.VolumeMount{
-									{
-										Name:      "training-scripts",
-										MountPath: "/mnt/scripts",
-										ReadOnly:  true,
-									},
-									{
-										Name:      "dshm",
-										MountPath: "/dev/shm",
-									},
+					Manager: "test-openmpi-kueue",
+					TrainingRuntimeSpec: &trainerv1alpha1.TrainingRuntimeSpecPatch{
+						Template: &trainerv1alpha1.JobSetTemplatePatch{
+							Metadata: &metav1.ObjectMeta{
+								Labels: map[string]string{
+									"kueue.x-k8s.io/queue-name": queueName,
 								},
 							},
-						},
-						Volumes: []corev1.Volume{
-							{
-								Name: "training-scripts",
-								VolumeSource: corev1.VolumeSource{
-									ConfigMap: &corev1.ConfigMapVolumeSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: configMapName,
+							Spec: &trainerv1alpha1.JobSetSpecPatch{
+								ReplicatedJobs: []trainerv1alpha1.ReplicatedJobPatch{
+									{
+										Name: "launcher",
+										Template: &trainerv1alpha1.JobTemplatePatch{
+											Spec: &trainerv1alpha1.JobSpecPatch{
+												Template: &trainerv1alpha1.PodTemplatePatch{
+													Spec: &trainerv1alpha1.PodSpecPatch{
+														Containers: []trainerv1alpha1.ContainerPatch{
+															{
+																Name: "node",
+																VolumeMounts: []corev1.VolumeMount{
+																	{
+																		Name:      "training-scripts",
+																		MountPath: "/mnt/scripts",
+																		ReadOnly:  true,
+																	},
+																	{
+																		Name:      "dshm",
+																		MountPath: "/dev/shm",
+																	},
+																},
+															},
+														},
+														Volumes: []corev1.Volume{
+															{
+																Name: "training-scripts",
+																VolumeSource: corev1.VolumeSource{
+																	ConfigMap: &corev1.ConfigMapVolumeSource{
+																		LocalObjectReference: corev1.LocalObjectReference{
+																			Name: configMapName,
+																		},
+																	},
+																},
+															},
+															{
+																Name: "dshm",
+																VolumeSource: corev1.VolumeSource{
+																	EmptyDir: &corev1.EmptyDirVolumeSource{
+																		Medium:    corev1.StorageMediumMemory,
+																		SizeLimit: Ptr(resource.MustParse("8Gi")),
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
 										},
 									},
-								},
-							},
-							{
-								Name: "dshm",
-								VolumeSource: corev1.VolumeSource{
-									EmptyDir: &corev1.EmptyDirVolumeSource{
-										Medium:    corev1.StorageMediumMemory,
-										SizeLimit: Ptr(resource.MustParse("8Gi")),
+									{
+										Name: "node",
+										Template: &trainerv1alpha1.JobTemplatePatch{
+											Spec: &trainerv1alpha1.JobSpecPatch{
+												Template: &trainerv1alpha1.PodTemplatePatch{
+													Spec: &trainerv1alpha1.PodSpecPatch{
+														Containers: []trainerv1alpha1.ContainerPatch{
+															{
+																Name: "node",
+																VolumeMounts: []corev1.VolumeMount{
+																	{
+																		Name:      "training-scripts",
+																		MountPath: "/mnt/scripts",
+																		ReadOnly:  true,
+																	},
+																	{
+																		Name:      "dshm",
+																		MountPath: "/dev/shm",
+																	},
+																},
+															},
+														},
+														Volumes: []corev1.Volume{
+															{
+																Name: "training-scripts",
+																VolumeSource: corev1.VolumeSource{
+																	ConfigMap: &corev1.ConfigMapVolumeSource{
+																		LocalObjectReference: corev1.LocalObjectReference{
+																			Name: configMapName,
+																		},
+																	},
+																},
+															},
+															{
+																Name: "dshm",
+																VolumeSource: corev1.VolumeSource{
+																	EmptyDir: &corev1.EmptyDirVolumeSource{
+																		Medium:    corev1.StorageMediumMemory,
+																		SizeLimit: Ptr(resource.MustParse("8Gi")),
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
 									},
 								},
 							},

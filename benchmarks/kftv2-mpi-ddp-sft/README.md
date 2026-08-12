@@ -105,7 +105,7 @@ Set via `trainer.env` in `trainjob.yaml`. These are injected into all pod contai
 
 ### Infrastructure parameters
 
-Set in `trainer` and `podTemplateOverrides` sections of `trainjob.yaml`.
+Set in `trainer` and `runtimePatches` sections of `trainjob.yaml`.
 
 | Parameter | Default | Description | Impact of change |
 |-----------|---------|-------------|-----------------|

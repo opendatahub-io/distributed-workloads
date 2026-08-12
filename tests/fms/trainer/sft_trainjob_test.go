@@ -36,14 +36,17 @@ import (
 )
 
 func TestTrainJobWithSFTtrainerFinetuning(t *testing.T) {
+	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	runTrainJobWithSFTtrainer(t, "resources/config.json")
 }
 
 func TestTrainJobWithSFTtrainerLoRa(t *testing.T) {
+	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	runTrainJobWithSFTtrainer(t, "resources/config_lora.json")
 }
 
 func TestTrainJobWithSFTtrainerQLoRa(t *testing.T) {
+	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	runTrainJobWithSFTtrainer(t, "resources/config_qlora.json")
 }
 
@@ -101,6 +104,7 @@ func runTrainJobWithSFTtrainer(t *testing.T, modelConfigFile string) {
 }
 
 func TestTrainJobUsingKueueQuota(t *testing.T) {
+	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	test := With(t)
 
 	// Create a namespace
@@ -228,96 +232,111 @@ func createSftTrainJob(test Test, namespace, runtimeName, localQueueName string,
 			Trainer: &trainerv1alpha1.Trainer{
 				Image: Ptr(fms.GetFmsHfTuningImage(test)),
 			},
-			PodTemplateOverrides: []trainerv1alpha1.PodTemplateOverride{
+			RuntimePatches: []trainerv1alpha1.RuntimePatch{
 				{
-					TargetJobs: []trainerv1alpha1.PodTemplateOverrideTargetJob{
-						{Name: "node"},
-					},
-					Spec: &trainerv1alpha1.PodTemplateSpecOverride{
-						Tolerations: []corev1.Toleration{
-							{
-								Key:      "nvidia.com/gpu",
-								Operator: corev1.TolerationOpExists,
-							},
-						},
-						InitContainers: []trainerv1alpha1.ContainerOverride{
-							{
-								Name: "copy-dataset",
-								VolumeMounts: []corev1.VolumeMount{
+					Manager: "test-sft",
+					TrainingRuntimeSpec: &trainerv1alpha1.TrainingRuntimeSpecPatch{
+						Template: &trainerv1alpha1.JobSetTemplatePatch{
+							Spec: &trainerv1alpha1.JobSetSpecPatch{
+								ReplicatedJobs: []trainerv1alpha1.ReplicatedJobPatch{
 									{
-										Name:      "tmp-volume",
-										MountPath: "/tmp",
-									},
-									{
-										Name:      "scratch-volume",
-										MountPath: "/mnt/scratch",
-									},
-								},
-							},
-						},
-						Containers: []trainerv1alpha1.ContainerOverride{
-							{
-								Name: "node",
-								VolumeMounts: []corev1.VolumeMount{
-									{
-										Name:      "tmp-volume",
-										MountPath: "/tmp",
-									},
-									{
-										Name:      "config-volume",
-										MountPath: "/etc/config",
-									},
-									{
-										Name:      "scratch-volume",
-										MountPath: "/mnt/scratch",
-									},
-									{
-										Name:      "base-model-volume",
-										MountPath: "/mnt/model",
-									},
-									{
-										Name:      "output-volume",
-										MountPath: "/mnt/output",
-									},
-								},
-							},
-						},
-						Volumes: []corev1.Volume{
-							{
-								Name: "tmp-volume",
-								VolumeSource: corev1.VolumeSource{
-									EmptyDir: &corev1.EmptyDirVolumeSource{},
-								},
-							},
-							{
-								Name: "config-volume",
-								VolumeSource: corev1.VolumeSource{
-									ConfigMap: &corev1.ConfigMapVolumeSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: config.Name,
+										Name: "node",
+										Template: &trainerv1alpha1.JobTemplatePatch{
+											Spec: &trainerv1alpha1.JobSpecPatch{
+												Template: &trainerv1alpha1.PodTemplatePatch{
+													Spec: &trainerv1alpha1.PodSpecPatch{
+														Tolerations: []corev1.Toleration{
+															{
+																Key:      "nvidia.com/gpu",
+																Operator: corev1.TolerationOpExists,
+															},
+														},
+														InitContainers: []trainerv1alpha1.ContainerPatch{
+															{
+																Name: "copy-dataset",
+																VolumeMounts: []corev1.VolumeMount{
+																	{
+																		Name:      "tmp-volume",
+																		MountPath: "/tmp",
+																	},
+																	{
+																		Name:      "scratch-volume",
+																		MountPath: "/mnt/scratch",
+																	},
+																},
+															},
+														},
+														Containers: []trainerv1alpha1.ContainerPatch{
+															{
+																Name: "node",
+																VolumeMounts: []corev1.VolumeMount{
+																	{
+																		Name:      "tmp-volume",
+																		MountPath: "/tmp",
+																	},
+																	{
+																		Name:      "config-volume",
+																		MountPath: "/etc/config",
+																	},
+																	{
+																		Name:      "scratch-volume",
+																		MountPath: "/mnt/scratch",
+																	},
+																	{
+																		Name:      "base-model-volume",
+																		MountPath: "/mnt/model",
+																	},
+																	{
+																		Name:      "output-volume",
+																		MountPath: "/mnt/output",
+																	},
+																},
+															},
+														},
+														Volumes: []corev1.Volume{
+															{
+																Name: "tmp-volume",
+																VolumeSource: corev1.VolumeSource{
+																	EmptyDir: &corev1.EmptyDirVolumeSource{},
+																},
+															},
+															{
+																Name: "config-volume",
+																VolumeSource: corev1.VolumeSource{
+																	ConfigMap: &corev1.ConfigMapVolumeSource{
+																		LocalObjectReference: corev1.LocalObjectReference{
+																			Name: config.Name,
+																		},
+																	},
+																},
+															},
+															{
+																Name: "scratch-volume",
+																VolumeSource: corev1.VolumeSource{
+																	EmptyDir: &corev1.EmptyDirVolumeSource{},
+																},
+															},
+															{
+																Name: "base-model-volume",
+																VolumeSource: corev1.VolumeSource{
+																	PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+																		ClaimName: baseModelPvcName,
+																	},
+																},
+															},
+															{
+																Name: "output-volume",
+																VolumeSource: corev1.VolumeSource{
+																	PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+																		ClaimName: outputPvcName,
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
 										},
-									},
-								},
-							},
-							{
-								Name: "scratch-volume",
-								VolumeSource: corev1.VolumeSource{
-									EmptyDir: &corev1.EmptyDirVolumeSource{},
-								},
-							},
-							{
-								Name: "base-model-volume",
-								VolumeSource: corev1.VolumeSource{
-									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-										ClaimName: baseModelPvcName,
-									},
-								},
-							},
-							{
-								Name: "output-volume",
-								VolumeSource: corev1.VolumeSource{
-									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-										ClaimName: outputPvcName,
 									},
 								},
 							},
