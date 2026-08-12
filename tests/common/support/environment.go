@@ -24,11 +24,15 @@ const (
 	// The environment variables hereafter can be used to change the components
 	// used for testing.
 
-	TestRayVersion                 = "TEST_RAY_VERSION"
-	TestRayImage                   = "TEST_RAY_IMAGE"
-	TestPyTorchImage               = "TEST_PYTORCH_IMAGE"
-	TestTrainingCudaPyTorch28Image = "TEST_TRAINING_CUDA_PYTORCH_28_IMAGE"
-	TestTrainingRocmPyTorch28Image = "TEST_TRAINING_ROCM_PYTORCH_28_IMAGE"
+	TestRayVersion                  = "TEST_RAY_VERSION"
+	TestRayImage                    = "TEST_RAY_IMAGE"
+	TestPyTorchImage                = "TEST_PYTORCH_IMAGE"
+	TestTrainingCudaPyTorch241Image = "TEST_TRAINING_CUDA_PYTORCH_241_IMAGE"
+	TestTrainingCudaPyTorch251Image = "TEST_TRAINING_CUDA_PYTORCH_251_IMAGE"
+	TestTrainingCudaPyTorch28Image  = "TEST_TRAINING_CUDA_PYTORCH_28_IMAGE"
+	TestTrainingRocmPyTorch241Image = "TEST_TRAINING_ROCM_PYTORCH_241_IMAGE"
+	TestTrainingRocmPyTorch251Image = "TEST_TRAINING_ROCM_PYTORCH_251_IMAGE"
+	TestTrainingRocmPyTorch28Image  = "TEST_TRAINING_ROCM_PYTORCH_28_IMAGE"
 
 	TestRayTrainingHubImage = "TEST_RAY_TRAINING_HUB_IMAGE"
 
@@ -105,8 +109,24 @@ func GetRayTorchROCmImage() string {
 	return lookupEnvOrDefault(TestRayImage, RayTorchROCmImage)
 }
 
+func GetTrainingCudaPyTorch241Image(test Test) string {
+	return lookupTrainingImage(test, TestTrainingCudaPyTorch241Image, RelatedImageTrainingCudaPyTorch241, TrainingCudaPyTorch241Image)
+}
+
+func GetTrainingCudaPyTorch251Image(test Test) string {
+	return lookupTrainingImage(test, TestTrainingCudaPyTorch251Image, RelatedImageTrainingCudaPyTorch251, TrainingCudaPyTorch251Image)
+}
+
 func GetTrainingCudaPyTorch28Image(test Test) string {
 	return lookupTrainingImage(test, TestTrainingCudaPyTorch28Image, RelatedImageTrainingCudaPyTorch28, TrainingCudaPyTorch28Image)
+}
+
+func GetTrainingROCmPyTorch241Image(test Test) string {
+	return lookupTrainingImage(test, TestTrainingRocmPyTorch241Image, RelatedImageTrainingRocmPyTorch241, TrainingRocmPyTorch241Image)
+}
+
+func GetTrainingROCmPyTorch251Image(test Test) string {
+	return lookupTrainingImage(test, TestTrainingRocmPyTorch251Image, RelatedImageTrainingRocmPyTorch251, TrainingRocmPyTorch251Image)
 }
 
 func GetTrainingRocmPyTorch28Image(test Test) string {

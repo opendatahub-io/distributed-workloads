@@ -33,8 +33,9 @@ import (
 )
 
 const (
-	KueueCRName       = "cluster"
-	TrainJobFramework = "TrainJob"
+	KueueCRName         = "cluster"
+	PyTorchJobFramework = "PyTorchJob"
+	TrainJobFramework   = "TrainJob"
 )
 
 func GetKueueCR(t Test, name string) (*kueueoperatorv1.Kueue, error) {

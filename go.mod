@@ -2,8 +2,13 @@ module github.com/opendatahub-io/distributed-workloads
 
 go 1.25.0
 
+// Remove replace when Training operator v1 tests are removed
+replace github.com/kubeflow/training-operator => github.com/kubeflow/training-operator v1.7.0
+
 require (
 	github.com/kubeflow/trainer/v2 v2.1.0
+	github.com/kubeflow/training-operator v1.9.3
+	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/minio/minio-go/v7 v7.0.98
 	github.com/onsi/gomega v1.38.2
 	github.com/openshift/api v0.0.0-20251124165233-999c45c0835a
