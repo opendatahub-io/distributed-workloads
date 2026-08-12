@@ -205,7 +205,7 @@ By default, tests fine-tune `ibm-granite/granite-3b-code-base-2k` from HuggingFa
 │                       TrainJob                             │
 │  - RuntimeRef: TrainingRuntime                             │
 │  - Trainer: image, env, resources                          │
-│  - PodTemplateOverrides: volumes, volume mounts            │
+│  - RuntimePatches: volumes, volume mounts                  │
 └────────────────────────────────────────────────────────────┘
 ```
 

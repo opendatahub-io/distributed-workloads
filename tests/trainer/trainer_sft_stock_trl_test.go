@@ -28,7 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
+
 	jobsetv1alpha2 "sigs.k8s.io/jobset/api/jobset/v1alpha2"
 	"sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
@@ -147,9 +147,7 @@ func createSftStockTrlTrainingRuntime(test Test, namespace, configMapName, pvcNa
 			MLPolicy: &trainerv1alpha1.MLPolicy{
 				NumNodes: Ptr(int32(1)),
 				MLPolicySource: trainerv1alpha1.MLPolicySource{
-					Torch: &trainerv1alpha1.TorchMLPolicySource{
-						NumProcPerNode: Ptr(intstr.FromString("auto")),
-					},
+					Torch: &trainerv1alpha1.TorchMLPolicySource{},
 				},
 			},
 			Template: trainerv1alpha1.JobSetTemplateSpec{
@@ -406,7 +404,7 @@ func createSftStockTrlTrainJob(test Test, namespace, runtimeName string, numNode
 			},
 			Trainer: &trainerv1alpha1.Trainer{
 				NumNodes:       Ptr(numNodes),
-				NumProcPerNode: Ptr(intstr.FromInt32(numProcPerNode)),
+				NumProcPerNode: Ptr(numProcPerNode),
 				Env: []corev1.EnvVar{
 					{Name: "DATASET_PATH", Value: "/workspace/data/train_All_100.jsonl"},
 					{Name: "MODEL_PATH", Value: "/workspace/model"},

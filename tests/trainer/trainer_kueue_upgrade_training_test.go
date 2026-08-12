@@ -421,7 +421,7 @@ func TestSetupCustomRuntimeUpgradeTrainJob(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Applied Kueue LocalQueue %s/%s successfully", appliedLocalQueue.Namespace, appliedLocalQueue.Name)
 
-	// Create TrainJob using the custom CTR with PodTemplateOverrides to exercise API surface coverage
+	// Create TrainJob using the custom CTR with RuntimePatches to exercise API surface coverage
 	trainJob := createCustomRuntimeUpgradeTrainJob(test, customRuntimeNamespaceName, appliedLocalQueue.Name)
 
 	// Verify Kueue Workload is Inadmissible
@@ -601,22 +601,37 @@ func createCustomRuntimeUpgradeTrainJob(test Test, namespace, localQueueName str
 					"import torch; print(f'PyTorch version: {torch.__version__}'); import time; time.sleep(5); print('Training completed successfully')",
 				},
 			},
-			PodTemplateOverrides: []trainerv1alpha1.PodTemplateOverride{
+			RuntimePatches: []trainerv1alpha1.RuntimePatch{
 				{
-					TargetJobs: []trainerv1alpha1.PodTemplateOverrideTargetJob{
-						{Name: "node"},
-					},
-					Metadata: &metav1.ObjectMeta{
-						Labels: map[string]string{
-							"upgrade-test": "custom-runtime",
-						},
-					},
-					Spec: &trainerv1alpha1.PodTemplateSpecOverride{
-						Tolerations: []corev1.Toleration{
-							{
-								Key:      "upgrade-test",
-								Operator: corev1.TolerationOpExists,
-								Effect:   corev1.TaintEffectNoSchedule,
+					Manager: "test-kueue-upgrade",
+					TrainingRuntimeSpec: &trainerv1alpha1.TrainingRuntimeSpecPatch{
+						Template: &trainerv1alpha1.JobSetTemplatePatch{
+							Spec: &trainerv1alpha1.JobSetSpecPatch{
+								ReplicatedJobs: []trainerv1alpha1.ReplicatedJobPatch{
+									{
+										Name: "node",
+										Template: &trainerv1alpha1.JobTemplatePatch{
+											Spec: &trainerv1alpha1.JobSpecPatch{
+												Template: &trainerv1alpha1.PodTemplatePatch{
+													Metadata: &metav1.ObjectMeta{
+														Labels: map[string]string{
+															"upgrade-test": "custom-runtime",
+														},
+													},
+													Spec: &trainerv1alpha1.PodSpecPatch{
+														Tolerations: []corev1.Toleration{
+															{
+																Key:      "upgrade-test",
+																Operator: corev1.TolerationOpExists,
+																Effect:   corev1.TaintEffectNoSchedule,
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
 							},
 						},
 					},
@@ -627,7 +642,7 @@ func createCustomRuntimeUpgradeTrainJob(test Test, namespace, localQueueName str
 
 	trainJob, err = test.Client().Trainer().TrainerV1alpha1().TrainJobs(namespace).Create(test.Ctx(), trainJob, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created TrainJob %s/%s with runtime %s and PodTemplateOverrides", trainJob.Namespace, trainJob.Name, customRuntimeCTRName)
+	test.T().Logf("Created TrainJob %s/%s with runtime %s and RuntimePatches", trainJob.Namespace, trainJob.Name, customRuntimeCTRName)
 
 	return trainJob
 }

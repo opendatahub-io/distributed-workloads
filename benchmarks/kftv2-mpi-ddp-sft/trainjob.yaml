@@ -49,24 +49,51 @@ spec:
       value: "5"
     - name: BENCH_GRAD_ACCUM
       value: "1"
-  podTemplateOverrides:
-  - targetJobs:
-    - name: launcher
-    - name: node
-    spec:
-      containers:
-      - name: node
-        volumeMounts:
-        - mountPath: /mnt/scripts
-          name: scripts
-          readOnly: true
-        - mountPath: /dev/shm
-          name: dshm
-      volumes:
-      - name: scripts
-        configMap:
-          name: mpi-ddp-sft-scripts
-      - name: dshm
-        emptyDir:
-          medium: Memory
-          sizeLimit: 16Gi
+  runtimePatches:
+  - manager: bench-mpi-ddp-sft
+    trainingRuntimeSpec:
+      template:
+        spec:
+          replicatedJobs:
+          - name: launcher
+            template:
+              spec:
+                template:
+                  spec:
+                    containers:
+                    - name: node
+                      volumeMounts:
+                      - mountPath: /mnt/scripts
+                        name: scripts
+                        readOnly: true
+                      - mountPath: /dev/shm
+                        name: dshm
+                    volumes:
+                    - name: scripts
+                      configMap:
+                        name: mpi-ddp-sft-scripts
+                    - name: dshm
+                      emptyDir:
+                        medium: Memory
+                        sizeLimit: 16Gi
+          - name: node
+            template:
+              spec:
+                template:
+                  spec:
+                    containers:
+                    - name: node
+                      volumeMounts:
+                      - mountPath: /mnt/scripts
+                        name: scripts
+                        readOnly: true
+                      - mountPath: /dev/shm
+                        name: dshm
+                    volumes:
+                    - name: scripts
+                      configMap:
+                        name: mpi-ddp-sft-scripts
+                    - name: dshm
+                      emptyDir:
+                        medium: Memory
+                        sizeLimit: 16Gi
