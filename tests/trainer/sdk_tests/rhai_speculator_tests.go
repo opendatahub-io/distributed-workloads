@@ -116,7 +116,7 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 			"export OUTPUT_DIR='pvc://%s/speculator-output/extract'; "+
 			"export TRAIN_OUTPUT_DIR='pvc://%s/speculator-output/train'; "+
 			"export TARGET_LAYER_IDS='2,14,25,28'; "+
-			"export MAX_SAMPLES='10'; "+
+			"export MAX_SAMPLES='20'; "+
 			"export ENABLE_PROGRESSION_TRACKING='true'; "+
 			"export REGENERATE_RESPONSES='%s'; "+
 			"export DATAGEN_CONCURRENCY='2'; "+
@@ -415,6 +415,14 @@ func verifySpeculatorPodLogs(test Test, namespace, trainJobName string, expectRe
 	test.T().Fatalf("Required log markers not found in any completed training pod: %v", required)
 }
 
+// verifySpeculatorPodLogsWithMarkers asserts that at least one completed training pod
+// contains ALL the given marker strings in its "node" container logs. This validates
+// that specific training phases ran (e.g. progression tracking init, data extraction
+// skip on resume, checkpoint resume, epoch completion). Fails the test if no single
+// completed pod satisfies all markers. verifySpeculatorPodLogs can't be reused for
+// OFFLINE/ONLINE resume jobs because the resume markers are different like "Data
+// extraction already completed.Skipping.", "Epoch 2", "vLLM server is ready" vary by
+// mode, and there's no expectRegen boolean that would cover all the combinations.
 func verifySpeculatorPodLogsWithMarkers(test Test, namespace, trainJobName string, markers ...string) {
 	test.T().Helper()
 
@@ -540,13 +548,9 @@ func RunSpeculatorOfflineTest(t *testing.T, trainGpuCount int) {
 	s3Exports := buildSpeculatorS3Exports(env.test)
 	sdkInstallExports := buildKubeflowInstallExports()
 
-	vllmImage := os.Getenv("SPECULATOR_VLLM_IMAGE")
-	if vllmImage == "" {
-		var err error
-		vllmImage, err = trainerutils.GetVllmImageFromCTR(env.test, trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA)
-		env.test.Expect(err).ShouldNot(HaveOccurred(), "Failed to get vLLM image from ClusterTrainingRuntime %s", trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA)
-		t.Logf("Using vLLM image from ClusterTrainingRuntime %s: %s", trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA, vllmImage)
-	}
+	vllmImage, err := trainerutils.GetSidecarImageFromClusterTrainingRuntime(env.test, trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA, "vllm-sidecar")
+	env.test.Expect(err).ShouldNot(HaveOccurred(), "Failed to get vLLM image from ClusterTrainingRuntime %s", trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA)
+	t.Logf("Using vLLM image from ClusterTrainingRuntime %s: %s", trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA, vllmImage)
 
 	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
 	regenerateResponses := "true"
@@ -709,7 +713,7 @@ func RunSpeculatorOfflineTest(t *testing.T, trainGpuCount int) {
 	verifySpeculatorPodLogsWithMarkers(env.test, env.namespace.Name, resumeJobName, resumeMarkers...)
 	verifySpeculatorResumeFromCheckpointLogs(env.test, env.namespace.Name, resumeJobName)
 
-	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
+	err = PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
 	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 
 	t.Log("All speculator OFFLINE pipeline steps passed!")
