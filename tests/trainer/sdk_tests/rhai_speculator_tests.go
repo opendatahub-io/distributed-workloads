@@ -415,19 +415,21 @@ func verifySpeculatorPodLogs(test Test, namespace, trainJobName string, expectRe
 	test.T().Fatalf("Required log markers not found in any completed training pod: %v", required)
 }
 
-// verifySpeculatorPodLogsWithMarkers asserts that at least one completed training pod
-// contains ALL the given marker strings in its "node" container logs. This validates
-// that specific training phases ran (e.g. progression tracking init, data extraction
-// skip on resume, checkpoint resume, epoch completion). Fails the test if no single
-// completed pod satisfies all markers. verifySpeculatorPodLogs can't be reused for
-// OFFLINE/ONLINE resume jobs because the resume markers are different like "Data
-// extraction already completed.Skipping.", "Epoch 2", "vLLM server is ready" vary by
-// mode, and there's no expectRegen boolean that would cover all the combinations.
-func verifySpeculatorPodLogsWithMarkers(test Test, namespace, trainJobName string, markers ...string) {
+func verifySpeculatorOnlinePodLogs(test Test, namespace, trainJobName string, expectRegen bool) {
 	test.T().Helper()
 
 	pods := listTrainingPods(test, namespace, trainJobName)
-	test.Expect(len(pods)).NotTo(Equal(0), "No training pods found to verify logs")
+	test.Expect(len(pods)).NotTo(Equal(0), "No training pods found to verify ONLINE logs")
+
+	required := []string{
+		"[Kubeflow] Speculator progression tracking enabled",
+		"[Kubeflow] vLLM server is ready",
+		"Epoch 2",
+		"[Kubeflow] Complete. Final metrics saved.",
+	}
+	if expectRegen {
+		required = append(required, "[Kubeflow] Regenerating responses")
+	}
 
 	for _, pod := range pods {
 		if pod.Status.Phase != corev1.PodSucceeded {
@@ -436,7 +438,7 @@ func verifySpeculatorPodLogsWithMarkers(test Test, namespace, trainJobName strin
 		logs := PodLog(test, namespace, pod.Name, corev1.PodLogOptions{Container: "node"})(test)
 
 		allFound := true
-		for _, marker := range markers {
+		for _, marker := range required {
 			if strings.Contains(logs, marker) {
 				test.T().Logf("Verified in pod %s: %s", pod.Name, marker)
 			} else {
@@ -449,7 +451,7 @@ func verifySpeculatorPodLogsWithMarkers(test Test, namespace, trainJobName strin
 		}
 	}
 
-	test.T().Fatalf("Required log markers not found in any completed training pod: %v", markers)
+	test.T().Fatalf("Required ONLINE log markers not found in any completed training pod: %v", required)
 }
 
 func verifySpeculatorTrainOnlyPodLogs(test Test, namespace, trainJobName string) {
@@ -704,13 +706,14 @@ func RunSpeculatorOfflineTest(t *testing.T, trainGpuCount int) {
 		return true
 	}, 2*time.Minute, 5*time.Second).Should(BeTrue(), "Resume trainerStatus annotation should reach 100% progress")
 
-	t.Log("Verifying checkpoint resume training pod logs...")
-	resumeMarkers := []string{
-		"[Kubeflow] Speculator progression tracking enabled",
-		"[Kubeflow] Data extraction already completed. Skipping.",
-		"[Kubeflow] Complete. Final metrics saved.",
-	}
-	verifySpeculatorPodLogsWithMarkers(env.test, env.namespace.Name, resumeJobName, resumeMarkers...)
+	t.Log("Verifying OFFLINE resume: extraction skipped (idempotency)...")
+	verifySpeculatorPodLogContains(env.test, env.namespace.Name, resumeJobName,
+		"Data extraction already completed. Skipping", "OFFLINE resume should skip extraction")
+
+	t.Log("Verifying OFFLINE resume: training completed...")
+	verifySpeculatorTrainOnlyPodLogs(env.test, env.namespace.Name, resumeJobName)
+
+	t.Log("Verifying OFFLINE resume: checkpoint resume markers...")
 	verifySpeculatorResumeFromCheckpointLogs(env.test, env.namespace.Name, resumeJobName)
 
 	err = PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
@@ -822,8 +825,7 @@ func RunSpeculatorOnlineTest(t *testing.T, vllmGpuCount int, trainGpuCount int) 
 		jobs := TrainJobs(env.test, env.namespace.Name)(env.test)
 		for _, j := range jobs {
 			if j.Name == onlineJobName {
-				tj := TrainJob(env.test, env.namespace.Name, onlineJobName)(env.test)
-				trainerStatusRaw := tj.GetAnnotations()[annotationTrainerStatus]
+				trainerStatusRaw := j.GetAnnotations()[annotationTrainerStatus]
 				if trainerStatusRaw != "" {
 					var status map[string]interface{}
 					if err := json.Unmarshal([]byte(sanitizeJSON(trainerStatusRaw)), &status); err == nil {
@@ -903,20 +905,8 @@ func RunSpeculatorOnlineTest(t *testing.T, vllmGpuCount int, trainGpuCount int) 
 		return true
 	}, 2*time.Minute, 5*time.Second).Should(BeTrue(), "ONLINE resume trainerStatus annotation should reach 100% progress")
 
-	t.Log("Verifying resume training pod logs...")
-	resumeMarkers := []string{
-		"[Kubeflow] Speculator progression tracking enabled",
-		"[Kubeflow] vLLM server is ready",
-		"Epoch 2",
-		"[Kubeflow] Complete. Final metrics saved.",
-	}
-	if s3Endpoint == "" {
-		resumeMarkers = append(resumeMarkers, "[Kubeflow] Regenerating responses")
-		t.Log("Connected environment: expecting regenerate_responses marker")
-	} else {
-		t.Log("Disconnected environment: regenerate_responses=False")
-	}
-	verifySpeculatorPodLogsWithMarkers(env.test, env.namespace.Name, resumeJobName, resumeMarkers...)
+	t.Log("Verifying ONLINE resume training pod logs...")
+	verifySpeculatorOnlinePodLogs(env.test, env.namespace.Name, resumeJobName, s3Endpoint == "")
 	verifySpeculatorResumeFromCheckpointLogs(env.test, env.namespace.Name, resumeJobName)
 
 	t.Log("Verifying vLLM sidecar container in resume pod...")
