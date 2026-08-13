@@ -57,7 +57,7 @@ const (
 	DefaultClusterTrainingRuntimeCPU = "torch-distributed-cpu"
 
 	// DefaultSpeculatorVllmExtractRuntimeCUDA is the CUDA runtime for speculator vLLM data extraction (DATA_ONLY mode)
-	DefaultSpeculatorvLLMExtractRuntimeCUDA = "vllm-extract-cuda"
+	DefaultSpeculatorvLLMExtractRuntimeCUDA = "speculator-vllm-extract-cuda"
 
 	// DefaultSpeculatorModelOptRuntimeCUDA is the CUDA runtime for speculator model optimization (TRAIN_ONLY mode)
 	DefaultSpeculatorModelOptRuntimeCUDA = "speculator-model-opt-cuda"
@@ -123,6 +123,28 @@ var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: "training-hub-th09-cuda130-torch211-py312", Image: "odh-th-torch-cuda-py312"},
 	{Name: "training-hub-th09-cpu-torch211-py312", Image: "odh-th-torch-cpu-py312"},
 	{Name: "training-hub-th09-rocm714-torch211-py312", Image: "odh-th-torch-rocm-py312"},
+}
+
+// GetVllmImageFromCTR retrieves the vLLM sidecar image from the initContainers of the named
+// ClusterTrainingRuntime. Returns the image of the init container named "vllm-sidecar".
+func GetVllmImageFromCTR(test support.Test, runtimeName string) (string, error) {
+	runtime, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(
+		test.Ctx(),
+		runtimeName,
+		metav1.GetOptions{},
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to get ClusterTrainingRuntime %q: %w", runtimeName, err)
+	}
+	for _, replicatedJob := range runtime.Spec.Template.Spec.ReplicatedJobs {
+		for _, initContainer := range replicatedJob.Template.Spec.Template.Spec.InitContainers {
+			if initContainer.Name == "vllm-sidecar" && initContainer.Image != "" {
+				test.T().Logf("Using vLLM image from ClusterTrainingRuntime %q initContainer %q: %s", runtimeName, initContainer.Name, initContainer.Image)
+				return initContainer.Image, nil
+			}
+		}
+	}
+	return "", errors.New("no vllm-sidecar initContainer image found in ClusterTrainingRuntime " + runtimeName)
 }
 
 // GetImageFromClusterTrainingRuntime retrieves the container image from the named ClusterTrainingRuntime
