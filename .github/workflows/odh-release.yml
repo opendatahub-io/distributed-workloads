@@ -39,7 +39,6 @@ jobs:
     - name: Compile tests
       run: |
         go test -c -o compiled-tests/fms ./tests/fms
-        go test -c -o compiled-tests/kfto ./tests/kfto
         go test -c -o compiled-tests/odh ./tests/odh
 
     - name: Creates a release in GitHub
