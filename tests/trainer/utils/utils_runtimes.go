@@ -125,6 +125,29 @@ var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: "training-hub-th09-rocm714-torch211-py312", Image: "odh-th-torch-rocm-py312"},
 }
 
+// GetSidecarImageFromClusterTrainingRuntime retrieves the image of a named initContainer from the given
+// ClusterTrainingRuntime. Useful for extracting sidecar images (e.g. vLLM) that are defined
+// as initContainers with restartPolicy: Always.
+func GetSidecarImageFromClusterTrainingRuntime(test support.Test, runtimeName, initContainerName string) (string, error) {
+	runtime, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(
+		test.Ctx(),
+		runtimeName,
+		metav1.GetOptions{},
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to get ClusterTrainingRuntime %q: %w", runtimeName, err)
+	}
+	for _, replicatedJob := range runtime.Spec.Template.Spec.ReplicatedJobs {
+		for _, initContainer := range replicatedJob.Template.Spec.Template.Spec.InitContainers {
+			if initContainer.Name == initContainerName && initContainer.Image != "" {
+				test.T().Logf("Using image from ClusterTrainingRuntime %q initContainer %q: %s", runtimeName, initContainer.Name, initContainer.Image)
+				return initContainer.Image, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("no initContainer %q found in ClusterTrainingRuntime %q", initContainerName, runtimeName)
+}
+
 // GetImageFromClusterTrainingRuntime retrieves the container image from the named ClusterTrainingRuntime
 // on the cluster. Fails the test if the runtime is not found or has no image defined.
 func GetImageFromClusterTrainingRuntime(test support.Test, runtimeName string) (string, error) {
