@@ -24,9 +24,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -38,49 +36,15 @@ var (
 )
 
 func TestSetupSleepPytorchjob(t *testing.T) {
-	t.Skip("Test unstable due to deferred enableIntegration() for PyTorchJob, causing second Pod Workload to be created")
 	Tags(t, PreUpgrade)
 	test := With(t)
 
-	SetupKueue(test, initialKueueState, PyTorchJobFramework)
-
 	// Create a namespace with Kueue labeled
-	CreateOrGetTestNamespaceWithName(test, sleepNamespaceName, WithKueueManaged())
-	test.T().Logf("Created Kueue-managed namespace: %s", sleepNamespaceName)
-
-	// Create Kueue resources
-	resourceFlavor := CreateKueueResourceFlavor(test, v1beta2.ResourceFlavorSpec{})
-	defer test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
-	cqSpec := v1beta2.ClusterQueueSpec{
-		NamespaceSelector: &metav1.LabelSelector{},
-		ResourceGroups: []v1beta2.ResourceGroup{
-			{
-				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory")},
-				Flavors: []v1beta2.FlavorQuotas{
-					{
-						Name: v1beta2.ResourceFlavorReference(resourceFlavor.Name),
-						Resources: []v1beta2.ResourceQuota{
-							{
-								Name:         corev1.ResourceCPU,
-								NominalQuota: resource.MustParse("8"),
-							},
-							{
-								Name:         corev1.ResourceMemory,
-								NominalQuota: resource.MustParse("18Gi"),
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	clusterQueue := CreateKueueClusterQueue(test, cqSpec)
-	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
-	localQueue := CreateKueueLocalQueue(test, sleepNamespaceName, clusterQueue.Name, AsDefaultQueue)
+	CreateOrGetTestNamespaceWithName(test, sleepNamespaceName)
+	test.T().Logf("Created namespace: %s", sleepNamespaceName)
 
 	// Create training PyTorch job
-	createSleepPyTorchJob(test, sleepNamespaceName, localQueue)
+	createSleepPyTorchJob(test, sleepNamespaceName)
 
 	// Make sure the PyTorch job is running, waiting for Training operator upgrade
 	test.Eventually(PyTorchJob(test, sleepNamespaceName, sleepPyTorchJobName), TestTimeoutShort).
@@ -88,7 +52,6 @@ func TestSetupSleepPytorchjob(t *testing.T) {
 }
 
 func TestVerifySleepPytorchjob(t *testing.T) {
-	t.Skip("Test unstable due to deferred enableIntegration() for PyTorchJob, causing second Pod Workload to be created")
 	Tags(t, PostUpgrade)
 	test := With(t)
 	namespace := GetNamespaceWithName(test, sleepNamespaceName)
@@ -110,7 +73,7 @@ func TestVerifySleepPytorchjob(t *testing.T) {
 		)
 }
 
-func createSleepPyTorchJob(test Test, namespace string, localQueue *v1beta2.LocalQueue) *kftov1.PyTorchJob {
+func createSleepPyTorchJob(test Test, namespace string) *kftov1.PyTorchJob {
 	// Does PyTorchJob already exist?
 	_, err := test.Client().Kubeflow().KubeflowV1().PyTorchJobs(namespace).Get(test.Ctx(), sleepPyTorchJobName, metav1.GetOptions{})
 	if err == nil {
@@ -125,9 +88,6 @@ func createSleepPyTorchJob(test Test, namespace string, localQueue *v1beta2.Loca
 	tuningJob := &kftov1.PyTorchJob{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: sleepPyTorchJobName,
-			Labels: map[string]string{
-				"kueue.x-k8s.io/queue-name": localQueue.Name,
-			},
 		},
 		Spec: kftov1.PyTorchJobSpec{
 			PyTorchReplicaSpecs: map[kftov1.ReplicaType]*kftov1.ReplicaSpec{
