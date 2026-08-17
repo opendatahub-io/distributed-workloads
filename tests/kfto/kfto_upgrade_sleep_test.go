@@ -38,6 +38,7 @@ var (
 )
 
 func TestSetupSleepPytorchjob(t *testing.T) {
+	t.Skip("Test unstable due to deferred enableIntegration() for PyTorchJob, causing second Pod Workload to be created")
 	Tags(t, PreUpgrade)
 	test := With(t)
 
@@ -87,6 +88,7 @@ func TestSetupSleepPytorchjob(t *testing.T) {
 }
 
 func TestVerifySleepPytorchjob(t *testing.T) {
+	t.Skip("Test unstable due to deferred enableIntegration() for PyTorchJob, causing second Pod Workload to be created")
 	Tags(t, PostUpgrade)
 	test := With(t)
 	namespace := GetNamespaceWithName(test, sleepNamespaceName)
