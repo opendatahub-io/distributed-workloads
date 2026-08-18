@@ -22,6 +22,20 @@ import (
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
+// TrainingEditClusterRole is the RHOAI trainer overlay ClusterRole for TrainJob CRUD.
+// RHOAIENG-83208 / CVE-2026-18951 removed it from default Kubernetes edit aggregation,
+// so tests must RoleBind it explicitly for LDAP/notebook users.
+const TrainingEditClusterRole = "training-edit"
+
+// GrantTrainerUserAccess grants an LDAP/notebook user TrainJob and ClusterTrainingRuntime access.
+// RoleBinding of training-edit covers namespace-scoped TrainJobs; a separate
+// ClusterRoleBinding is required because ClusterTrainingRuntimes are cluster-scoped.
+func GrantTrainerUserAccess(t Test, userName, namespace string) {
+	t.T().Helper()
+	CreateUserRoleBindingWithClusterRole(t, userName, namespace, TrainingEditClusterRole)
+	CreateUserClusterRoleBindingForTrainerRuntimes(t, userName)
+}
+
 // CreateUserClusterRoleBindingForTrainerRuntimes creates a ClusterRole with get/list/watch access
 // to ClusterTrainingRuntimes and binds it to the specified user.
 // This is needed because ClusterTrainingRuntimes are cluster-scoped resources.

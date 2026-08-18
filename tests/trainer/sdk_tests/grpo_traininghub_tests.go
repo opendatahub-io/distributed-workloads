@@ -49,7 +49,7 @@ func RunGrpoTrainingHubTraining(t *testing.T, nnodes int) {
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
-	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
+	trainerutils.GrantTrainerUserAccess(test, userName, namespace.Name)
 
 	// Create ConfigMap with notebook and install script
 	localPath := grpoNotebookPath
