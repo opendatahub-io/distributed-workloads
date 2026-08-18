@@ -56,7 +56,7 @@ func setupSpeculatorTestEnv(t *testing.T, pvcSize string) speculatorTestEnv {
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
-	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
+	trainerutils.GrantTrainerUserAccess(test, userName, namespace.Name)
 
 	nb, err := os.ReadFile(speculatorNotebookPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", speculatorNotebookPath))

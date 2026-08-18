@@ -55,8 +55,7 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
-	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
-	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
+	trainerutils.GrantTrainerUserAccess(test, userName, namespace.Name)
 
 	// Create ConfigMap with notebook and kubeflow install script
 	nb, err := os.ReadFile(notebookPath)
@@ -149,8 +148,7 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
-	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
-	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
+	trainerutils.GrantTrainerUserAccess(test, userName, namespace.Name)
 
 	// Create Kueue resources
 	resourceFlavor := support.CreateKueueResourceFlavor(test, kueuev1beta2.ResourceFlavorSpec{})

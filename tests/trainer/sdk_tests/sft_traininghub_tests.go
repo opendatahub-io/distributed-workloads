@@ -49,8 +49,7 @@ func RunSftTrainingHubMultiGpuDistributedTraining(t *testing.T, nnodes int) {
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
-	// ClusterRoleBinding for cluster-scoped resources (ClusterTrainingRuntimes) - minimal get/list/watch access
-	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
+	trainerutils.GrantTrainerUserAccess(test, userName, namespace.Name)
 
 	// Create ConfigMap with notebook and install script
 	localPath := sftNotebookPath

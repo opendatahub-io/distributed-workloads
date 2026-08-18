@@ -55,7 +55,7 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
-	trainerutils.CreateUserClusterRoleBindingForTrainerRuntimes(test, userName)
+	trainerutils.GrantTrainerUserAccess(test, userName, namespace.Name)
 
 	var localQueueName string
 	var cleanupKueue func()
