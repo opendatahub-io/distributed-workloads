@@ -57,7 +57,7 @@ func RunLoraCallbacksTrainingHubMultiGpuDistributedTraining(t *testing.T, nnodes
 
 	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{
 		loraCallbacksNotebookName: nb,
-		installKubeflowScript:   installScript,
+		installKubeflowScript:     installScript,
 	})
 
 	endpoint, endpointOK := support.GetStorageBucketDefaultEndpoint()

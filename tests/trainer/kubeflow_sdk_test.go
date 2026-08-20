@@ -21,8 +21,8 @@ import (
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	support "github.com/opendatahub-io/distributed-workloads/tests/common/support"
-	callbacktests "github.com/opendatahub-io/distributed-workloads/tests/trainer/sdk_tests/callback-tests"
 	sdktests "github.com/opendatahub-io/distributed-workloads/tests/trainer/sdk_tests"
+	callbacktests "github.com/opendatahub-io/distributed-workloads/tests/trainer/sdk_tests/callback-tests"
 )
 
 func TestKubeflowSdk(t *testing.T) {
