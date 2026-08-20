@@ -36,7 +36,7 @@ const (
 
 	callbacksMetricsLoggerFileName = "kubeflow_metrics_logger.py"
 	callbacksMetricsLoggerPath     = "resources/callback/" + callbacksMetricsLoggerFileName
-	trainingHubPyPIInstall = "training-hub>=0.9.8"
+	trainingHubPyPIInstall         = "training-hub>=0.9.8"
 	kubeflowSdkGitInstall          = "kubeflow[trainer] @ git+https://github.com/opendatahub-io/kubeflow-sdk.git@main"
 
 	sftCallbacksNotebookName  = "sft_with_callbacks.ipynb"
