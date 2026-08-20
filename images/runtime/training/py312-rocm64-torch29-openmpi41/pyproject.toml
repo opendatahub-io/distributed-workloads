@@ -34,7 +34,7 @@ dependencies = [
     "simpleeval>=0.9.13",
     "safetensors==0.7.0",
     "py-cpuinfo>=9.0.0",
-    "aiohttp>=3.13.3",
+    "aiohttp==3.14.3",
 
     # Deep Learning Utilities
     "numba>=0.61.2",
