@@ -35,6 +35,11 @@ import (
 const (
 	callbackNotebookLogMarker = "[TH-CB]"
 
+	callbacksMetricsLoggerFileName = "kubeflow_metrics_logger.py"
+	callbacksMetricsLoggerPath     = "resources/callback/" + callbacksMetricsLoggerFileName
+	trainingHubGitInstall = "training_hub @ git+https://github.com/Red-Hat-AI-Innovation-Team/training_hub.git@main"
+	kubeflowSdkGitInstall = "kubeflow[trainer] @ git+https://github.com/opendatahub-io/kubeflow-sdk.git@main"
+
 	sftCallbacksNotebookName  = "sft_with_callbacks.ipynb"
 	sftCallbacksNotebookPath  = "resources/callback/" + sftCallbacksNotebookName
 	loraCallbacksNotebookName = "lora_sft_with_callbacks.ipynb"
@@ -95,9 +100,13 @@ func runCallbacksTrainingHub(t *testing.T, nnodes int, cfg callbacksTrainingConf
 	installScript, err := os.ReadFile(sdktests.InstallScriptPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", sdktests.InstallScriptPath))
 
+	metricsLogger, err := os.ReadFile(callbacksMetricsLoggerPath)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read callback helper: %s", callbacksMetricsLoggerPath))
+
 	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{
 		cfg.notebookName:               nb,
 		sdktests.InstallKubeflowScript: installScript,
+		callbacksMetricsLoggerFileName: metricsLogger,
 	})
 
 	endpoint, endpointOK := support.GetStorageBucketDefaultEndpoint()
@@ -138,6 +147,9 @@ func runCallbacksTrainingHub(t *testing.T, nnodes int, cfg callbacksTrainingConf
 			"export GPU_TYPE='nvidia'; "+
 			"%s"+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
+			"python -m pip install --quiet --no-cache-dir --break-system-packages %s && "+
+			"python -m pip install --quiet --no-cache-dir --break-system-packages %s && "+
+			"cp /opt/app-root/notebooks/%s /opt/app-root/src/%s && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
@@ -147,6 +159,10 @@ func runCallbacksTrainingHub(t *testing.T, nnodes int, cfg callbacksTrainingConf
 		sdktests.ShellQuote(trainerutils.DefaultTrainingHubRuntimeCUDA),
 		nnodes,
 		sdkInstallExports,
+		sdktests.ShellQuote(trainingHubGitInstall),
+		sdktests.ShellQuote(kubeflowSdkGitInstall),
+		callbacksMetricsLoggerFileName,
+		callbacksMetricsLoggerFileName,
 		sdktests.InstallKubeflowScript,
 		cfg.notebookName,
 	)
