@@ -57,7 +57,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, Tier1)
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
@@ -172,7 +171,6 @@ func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {
 }
 
 func TestKueueWorkloadInadmissibleWithNonExistentLocalQueue(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, Tier2)
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
