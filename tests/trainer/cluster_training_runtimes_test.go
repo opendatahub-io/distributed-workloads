@@ -83,12 +83,30 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 		test.Expect(foundImage).NotTo(BeEmpty(), "No container image found in ClusterTrainingRuntime %s", runtime.Name)
 		test.T().Logf("Image referred in ClusterTrainingRuntime is %s", foundImage)
 
-		if trainerutils.IsMPIRuntime(runtime.Name) {
-			test.Expect(foundImage).To(HavePrefix("quay.io/"),
-				"MPI image %s should originate from quay.io", foundImage)
+		if trainerutils.IsSpeculatorRuntime(runtime.Name) {
+			expectedRegistry := GetExpectedRegistry(test)
+			test.Expect(foundImage).To(HavePrefix(expectedRegistry+"/"),
+				"Speculator image %s should originate from registry %s", foundImage, expectedRegistry)
 			test.Expect(foundImage).To(ContainSubstring(expectedRuntime.Image),
-				"MPI image %s should contain %s", foundImage, expectedRuntime.Image)
-			test.T().Logf("MPI ClusterTrainingRuntime '%s' uses expected image: %s", expectedRuntime.Name, foundImage)
+				"Image %s should contain %s", foundImage, expectedRuntime.Image)
+			test.T().Logf("ClusterTrainingRuntime '%s' uses expected image: %s", expectedRuntime.Name, foundImage)
+
+			// Validate init container images
+			for _, replicatedJob := range runtime.Spec.Template.Spec.ReplicatedJobs {
+				for _, initContainer := range replicatedJob.Template.Spec.Template.Spec.InitContainers {
+					if expectedInitImage, ok := expectedRuntime.InitImages[initContainer.Name]; ok {
+						test.Expect(initContainer.Image).To(HavePrefix(expectedRegistry+"/"),
+							"Init container %s image %s should originate from registry %s", initContainer.Name, initContainer.Image, expectedRegistry)
+						test.Expect(initContainer.Image).To(ContainSubstring(expectedInitImage),
+							"Init container %s image %s should contain %s", initContainer.Name, initContainer.Image, expectedInitImage)
+						test.T().Logf("ClusterTrainingRuntime '%s' init container '%s' uses expected image: %s", expectedRuntime.Name, initContainer.Name, initContainer.Image)
+					}
+				}
+			}
+		} else if trainerutils.IsMPIRuntime(runtime.Name) {
+			test.Expect(foundImage).To(ContainSubstring(expectedRuntime.Image),
+				"Image %s should contain %s", foundImage, expectedRuntime.Image)
+			test.T().Logf("ClusterTrainingRuntime '%s' uses expected image: %s", expectedRuntime.Name, foundImage)
 		} else {
 			expectedImage := imagePrefix + "/" + expectedRuntime.Image
 			test.Expect(foundImage).To(ContainSubstring(expectedImage),

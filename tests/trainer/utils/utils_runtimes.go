@@ -25,10 +25,11 @@ import (
 	"github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
-// ClusterTrainingRuntime represents a ClusterTrainingRuntime with its expected image name
+// ClusterTrainingRuntime represents a ClusterTrainingRuntime with its expected image names
 type ClusterTrainingRuntime struct {
-	Name  string
-	Image string
+	Name       string
+	Image      string
+	InitImages map[string]string // initContainer name -> expected image substring
 }
 
 const (
@@ -77,8 +78,17 @@ var mpiRuntimes = map[string]bool{
 	DefaultClusterTrainingRuntimeOpenMPICUDA: true,
 }
 
+var speculatorRuntimes = map[string]bool{
+	DefaultSpeculatorvLLMExtractRuntimeCUDA: true,
+	DefaultSpeculatorModelOptRuntimeCUDA:    true,
+}
+
 func IsMPIRuntime(name string) bool {
 	return mpiRuntimes[name]
+}
+
+func IsSpeculatorRuntime(name string) bool {
+	return speculatorRuntimes[name]
 }
 
 func IsDefaultRuntime(name string) bool {
@@ -123,6 +133,8 @@ var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: "training-hub-th09-cuda130-torch211-py312", Image: "odh-th-torch-cuda-py312"},
 	{Name: "training-hub-th09-cpu-torch211-py312", Image: "odh-th-torch-cpu-py312"},
 	{Name: "training-hub-th09-rocm714-torch211-py312", Image: "odh-th-torch-rocm-py312"},
+	{Name: DefaultSpeculatorvLLMExtractRuntimeCUDA, Image: "model-opt-cuda-rhel9", InitImages: map[string]string{"vllm-sidecar": "vllm-cuda-rhel9"}},
+	{Name: DefaultSpeculatorModelOptRuntimeCUDA, Image: "model-opt-cuda-rhel9"},
 }
 
 // GetSidecarImageFromClusterTrainingRuntime retrieves the image of a named initContainer from the given
