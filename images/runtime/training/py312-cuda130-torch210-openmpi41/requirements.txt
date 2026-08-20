@@ -642,6 +642,7 @@ typer==0.24.1
     #   rhai-innovation-mini-trainer
 typing-extensions==4.15.0
     # via
+    #   aiohttp
     #   aiosignal
     #   alembic
     #   anyio
