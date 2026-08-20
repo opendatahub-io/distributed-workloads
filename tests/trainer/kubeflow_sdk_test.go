@@ -74,19 +74,19 @@ func TestGrpoTrainingHubSingleNodeSingleGPU(t *testing.T) {
 // TestSftCallbacksTrainingHubSingleNodeSingleGPU tests SFT training with callbacks on a single node with a single GPU
 func TestSftCallbacksTrainingHubSingleNodeSingleGPU(t *testing.T) {
 	Tags(t, KftoCuda, Gpu(support.NVIDIA))
-	callbacktests.RunSftCallbacksTrainingHubMultiGpuDistributedTraining(t, 1)
+	callbacktests.RunSftCallbacksTrainingHub(t, 1)
 }
 
 // TestLoraCallbacksTrainingHubSingleNodeSingleGPU tests LoRA training with callbacks on a single node with a single GPU
 func TestLoraCallbacksTrainingHubSingleNodeSingleGPU(t *testing.T) {
 	Tags(t, KftoCuda, Gpu(support.NVIDIA))
-	callbacktests.RunLoraCallbacksTrainingHubMultiGpuDistributedTraining(t, 1)
+	callbacktests.RunLoraCallbacksTrainingHub(t, 1)
 }
 
 // TestOsftCallbacksTrainingHubSingleNodeSingleGPU tests OSFT training with callbacks on a single node with a single GPU
 func TestOsftCallbacksTrainingHubSingleNodeSingleGPU(t *testing.T) {
 	Tags(t, KftoCuda, Gpu(support.NVIDIA))
-	callbacktests.RunOsftCallbacksTrainingHubMultiGpuDistributedTraining(t, 1)
+	callbacktests.RunOsftCallbacksTrainingHub(t, 1)
 }
 
 // Multi-node, multi-GPU tests (2 nodes, 1 GPU each)
