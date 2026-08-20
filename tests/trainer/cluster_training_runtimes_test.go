@@ -113,6 +113,20 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 				"Image %s should contain %s", foundImage, expectedImage)
 			test.T().Logf("ClusterTrainingRuntime '%s' uses expected image: %s", expectedRuntime.Name, expectedImage)
 		}
+
+		// For RHOAI, verify all container and init container images use SHA digests
+		if IsRhoai(test) {
+			for _, replicatedJob := range runtime.Spec.Template.Spec.ReplicatedJobs {
+				for _, container := range replicatedJob.Template.Spec.Template.Spec.Containers {
+					test.Expect(container.Image).To(MatchRegexp(`@sha256:[a-f0-9]{64}$`),
+						"Container %s image %s should be SHA-based with valid digest", container.Name, container.Image)
+				}
+				for _, initContainer := range replicatedJob.Template.Spec.Template.Spec.InitContainers {
+					test.Expect(initContainer.Image).To(MatchRegexp(`@sha256:[a-f0-9]{64}$`),
+						"Init container %s image %s should be SHA-based with valid digest", initContainer.Name, initContainer.Image)
+				}
+			}
+		}
 	}
 
 	// Verify all expected runtimes are present
@@ -215,6 +229,10 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 			test.T().Logf("Skipping MPI runtime '%s' (covered by TestMultiNodeOpenMPITrainJob)", runtime.Name)
 			continue
 		}
+		if trainerutils.IsSpeculatorRuntime(runtime.Name) {
+			test.T().Logf("Skipping speculator runtime '%s' (covered by speculator tests)", runtime.Name)
+			continue
+		}
 		if tested[runtime.Image] {
 			test.T().Logf("Skipping ClusterTrainingRuntime '%s' (image '%s' already tested)", runtime.Name, runtime.Image)
 			continue
@@ -250,7 +268,7 @@ func TestRunTrainJobWithDefaultClusterTrainingRuntimes(t *testing.T) {
 		test.T().Fatalf("TRIGGER_IMAGE_NAME '%s' does not match any expected ClusterTrainingRuntime image", triggerImageName)
 	}
 	if triggerSet && len(tested) == 0 {
-		test.T().Skipf("TRIGGER_IMAGE_NAME '%s' matched only MPI runtimes; covered by TestMultiNodeOpenMPITrainJob", triggerImageName)
+		test.T().Skipf("TRIGGER_IMAGE_NAME '%s' matched only MPI/speculator runtimes; covered by dedicated tests", triggerImageName)
 	}
 
 	test.T().Log("All TrainJobs with expected ClusterTrainingRuntimes completed successfully !!!")
