@@ -30,7 +30,6 @@ func TestKubeflowSdk(t *testing.T) {
 }
 
 func TestKubeflowSdkKueueIntegration(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, Tier1)
 	test := support.With(t)
 	support.SetupKueue(test, initialKueueState, support.TrainJobFramework)
