@@ -22,7 +22,6 @@ import (
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	support "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 	sdktests "github.com/opendatahub-io/distributed-workloads/tests/trainer/sdk_tests"
-	callbacktests "github.com/opendatahub-io/distributed-workloads/tests/trainer/sdk_tests/callback-tests"
 )
 
 func TestKubeflowSdk(t *testing.T) {
@@ -74,19 +73,19 @@ func TestGrpoTrainingHubSingleNodeSingleGPU(t *testing.T) {
 // TestSftCallbacksTrainingHubSingleNodeSingleGPU tests SFT training with callbacks on a single node with a single GPU
 func TestSftCallbacksTrainingHubSingleNodeSingleGPU(t *testing.T) {
 	Tags(t, KftoCuda, Gpu(support.NVIDIA))
-	callbacktests.RunSftCallbacksTrainingHub(t, 1)
+	sdktests.RunSftCallbacksTrainingHub(t, 1)
 }
 
 // TestLoraCallbacksTrainingHubSingleNodeSingleGPU tests LoRA training with callbacks on a single node with a single GPU
 func TestLoraCallbacksTrainingHubSingleNodeSingleGPU(t *testing.T) {
 	Tags(t, KftoCuda, Gpu(support.NVIDIA))
-	callbacktests.RunLoraCallbacksTrainingHub(t, 1)
+	sdktests.RunLoraCallbacksTrainingHub(t, 1)
 }
 
 // TestOsftCallbacksTrainingHubSingleNodeSingleGPU tests OSFT training with callbacks on a single node with a single GPU
 func TestOsftCallbacksTrainingHubSingleNodeSingleGPU(t *testing.T) {
 	Tags(t, KftoCuda, Gpu(support.NVIDIA))
-	callbacktests.RunOsftCallbacksTrainingHub(t, 1)
+	sdktests.RunOsftCallbacksTrainingHub(t, 1)
 }
 
 // Multi-node, multi-GPU tests (2 nodes, 1 GPU each)

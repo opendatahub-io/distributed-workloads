@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package callbacktests
+package sdk_tests
 
 import (
 	"fmt"
@@ -28,7 +28,6 @@ import (
 
 	common "github.com/opendatahub-io/distributed-workloads/tests/common"
 	support "github.com/opendatahub-io/distributed-workloads/tests/common/support"
-	sdktests "github.com/opendatahub-io/distributed-workloads/tests/trainer/sdk_tests"
 	trainerutils "github.com/opendatahub-io/distributed-workloads/tests/trainer/utils"
 )
 
@@ -37,8 +36,8 @@ const (
 
 	callbacksMetricsLoggerFileName = "kubeflow_metrics_logger.py"
 	callbacksMetricsLoggerPath     = "resources/callback/" + callbacksMetricsLoggerFileName
-	trainingHubGitInstall = "training_hub @ git+https://github.com/Red-Hat-AI-Innovation-Team/training_hub.git@main"
-	kubeflowSdkGitInstall = "kubeflow[trainer] @ git+https://github.com/opendatahub-io/kubeflow-sdk.git@main"
+	trainingHubPyPIInstall = "training-hub>=0.9.8"
+	kubeflowSdkGitInstall          = "kubeflow[trainer] @ git+https://github.com/opendatahub-io/kubeflow-sdk.git@main"
 
 	sftCallbacksNotebookName  = "sft_with_callbacks.ipynb"
 	sftCallbacksNotebookPath  = "resources/callback/" + sftCallbacksNotebookName
@@ -97,15 +96,15 @@ func runCallbacksTrainingHub(t *testing.T, nnodes int, cfg callbacksTrainingConf
 	nb, err := os.ReadFile(cfg.notebookPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read notebook: %s", cfg.notebookPath))
 
-	installScript, err := os.ReadFile(sdktests.InstallScriptPath)
-	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", sdktests.InstallScriptPath))
+	installScript, err := os.ReadFile(InstallScriptPath)
+	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read install script: %s", InstallScriptPath))
 
 	metricsLogger, err := os.ReadFile(callbacksMetricsLoggerPath)
 	test.Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("failed to read callback helper: %s", callbacksMetricsLoggerPath))
 
 	cm := support.CreateConfigMap(test, namespace.Name, map[string][]byte{
 		cfg.notebookName:               nb,
-		sdktests.InstallKubeflowScript: installScript,
+		InstallKubeflowScript:          installScript,
 		callbacksMetricsLoggerFileName: metricsLogger,
 	})
 
@@ -131,7 +130,7 @@ func runCallbacksTrainingHub(t *testing.T, nnodes int, cfg callbacksTrainingConf
 		support.StorageClassName(storageClass.Name),
 	)
 
-	sdkInstallExports := sdktests.BuildKubeflowInstallExports()
+	sdkInstallExports := BuildKubeflowInstallExports()
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
 			"export IPYTHONDIR='/tmp/.ipython'; "+
@@ -153,17 +152,17 @@ func runCallbacksTrainingHub(t *testing.T, nnodes int, cfg callbacksTrainingConf
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		sdktests.ShellQuote(support.GetOpenShiftApiUrl(test)), sdktests.ShellQuote(userToken), sdktests.ShellQuote(namespace.Name), sdktests.ShellQuote(rwxPvc.Name),
-		sdktests.ShellQuote(endpoint), sdktests.ShellQuote(accessKey), sdktests.ShellQuote(secretKey), sdktests.ShellQuote(bucket),
-		cfg.bucketDirEnvName, sdktests.ShellQuote(prefix),
-		sdktests.ShellQuote(trainerutils.DefaultTrainingHubRuntimeCUDA),
+		ShellQuote(support.GetOpenShiftApiUrl(test)), ShellQuote(userToken), ShellQuote(namespace.Name), ShellQuote(rwxPvc.Name),
+		ShellQuote(endpoint), ShellQuote(accessKey), ShellQuote(secretKey), ShellQuote(bucket),
+		cfg.bucketDirEnvName, ShellQuote(prefix),
+		ShellQuote(trainerutils.DefaultTrainingHubRuntimeCUDA),
 		nnodes,
 		sdkInstallExports,
-		sdktests.ShellQuote(trainingHubGitInstall),
-		sdktests.ShellQuote(kubeflowSdkGitInstall),
+		ShellQuote(trainingHubPyPIInstall),
+		ShellQuote(kubeflowSdkGitInstall),
 		callbacksMetricsLoggerFileName,
 		callbacksMetricsLoggerFileName,
-		sdktests.InstallKubeflowScript,
+		InstallKubeflowScript,
 		cfg.notebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
