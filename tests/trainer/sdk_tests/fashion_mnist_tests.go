@@ -37,8 +37,10 @@ import (
 const (
 	notebookName          = "mnist.ipynb"
 	notebookPath          = "resources/" + notebookName
-	installScriptPath     = "resources/disconnected_env/install_kubeflow.py"
-	installKubeflowScript = "install_kubeflow.py"
+	InstallScriptPath     = "resources/disconnected_env/install_kubeflow.py"
+	InstallKubeflowScript = "install_kubeflow.py"
+	installScriptPath     = InstallScriptPath
+	installKubeflowScript = InstallKubeflowScript
 )
 
 // CPU Only - Distributed Training
