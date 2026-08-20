@@ -37,13 +37,11 @@ import (
 )
 
 func TestSftStockTrlSingleNodeSingleGPU(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoCuda, Gpu(NVIDIA))
 	runSftStockTrlTrainJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, 1, 1)
 }
 
 func TestSftStockTrlSingleNodeSingleGPUWithTorchRocm(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoRocm, Gpu(AMD))
 	runSftStockTrlTrainJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, 1, 1)
 }

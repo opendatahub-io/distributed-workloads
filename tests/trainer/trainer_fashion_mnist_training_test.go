@@ -36,55 +36,46 @@ import (
 )
 
 func TestPyTorchDDPMultiNodeMultiCPUWithTorchCuda28(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, Tier2, MultiNode(2))
 	runPyTorchDDPMultiNodeJob(t, CPU, trainerutils.DefaultClusterTrainingRuntimeCPU, "resources/requirements-cpu.txt", 2, 2)
 }
 
 func TestPyTorchDDPSingleNodeSingleGPUWithTorchCuda(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoCuda, Gpu(NVIDIA))
 	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, "resources/requirements-cuda.txt", 1, 1)
 }
 
 func TestPyTorchDDPSingleNodeMultiGPUWithTorchCuda(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoCuda, MultiGpu(NVIDIA, 2))
 	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, "resources/requirements-cuda.txt", 1, 2)
 }
 
 func TestPyTorchDDPMultiNodeSingleGPUWithTorchCuda(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, "resources/requirements-cuda.txt", 2, 1)
 }
 
 func TestPyTorchDDPMultiNodeMultiGPUWithTorchCuda(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoCuda, MultiNodeMultiGpu(2, NVIDIA, 2))
 	runPyTorchDDPMultiNodeJob(t, NVIDIA, trainerutils.DefaultClusterTrainingRuntimeCUDA, "resources/requirements-cuda.txt", 2, 2)
 }
 
 func TestPyTorchDDPSingleNodeSingleGPUWithTorchRocm(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoRocm, Gpu(AMD))
 	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 1, 1)
 }
 
 func TestPyTorchDDPSingleNodeMultiGPUWithTorchRocm(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoRocm, MultiGpu(AMD, 2))
 	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 1, 2)
 }
 
 func TestPyTorchDDPMultiNodeSingleGPUWithTorchRocm(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoRocm, MultiNodeGpu(2, AMD))
 	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 2, 1)
 }
 
 func TestPyTorchDDPMultiNodeMultiGPUWithTorchRocm(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoRocm, MultiNodeMultiGpu(2, AMD, 2))
 	runPyTorchDDPMultiNodeJob(t, AMD, trainerutils.DefaultClusterTrainingRuntimeROCm, "resources/requirements-rocm.txt", 2, 2)
 }
