@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// buildKubeflowInstallExports builds a shell-export prefix that is injected into
+// BuildKubeflowInstallExports builds a shell-export prefix that is injected into
 // notebook pod commands before running install_kubeflow.py.
 //
 // Why this exists:
@@ -22,7 +22,7 @@ import (
 // Index behavior:
 //   - If KUBEFLOW_PYPI_INDEX_URL is set, we export it
 //     for install_kubeflow.py to use as the package index.
-func buildKubeflowInstallExports() string {
+func BuildKubeflowInstallExports() string {
 	gitURL := strings.TrimSpace(os.Getenv("KUBEFLOW_GIT_URL"))
 	version := strings.TrimSpace(os.Getenv("KUBEFLOW_REQUIRED_VERSION"))
 	indexURL := strings.TrimSpace(os.Getenv("KUBEFLOW_PYPI_INDEX_URL"))
@@ -30,19 +30,23 @@ func buildKubeflowInstallExports() string {
 	var exports strings.Builder
 	if gitURL != "" {
 		exports.WriteString("export KUBEFLOW_INSTALL_FROM_GIT='true'; ")
-		exports.WriteString("export KUBEFLOW_GIT_URL=" + shellQuote(gitURL) + "; ")
+		exports.WriteString("export KUBEFLOW_GIT_URL=" + ShellQuote(gitURL) + "; ")
 	} else if version != "" {
-		exports.WriteString("export KUBEFLOW_REQUIRED_VERSION=" + shellQuote(version) + "; ")
+		exports.WriteString("export KUBEFLOW_REQUIRED_VERSION=" + ShellQuote(version) + "; ")
 	} else {
 		exports.WriteString("export KUBEFLOW_SKIP_INSTALL='true'; ")
 	}
 
 	if indexURL != "" {
-		exports.WriteString("export KUBEFLOW_PYPI_INDEX_URL=" + shellQuote(indexURL) + "; ")
+		exports.WriteString("export KUBEFLOW_PYPI_INDEX_URL=" + ShellQuote(indexURL) + "; ")
 	}
 	return exports.String()
 }
 
-func shellQuote(value string) string {
+func ShellQuote(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
 }
+
+func buildKubeflowInstallExports() string { return BuildKubeflowInstallExports() }
+
+func shellQuote(value string) string { return ShellQuote(value) }
