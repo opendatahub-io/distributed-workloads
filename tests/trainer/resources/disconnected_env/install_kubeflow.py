@@ -67,7 +67,7 @@ def redact_text(text: str) -> str:
 
 def get_required_version():
     """Get required kubeflow version from env or use default."""
-    return os.environ.get("KUBEFLOW_REQUIRED_VERSION", "0.3.0+rhaiv.2")
+    return os.environ.get("KUBEFLOW_REQUIRED_VERSION", "v0.4.1+rhaiv.0")
 
 
 def get_rhai_pypi_index() -> str:
