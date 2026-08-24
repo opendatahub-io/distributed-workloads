@@ -94,7 +94,7 @@ override-dependencies = [
     "xformers ; sys_platform == 'win32'",
 ]
 constraint-dependencies = [
-    "aiohttp>=3.14.0",
+    "aiohttp>=3.14.3",
     "gitpython>=3.1.52",
     "pillow>=12.3.0",
     "pyasn1>=0.6.4",
