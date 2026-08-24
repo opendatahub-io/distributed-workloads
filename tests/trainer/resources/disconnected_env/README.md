@@ -13,9 +13,9 @@ This guide covers setting up and running trainer v2/SDK tests in a disconnected 
 - **Notebook image with Python 3.9+** (required for kubeflow-trainer-api>=2.0.0)
 
 > **Note on PyPI**: The `kubeflow` package is **not on public PyPI** - it's only available on Red Hat indexes:
-> - CPU: `https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cpu-ubi9/simple/`
-> - CUDA: `https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda12.9-ubi9/simple/`
-> - ROCm: `https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/rocm6.4-ubi9/simple/`
+> - CPU: `https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA1/cpu-ubi9/simple/`
+> - CUDA: `https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA1/cuda12.9-ubi9/simple/`
+> - ROCm: `https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA1/rocm6.4-ubi9/simple/`
 >
 > Tests automatically use the correct Red Hat index based on accelerator type. For fully disconnected environments, mirror these indexes or use the S3 wheel fallback.
 
