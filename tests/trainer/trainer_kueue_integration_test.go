@@ -310,6 +310,14 @@ func TestKueueSchedulingReachesTrainJobPods(t *testing.T) {
 				Name: trainerutils.DefaultClusterTrainingRuntimeCPU,
 			},
 			Trainer: &trainerv1alpha1.Trainer{
+               Command: []string{"echo", "test"},
+               ResourcesPerNode: &corev1.ResourceRequirements{
+                       Requests: corev1.ResourceList{
+                            corev1.ResourceCPU:    resource.MustParse("100m"),
+                            corev1.ResourceMemory: resource.MustParse("128Mi"),
+        },
+    },
+},
 				Command: []string{"echo", "test"},
 			},
 		},
