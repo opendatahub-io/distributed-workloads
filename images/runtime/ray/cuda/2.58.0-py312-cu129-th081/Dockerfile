@@ -1,5 +1,5 @@
 ARG PYTHON_VERSION=312
-ARG IMAGE_TAG=9.7-1778488949
+ARG IMAGE_TAG=9.8-1788412553
 
 FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG}
 
@@ -205,12 +205,31 @@ RUN pip install --no-cache-dir \
     tensorboard \
     "tensordict!=0.9.0,<=0.10.0,>=0.8.0" \
     torchdata \
-    wandb \
+    wandb==0.28.0 \
     "torch==2.9.0"
 
 # pyzmq: must come from PyPI (manylinux wheel bundles libzmq.so.5).
 # The AIPCC wheel expects system libzmq which doesn't exist in UBI9.
 RUN pip install --no-cache-dir pyzmq
+
+# Rebuild wandb-core with CGO for FIPS. wandb is installed from wheel above;
+# only the Go binary must be rebuilt (arrow-rs-wrapper stays from the wheel).
+RUN dnf install -y golang gcc openssl-devel && \
+    WANDB_VERSION=0.28.0 && \
+    SITE_PACKAGES=$(python -c 'import site; print(site.getsitepackages()[0])') && \
+    mkdir -p /tmp/wandb-build && \
+    curl -fsSL -o "/tmp/wandb-build/wandb-${WANDB_VERSION}.tar.gz" \
+      "https://files.pythonhosted.org/packages/5f/a7/683bfbd6cbade3012bc90d3e9c4cfc72dd62566195bf4c30321946d64b77/wandb-${WANDB_VERSION}.tar.gz" && \
+    tar -xzf "/tmp/wandb-build/wandb-${WANDB_VERSION}.tar.gz" -C /tmp/wandb-build && \
+    cd "/tmp/wandb-build/wandb-${WANDB_VERSION}/core" && \
+    CGO_ENABLED=1 GOEXPERIMENT=strictfipsruntime \
+    go build -tags "disable_grpc_modules parquet_read_only" \
+      -ldflags="-s -w -X main.commit=unknown" \
+      -o "${SITE_PACKAGES}/wandb/bin/wandb-core" \
+      -mod=vendor cmd/wandb-core/main.go && \
+    rm -rf /tmp/wandb-build && \
+    dnf remove -y golang gcc openssl-devel && \
+    dnf clean all
 
 # Restore user workspace
 USER 1001

@@ -4,10 +4,10 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-"ray[all]" = {version = "~=2.55.1"}
+"ray[all]" = {version = "~=2.58.0"}
 "training-hub" = {version = "==0.8.1"}
 transformers = {version = ">=4.57.6,<5.0"}
-kernels = {version = ">=0.9.0,<0.15"}
+kernels = {version = ">=0.9.0,<0.14"}
 unsloth = {version = ">=2026.1.1"}
 einops = {version = ">=0.8"}
 bitsandbytes = {version = ">=0.47.0"}
