@@ -433,7 +433,7 @@ pandas==2.3.3
     #   datasets
     #   mlflow
     #   training-hub
-peft==0.18.1
+peft==0.20.0
     # via
     #   py312-rocm64-torch29-openmpi41 (pyproject.toml)
     #   instructlab-training
