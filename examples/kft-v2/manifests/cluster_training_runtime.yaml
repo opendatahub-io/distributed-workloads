@@ -1,0 +1,141 @@
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: ClusterTrainingRuntime
+metadata:
+  name: torch-cuda-custom
+  labels:
+    trainer.kubeflow.org/framework: torch
+spec:
+  mlPolicy:
+    numNodes: 2
+    torch:
+      numProcPerNode: 1
+  template:
+    metadata: {}
+    spec:
+      replicatedJobs:
+        - name: dataset-initializer
+          replicas: 1
+          template:
+            metadata:
+              labels:
+                trainer.kubeflow.org/trainjob-ancestor-step: dataset-initializer
+            spec:
+              template:
+                spec:
+                  containers:
+                    - env:
+                        - name: HF_HOME
+                          value: /workspace/cache
+                        - name: DATASET_NAME
+                          value: tatsu-lab/alpaca
+                        - name: DATASET_CONFIG
+                          value: main
+                        - name: DATASET_SPLIT
+                          value: 'train[:500]'
+                        - name: DATASET_FORMAT
+                          value: json
+                        - name: WORKSPACE_PATH
+                          value: /workspace
+                      image: 'ghcr.io/kubeflow/trainer/dataset-initializer:v2.0.0'
+                      name: dataset-initializer
+                      resources:
+                        limits:
+                          cpu: '2'
+                          memory: 4Gi
+                        requests:
+                          cpu: '1'
+                          memory: 2Gi
+                      volumeMounts:
+                        - mountPath: /workspace
+                          name: workspace
+                  restartPolicy: Never
+                  volumes:
+                    - name: workspace
+                      persistentVolumeClaim:
+                        claimName: workspace
+        - dependsOn:
+            - name: dataset-initializer
+              status: Complete
+          name: model-initializer
+          replicas: 1
+          template:
+            metadata:
+              labels:
+                trainer.kubeflow.org/trainjob-ancestor-step: model-initializer
+            spec:
+              template:
+                spec:
+                  containers:
+                    - env:
+                        - name: HF_HOME
+                          value: /workspace/cache
+                        - name: MODEL_NAME
+                          value: gpt2
+                        - name: MODEL_REVISION
+                          value: main
+                        - name: DOWNLOAD_MODE
+                          value: force_redownload
+                        - name: WORKSPACE_PATH
+                          value: /workspace
+                      image: 'ghcr.io/kubeflow/trainer/model-initializer:v2.0.0'
+                      name: model-initializer
+                      resources:
+                        limits:
+                          cpu: '2'
+                          memory: 4Gi
+                        requests:
+                          cpu: '1'
+                          memory: 2Gi
+                      volumeMounts:
+                        - mountPath: /workspace
+                          name: workspace
+                  restartPolicy: Never
+                  volumes:
+                    - name: workspace
+                      persistentVolumeClaim:
+                        claimName: workspace
+        - dependsOn:
+            - name: model-initializer
+              status: Complete
+          name: node
+          replicas: 1
+          template:
+            metadata:
+              labels:
+                trainer.kubeflow.org/trainjob-ancestor-step: trainer
+            spec:
+              template:
+                metadata: {}
+                spec:
+                  containers:
+                    - env:
+                        - name: PYTHONUNBUFFERED
+                          value: '1'
+                        - name: NCCL_DEBUG
+                          value: INFO
+                        - name: NCCL_SOCKET_IFNAME
+                          value: eth0
+                        - name: NCCL_IB_DISABLE
+                          value: '1'
+                        - name: NCCL_P2P_DISABLE
+                          value: '1'
+                        - name: TRAINJOB_PROGRESSION_FILE_PATH
+                          value: /tmp/training_progression.json
+                        - name: CHECKPOINT_DIR
+                          value: /workspace/checkpoints
+                      image: 'quay.io/modh/training:py311-cuda124-torch251'
+                      name: node
+                      resources:
+                        limits:
+                          cpu: '2'
+                          memory: 4Gi
+                        requests:
+                          cpu: '1'
+                          memory: 2Gi
+                      volumeMounts:
+                        - mountPath: /workspace
+                          name: workspace
+                  volumes:
+                    - name: workspace
+                      persistentVolumeClaim:
+                        claimName: workspace
