@@ -79,8 +79,8 @@ ENV ROCM_HOME=/opt/rocm/core \
 ENV LD_PRELOAD=/usr/lib64/libjemalloc.so.2
 
 # System packages (MIDSTREAM ONLY - skipped when DOWNSTREAM=true)
-# ROCm 7.14 uses THEROCK repositories (amdrocm-* packages)
-COPY rocm.repo mellanox.repo /etc/yum.repos.d/
+# ROCm packages are provided by the base image.
+COPY mellanox.repo /etc/yum.repos.d/
 
 RUN if [ "${DOWNSTREAM}" != "true" ]; then \
     echo "MIDSTREAM BUILD: Installing system packages..." && \
@@ -94,11 +94,6 @@ RUN if [ "${DOWNSTREAM}" != "true" ]; then \
         librdmacm \
         librdmacm-utils \
         rdma-core \
-        amdrocm-llvm \
-        amdrocm-runtime \
-        amdrocm-runtime-devel \
-        amdrocm-core-sdk \
-        amdrocm-core-devel \
         protobuf && \
     dnf clean all && rm -rf /var/cache/dnf/* && \
     # Backward compat symlinks for /opt/rocm
