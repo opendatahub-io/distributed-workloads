@@ -18,6 +18,8 @@ metadata:
   name: ray-cuda-2.58.0-py312-cu128-on-push
   namespace: rhoai-tenant
 spec:
+  timeouts:
+    pipeline: 8h
   params:
   - name: git-url
     value: '{{source_url}}'
