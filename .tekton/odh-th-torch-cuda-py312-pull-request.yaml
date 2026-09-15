@@ -5,14 +5,10 @@ metadata:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/distributed-workloads?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: |
-      event == "pull_request"
-      && target_branch == "main"
-      && ( "images/universal/training/th-torch-cuda-py312/**".pathChanged()
-            || ".tekton/odh-th-torch-cuda-py312-pull-request.yaml".pathChanged() )
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
+      == "main"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
@@ -46,6 +42,17 @@ spec:
       value: main
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
+  taskRunSpecs:
+  - pipelineTaskName: build-images
+    stepSpecs:
+    - name: prepare-sboms
+      computeResources:
+        requests:
+          cpu: '3'
+          memory: 8Gi
+        limits:
+          cpu: '3'
+          memory: 8Gi
   taskRunTemplate:
     serviceAccountName: build-pipeline-odh-th-torch-cuda-py312-ci
   workspaces:
