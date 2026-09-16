@@ -51,6 +51,14 @@ spec:
         limits:
           cpu: '3'
           memory: 8Gi
+    - name: sbom-syft-generate
+      computeResources:
+        requests:
+          cpu: '2'
+          memory: 8Gi
+        limits:
+          cpu: '2'
+          memory: 8Gi
   taskRunTemplate:
     serviceAccountName: build-pipeline-odh-th-torch-cuda-py312-ci
   workspaces:
