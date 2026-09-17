@@ -35,11 +35,15 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 	Tags(t, Smoke)
 	test := With(t)
 
+	isRhoai := IsRhoai(test)
 	imagePrefix := GetExpectedImagePrefix(test)
 
 	// Build a map of expected runtimes for quick lookup
 	expectedRuntimeMap := make(map[string]trainerutils.ClusterTrainingRuntime)
 	for _, runtime := range trainerutils.ExpectedRuntimes {
+		if !isRhoai && trainerutils.IsSpeculatorRuntime(runtime.Name) {
+			continue
+		}
 		expectedRuntimeMap[runtime.Name] = runtime
 	}
 
@@ -56,6 +60,11 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 
 	// Iterate over runtimes present in the cluster
 	for _, runtime := range runtimeList.Items {
+		if !isRhoai && trainerutils.IsSpeculatorRuntime(runtime.Name) {
+			test.T().Logf("Skipping speculator ClusterTrainingRuntime '%s' for ODH", runtime.Name)
+			continue
+		}
+
 		expectedRuntime, found := expectedRuntimeMap[runtime.Name]
 		if !found {
 			unexpectedRuntimes = append(unexpectedRuntimes, runtime.Name)
@@ -115,7 +124,7 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 		}
 
 		// For RHOAI, verify all container and init container images use SHA digests
-		if IsRhoai(test) {
+		if isRhoai {
 			for _, replicatedJob := range runtime.Spec.Template.Spec.ReplicatedJobs {
 				for _, container := range replicatedJob.Template.Spec.Template.Spec.Containers {
 					test.Expect(container.Image).To(MatchRegexp(`@sha256:[a-f0-9]{64}$`),
@@ -132,6 +141,9 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 	// Verify all expected runtimes are present
 	var missingRuntimes []string
 	for _, expected := range trainerutils.ExpectedRuntimes {
+		if !isRhoai && trainerutils.IsSpeculatorRuntime(expected.Name) {
+			continue
+		}
 		if !foundRuntimes[expected.Name] {
 			missingRuntimes = append(missingRuntimes, expected.Name)
 		}
