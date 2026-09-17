@@ -1,0 +1,80 @@
+
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/red-hat-data-services/distributed-workloads?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    build.appstudio.openshift.io/build-nudge-files: "build/operator-nudging.yaml"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push"
+      && target_branch == "rhoai-3.6"
+      && ( files.all.exists(p, !p.matches('^\\.tekton/')) || ".tekton/odh-th-torch-rocm-py312-v3-6-push.yaml".pathChanged() )
+  labels:
+    appstudio.openshift.io/application: rhoai-v3-6
+    appstudio.openshift.io/component: odh-th-torch-rocm-py312-v3-6
+    pipelines.appstudio.openshift.io/type: build
+  name: odh-th-torch-rocm-py312-v3-6-on-push
+  namespace: rhoai-tenant
+spec:
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: additional-tags
+    value:
+    - '{{target_branch}}-{{revision}}'
+  - name: output-image
+    value: quay.io/rhoai/odh-th-torch-rocm-py312-rhel9:{{target_branch}}
+  - name: rhoai-version
+    value: "3.6.0"
+  - name: dockerfile
+    value: Dockerfile.konflux
+  - name: path-context
+    value: images/universal/training/th-torch-rocm-py312/
+  - name: hermetic
+    value: "true"
+  - name: prefetch-input
+    value: |
+      [{"type": "pip", "path": "images/universal/training/th-torch-rocm-py312", "requirements_files": ["requirements.txt"], "binary": {"arch": "x86_64", "os": "linux"}}]
+  - name: build-args
+    value: ["DOWNSTREAM=true"]
+  - name: build-platforms
+    value:
+    - linux/x86_64
+  pipelineRef:
+    params:
+    - name: url
+      value: https://github.com/red-hat-data-services/konflux-central.git
+    - name: revision
+      value: '{{ target_branch }}'
+    - name: pathInRepo
+      value: pipelines/multi-arch-container-build.yaml
+    resolver: git
+  taskRunSpecs:
+  - pipelineTaskName: build-images
+    stepSpecs:
+    - name: build
+      computeResources:
+        requests:
+          memory: 4Gi
+        limits:
+          memory: 8Gi
+    - name: prepare-sboms
+      computeResources:
+        requests:
+          memory: 4Gi
+        limits:
+          memory: 8Gi
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-odh-th-torch-rocm-py312-v3-6
+    podTemplate:
+      imagePullSecrets:
+      - name: redhat-appstudio-staginguser-pull-secret
+  timeouts:
+    pipeline: 10h
+    tasks: 8h

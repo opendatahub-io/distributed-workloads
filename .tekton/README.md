@@ -1,14 +1,12 @@
 # ⚠️ Do Not Modify Files in the `.tekton/` Directory Directly
 
-The `.tekton/` directory in each component repository is **automatically synchronized**
-from [`konflux-central`](https://github.com/red-hat-data-services/konflux-central) using automation.
-Any edits made directly to Tekton files in the component repositories will be **overwritten** by the next sync.
+The `.tekton/` directory in each component repository is **automatically synchronized** from [`konflux-central`](https://github.com/red-hat-data-services/konflux-central) using automation. Any edits made directly to Tekton files in the component repositories will be **overwritten** by the next sync.
 
 All Tekton file updates **must be made in the `konflux-central` repository**.
 
 ## ✅ How to Make Changes
 
-To modify the pipelines for `distributed-workloads` in the `main` branch:
+To modify the pipelines for `distributed-workloads` in the `rhoai-3.6` release:
 
 - Clone the [`konflux-central`](https://github.com/red-hat-data-services/konflux-central) repository.
 
@@ -17,10 +15,10 @@ git clone git@github.com:red-hat-data-services/konflux-central.git
 cd konflux-central
 ```
 
-- Check out the branch
+- Check out the release branch
 
 ```bash
-git checkout main
+git checkout rhoai-3.6
 ```
 
 - Navigate to the Tekton files for your component(s).
@@ -34,8 +32,8 @@ cd pipelineruns/distributed-workloads/.tekton
 - Commit and push your changes.
 
 ```bash
-git commit -am "Update pipelinerun for distributed-workloads (main)"
-git push origin main
+git commit -am "Update pipelinerun for distributed-workloads (rhoai-3.6)"
+git push origin rhoai-3.6
 ```
 
 - Once pushed, automation will automatically sync your updates to the corresponding component repository.
