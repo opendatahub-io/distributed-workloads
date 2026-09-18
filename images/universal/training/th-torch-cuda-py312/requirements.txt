@@ -1165,6 +1165,8 @@ torchvision==0.26.0
     # via
     #   timm
     #   vllm
+tornado==6.5.8
+    # via tensorboard
 tqdm==4.70.0
     # via
     #   th-torch-cuda-universal-image (pyproject.toml)

@@ -101,4 +101,5 @@ constraint-dependencies = [
     "pillow>=12.3.0",
     "pyasn1>=0.6.4",
     "starlette>=1.3.1",
+    "tornado>=6.5.8",
 ]
