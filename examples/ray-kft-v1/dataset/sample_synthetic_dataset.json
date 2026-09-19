@@ -1,0 +1,94 @@
+{
+  "train": [
+    {
+      "question": "During a school fundraiser, Sarah sold 36 cupcakes on Monday. On Tuesday, she sold twice as many cupcakes as she did on Monday. How many cupcakes did Sarah sell in total over these two days?",
+      "answer": "Step-by-step solution: Step 1: Calculate the number of cupcakes sold on Tuesday. Since she sold twice as many cupcakes on Tuesday compared to Monday, we multiply the number of cupcakes sold on Monday by 2. \\( \\text{Cupcakes sold on Tuesday} = 36 \\times 2 \\). Step 2: Add the number of cupcakes sold on both days to find the total. Sum up the cupcakes sold on Monday (\\(36\\)) and Tuesday (result from Step 1) to get the total.",
+      "context": "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?",
+      "source": "ray_sdg_qwen",
+      "seed_id": 0,
+      "variation_id": 0,
+      "difficulty": "Easy",
+      "concepts": [
+        "Multiplication",
+        "Addition",
+        "Problem-solving skills"
+      ],
+      "model_confidence": 0.9,
+      "quality_scores": {
+        "mathematical_content": 1.0,
+        "answer_quality": 0.7,
+        "question_clarity": 1.0,
+        "model_confidence": 0.9,
+        "overall_quality": 0.89
+      },
+      "overall_quality": 0.89
+    },
+    {
+      "question": "A baker uses 3 cups of flour to make one loaf of bread. If he has 18 cups of flour, how many loaves can he bake?",
+      "answer": "To find out how many loaves the baker can bake, you need to divide the total amount of flour (18 cups) by the amount needed for one loaf (3 cups). So, 18 \u00f7 3 = 6 loaves.",
+      "context": "Weng earns $12 an hour for babysitting. Yesterday, she just did 50 minutes of babysitting. How much did she earn?",
+      "source": "ray_sdg_qwen",
+      "seed_id": 1,
+      "variation_id": 0,
+      "difficulty": "easy",
+      "concepts": [
+        "division"
+      ],
+      "model_confidence": 0.9,
+      "quality_scores": {
+        "mathematical_content": 1.0,
+        "answer_quality": 0.3,
+        "question_clarity": 1.0,
+        "model_confidence": 0.9,
+        "overall_quality": 0.77
+      },
+      "overall_quality": 0.77
+    }
+  ],
+  "test": [
+    {
+      "question": "A gardener plants flowers in rows such that each row contains 7 flowers. If there were 49 flowers planted in total, how many full rows can the gardener create?",
+      "answer": "To find out how many full rows the gardener can create, divide the total number of flowers (49) by the number of flowers per row (7). The quotient gives you the number of full rows.",
+      "context": "Weng earns $12 an hour for babysitting. Yesterday, she just did 50 minutes of babysitting. How much did she earn?",
+      "source": "ray_sdg_qwen",
+      "seed_id": 1,
+      "variation_id": 1,
+      "difficulty": "medium",
+      "concepts": [
+        "division",
+        "multiplication"
+      ],
+      "model_confidence": 0.9,
+      "quality_scores": {
+        "mathematical_content": 0.7,
+        "answer_quality": 0.3,
+        "question_clarity": 1.0,
+        "model_confidence": 0.9,
+        "overall_quality": 0.68
+      },
+      "overall_quality": 0.68
+    }
+  ],
+  "metadata": {
+    "total_generated": 3,
+    "high_quality_count": 3,
+    "quality_threshold": 0.4,
+    "min_mathematical_content": 0.4,
+    "min_answer_quality": 0.3,
+    "avg_overall_quality": 0.78,
+    "difficulty_distribution": {
+      "Easy": 1,
+      "easy": 1,
+      "medium": 1
+    },
+    "model_used": "Qwen/Qwen2.5-1.5B-Instruct",
+    "generation_method": "ray_distributed_qwen",
+    "features": [
+      "structured_json_output",
+      "multi_dimensional_quality_assessment",
+      "difficulty_variation",
+      "deduplication",
+      "robust_parsing"
+    ]
+  }
+}
