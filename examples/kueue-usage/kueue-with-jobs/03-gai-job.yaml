@@ -1,0 +1,26 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: gai-
+  labels:
+    kueue.x-k8s.io/priority-class: long-term-research
+    kueue.x-k8s.io/queue-name: gai-queue 
+spec:
+  parallelism: 3
+  completions: 3
+  suspend: true
+  template:
+    spec:
+      containers:
+      - name: gai-training-brain
+        image: gcr.io/k8s-staging-perf-tests/sleep:v0.1.0
+        args: ["300s"]
+        resources:
+          requests:
+            cpu: 1
+            memory: "1Gi"
+      restartPolicy: Never
+
+
+
