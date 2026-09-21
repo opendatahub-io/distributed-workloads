@@ -681,6 +681,8 @@ torch==2.11.0
     #   training-hub
 torchvision==0.26.0
     # via timm
+tornado==6.5.8
+    # via constraint-dependencies
 tqdm==4.67.3
     # via
     #   th-torch-cpu-universal-image (pyproject.toml)
