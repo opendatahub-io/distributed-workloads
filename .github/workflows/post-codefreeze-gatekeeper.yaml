@@ -6,6 +6,7 @@ on:
     branches:
       - 'rhoai-3.5'
       - 'rhoai-3.6-ea.1'
+      - 'rhoai-3.6-ea.2'
 jobs:
   post-codefreeze-gate:
     if: github.event.action != 'labeled' || github.event.label.name == 'run-gatekeeper'
