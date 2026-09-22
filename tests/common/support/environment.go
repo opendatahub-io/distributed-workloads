@@ -73,6 +73,10 @@ const (
 	// filter which ClusterTrainingRuntimes are exercised in e2e tests.
 	TriggerImageName = "TRIGGER_IMAGE_NAME"
 
+	// Enables the Trainer TLS profile watcher test, which changes the
+	// cluster-wide OpenShift APIServer TLS profile and must be explicitly opted in.
+	TrainerTLSProfileWatcherE2E = "TRAINER_TLS_PROFILE_WATCHER_E2E"
+
 	// The environment variable referring to image containing bloom-560m model
 	bloomModelImageEnvVar = "BLOOM_MODEL_IMAGE"
 	// The environment variable referring to image containing Stanford Alpaca dataset
@@ -257,6 +261,11 @@ func GetPipTrustedHost() string {
 
 func GetTestNamespaceName() (string, bool) {
 	return os.LookupEnv(testNamespaceNameEnvVar)
+}
+
+func RunTrainerTLSProfileWatcherE2E() bool {
+	value, ok := os.LookupEnv(TrainerTLSProfileWatcherE2E)
+	return ok && value == "true"
 }
 
 func GetTriggerImageName() (string, bool) {
