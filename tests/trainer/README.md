@@ -67,6 +67,26 @@ The TrainingHub SDK E2E tests mount their notebook inputs from ConfigMaps but
 execute them in a Kubernetes `Deployment`. They do not require the RHOAI
 Notebook component to be installed.
 
+The secure-serving test validates the Trainer HTTPS metrics endpoint, ServiceMonitor,
+certificate mount, Prometheus RBAC, and authenticated scraping:
+
+```bash
+go test ./tests/trainer -run TestTrainerSecureServing -v -timeout 15m
+```
+
+To verify that Prometheus has discovered and is successfully scraping the Trainer target:
+
+```bash
+go test ./tests/trainer -run TestTrainerPrometheusScrape -v -timeout 15m
+```
+
+The TLS profile watcher test changes the cluster-wide OpenShift APIServer profile and
+is skipped unless explicitly enabled:
+
+```bash
+TRAINER_TLS_PROFILE_WATCHER_E2E=true go test ./tests/trainer -run TestTrainerTLSProfileWatcher -v -timeout 20m
+```
+
 ## Upgrade Tests
 
 Upgrade tests validate that Trainer v2 resources survive an RHOAI upgrade. They run in two phases controlled by `TEST_TIER`:
