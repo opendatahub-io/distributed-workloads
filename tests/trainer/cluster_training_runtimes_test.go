@@ -42,6 +42,7 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 	expectedRuntimeMap := make(map[string]trainerutils.ClusterTrainingRuntime)
 	for _, runtime := range trainerutils.ExpectedRuntimes {
 		if !isRhoai && trainerutils.IsSpeculatorRuntime(runtime.Name) {
+			test.T().Logf("Skipping speculator ClusterTrainingRuntime '%s' for ODH build", runtime.Name)
 			continue
 		}
 		expectedRuntimeMap[runtime.Name] = runtime
@@ -61,7 +62,6 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 	// Iterate over runtimes present in the cluster
 	for _, runtime := range runtimeList.Items {
 		if !isRhoai && trainerutils.IsSpeculatorRuntime(runtime.Name) {
-			test.T().Logf("Skipping speculator ClusterTrainingRuntime '%s' for ODH", runtime.Name)
 			continue
 		}
 
