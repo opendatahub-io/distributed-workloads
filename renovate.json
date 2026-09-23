@@ -3,6 +3,7 @@
   "extends": [
     "github>red-hat-data-services/konflux-central//renovate/default-renovate.json5"
   ],
+  "enabledManagers": ["dockerfile", "rpm"],
   "lockFileMaintenance": {
     "enabled": false
   }
