@@ -12,7 +12,7 @@
 ################################################################################
 # Build Arguments
 ################################################################################
-ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-rocm-py312-ubi9:3.6_ea1-v1.47
+ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-rocm-py312-ubi9:3.6_ea2-v1.49
 ARG PYTHON_VERSION=3.12
 ARG DOWNSTREAM=false
 
@@ -34,7 +34,8 @@ WORKDIR /opt/app-root/src
 # Install dependencies from AIPCC prod index
 RUN uv pip install --no-cache-dir \
     --index-strategy=unsafe-best-match \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA1/rocm7.14-ubi9/simple/ \
+    # For RHOAI 3.6GA "prod" suffix to be removed from index-url - https://redhat.atlassian.net/browse/AIPCC-32410
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/rocm7.14-ubi9-prod/simple/ \
     -r /tmp/deps/requirements.txt
 
 # Fix permissions for OpenShift
@@ -52,7 +53,7 @@ RUN rm -rf /tmp/deps
 FROM ${BASE_IMAGE} AS final
 
 LABEL name="th-torch-rocm-py312" \
-      summary="ROCm 7.14 Python 3.12 Training Hub 09 PyTorch 2.11.0 image on UBI9" \
+      summary="ROCm 7.14 Python 3.12 Training Hub 10 PyTorch 2.12.0 image on UBI9" \
       description="Universal ROCm image combining Jupyter workbench and runtime ML stack on UBI9" \
       io.k8s.display-name="ROCm Python 3.12 Universal Training Image" \
       io.k8s.description="Universal ROCm training image: Jupyter workbench by default; runtime when command provided."
@@ -94,6 +95,7 @@ RUN if [ "${DOWNSTREAM}" != "true" ]; then \
         librdmacm \
         librdmacm-utils \
         rdma-core \
+        numactl-devel \
         protobuf && \
     dnf clean all && rm -rf /var/cache/dnf/* && \
     # Backward compat symlinks for /opt/rocm
@@ -125,6 +127,11 @@ COPY --chmod=0755 entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
 # Fix permissions for OpenShift (final stage)
 RUN fix-permissions /opt/app-root -P \
  && chmod -R g+w /opt/app-root/lib/python${PYTHON_VERSION}/site-packages
+
+# Runtime workaround for the AMD SMI / legacy ROCm SMI rsmi_init symbol collision.
+# Load AMD SMI before Torch's dependencies so torchrun GPU auto-detection works.
+RUN test -r "${ROCM_HOME}/lib/libamd_smi.so.26"
+ENV LD_PRELOAD="${LD_PRELOAD}:${ROCM_HOME}/lib/libamd_smi.so.26"
 
 USER 1001
 WORKDIR /opt/app-root/src

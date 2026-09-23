@@ -3,7 +3,7 @@
 # To regenerate requirements.txt:
 #   uv pip compile --python-platform=linux --python-version=3.12 \
 #     --index-strategy=unsafe-best-match \
-#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA1/cuda13.0-ubi9/simple/ \
+#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/cuda13.0-ubi9-prod/simple/ \
 #     -o requirements.txt pyproject.toml
 #
 # Note: override-dependencies and constraint-dependencies are in [tool.uv] below.
@@ -24,33 +24,33 @@ dependencies = [
     # ===================================================================
     
     # PyTorch with CUDA 13.0
-    "torch==2.11.0",
+    "torch==2.13.0",
     
     # Triton (GPU kernel compiler)
-    "triton==3.6.0",
+    "triton==3.7.1",
     
     # xformers (efficient transformers)
     "xformers==0.0.35",
     
     # ML Training and Inference Libraries
     "accelerate==1.14.0",
-    "transformers==5.15.0",
+    "transformers==5.16.1",
     "peft==0.20.0",
     "datasets==5.0.1",
     
     # Core Dependencies
-    "tqdm>=4.67.1",
-    "pydantic>=2.11.7",
+    "tqdm>=4.70.0",
+    "pydantic>=2.13.4",
     "aiofiles==25.1.0",
-    "deprecated>=1.2.18",
-    "typer>=0.19.2",
+    "deprecated>=1.3.1",
+    "typer>=0.27.2",
     "protobuf>=3.20.0",
     "safetensors==0.8.0",
     "py-cpuinfo>=9.0.0",
     
     # Deep Learning Utilities
-    "numpy>=2.0.0",
-    "rich>=13.9.4",
+    "numpy>=2.4.6",
+    "rich>=15.0.0",
     "tensorboard==2.20.0",
     "bitsandbytes==0.50.1",
     "liger-kernel==0.8.1",
@@ -59,27 +59,28 @@ dependencies = [
     
     # Tokenization
     "sentencepiece==0.2.2",
-    "tokenizers==0.22.2",
+    "tokenizers==0.23.2",
     
     # Training Libraries
-    "trl==1.10.0",
+    "trl==1.13.0",
     "deepspeed==0.19.5",
     
     # MLOps
     "mlflow==3.15.1",
+    "wandb==0.23.1",
     
     # Storage
     "s3fs==2025.9.0",
     
     # Training Frameworks
-    "training_hub[lora,cuda,grpo]==0.9.8",
+    "training_hub[lora,cuda,grpo]==0.10.0",
     "instructlab-training==0.16.2",
     "rhai-innovation-mini-trainer==0.9.0",
-    "unsloth==2026.8.18+rhaiv.0",
-    "unsloth-zoo==2026.8.12+rhaiv.0",
+    "unsloth==2026.9.4+rhaiv.0",
+    "unsloth-zoo==2026.9.3+rhaiv.1",
     
     # Kubeflow SDK
-    "kubeflow==0.4.1+rhaiv.0",
+    "kubeflow==0.4.1+rhaiv.2",
     "kubeflow_spark_api==2.4.0",
     "pyspark_connect==4.2.0",
     
@@ -90,14 +91,14 @@ dependencies = [
     "flash-attn==2.8.3.post1",
     
     # Mamba dependencies (pre-built wheels from AIPCC)
-    "causal-conv1d==1.6.2.post1",
+    "causal-conv1d==1.7.0",
     "mamba-ssm==2.3.2.post1",
     
     # OpenPipe ART
     "openpipe-art==0.5.18",
     
     # Inference
-    "vllm==0.26.0+rhaiv.1",
+    "vllm==0.28.0+rhaiv.1",
 ]
 
 [tool.uv]
@@ -105,12 +106,12 @@ environments = [
     "sys_platform == 'linux' and implementation_name == 'cpython'",
 ]
 index-strategy = "unsafe-best-match"
-index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA1/cuda13.0-ubi9/simple/"
+index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/cuda13.0-ubi9-prod/simple/"
 override-dependencies = [
-    "numba==0.65.0",
-    "llvmlite==0.47.0",
+    "numba==0.67.0",
+    "llvmlite==0.49.0",
     "apache-tvm-ffi==0.1.10",
-    "tilelang==0.1.9",
+    "tilelang==0.1.12",
     "protobuf==6.33.6",
     "numpy==2.4.6",
     "litellm==1.84.0"

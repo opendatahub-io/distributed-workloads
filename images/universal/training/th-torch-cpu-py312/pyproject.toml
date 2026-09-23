@@ -3,7 +3,7 @@
 # To regenerate requirements.txt:
 #   uv pip compile --python-platform=linux --python-version=3.12 \
 #     --index-strategy=unsafe-best-match \
-#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA1/cpu-ubi9/simple/ \
+#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/cpu-ubi9-prod/simple/ \
 #     -o requirements.txt pyproject.toml
 #
 
@@ -20,17 +20,17 @@ dependencies = [
     # ===================================================================
     
     # PyTorch CPU version
-    "torch==2.11.0",
+    "torch==2.13.0",
     
     # Triton (CPU compatible for JIT compilation)
-    "triton==3.6.0",
+    "triton==3.7.1",
     
     # ML Training and Inference Libraries
     "accelerate==1.14.0",
-    "transformers==5.15.0",
+    "transformers==5.16.1",
     "peft==0.20.0",
     "datasets==5.0.1",
-    "trl==1.10.0",
+    "trl==1.12.0",
     
     # Deep Learning Utilities (CPU-compatible)
     "einops==0.8.2",
@@ -38,16 +38,16 @@ dependencies = [
     
     # Tokenization
     "sentencepiece==0.2.2",
-    "tokenizers==0.22.2",
+    "tokenizers==0.23.2",
     
     # Core Dependencies
-    "numpy>=2.0.0",
-    "tqdm>=4.67.1",
-    "pydantic>=2.11.7",
+    "numpy>=2.4.6",
+    "tqdm>=4.70.0",
+    "pydantic>=2.13.4",
     "protobuf==6.33.6",
     "safetensors==0.8.0",
     "py-cpuinfo>=9.0.0",
-    "rich>=13.9.4",
+    "rich>=15.0.0",
     "aiofiles==25.1.0",
     "tensorboard==2.20.0",
     
@@ -56,12 +56,12 @@ dependencies = [
     "mlflow==3.15.1",
     
     # Training Frameworks
-    "training_hub==0.9.8",
+    "training_hub==0.10.0",
     "instructlab-training==0.16.2",
     "rhai-innovation-mini-trainer==0.9.0",
     
     # Kubeflow SDK
-    "kubeflow==0.4.1+rhaiv.0",
+    "kubeflow==0.4.1+rhaiv.2",
     "kubeflow_spark_api==2.4.0",
     "pyspark_connect==4.2.0",
 
@@ -87,7 +87,7 @@ environments = [
     "sys_platform == 'linux' and implementation_name == 'cpython'",
 ]
 index-strategy = "unsafe-best-match"
-index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA1/cpu-ubi9/simple/"
+index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/cpu-ubi9-prod/simple/"
 override-dependencies = [
     "litellm==1.84.0"
 ]
