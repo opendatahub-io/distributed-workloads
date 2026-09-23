@@ -89,6 +89,7 @@ func RunGrpoTrainingHubTraining(t *testing.T, nnodes int) {
 	)
 
 	sdkInstallExports := buildKubeflowInstallExports()
+	// Dump vLLM runtime logs before the status marker so they are retained for every run.
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
 			"export IPYTHONDIR='/tmp/.ipython'; "+
@@ -106,7 +107,12 @@ func RunGrpoTrainingHubTraining(t *testing.T, nnodes int) {
 			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
-			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
+			"then notebook_status='SUCCESS'; else notebook_status='FAILURE'; fi; "+
+			"echo '=== BEGIN vLLM runtime logs ==='; "+
+			"find /opt/app-root/src/grpo-output -type f -name 'vllm-runtime.log' -print -exec cat {} + 2>&1 || true; "+
+			"echo '=== END vLLM runtime logs ==='; "+
+			"if [ ${notebook_status} = SUCCESS ]; then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; "+
+			"sleep infinity",
 		shellQuote(support.GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(rwxPvc.Name),
 		shellQuote(endpoint), shellQuote(accessKey), shellQuote(secretKey), shellQuote(bucket), shellQuote(prefix),
 		shellQuote(trainerutils.DefaultTrainingHubRuntimeCUDA),
@@ -132,5 +138,9 @@ func RunGrpoTrainingHubTraining(t *testing.T, nnodes int) {
 	// Poll logs to check if the notebook execution completed successfully
 	// GRPO training takes longer than SFT/LoRA due to generation + RL loop
 	err = support.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	// Persist the complete notebook output before deferred cleanup deletes the pod.
+	// This output includes the vLLM runtime log dumped before the status marker.
+	logs := support.GetPodLog(test, namespace.Name, podName, corev1.PodLogOptions{Container: containerName})
+	support.WriteToOutputDir(test, "grpo-notebook", support.Log, []byte(logs))
 	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
 }
