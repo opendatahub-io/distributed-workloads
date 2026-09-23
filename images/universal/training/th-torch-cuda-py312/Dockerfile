@@ -1,4 +1,4 @@
-# Universal CUDA Image Dockerfile (CUDA 13.0.2, torch 2.11.0)
+# Universal CUDA Image Dockerfile (CUDA 13.0.2, torch 2.13.0)
 #
 # FIPS-friendly Features:
 # - Build tools are isolated in intermediate stage
@@ -13,7 +13,7 @@
 ################################################################################
 # Build Arguments
 ################################################################################
-ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cuda-py312-ubi9:3.6_ea1-v1.47
+ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cuda-py312-ubi9:3.6_ea2-v1.49
 ARG PYTHON_VERSION=3.12
 ARG DOWNSTREAM=false
 
@@ -35,7 +35,8 @@ WORKDIR /opt/app-root/src
 # Install dependencies from AIPCC prod index
 RUN uv pip install --no-cache-dir --no-deps \
     --index-strategy=unsafe-best-match \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA1/cuda13.0-ubi9/simple/ \
+    # For RHOAI 3.6GA "prod" suffix to be removed from index-url - https://redhat.atlassian.net/browse/AIPCC-32410
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/cuda13.0-ubi9-prod/simple/ \
     -r /tmp/deps/requirements.txt
 
 # Fix permissions for OpenShift
@@ -53,7 +54,7 @@ RUN rm -rf /tmp/deps
 FROM ${BASE_IMAGE} AS final
 
 LABEL name="th-torch-cuda-py312" \
-      summary="CUDA 13.0.2 Python 3.12 Training Hub 09 PyTorch 2.11.0 image on UBI9" \
+      summary="CUDA 13.0.2 Python 3.12 Training Hub 10 PyTorch 2.13.0 image on UBI9" \
       description="Universal CUDA training image combining Jupyter workbench and runtime ML stack on UBI9" \
       io.k8s.display-name="CUDA Python 3.12 Universal Training Image" \
       io.k8s.description="Universal CUDA training image: Jupyter workbench by default; runtime when command provided."
