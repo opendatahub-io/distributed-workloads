@@ -41,11 +41,13 @@ func TestMain(m *testing.M) {
 	initialKueueState = CaptureComponentState(DefaultDSCName, "kueue")
 	fmt.Printf("Initial Kueue managementState: %s\n", initialKueueState)
 
-	// Run all tests only if setup succeeded
-	m.Run()
+	// Each test is responsible for setting up Kueue before it runs.
+	code := m.Run()
 
-	// TearDown Kueue: Only set to Removed if it was not already Unmanaged before tests
-	if initialKueueState != "Unmanaged" {
+	// Tear down Kueue only when RHOAI/ODH owns its lifecycle through the DSC.
+	if initialKueueState == "" {
+		fmt.Println("TearDown: Skipping Kueue teardown because no DataScienceCluster is installed")
+	} else if initialKueueState != "Unmanaged" {
 		if err := TearDownComponent(DefaultDSCName, "kueue"); err != nil {
 			fmt.Printf("TearDown: Failed to set Kueue to Removed: %v\n", err)
 		}
@@ -53,7 +55,7 @@ func TestMain(m *testing.M) {
 		fmt.Println("TearDown: Skipping Kueue teardown as Initial Kueue managementState was Unmanaged in DataScienceCluster")
 	}
 
-	os.Exit(0)
+	os.Exit(code)
 }
 
 func TestKueueWorkloadPreemptionSuspendsTrainJob(t *testing.T) {

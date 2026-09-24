@@ -315,6 +315,9 @@ func CaptureComponentState(dscName, component string) string {
 
 	dsc, err := dynamicClient.Resource(DscGVR).Get(context.Background(), dscName, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return ""
+		}
 		fmt.Printf("Warning: Failed to get DSC: %v\n", err)
 		return ""
 	}

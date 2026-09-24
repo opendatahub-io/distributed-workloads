@@ -73,7 +73,6 @@ func TestGetBuildTypeErrors(t *testing.T) {
 		forbidden     bool
 		wantError     string
 	}{
-		{"no subscription", nil, false, "no ODH/RHOAI operator subscription"},
 		{"ambiguous subscriptions", []v1alpha1.Subscription{sub, *other}, false, "multiple ODH/RHOAI subscriptions"},
 		{"API forbidden", nil, true, "failed to list operator subscriptions"},
 	} {
@@ -86,6 +85,16 @@ func TestGetBuildTypeErrors(t *testing.T) {
 			test.Expect(buildType).To(gomega.BeEmpty())
 		})
 	}
+}
+
+func TestGetBuildTypeStandaloneInstallation(t *testing.T) {
+	test := NewTest(t)
+	mockSubscriptions(test, nil, false)
+
+	buildType, err := GetBuildType(test)
+	test.Expect(err).NotTo(gomega.HaveOccurred())
+	test.Expect(buildType).To(gomega.BeEmpty())
+	test.Expect(IsRhoai(test)).To(gomega.BeFalse())
 }
 
 func buildSubscription(channel string) v1alpha1.Subscription {
