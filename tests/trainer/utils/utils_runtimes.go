@@ -133,8 +133,8 @@ var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: "training-hub-th09-cuda130-torch211-py312", Image: "odh-th-torch-cuda-py312"},
 	{Name: "training-hub-th09-cpu-torch211-py312", Image: "odh-th-torch-cpu-py312"},
 	{Name: "training-hub-th09-rocm714-torch211-py312", Image: "odh-th-torch-rocm-py312"},
-	{Name: DefaultSpeculatorvLLMExtractRuntimeCUDA, Image: "model-opt-cuda-rhel9", InitImages: map[string]string{"vllm-sidecar": "vllm-cuda-rhel9"}},
-	{Name: DefaultSpeculatorModelOptRuntimeCUDA, Image: "model-opt-cuda-rhel9"},
+	{Name: DefaultSpeculatorvLLMExtractRuntimeCUDA, Image: "model-opt-cuda", InitImages: map[string]string{"vllm-sidecar": "vllm-cuda-rhel9"}},
+	{Name: DefaultSpeculatorModelOptRuntimeCUDA, Image: "model-opt-cuda"},
 }
 
 // GetSidecarImageFromClusterTrainingRuntime retrieves the image of a named initContainer from the given
