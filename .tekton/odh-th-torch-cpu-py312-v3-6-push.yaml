@@ -72,6 +72,14 @@ spec:
           memory: 4Gi
         limits:
           memory: 8Gi
+  - pipelineTaskName: fips-check
+    stepSpecs:
+      - name: run-fips-check
+        computeResources:
+          requests:
+            memory: 4Gi
+          limits:
+            memory: 4Gi
   taskRunTemplate:
     serviceAccountName: build-pipeline-odh-th-torch-cpu-py312-v3-6
     podTemplate:
