@@ -47,6 +47,15 @@ spec:
     - name: pathInRepo
       value: pipelines/multi-arch-container-build.yaml
     resolver: git
+  taskRunSpecs:
+  - pipelineTaskName: fips-check
+    stepSpecs:
+    - name: run-fips-check
+      computeResources:
+        requests:
+          memory: 4Gi
+        limits:
+          memory: 4Gi
   taskRunTemplate:
     serviceAccountName: build-pipeline-pull-request-pipelines
     podTemplate:

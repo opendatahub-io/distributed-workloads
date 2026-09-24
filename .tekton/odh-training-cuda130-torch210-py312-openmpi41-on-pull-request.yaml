@@ -61,6 +61,15 @@ spec:
       value: '{{ target_branch }}'
     - name: pathInRepo
       value: pipelines/multi-arch-container-build.yaml
+  taskRunSpecs:
+  - pipelineTaskName: fips-check
+    stepSpecs:
+    - name: run-fips-check
+      computeResources:
+        requests:
+          memory: 4Gi
+        limits:
+          memory: 4Gi
   taskRunTemplate:
     serviceAccountName: build-pipeline-pull-request-pipelines
   workspaces:
