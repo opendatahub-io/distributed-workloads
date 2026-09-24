@@ -151,7 +151,7 @@ func GetRecommendedNotebookImageFromImageStream(t Test, imageStreamName string) 
 		return image
 	}
 
-	odhNamespace, err := GetApplicationsNamespaceFromDSCI(t, DefaultDSCIName)
+	odhNamespace, err := GetApplicationsNamespace(t)
 	if err != nil {
 		t.T().Fatalf("Failed to get ODH namespace from DSCI: %v", err)
 	}

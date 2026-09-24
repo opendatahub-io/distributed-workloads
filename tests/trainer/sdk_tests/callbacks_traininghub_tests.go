@@ -86,8 +86,6 @@ func runCallbacksTrainingHub(t *testing.T, nnodes int, cfg callbacksTrainingConf
 
 	namespace := test.NewTestNamespace()
 
-	trainerutils.EnsureNotebookServiceAccount(t, test, namespace.Name)
-
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
@@ -130,21 +128,23 @@ func runCallbacksTrainingHub(t *testing.T, nnodes int, cfg callbacksTrainingConf
 		support.StorageClassName(storageClass.Name),
 	)
 
-	sdkInstallExports := BuildKubeflowInstallExports()
+	env := append([]corev1.EnvVar{
+		{Name: "IPYTHONDIR", Value: "/tmp/.ipython"},
+		{Name: "OPENSHIFT_API_URL", Value: support.GetOpenShiftApiUrl(test)},
+		{Name: "NOTEBOOK_USER_TOKEN", Value: userToken},
+		{Name: "NOTEBOOK_NAMESPACE", Value: namespace.Name},
+		{Name: "SHARED_PVC_NAME", Value: rwxPvc.Name},
+		{Name: "AWS_DEFAULT_ENDPOINT", Value: endpoint},
+		{Name: "AWS_ACCESS_KEY_ID", Value: accessKey},
+		{Name: "AWS_SECRET_ACCESS_KEY", Value: secretKey},
+		{Name: "AWS_STORAGE_BUCKET", Value: bucket},
+		{Name: cfg.bucketDirEnvName, Value: prefix},
+		{Name: "TRAINING_RUNTIME", Value: trainerutils.DefaultTrainingHubRuntimeCUDA},
+		{Name: "NNODES", Value: fmt.Sprintf("%d", nnodes)},
+		{Name: "GPU_TYPE", Value: "nvidia"},
+	}, buildKubeflowInstallEnv()...)
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
-			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_USER_TOKEN=%s; "+
-			"export NOTEBOOK_NAMESPACE=%s; "+
-			"export SHARED_PVC_NAME=%s; "+
-			"export AWS_DEFAULT_ENDPOINT=%s; export AWS_ACCESS_KEY_ID=%s; "+
-			"export AWS_SECRET_ACCESS_KEY=%s; "+
-			"export AWS_STORAGE_BUCKET=%s; "+
-			"export %s=%s; "+
-			"export TRAINING_RUNTIME=%s; "+
-			"export NNODES='%d'; "+
-			"export GPU_TYPE='nvidia'; "+
-			"%s"+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages %s && "+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages %s && "+
@@ -152,12 +152,6 @@ func runCallbacksTrainingHub(t *testing.T, nnodes int, cfg callbacksTrainingConf
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		ShellQuote(support.GetOpenShiftApiUrl(test)), ShellQuote(userToken), ShellQuote(namespace.Name), ShellQuote(rwxPvc.Name),
-		ShellQuote(endpoint), ShellQuote(accessKey), ShellQuote(secretKey), ShellQuote(bucket),
-		cfg.bucketDirEnvName, ShellQuote(prefix),
-		ShellQuote(trainerutils.DefaultTrainingHubRuntimeCUDA),
-		nnodes,
-		sdkInstallExports,
 		ShellQuote(trainingHubPyPIInstall),
 		ShellQuote(kubeflowSdkGitInstall),
 		callbacksMetricsLoggerFileName,
@@ -167,17 +161,24 @@ func runCallbacksTrainingHub(t *testing.T, nnodes int, cfg callbacksTrainingConf
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, cfg.notebookName, 0, rwxPvc, common.ContainerSizeMedium, common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCUDA))
-
+	deployment := trainerutils.CreateNotebookDeployment(
+		test,
+		namespace,
+		command,
+		cm.Name,
+		rwxPvc,
+		support.ContainerSizeMedium,
+		common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCUDA),
+		env,
+	)
 	defer func() {
-		common.DeleteNotebook(test, namespace)
-		test.Eventually(common.Notebooks(test, namespace), support.TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		support.DeleteDeployment(test, namespace, deployment.Name)
 	}()
 
-	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
+	podName, containerName := support.WaitForDeploymentPodRunning(test, namespace.Name, deployment.Name)
 
-	err = support.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
-	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
+	err = support.PollPodLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	test.Expect(err).ShouldNot(HaveOccurred(), "Deployment runner execution reported FAILURE")
 
 	verifyCallbacksFiredInNotebookLogs(test, namespace.Name, podName, containerName)
 }

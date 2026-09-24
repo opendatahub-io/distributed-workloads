@@ -50,8 +50,6 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 
 	namespace := newMPITestNamespace(test, useKueue)
 
-	trainerutils.EnsureNotebookServiceAccount(t, test, namespace.Name)
-
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
 	support.CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
@@ -89,56 +87,49 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 		support.StorageClassName(storageClass.Name),
 	)
 
-	sdkInstallExports := buildKubeflowInstallExports()
-	queueExport := ""
+	env := append([]corev1.EnvVar{
+		{Name: "IPYTHONDIR", Value: "/tmp/.ipython"},
+		{Name: "OPENSHIFT_API_URL", Value: support.GetOpenShiftApiUrl(test)},
+		{Name: "NOTEBOOK_USER_TOKEN", Value: userToken},
+		{Name: "NOTEBOOK_NAMESPACE", Value: namespace.Name},
+		{Name: "NOTEBOOK_CONFIGMAP_NAME", Value: cm.Name},
+		{Name: "TRAINING_RUNTIME", Value: trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA},
+		{Name: "GPU_TYPE", Value: acceleratorGPUType(accelerator)},
+	}, buildKubeflowInstallEnv()...)
 	if useKueue {
-		queueExport = fmt.Sprintf("export KUEUE_QUEUE_NAME=%s; ", shellQuote(localQueueName))
+		env = append(env, corev1.EnvVar{Name: "KUEUE_QUEUE_NAME", Value: localQueueName})
 	}
 
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
-			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL=%s; "+
-			"export NOTEBOOK_USER_TOKEN=%s; "+
-			"export NOTEBOOK_NAMESPACE=%s; "+
-			"export NOTEBOOK_CONFIGMAP_NAME=%s; "+
-			"export TRAINING_RUNTIME=%s; "+
-			"export GPU_TYPE=%s; "+
-			"%s"+
-			"%s"+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		shellQuote(support.GetOpenShiftApiUrl(test)),
-		shellQuote(userToken),
-		shellQuote(namespace.Name),
-		shellQuote(cm.Name),
-		shellQuote(trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA),
-		shellQuote(acceleratorGPUType(accelerator)),
-		queueExport,
-		sdkInstallExports,
 		installKubeflowScript,
 		mpiNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
+	deploymentOptions := []support.DeploymentOption{}
+	if useKueue {
+		deploymentOptions = append(deploymentOptions, support.WithDeploymentLabels(map[string]string{
+			"kueue.x-k8s.io/queue-name": localQueueName,
+		}))
+	}
 
-	common.CreateNotebook(
+	deployment := trainerutils.CreateNotebookDeployment(
 		test,
 		namespace,
-		userToken,
 		command,
 		cm.Name,
-		mpiNotebookName,
-		0,
 		rwxPvc,
-		common.ContainerSizeMedium,
+		support.ContainerSizeMedium,
 		common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCUDA),
+		env,
+		deploymentOptions...,
 	)
-
 	defer func() {
-		common.DeleteNotebook(test, namespace)
-		test.Eventually(common.Notebooks(test, namespace), support.TestTimeoutLong).Should(HaveLen(0))
+		support.DeleteDeployment(test, namespace, deployment.Name)
 	}()
 
 	if useKueue {
@@ -152,7 +143,7 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 			),
 		)
 
-		test.T().Log("Verifying Kueue Workloads: Notebook and OpenMPI TrainJob on custom queue...")
+		test.T().Log("Verifying Kueue Workloads: Deployment and OpenMPI TrainJob on custom queue...")
 		test.Eventually(support.KueueWorkloads(test, namespace.Name), support.TestTimeoutDouble).Should(
 			And(
 				HaveLen(2),
@@ -168,10 +159,10 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 		)
 	}
 
-	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
+	podName, containerName := support.WaitForDeploymentPodRunning(test, namespace.Name, deployment.Name)
 
-	err = support.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
-	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
+	err = support.PollPodLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	test.Expect(err).ShouldNot(HaveOccurred(), "Deployment runner execution reported FAILURE")
 }
 
 func newMPITestNamespace(test support.Test, useKueue bool) *corev1.Namespace {
@@ -212,11 +203,11 @@ func setupOpenMPIGpuKueue(test support.Test, namespaceName string, accelerator s
 						Resources: []kueuev1beta2.ResourceQuota{
 							{
 								Name:         corev1.ResourceCPU,
-								NominalQuota: resource.MustParse("4"),
+								NominalQuota: resource.MustParse("7"),
 							},
 							{
 								Name:         corev1.ResourceMemory,
-								NominalQuota: resource.MustParse("16Gi"),
+								NominalQuota: resource.MustParse("40Gi"),
 							},
 							{
 								Name:         corev1.ResourceName(accelerator.ResourceLabel),

@@ -32,7 +32,7 @@ func TestKubeflowSdk(t *testing.T) {
 func TestKubeflowSdkKueueIntegration(t *testing.T) {
 	Tags(t, Tier1)
 	test := support.With(t)
-	support.SetupKueue(test, initialKueueState, support.TrainJobFramework)
+	support.SetupKueue(test, initialKueueState, support.TrainJobFramework, support.DeploymentFramework)
 	sdktests.RunFashionMnistKueueCpuDistributedTraining(t)
 }
 
@@ -40,7 +40,7 @@ func TestKubeflowSdkOpenMPICudaKueueIntegration(t *testing.T) {
 	t.Skip("Skip due to issue RHOAIENG-61966")
 	Tags(t, KftoCuda, MultiNodeGpu(2, support.NVIDIA))
 	test := support.With(t)
-	support.SetupKueue(test, initialKueueState, support.TrainJobFramework)
+	support.SetupKueue(test, initialKueueState, support.TrainJobFramework, support.DeploymentFramework)
 	sdktests.RunOpenMPICudaKueueDistributedTraining(t, support.NVIDIA)
 }
 

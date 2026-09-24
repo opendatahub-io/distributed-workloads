@@ -42,9 +42,6 @@ func RunLoraTrainingHubMultiGpuDistributedTraining(t *testing.T, nnodes int) {
 	// Create a new test namespace
 	namespace := test.NewTestNamespace()
 
-	// Ensure Notebook ServiceAccount exists (no extra RBAC)
-	trainerutils.EnsureNotebookServiceAccount(t, test, namespace.Name)
-
 	// RBACs setup
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
@@ -88,49 +85,54 @@ func RunLoraTrainingHubMultiGpuDistributedTraining(t *testing.T, nnodes int) {
 		support.StorageClassName(storageClass.Name),
 	)
 
-	sdkInstallExports := buildKubeflowInstallExports()
+	env := append([]corev1.EnvVar{
+		{Name: "IPYTHONDIR", Value: "/tmp/.ipython"},
+		{Name: "OPENSHIFT_API_URL", Value: support.GetOpenShiftApiUrl(test)},
+		{Name: "NOTEBOOK_USER_TOKEN", Value: userToken},
+		{Name: "NOTEBOOK_NAMESPACE", Value: namespace.Name},
+		{Name: "SHARED_PVC_NAME", Value: rwxPvc.Name},
+		{Name: "AWS_DEFAULT_ENDPOINT", Value: endpoint},
+		{Name: "AWS_ACCESS_KEY_ID", Value: accessKey},
+		{Name: "AWS_SECRET_ACCESS_KEY", Value: secretKey},
+		{Name: "AWS_STORAGE_BUCKET", Value: bucket},
+		{Name: "AWS_STORAGE_BUCKET_LORA_DIR", Value: prefix},
+		{Name: "TRAINING_RUNTIME", Value: trainerutils.DefaultTrainingHubRuntimeCUDA},
+		{Name: "NNODES", Value: fmt.Sprintf("%d", nnodes)},
+		{Name: "GPU_TYPE", Value: "nvidia"},
+	}, buildKubeflowInstallEnv()...)
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
-			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_USER_TOKEN=%s; "+
-			"export NOTEBOOK_NAMESPACE=%s; "+
-			"export SHARED_PVC_NAME=%s; "+
-			"export AWS_DEFAULT_ENDPOINT=%s; export AWS_ACCESS_KEY_ID=%s; "+
-			"export AWS_SECRET_ACCESS_KEY=%s; "+
-			"export AWS_STORAGE_BUCKET=%s; "+
-			"export AWS_STORAGE_BUCKET_LORA_DIR=%s; "+
-			"export TRAINING_RUNTIME=%s; "+
-			"export NNODES='%d'; "+
-			"export GPU_TYPE='nvidia'; "+
-			"%s"+
 			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		shellQuote(support.GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(rwxPvc.Name),
-		shellQuote(endpoint), shellQuote(accessKey), shellQuote(secretKey), shellQuote(bucket), shellQuote(prefix),
-		shellQuote(trainerutils.DefaultTrainingHubRuntimeCUDA),
-		nnodes,
-		sdkInstallExports,
 		installKubeflowScript,
 		loraNotebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
-	// Create Notebook CR using the RWX PVC
+	// Create Deployment using the RWX PVC
 	// For GPU testing, we use a larger container size to ensure sufficient resources
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, loraNotebookName, 0, rwxPvc, common.ContainerSizeMedium, common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCUDA))
+	deployment := trainerutils.CreateNotebookDeployment(
+		test,
+		namespace,
+		command,
+		cm.Name,
+		rwxPvc,
+		support.ContainerSizeMedium,
+		common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCUDA),
+		env,
+	)
 
 	// Cleanup - use longer timeout for GPU tests due to large runtime images
 	defer func() {
-		common.DeleteNotebook(test, namespace)
-		test.Eventually(common.Notebooks(test, namespace), support.TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		support.DeleteDeployment(test, namespace, deployment.Name)
 	}()
 
-	// Wait for the Notebook Pod and get pod/container names
-	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
+	// Wait for the Deployment pod and get pod/container names
+	podName, containerName := support.WaitForDeploymentPodRunning(test, namespace.Name, deployment.Name)
 
-	// Poll logs to check if the notebook execution completed successfully
-	err = support.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
-	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
+	// Poll runner logs to check if execution completed successfully
+	err = support.PollPodLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	test.Expect(err).ShouldNot(HaveOccurred(), "Deployment runner execution reported FAILURE")
 }

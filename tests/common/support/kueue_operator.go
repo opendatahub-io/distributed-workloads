@@ -36,6 +36,7 @@ const (
 	KueueCRName         = "cluster"
 	PyTorchJobFramework = "PyTorchJob"
 	TrainJobFramework   = "TrainJob"
+	DeploymentFramework = "Deployment"
 )
 
 func GetKueueCR(t Test, name string) (*kueueoperatorv1.Kueue, error) {
