@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	kueuev1beta2 "sigs.k8s.io/kueue/apis/kueue/v1beta2"
 
-	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
+	support "github.com/opendatahub-io/distributed-workloads/tests/common/support"
 )
 
 const (
@@ -41,35 +41,6 @@ const (
 
 //go:embed resources/*
 var files embed.FS
-
-var (
-	SmallContainerResources = ContainerResources{
-		Limits:   ResourceConfig{CPU: "2", Memory: "3Gi"},
-		Requests: ResourceConfig{CPU: "1", Memory: "3Gi"},
-	}
-	MediumContainerResources = ContainerResources{
-		Limits:   ResourceConfig{CPU: "6", Memory: "24Gi"},
-		Requests: ResourceConfig{CPU: "3", Memory: "24Gi"},
-	}
-)
-
-type ResourceConfig struct {
-	CPU              string
-	Memory           string
-	GPUResourceLabel string // e.g., "nvidia.com/gpu", "amd.com/gpu", or ""
-}
-
-type ContainerResources struct {
-	Limits   ResourceConfig
-	Requests ResourceConfig
-}
-
-type ContainerSize string
-
-const (
-	ContainerSizeSmall  ContainerSize = "small"
-	ContainerSizeMedium ContainerSize = "medium"
-)
 
 var notebookResource = schema.GroupVersionResource{Group: "kubeflow.org", Version: "v1", Resource: "notebooks"}
 
@@ -92,16 +63,16 @@ type NotebookProps struct {
 	S3SecretAccessKey         string
 	S3Endpoint                string
 	S3DefaultRegion           string
-	NotebookResources         ContainerResources
-	SizeSelection             ContainerSize
+	NotebookResources         support.ContainerResources
+	SizeSelection             support.ContainerSize
 }
 
-func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken string, command []string, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int, notebookPVC *corev1.PersistentVolumeClaim, containerSize ContainerSize, notebookImage string, acceleratorResourceLabel ...string) {
-	s3BucketName, s3BucketNameExists := GetStorageBucketName()
-	s3AccessKeyId, _ := GetStorageBucketAccessKeyId()
-	s3SecretAccessKey, _ := GetStorageBucketSecretKey()
-	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
-	s3DefaultRegion, _ := GetStorageBucketDefaultRegion()
+func CreateNotebook(test support.Test, namespace *corev1.Namespace, notebookUserToken string, command []string, jupyterNotebookConfigMapName, jupyterNotebookConfigMapFileName string, numGpus int, notebookPVC *corev1.PersistentVolumeClaim, containerSize support.ContainerSize, notebookImage string, acceleratorResourceLabel ...string) {
+	s3BucketName, s3BucketNameExists := support.GetStorageBucketName()
+	s3AccessKeyId, _ := support.GetStorageBucketAccessKeyId()
+	s3SecretAccessKey, _ := support.GetStorageBucketSecretKey()
+	s3Endpoint, _ := support.GetStorageBucketDefaultEndpoint()
+	s3DefaultRegion, _ := support.GetStorageBucketDefaultRegion()
 	strCommand := "[\"" + strings.Join(command, "\",\"") + "\"]"
 
 	if !s3BucketNameExists {
@@ -112,7 +83,7 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 		s3DefaultRegion = "''"
 	}
 
-	var selectedContainerResources ContainerResources
+	var selectedContainerResources support.ContainerResources
 	var gpuResourceLabel string
 	if len(acceleratorResourceLabel) == 1 {
 		gpuResourceLabel = acceleratorResourceLabel[0]
@@ -120,16 +91,16 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 		gpuResourceLabel = ""
 	}
 
-	if containerSize == ContainerSizeSmall {
-		selectedContainerResources = SmallContainerResources
+	if containerSize == support.ContainerSizeSmall {
+		selectedContainerResources = support.SmallContainerResources
 		// For small, ensure no GPU resource is requested
 		selectedContainerResources.Limits.GPUResourceLabel = ""
 		selectedContainerResources.Requests.GPUResourceLabel = ""
-	} else if containerSize == ContainerSizeMedium {
-		selectedContainerResources = MediumContainerResources
+	} else if containerSize == support.ContainerSizeMedium {
+		selectedContainerResources = support.MediumContainerResources
 
-		if gpuResourceLabel != "" && gpuResourceLabel != NVIDIA.ResourceLabel && gpuResourceLabel != AMD.ResourceLabel {
-			test.T().Errorf("Unsupported GPU resource label for medium size: %s. Must be '%s', '%s', or an empty string.", gpuResourceLabel, NVIDIA.ResourceLabel, AMD.ResourceLabel)
+		if gpuResourceLabel != "" && gpuResourceLabel != support.NVIDIA.ResourceLabel && gpuResourceLabel != support.AMD.ResourceLabel {
+			test.T().Errorf("Unsupported GPU resource label for medium size: %s. Must be '%s', '%s', or an empty string.", gpuResourceLabel, support.NVIDIA.ResourceLabel, support.AMD.ResourceLabel)
 			gpuResourceLabel = "" // Fallback to no GPU if label is invalid
 		}
 
@@ -138,18 +109,18 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 		selectedContainerResources.Requests.GPUResourceLabel = gpuResourceLabel
 	} else {
 		test.T().Errorf("Unsupported container size: %s. Must be '%s' or '%s'. Hence using '%s' container size.",
-			containerSize, ContainerSizeSmall, ContainerSizeMedium, ContainerSizeSmall)
-		selectedContainerResources = SmallContainerResources // Fallback to Small container size
+			containerSize, support.ContainerSizeSmall, support.ContainerSizeMedium, support.ContainerSizeSmall)
+		selectedContainerResources = support.SmallContainerResources // Fallback to Small container size
 	}
 
 	// Get the ODH namespace from DSCI
-	odhNamespace, err := GetApplicationsNamespaceFromDSCI(test, DefaultDSCIName)
+	odhNamespace, err := support.GetApplicationsNamespaceFromDSCI(test, support.DefaultDSCIName)
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 
 	// Read the Notebook CR from resources and perform replacements for custom values using go template
 	notebookProps := NotebookProps{
-		IngressDomain:             GetOpenShiftIngressDomain(test),
-		OpenShiftApiUrl:           GetOpenShiftApiUrl(test),
+		IngressDomain:             support.GetOpenShiftIngressDomain(test),
+		OpenShiftApiUrl:           support.GetOpenShiftApiUrl(test),
 		KubernetesUserBearerToken: notebookUserToken,
 		Namespace:                 namespace.Name,
 		OpenDataHubNamespace:      odhNamespace,
@@ -164,8 +135,8 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 		S3SecretAccessKey:         s3SecretAccessKey,
 		S3Endpoint:                s3Endpoint,
 		S3DefaultRegion:           s3DefaultRegion,
-		PipIndexUrl:               GetPipIndexURL(),
-		PipTrustedHost:            GetPipTrustedHost(),
+		PipIndexUrl:               support.GetPipIndexURL(),
+		PipTrustedHost:            support.GetPipTrustedHost(),
 		NotebookResources:         selectedContainerResources,
 		SizeSelection:             containerSize,
 	}
@@ -183,17 +154,17 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 	if namespace.Labels["kueue.openshift.io/managed"] == "true" {
 		cpuQuota := resource.MustParse("3")
 		memQuota := resource.MustParse("4Gi")
-		if containerSize == ContainerSizeMedium {
+		if containerSize == support.ContainerSizeMedium {
 			cpuQuota = resource.MustParse("7")
 			memQuota = resource.MustParse("25Gi")
 		}
 
-		rf := CreateKueueResourceFlavor(test, kueuev1beta2.ResourceFlavorSpec{})
+		rf := support.CreateKueueResourceFlavor(test, kueuev1beta2.ResourceFlavorSpec{})
 		test.T().Cleanup(func() {
 			test.Client().Kueue().KueueV1beta2().ResourceFlavors().Delete(test.Ctx(), rf.Name, metav1.DeleteOptions{})
 		})
 
-		cq := CreateKueueClusterQueue(test, kueuev1beta2.ClusterQueueSpec{
+		cq := support.CreateKueueClusterQueue(test, kueuev1beta2.ClusterQueueSpec{
 			NamespaceSelector: &metav1.LabelSelector{},
 			ResourceGroups: []kueuev1beta2.ResourceGroup{
 				{
@@ -214,7 +185,7 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 			test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), cq.Name, metav1.DeleteOptions{})
 		})
 
-		lq := CreateKueueLocalQueue(test, namespace.Name, cq.Name)
+		lq := support.CreateKueueLocalQueue(test, namespace.Name, cq.Name)
 
 		labels := notebookCR.GetLabels()
 		if labels == nil {
@@ -229,12 +200,12 @@ func CreateNotebook(test Test, namespace *corev1.Namespace, notebookUserToken st
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
-func DeleteNotebook(test Test, namespace *corev1.Namespace) {
+func DeleteNotebook(test support.Test, namespace *corev1.Namespace) {
 	err := test.Client().Dynamic().Resource(notebookResource).Namespace(namespace.Name).Delete(test.Ctx(), "jupyter-nb-kube-3aadmin", metav1.DeleteOptions{})
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
-func Notebooks(test Test, namespace *corev1.Namespace) func(g gomega.Gomega) []*unstructured.Unstructured {
+func Notebooks(test support.Test, namespace *corev1.Namespace) func(g gomega.Gomega) []*unstructured.Unstructured {
 	return func(g gomega.Gomega) []*unstructured.Unstructured {
 		ntbs, err := test.Client().Dynamic().Resource(notebookResource).Namespace(namespace.Name).List(test.Ctx(), metav1.ListOptions{})
 		g.Expect(err).NotTo(gomega.HaveOccurred())

@@ -252,10 +252,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	// Create a new test namespace
 	namespace := test.NewTestNamespace()
 
-	// Ensure Notebook ServiceAccount exists
-	trainerutils.EnsureNotebookServiceAccount(t, test, namespace.Name)
-
-	// RBACs setup for user (user token is used by notebook for Trainer API calls)
+	// RBACs setup for user (user token is used by the deployment runner for Trainer API calls)
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
@@ -337,7 +334,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	// Build S3 export commands for models/datasets (only if configured and bucket exists)
 	// This is separate from checkpoint storage which uses its own bucket
 	// Verify bucket exists before setting AWS_STORAGE_BUCKET to ensure notebook can access it
-	s3Exports := ""
+	var s3Env []corev1.EnvVar
 	if s3Endpoint != "" && modelsBucket != "" {
 		// Verify bucket exists before using it
 		provider, err := trainerutils.GetS3Provider()
@@ -350,29 +347,28 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 				test.T().Logf("Warning: Bucket %s does not exist. Skipping S3 mode for models/datasets. Will use HuggingFace.", modelsBucket)
 			} else {
 				test.T().Logf("S3 mode for models/datasets: endpoint=%s, bucket=%s", s3InternalEndpoint, modelsBucket)
-				s3Exports = fmt.Sprintf(
-					"export AWS_DEFAULT_ENDPOINT=%s; "+
-						"export AWS_ACCESS_KEY_ID=%s; "+
-						"export AWS_SECRET_ACCESS_KEY=%s; "+
-						"export AWS_STORAGE_BUCKET=%s; "+
-						"export MODEL_S3_PREFIX=%s; "+
-						"export DATASET_S3_PREFIX=%s; ",
-					shellQuote(s3InternalEndpoint), shellQuote(s3AccessKey), shellQuote(s3SecretKey), shellQuote(modelsBucket), shellQuote(modelS3Prefix), shellQuote(datasetS3Prefix),
-				)
+				s3Env = []corev1.EnvVar{
+					{Name: "AWS_DEFAULT_ENDPOINT", Value: s3InternalEndpoint},
+					{Name: "AWS_ACCESS_KEY_ID", Value: s3AccessKey},
+					{Name: "AWS_SECRET_ACCESS_KEY", Value: s3SecretKey},
+					{Name: "AWS_STORAGE_BUCKET", Value: modelsBucket},
+					{Name: "MODEL_S3_PREFIX", Value: modelS3Prefix},
+					{Name: "DATASET_S3_PREFIX", Value: datasetS3Prefix},
+				}
 			}
 		} else {
 			test.T().Logf("Warning: Failed to create S3 provider to verify bucket: %v. Skipping S3 mode for models/datasets.", err)
 		}
 	}
-	if s3Exports == "" {
+	if len(s3Env) == 0 {
 		test.T().Log("HuggingFace mode: S3 not configured for models/datasets, will download from HF Hub")
 	}
 
 	// Create Data Connection secret for cloud checkpointing (if configured)
 	// Automatically detects cloud storage from URI scheme (s3://, azure://, etc.)
 	// Note: Data Connection is ONLY for checkpoints. The checkpoint bucket is extracted from CHECKPOINT_OUTPUT_DIR.
-	// AWS_STORAGE_BUCKET (for models/datasets) is separate and handled in s3Exports above.
-	var dataConnectionExports string
+	// AWS_STORAGE_BUCKET (for models/datasets) is separate and handled in s3Env above.
+	var dataConnectionEnv []corev1.EnvVar
 	checkpointURI := trainerutils.ParseCloudURI(config.CheckpointOutputDir)
 	if checkpointURI != nil && checkpointURI.Scheme == "s3" && checkpointURI.Bucket != "" && s3Endpoint != "" && s3AccessKey != "" && s3SecretKey != "" {
 		// Create Data Connection secret for S3 checkpoint storage
@@ -386,11 +382,10 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		secret := CreateSecret(test, namespace.Name, secretData)
 		test.T().Logf("Created Data Connection secret: %s for cloud checkpoint storage", secret.Name)
 
-		dataConnectionExports = fmt.Sprintf(
-			"export DATA_CONNECTION_NAME=%s; "+
-				"export KUBEFLOW_INSTALL_FROM_GIT='true'; ",
-			shellQuote(secret.Name),
-		)
+		dataConnectionEnv = []corev1.EnvVar{
+			{Name: "DATA_CONNECTION_NAME", Value: secret.Name},
+			{Name: "KUBEFLOW_INSTALL_FROM_GIT", Value: "true"},
+		}
 		test.T().Logf("Data Connection configured for cloud checkpointing: %s", config.CheckpointOutputDir)
 	} else if checkpointURI != nil {
 		test.T().Logf("Warning: Cloud storage URI detected (%s) but Data Connection not created (credentials may be missing or unsupported scheme)", config.CheckpointOutputDir)
@@ -406,9 +401,6 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	// install_kubeflow.py uses GPU_TYPE to select the correct index (cpu/cuda/rocm)
 	test.T().Logf("Using Red Hat PyPI index for %s (kubeflow not on public PyPI)", gpuType)
 
-	// Build pip exports - GPU_TYPE tells install_kubeflow.py which Red Hat index to use
-	pipExports := fmt.Sprintf("export GPU_TYPE=%s; ", shellQuote(gpuType))
-
 	// Set defaults for num_nodes and num_gpus_per_node if not specified
 	numNodes := config.NumNodes
 	if numNodes <= 0 {
@@ -419,46 +411,32 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		numGpusPerNode = 1
 	}
 
-	sdkInstallExports := buildKubeflowInstallExports()
+	env := append([]corev1.EnvVar{
+		{Name: "IPYTHONDIR", Value: "/tmp/.ipython"},
+		{Name: "OPENSHIFT_API_URL", Value: GetOpenShiftApiUrl(test)},
+		{Name: "NOTEBOOK_TOKEN", Value: userToken},
+		{Name: "NOTEBOOK_NAMESPACE", Value: namespace.Name},
+		{Name: "SHARED_PVC_NAME", Value: sharedPVC.Name},
+		{Name: "ENABLE_PROGRESSION_TRACKING", Value: enableProgression},
+		{Name: "ENABLE_JIT_CHECKPOINT", Value: enableCheckpoint},
+		{Name: "CHECKPOINT_OUTPUT_DIR", Value: config.CheckpointOutputDir},
+		{Name: "CHECKPOINT_SAVE_STRATEGY", Value: config.CheckpointSaveStrategy},
+		{Name: "CHECKPOINT_SAVE_TOTAL_LIMIT", Value: config.CheckpointSaveTotalLimit},
+		{Name: "GPU_RESOURCE_LABEL", Value: gpuResourceLabel},
+		{Name: "TRAINING_RUNTIME", Value: trainingRuntime},
+		{Name: "NUM_NODES", Value: fmt.Sprintf("%d", numNodes)},
+		{Name: "NUM_GPUS_PER_NODE", Value: fmt.Sprintf("%d", numGpusPerNode)},
+		{Name: "GPU_TYPE", Value: gpuType},
+	}, s3Env...)
+	env = append(env, dataConnectionEnv...)
+	env = append(env, buildKubeflowInstallEnv()...)
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
-			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL=%s; "+
-			"export NOTEBOOK_TOKEN=%s; "+
-			"export NOTEBOOK_NAMESPACE=%s; "+
-			"export SHARED_PVC_NAME=%s; "+
-			"export ENABLE_PROGRESSION_TRACKING=%s; "+
-			"export ENABLE_JIT_CHECKPOINT=%s; "+
-			"export CHECKPOINT_OUTPUT_DIR=%s; "+
-			"export CHECKPOINT_SAVE_STRATEGY=%s; "+
-			"export CHECKPOINT_SAVE_TOTAL_LIMIT=%s; "+
-			"export GPU_RESOURCE_LABEL=%s; "+
-			"export TRAINING_RUNTIME=%s; "+
-			"export NUM_NODES='%d'; "+
-			"export NUM_GPUS_PER_NODE='%d'; "+
-			"%s"+ // S3 exports (if configured)
-			"%s"+ // Data Connection exports (if configured)
-			"%s"+ // PyPI/GPU_TYPE exports
-			"%s"+ // SDK install exports
 			"python -m pip install --quiet --no-cache-dir papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"python -m ipykernel install --user --name=python3 && "+
 			"python -m papermill /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"sleep infinity",
-		shellQuote(GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(sharedPVC.Name),
-		shellQuote(enableProgression),
-		shellQuote(enableCheckpoint),
-		shellQuote(config.CheckpointOutputDir),
-		shellQuote(config.CheckpointSaveStrategy),
-		shellQuote(config.CheckpointSaveTotalLimit),
-		shellQuote(gpuResourceLabel),
-		shellQuote(trainingRuntime),
-		numNodes,
-		numGpusPerNode,
-		s3Exports,
-		dataConnectionExports,
-		pipExports,
-		sdkInstallExports,
 		installKubeflowScript,
 		config.NotebookName,
 	)
@@ -475,20 +453,28 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		notebookImageStream = common.NotebookImageStreamTrainingHubROCm
 	}
 
-	// Create Notebook CR using the RWX PVC
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, config.NotebookName, 0, sharedPVC, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(test, notebookImageStream))
+	// Create Deployment using the RWX PVC
+	deployment := trainerutils.CreateNotebookDeployment(
+		test,
+		namespace,
+		command,
+		cm.Name,
+		sharedPVC,
+		ContainerSizeSmall,
+		common.GetRecommendedNotebookImageFromImageStream(test, notebookImageStream),
+		env,
+	)
 
 	// Cleanup - use longer timeout due to large runtime images
 	defer func() {
 		// Clean up Kubernetes resources
-		common.DeleteNotebook(test, namespace)
-		test.Eventually(common.Notebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		DeleteDeployment(test, namespace, deployment.Name)
 	}()
 
-	// Wait for the Notebook Pod to be running
-	trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
+	// Wait for the Deployment pod to be running
+	WaitForDeploymentPodRunning(test, namespace.Name, deployment.Name)
 
-	// Wait for TrainJob to be created in the namespace (notebook creates exactly one)
+	// Wait for TrainJob to be created in the namespace (the deployment runner creates exactly one)
 	var trainJobName string
 	test.Eventually(func() int {
 		jobs := TrainJobs(test, namespace.Name)(test)

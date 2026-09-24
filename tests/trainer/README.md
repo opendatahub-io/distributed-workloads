@@ -63,6 +63,10 @@ go test ./tests/trainer/ -v
 go test ./tests/trainer -run TestCustomTrainingRuntimesAvailable -v
 ```
 
+The TrainingHub SDK E2E tests mount their notebook inputs from ConfigMaps but
+execute them in a Kubernetes `Deployment`. They do not require the RHOAI
+Notebook component to be installed.
+
 ## Upgrade Tests
 
 Upgrade tests validate that Trainer v2 resources survive an RHOAI upgrade. They run in two phases controlled by `TEST_TIER`:
@@ -102,4 +106,3 @@ Post-upgrade tests compare resource `metadata.generation` against pre-upgrade ba
 ## GPU Requirements
 
 > **Note:** The TrainingHub SDK tests (`TestOsftTrainingHubMultiNodeMultiGPU`, `TestLoraTrainingHubMultiNodeMultiGPU`, `TestSftTrainingHubMultiNodeMultiGPU`) require **NVIDIA Ampere or newer GPUs** (e.g. A100, H100). The training runtime image (`odh-th-torch-cuda-py312`, referenced as `DefaultTrainingHubRuntimeCUDA` in [`tests/trainer/utils/utils_runtimes.go`](utils/utils_runtimes.go)) ships with `flash-attn==2.8.3.post1`, which requires compute capability >= 8.0. These tests will not work on pre-Ampere GPUs such as T4 or V100.
-

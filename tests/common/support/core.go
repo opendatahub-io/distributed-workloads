@@ -147,7 +147,7 @@ func GetPodLog(t Test, namespace, name string, options corev1.PodLogOptions) str
 	return PodLog(t, namespace, name, options)(t)
 }
 
-func PollNotebookLogsForStatus(test Test, namespace, podName, containerName string, timeout time.Duration) error {
+func PollPodLogsForStatus(test Test, namespace, podName, containerName string, timeout time.Duration) error {
 	test.T().Helper()
 	var tail int64 = 2000
 	getLogs := PodLog(test, namespace, podName, corev1.PodLogOptions{
@@ -167,10 +167,10 @@ func PollNotebookLogsForStatus(test Test, namespace, podName, containerName stri
 		default:
 			return false
 		}
-	}, timeout).Should(gomega.BeTrue(), "Notebook did not reach definitive state")
+	}, timeout).Should(gomega.BeTrue(), "Pod did not reach definitive state")
 
 	if sawFailure {
-		return fmt.Errorf("Notebook execution failed")
+		return fmt.Errorf("pod execution failed")
 	}
 	return nil
 }

@@ -3,16 +3,17 @@ package sdk_tests
 import (
 	"os"
 	"strings"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
-// BuildKubeflowInstallExports builds a shell-export prefix that is injected into
-// notebook pod commands before running install_kubeflow.py.
+// BuildKubeflowInstallEnv builds the environment used by install_kubeflow.py.
 //
 // Why this exists:
 //   - SDK tests start from host-side go test processes, but kubeflow installation
 //     happens inside notebook containers.
 //   - Host environment variables are not automatically available in the notebook
-//     process, so we explicitly export the selected install vars.
+//     process, so we explicitly pass the selected install vars to the container.
 //
 // Selection precedence:
 // 1. KUBEFLOW_GIT_URL: install from git (sets KUBEFLOW_INSTALL_FROM_GIT=true)
@@ -20,33 +21,35 @@ import (
 // 3. Neither set: sets KUBEFLOW_SKIP_INSTALL=true to use the SDK baked into the notebook image
 //
 // Index behavior:
-//   - If KUBEFLOW_PYPI_INDEX_URL is set, we export it
+//   - If KUBEFLOW_PYPI_INDEX_URL is set, we pass it
 //     for install_kubeflow.py to use as the package index.
-func BuildKubeflowInstallExports() string {
+func BuildKubeflowInstallEnv() []corev1.EnvVar {
 	gitURL := strings.TrimSpace(os.Getenv("KUBEFLOW_GIT_URL"))
 	version := strings.TrimSpace(os.Getenv("KUBEFLOW_REQUIRED_VERSION"))
 	indexURL := strings.TrimSpace(os.Getenv("KUBEFLOW_PYPI_INDEX_URL"))
 
-	var exports strings.Builder
+	var env []corev1.EnvVar
 	if gitURL != "" {
-		exports.WriteString("export KUBEFLOW_INSTALL_FROM_GIT='true'; ")
-		exports.WriteString("export KUBEFLOW_GIT_URL=" + ShellQuote(gitURL) + "; ")
+		env = append(env,
+			corev1.EnvVar{Name: "KUBEFLOW_INSTALL_FROM_GIT", Value: "true"},
+			corev1.EnvVar{Name: "KUBEFLOW_GIT_URL", Value: gitURL},
+		)
 	} else if version != "" {
-		exports.WriteString("export KUBEFLOW_REQUIRED_VERSION=" + ShellQuote(version) + "; ")
+		env = append(env, corev1.EnvVar{Name: "KUBEFLOW_REQUIRED_VERSION", Value: version})
 	} else {
-		exports.WriteString("export KUBEFLOW_SKIP_INSTALL='true'; ")
+		env = append(env, corev1.EnvVar{Name: "KUBEFLOW_SKIP_INSTALL", Value: "true"})
 	}
 
 	if indexURL != "" {
-		exports.WriteString("export KUBEFLOW_PYPI_INDEX_URL=" + ShellQuote(indexURL) + "; ")
+		env = append(env, corev1.EnvVar{Name: "KUBEFLOW_PYPI_INDEX_URL", Value: indexURL})
 	}
-	return exports.String()
+	return env
 }
 
 func ShellQuote(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
 }
 
-func buildKubeflowInstallExports() string { return BuildKubeflowInstallExports() }
+func buildKubeflowInstallEnv() []corev1.EnvVar { return BuildKubeflowInstallEnv() }
 
 func shellQuote(value string) string { return ShellQuote(value) }

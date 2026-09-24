@@ -50,9 +50,6 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 	// Create a new test namespace
 	namespace := test.NewTestNamespace()
 
-	// Ensure Notebook ServiceAccount exists (no extra RBAC)
-	trainerutils.EnsureNotebookServiceAccount(t, test, namespace.Name)
-
 	// RBACs setup
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
@@ -92,46 +89,53 @@ func RunFashionMnistCpuDistributedTraining(t *testing.T) {
 		support.StorageClassName(storageClass.Name),
 	)
 
-	sdkInstallExports := buildKubeflowInstallExports()
+	env := append([]corev1.EnvVar{
+		{Name: "OPENSHIFT_API_URL", Value: support.GetOpenShiftApiUrl(test)},
+		{Name: "NOTEBOOK_TOKEN", Value: userToken},
+		{Name: "NOTEBOOK_NAMESPACE", Value: namespace.Name},
+		{Name: "SHARED_PVC_NAME", Value: rwxPvc.Name},
+		{Name: "AWS_DEFAULT_ENDPOINT", Value: endpoint},
+		{Name: "AWS_ACCESS_KEY_ID", Value: accessKey},
+		{Name: "AWS_SECRET_ACCESS_KEY", Value: secretKey},
+		{Name: "AWS_STORAGE_BUCKET", Value: bucket},
+		{Name: "AWS_STORAGE_BUCKET_MNIST_DIR", Value: prefix},
+		{Name: "TRAINING_RUNTIME", Value: trainerutils.DefaultClusterTrainingRuntimeCPU},
+		{Name: "GPU_TYPE", Value: "cpu"},
+	}, buildKubeflowInstallEnv()...)
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
-			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_TOKEN=%s; "+
-			"export NOTEBOOK_NAMESPACE=%s; "+
-			"export SHARED_PVC_NAME=%s; "+
-			"export AWS_DEFAULT_ENDPOINT=%s; export AWS_ACCESS_KEY_ID=%s; "+
-			"export AWS_SECRET_ACCESS_KEY=%s; export AWS_STORAGE_BUCKET=%s; "+
-			"export AWS_STORAGE_BUCKET_MNIST_DIR=%s; "+
-			"export TRAINING_RUNTIME=%s; "+
-			"export GPU_TYPE='cpu'; "+
-			"%s"+
 			"python -m pip install --quiet --no-cache-dir papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		shellQuote(support.GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(rwxPvc.Name),
-		shellQuote(endpoint), shellQuote(accessKey), shellQuote(secretKey), shellQuote(bucket), shellQuote(prefix),
-		shellQuote(trainerutils.DefaultClusterTrainingRuntimeCPU),
-		sdkInstallExports,
 		installKubeflowScript,
 		notebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
-	// Create Notebook CR using the RWX PVC
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, 0, rwxPvc, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCPU))
+	// Create Deployment using the RWX PVC
+	deployment := trainerutils.CreateNotebookDeployment(
+		test,
+		namespace,
+		command,
+		cm.Name,
+		rwxPvc,
+		support.ContainerSizeSmall,
+		common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCPU),
+		env,
+	)
 
 	// Cleanup - use longer timeout due to large runtime images
 	defer func() {
-		common.DeleteNotebook(test, namespace)
-		test.Eventually(common.Notebooks(test, namespace), support.TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		support.DeleteDeployment(test, namespace, deployment.Name)
 	}()
 
-	// Wait for the Notebook Pod and get pod/container names
-	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
+	// Wait for the Deployment pod and get pod/container names
+	podName, containerName := support.WaitForDeploymentPodRunning(test, namespace.Name, deployment.Name)
 
-	// Poll logs to check if the notebook execution completed successfully
-	err = support.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
-	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
+	// Poll runner logs to check if execution completed successfully
+	err = support.PollPodLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	test.Expect(err).ShouldNot(HaveOccurred(), "Deployment runner execution reported FAILURE")
 
 }
 
@@ -142,9 +146,6 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 	// Create a Kueue-managed namespace
 	namespace := test.NewTestNamespace(support.WithKueueManaged())
 	test.T().Logf("Created Kueue-managed namespace: %s", namespace.Name)
-
-	// Ensure Notebook ServiceAccount exists (no extra RBAC)
-	trainerutils.EnsureNotebookServiceAccount(t, test, namespace.Name)
 
 	// RBACs setup
 	userName := common.GetNotebookUserName(test)
@@ -183,8 +184,8 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 	clusterQueue := support.CreateKueueClusterQueue(test, cqSpec)
 	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 
-	// Note: a default LocalQueue (named "default") is auto-created in Kueue-managed namespaces for the Notebook CR
-	// Custom LocalQueue for the TrainJob — demonstrates explicit local queue assignment via the SDK
+	// The Deployment and TrainJob use an explicit local queue so both workloads
+	// exercise the same Kueue admission path.
 	customLocalQueue := support.CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name)
 	test.T().Logf("Created custom LocalQueue %s for TrainJob", customLocalQueue.Name)
 
@@ -221,40 +222,49 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 		support.StorageClassName(storageClass.Name),
 	)
 
-	sdkInstallExports := buildKubeflowInstallExports()
+	env := append([]corev1.EnvVar{
+		{Name: "OPENSHIFT_API_URL", Value: support.GetOpenShiftApiUrl(test)},
+		{Name: "NOTEBOOK_TOKEN", Value: userToken},
+		{Name: "NOTEBOOK_NAMESPACE", Value: namespace.Name},
+		{Name: "SHARED_PVC_NAME", Value: rwxPvc.Name},
+		{Name: "AWS_DEFAULT_ENDPOINT", Value: endpoint},
+		{Name: "AWS_ACCESS_KEY_ID", Value: accessKey},
+		{Name: "AWS_SECRET_ACCESS_KEY", Value: secretKey},
+		{Name: "AWS_STORAGE_BUCKET", Value: bucket},
+		{Name: "AWS_STORAGE_BUCKET_MNIST_DIR", Value: prefix},
+		{Name: "TRAINING_RUNTIME", Value: trainerutils.DefaultClusterTrainingRuntimeCPU},
+		{Name: "GPU_TYPE", Value: "cpu"},
+		{Name: "KUEUE_QUEUE_NAME", Value: customLocalQueue.Name},
+	}, buildKubeflowInstallEnv()...)
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
-			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_TOKEN=%s; "+
-			"export NOTEBOOK_NAMESPACE=%s; "+
-			"export SHARED_PVC_NAME=%s; "+
-			"export AWS_DEFAULT_ENDPOINT=%s; export AWS_ACCESS_KEY_ID=%s; "+
-			"export AWS_SECRET_ACCESS_KEY=%s; export AWS_STORAGE_BUCKET=%s; "+
-			"export AWS_STORAGE_BUCKET_MNIST_DIR=%s; "+
-			"export TRAINING_RUNTIME=%s; "+
-			"export GPU_TYPE='cpu'; "+
-			"export KUEUE_QUEUE_NAME=%s; "+
-			"%s"+
 			"python -m pip install --quiet --no-cache-dir papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		shellQuote(support.GetOpenShiftApiUrl(test)), shellQuote(userToken), shellQuote(namespace.Name), shellQuote(rwxPvc.Name),
-		shellQuote(endpoint), shellQuote(accessKey), shellQuote(secretKey), shellQuote(bucket), shellQuote(prefix),
-		shellQuote(trainerutils.DefaultClusterTrainingRuntimeCPU),
-		shellQuote(customLocalQueue.Name),
-		sdkInstallExports,
 		installKubeflowScript,
 		notebookName,
 	)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
-	// Create Notebook CR using the RWX PVC
-	common.CreateNotebook(test, namespace, userToken, command, cm.Name, notebookName, 0, rwxPvc, common.ContainerSizeSmall, common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCPU))
+	// Create Deployment using the RWX PVC
+	deployment := trainerutils.CreateNotebookDeployment(
+		test,
+		namespace,
+		command,
+		cm.Name,
+		rwxPvc,
+		support.ContainerSizeSmall,
+		common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCPU),
+		env,
+		support.WithDeploymentLabels(map[string]string{
+			"kueue.x-k8s.io/queue-name": customLocalQueue.Name,
+		}),
+	)
 
 	// Cleanup - use longer timeout due to large runtime images
 	defer func() {
-		common.DeleteNotebook(test, namespace)
-		test.Eventually(common.Notebooks(test, namespace), support.TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		support.DeleteDeployment(test, namespace, deployment.Name)
 	}()
 
 	// Verify TrainJob is created with the custom local queue-name label
@@ -269,8 +279,8 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 	)
 	test.T().Logf("SDK-submitted TrainJob has kueue label: kueue.x-k8s.io/queue-name=%s", customLocalQueue.Name)
 
-	// Verify Kueue Workloads: one for the Notebook and one for the TrainJob, both on the custom queue
-	test.T().Log("Verifying Kueue Workloads: Notebook and TrainJob on custom queue...")
+	// Verify Kueue Workloads: one for the Deployment and one for the TrainJob, both on the custom queue
+	test.T().Log("Verifying Kueue Workloads: Deployment and TrainJob on custom queue...")
 	test.Eventually(support.KueueWorkloads(test, namespace.Name), support.TestTimeoutDouble).Should(
 		And(
 			HaveLen(2),
@@ -286,10 +296,10 @@ func RunFashionMnistKueueCpuDistributedTraining(t *testing.T) {
 	)
 	test.T().Log("Kueue Workload admitted successfully for SDK-submitted TrainJob")
 
-	// Wait for the Notebook Pod and get pod/container names
-	podName, containerName := trainerutils.WaitForNotebookPodRunning(test, namespace.Name)
+	// Wait for the Deployment pod and get pod/container names
+	podName, containerName := support.WaitForDeploymentPodRunning(test, namespace.Name, deployment.Name)
 
-	// Poll logs to check if the notebook execution completed successfully
-	err = support.PollNotebookLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
-	test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
+	// Poll runner logs to check if execution completed successfully
+	err = support.PollPodLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	test.Expect(err).ShouldNot(HaveOccurred(), "Deployment runner execution reported FAILURE")
 }

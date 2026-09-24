@@ -51,8 +51,6 @@ func setupSpeculatorTestEnv(t *testing.T, pvcSize string) speculatorTestEnv {
 	test := With(t)
 	namespace := test.NewTestNamespace()
 
-	trainerutils.EnsureNotebookServiceAccount(t, test, namespace.Name)
-
 	userName := common.GetNotebookUserName(test)
 	userToken := common.GenerateNotebookUserToken(test)
 	CreateUserRoleBindingWithClusterRole(test, userName, namespace.Name, "admin")
@@ -88,42 +86,44 @@ func setupSpeculatorTestEnv(t *testing.T, pvcSize string) speculatorTestEnv {
 func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int) {
 	env := setupSpeculatorTestEnv(t, "40Gi")
 
-	s3Exports := buildSpeculatorS3Exports(env.test)
-	sdkInstallExports := buildKubeflowInstallExports()
+	s3Env := buildSpeculatorS3Env(env.test)
 
 	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
 	regenerateResponses := "true"
 	datasetName := "ultrachat"
 	verifierModel := "Qwen/Qwen3-0.6B"
-	if s3Endpoint != "" && s3Exports != "" {
+	if s3Endpoint != "" && len(s3Env) != 0 {
 		regenerateResponses = "false"
 		datasetName = fmt.Sprintf("pvc://%s/datasets/ultrachat.jsonl", env.rwxPvc.Name)
 		verifierModel = fmt.Sprintf("pvc://%s/models/Qwen3-0.6B", env.rwxPvc.Name)
 		t.Log("Disconnected environment detected (S3 configured): using PVC model and dataset, skipping response regeneration")
 	}
 
+	podEnv := append([]corev1.EnvVar{
+		{Name: "IPYTHONDIR", Value: "/tmp/.ipython"},
+		{Name: "OPENSHIFT_API_URL", Value: GetOpenShiftApiUrl(env.test)},
+		{Name: "NOTEBOOK_USER_TOKEN", Value: env.userToken},
+		{Name: "NOTEBOOK_NAMESPACE", Value: env.namespace.Name},
+		{Name: "SHARED_PVC_NAME", Value: env.rwxPvc.Name},
+		{Name: "VLLM_GPU_COUNT", Value: fmt.Sprintf("%d", vllmGpuCount)},
+		{Name: "TRAIN_GPU_COUNT", Value: fmt.Sprintf("%d", trainGpuCount)},
+		{Name: "TEST_TYPE", Value: "extraction"},
+		{Name: "DATASET_NAME", Value: datasetName},
+		{Name: "VERIFIER_MODEL", Value: verifierModel},
+		{Name: "OUTPUT_DIR", Value: fmt.Sprintf("pvc://%s/speculator-output/extract", env.rwxPvc.Name)},
+		{Name: "TRAIN_OUTPUT_DIR", Value: fmt.Sprintf("pvc://%s/speculator-output/train", env.rwxPvc.Name)},
+		{Name: "TARGET_LAYER_IDS", Value: "2,14,25,28"},
+		{Name: "MAX_SAMPLES", Value: "20"},
+		{Name: "ENABLE_PROGRESSION_TRACKING", Value: "true"},
+		{Name: "REGENERATE_RESPONSES", Value: regenerateResponses},
+		{Name: "DATAGEN_CONCURRENCY", Value: "2"},
+		{Name: "HIDDEN_STATES_DTYPE", Value: "bfloat16"},
+		{Name: "TEST_IDEMPOTENCY", Value: "true"},
+	}, s3Env...)
+	podEnv = append(podEnv, buildKubeflowInstallEnv()...)
+
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
-			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_USER_TOKEN=%s; "+
-			"export NOTEBOOK_NAMESPACE=%s; "+
-			"export SHARED_PVC_NAME=%s; "+
-			"export VLLM_GPU_COUNT='%d'; "+
-			"export TRAIN_GPU_COUNT='%d'; "+
-			"export TEST_TYPE='extraction'; "+
-			"export DATASET_NAME=%s; "+
-			"export VERIFIER_MODEL=%s; "+
-			"export OUTPUT_DIR='pvc://%s/speculator-output/extract'; "+
-			"export TRAIN_OUTPUT_DIR='pvc://%s/speculator-output/train'; "+
-			"export TARGET_LAYER_IDS='2,14,25,28'; "+
-			"export MAX_SAMPLES='20'; "+
-			"export ENABLE_PROGRESSION_TRACKING='true'; "+
-			"export REGENERATE_RESPONSES='%s'; "+
-			"export DATAGEN_CONCURRENCY='2'; "+
-			"export HIDDEN_STATES_DTYPE='bfloat16'; "+
-			"export TEST_IDEMPOTENCY='true'; "+
-			"%s"+ // S3 exports
-			"%s"+ // SDK install exports
 			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			// Run 1: DATA_ONLY extraction
@@ -136,17 +136,6 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 			"export TRAINING_RUNTIME=%s; "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out_train.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		shellQuote(GetOpenShiftApiUrl(env.test)), shellQuote(env.userToken), shellQuote(env.namespace.Name),
-		shellQuote(env.rwxPvc.Name),
-		vllmGpuCount,
-		trainGpuCount,
-		shellQuote(datasetName),
-		shellQuote(verifierModel),
-		env.rwxPvc.Name,
-		env.rwxPvc.Name,
-		regenerateResponses,
-		s3Exports,
-		sdkInstallExports,
 		installKubeflowScript,
 		shellQuote(trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA),
 		speculatorNotebookName,
@@ -157,14 +146,21 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 	t.Logf("Speculator pipeline test: vllmGpuCount=%d, trainGpuCount=%d, regenerateResponses=%s", vllmGpuCount, trainGpuCount, regenerateResponses)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
-	common.CreateNotebook(env.test, env.namespace, env.userToken, command, env.cm.Name, speculatorNotebookName, 0, env.rwxPvc, common.ContainerSizeMedium, common.GetRecommendedNotebookImageFromImageStream(env.test, common.NotebookImageStreamTrainingHubCUDA))
-
+	deployment := trainerutils.CreateNotebookDeployment(
+		env.test,
+		env.namespace,
+		command,
+		env.cm.Name,
+		env.rwxPvc,
+		ContainerSizeMedium,
+		common.GetRecommendedNotebookImageFromImageStream(env.test, common.NotebookImageStreamTrainingHubCUDA),
+		podEnv,
+	)
 	defer func() {
-		common.DeleteNotebook(env.test, env.namespace)
-		env.test.Eventually(common.Notebooks(env.test, env.namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		DeleteDeployment(env.test, env.namespace, deployment.Name)
 	}()
 
-	podName, containerName := trainerutils.WaitForNotebookPodRunning(env.test, env.namespace.Name)
+	podName, containerName := WaitForDeploymentPodRunning(env.test, env.namespace.Name, deployment.Name)
 
 	// Wait for DATA_ONLY TrainJob
 	var dataJobName string
@@ -321,8 +317,8 @@ func RunSpeculatorPipelineTest(t *testing.T, vllmGpuCount int, trainGpuCount int
 	verifySpeculatorPodLogContains(env.test, env.namespace.Name, resumeJobName,
 		"[Kubeflow] Removed interrupted checkpoint at", "Resume job should detect and remove the interrupted checkpoint")
 
-	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
-	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
+	err := PollPodLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
+	env.test.Expect(err).ShouldNot(HaveOccurred(), "Deployment runner execution reported FAILURE")
 
 	// Verify notebook-side PVC artifact check ran successfully
 	var tail int64 = 5000
@@ -547,8 +543,7 @@ func verifySpeculatorPodLogContains(test Test, namespace, trainJobName, expected
 func RunSpeculatorOfflineTest(t *testing.T, trainGpuCount int) {
 	env := setupSpeculatorTestEnv(t, "40Gi")
 
-	s3Exports := buildSpeculatorS3Exports(env.test)
-	sdkInstallExports := buildKubeflowInstallExports()
+	s3Env := buildSpeculatorS3Env(env.test)
 
 	vllmImage, err := trainerutils.GetSidecarImageFromClusterTrainingRuntime(env.test, trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA, "vllm-sidecar")
 	env.test.Expect(err).ShouldNot(HaveOccurred(), "Failed to get vLLM image from ClusterTrainingRuntime %s", trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA)
@@ -565,43 +560,35 @@ func RunSpeculatorOfflineTest(t *testing.T, trainGpuCount int) {
 		t.Log("Disconnected environment detected (S3 configured): using PVC model and dataset, skipping response regeneration")
 	}
 
+	podEnv := append([]corev1.EnvVar{
+		{Name: "IPYTHONDIR", Value: "/tmp/.ipython"},
+		{Name: "OPENSHIFT_API_URL", Value: GetOpenShiftApiUrl(env.test)},
+		{Name: "NOTEBOOK_USER_TOKEN", Value: env.userToken},
+		{Name: "NOTEBOOK_NAMESPACE", Value: env.namespace.Name},
+		{Name: "SHARED_PVC_NAME", Value: env.rwxPvc.Name},
+		{Name: "SPECULATOR_MODE", Value: "OFFLINE"},
+		{Name: "TEST_TYPE", Value: "extraction"},
+		{Name: "VLLM_IMAGE", Value: vllmImage},
+		{Name: "TRAIN_GPU_COUNT", Value: fmt.Sprintf("%d", trainGpuCount)},
+		{Name: "DATASET_NAME", Value: datasetName},
+		{Name: "VERIFIER_MODEL", Value: verifierModel},
+		{Name: "OUTPUT_DIR", Value: fmt.Sprintf("pvc://%s/speculator-output/offline", env.rwxPvc.Name)},
+		{Name: "TARGET_LAYER_IDS", Value: "2,14,25,28"},
+		{Name: "MAX_SAMPLES", Value: "10"},
+		{Name: "ENABLE_PROGRESSION_TRACKING", Value: "true"},
+		{Name: "REGENERATE_RESPONSES", Value: regenerateResponses},
+		{Name: "DATAGEN_CONCURRENCY", Value: "2"},
+		{Name: "HIDDEN_STATES_DTYPE", Value: "bfloat16"},
+		{Name: "TRAINING_RUNTIME", Value: trainerutils.DefaultSpeculatorModelOptRuntimeCUDA},
+	}, s3Env...)
+	podEnv = append(podEnv, buildKubeflowInstallEnv()...)
+
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
-			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_USER_TOKEN=%s; "+
-			"export NOTEBOOK_NAMESPACE=%s; "+
-			"export SHARED_PVC_NAME=%s; "+
-			"export SPECULATOR_MODE='OFFLINE'; "+
-			"export TEST_TYPE='extraction'; "+
-			"export VLLM_IMAGE=%s; "+
-			"export TRAIN_GPU_COUNT='%d'; "+
-			"export DATASET_NAME=%s; "+
-			"export VERIFIER_MODEL=%s; "+
-			"export OUTPUT_DIR='pvc://%s/speculator-output/offline'; "+
-			"export TARGET_LAYER_IDS='2,14,25,28'; "+
-			"export MAX_SAMPLES='10'; "+
-			"export ENABLE_PROGRESSION_TRACKING='true'; "+
-			"export REGENERATE_RESPONSES='%s'; "+
-			"export DATAGEN_CONCURRENCY='2'; "+
-			"export HIDDEN_STATES_DTYPE='bfloat16'; "+
-			"export TRAINING_RUNTIME=%s; "+
-			"%s"+ // S3 exports
-			"%s"+ // SDK install exports
 			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out_offline.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		shellQuote(GetOpenShiftApiUrl(env.test)), shellQuote(env.userToken), shellQuote(env.namespace.Name),
-		shellQuote(env.rwxPvc.Name),
-		shellQuote(vllmImage),
-		trainGpuCount,
-		shellQuote(datasetName),
-		shellQuote(verifierModel),
-		env.rwxPvc.Name,
-		regenerateResponses,
-		shellQuote(trainerutils.DefaultSpeculatorModelOptRuntimeCUDA),
-		s3Exports,
-		sdkInstallExports,
 		installKubeflowScript,
 		speculatorNotebookName,
 	)
@@ -609,14 +596,21 @@ func RunSpeculatorOfflineTest(t *testing.T, trainGpuCount int) {
 	t.Logf("Speculator OFFLINE pipeline test: trainGpuCount=%d, regenerateResponses=%s", trainGpuCount, regenerateResponses)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
-	common.CreateNotebook(env.test, env.namespace, env.userToken, command, env.cm.Name, speculatorNotebookName, 0, env.rwxPvc, common.ContainerSizeMedium, common.GetRecommendedNotebookImageFromImageStream(env.test, common.NotebookImageStreamTrainingHubCUDA))
-
+	deployment := trainerutils.CreateNotebookDeployment(
+		env.test,
+		env.namespace,
+		command,
+		env.cm.Name,
+		env.rwxPvc,
+		ContainerSizeMedium,
+		common.GetRecommendedNotebookImageFromImageStream(env.test, common.NotebookImageStreamTrainingHubCUDA),
+		podEnv,
+	)
 	defer func() {
-		common.DeleteNotebook(env.test, env.namespace)
-		env.test.Eventually(common.Notebooks(env.test, env.namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		DeleteDeployment(env.test, env.namespace, deployment.Name)
 	}()
 
-	podName, containerName := trainerutils.WaitForNotebookPodRunning(env.test, env.namespace.Name)
+	podName, containerName := WaitForDeploymentPodRunning(env.test, env.namespace.Name, deployment.Name)
 
 	// Step 1: Wait for the OFFLINE TrainJob (will be interrupted after first checkpoint)
 	offlineJobName := "speculator-offline"
@@ -716,8 +710,8 @@ func RunSpeculatorOfflineTest(t *testing.T, trainGpuCount int) {
 	t.Log("Verifying OFFLINE resume: checkpoint resume markers...")
 	verifySpeculatorResumeFromCheckpointLogs(env.test, env.namespace.Name, resumeJobName)
 
-	err = PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
-	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
+	err = PollPodLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
+	env.test.Expect(err).ShouldNot(HaveOccurred(), "Deployment runner execution reported FAILURE")
 
 	t.Log("All speculator OFFLINE pipeline steps passed!")
 }
@@ -728,8 +722,7 @@ func RunSpeculatorOfflineTest(t *testing.T, trainGpuCount int) {
 func RunSpeculatorOnlineTest(t *testing.T, vllmGpuCount int, trainGpuCount int) {
 	env := setupSpeculatorTestEnv(t, "40Gi")
 
-	s3Exports := buildSpeculatorS3Exports(env.test)
-	sdkInstallExports := buildKubeflowInstallExports()
+	s3Env := buildSpeculatorS3Env(env.test)
 
 	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
 	regenerateResponses := "true"
@@ -742,42 +735,34 @@ func RunSpeculatorOnlineTest(t *testing.T, vllmGpuCount int, trainGpuCount int) 
 		t.Log("Disconnected environment detected (S3 configured): using PVC model and dataset")
 	}
 
+	podEnv := append([]corev1.EnvVar{
+		{Name: "IPYTHONDIR", Value: "/tmp/.ipython"},
+		{Name: "OPENSHIFT_API_URL", Value: GetOpenShiftApiUrl(env.test)},
+		{Name: "NOTEBOOK_USER_TOKEN", Value: env.userToken},
+		{Name: "NOTEBOOK_NAMESPACE", Value: env.namespace.Name},
+		{Name: "SHARED_PVC_NAME", Value: env.rwxPvc.Name},
+		{Name: "SPECULATOR_MODE", Value: "ONLINE"},
+		{Name: "TEST_TYPE", Value: "extraction"},
+		{Name: "VLLM_GPU_COUNT", Value: fmt.Sprintf("%d", vllmGpuCount)},
+		{Name: "TRAIN_GPU_COUNT", Value: fmt.Sprintf("%d", trainGpuCount)},
+		{Name: "DATASET_NAME", Value: datasetName},
+		{Name: "VERIFIER_MODEL", Value: verifierModel},
+		{Name: "OUTPUT_DIR", Value: fmt.Sprintf("pvc://%s/speculator-output/online", env.rwxPvc.Name)},
+		{Name: "TARGET_LAYER_IDS", Value: "2,14,25,28"},
+		{Name: "MAX_SAMPLES", Value: "10"},
+		{Name: "ENABLE_PROGRESSION_TRACKING", Value: "true"},
+		{Name: "REGENERATE_RESPONSES", Value: regenerateResponses},
+		{Name: "HIDDEN_STATES_DTYPE", Value: "bfloat16"},
+		{Name: "TRAINING_RUNTIME", Value: trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA},
+	}, s3Env...)
+	podEnv = append(podEnv, buildKubeflowInstallEnv()...)
+
 	shellCmd := fmt.Sprintf(
 		"set -e; "+
-			"export IPYTHONDIR='/tmp/.ipython'; "+
-			"export OPENSHIFT_API_URL=%s; export NOTEBOOK_USER_TOKEN=%s; "+
-			"export NOTEBOOK_NAMESPACE=%s; "+
-			"export SHARED_PVC_NAME=%s; "+
-			"export SPECULATOR_MODE='ONLINE'; "+
-			"export TEST_TYPE='extraction'; "+
-			"export VLLM_GPU_COUNT='%d'; "+
-			"export TRAIN_GPU_COUNT='%d'; "+
-			"export DATASET_NAME=%s; "+
-			"export VERIFIER_MODEL=%s; "+
-			"export OUTPUT_DIR='pvc://%s/speculator-output/online'; "+
-			"export TARGET_LAYER_IDS='2,14,25,28'; "+
-			"export MAX_SAMPLES='10'; "+
-			"export ENABLE_PROGRESSION_TRACKING='true'; "+
-			"export REGENERATE_RESPONSES='%s'; "+
-			"export HIDDEN_STATES_DTYPE='bfloat16'; "+
-			"export TRAINING_RUNTIME=%s; "+
-			"%s"+ // S3 exports
-			"%s"+ // SDK install exports
 			"python -m pip install --quiet --no-cache-dir --break-system-packages papermill && "+
 			"python /opt/app-root/notebooks/%s && "+
 			"if python -m papermill -k python3 /opt/app-root/notebooks/%s /opt/app-root/src/out_online.ipynb --log-output; "+
 			"then echo 'NOTEBOOK_STATUS: SUCCESS'; else echo 'NOTEBOOK_STATUS: FAILURE'; fi; sleep infinity",
-		shellQuote(GetOpenShiftApiUrl(env.test)), shellQuote(env.userToken), shellQuote(env.namespace.Name),
-		shellQuote(env.rwxPvc.Name),
-		vllmGpuCount,
-		trainGpuCount,
-		shellQuote(datasetName),
-		shellQuote(verifierModel),
-		env.rwxPvc.Name,
-		regenerateResponses,
-		shellQuote(trainerutils.DefaultSpeculatorvLLMExtractRuntimeCUDA),
-		s3Exports,
-		sdkInstallExports,
 		installKubeflowScript,
 		speculatorNotebookName,
 	)
@@ -785,14 +770,21 @@ func RunSpeculatorOnlineTest(t *testing.T, vllmGpuCount int, trainGpuCount int) 
 	t.Logf("Speculator ONLINE pipeline test: vllmGpuCount=%d, trainGpuCount=%d, regenerateResponses=%s", vllmGpuCount, trainGpuCount, regenerateResponses)
 	command := []string{"/bin/sh", "-c", shellCmd}
 
-	common.CreateNotebook(env.test, env.namespace, env.userToken, command, env.cm.Name, speculatorNotebookName, 0, env.rwxPvc, common.ContainerSizeMedium, common.GetRecommendedNotebookImageFromImageStream(env.test, common.NotebookImageStreamTrainingHubCUDA))
-
+	deployment := trainerutils.CreateNotebookDeployment(
+		env.test,
+		env.namespace,
+		command,
+		env.cm.Name,
+		env.rwxPvc,
+		ContainerSizeMedium,
+		common.GetRecommendedNotebookImageFromImageStream(env.test, common.NotebookImageStreamTrainingHubCUDA),
+		podEnv,
+	)
 	defer func() {
-		common.DeleteNotebook(env.test, env.namespace)
-		env.test.Eventually(common.Notebooks(env.test, env.namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
+		DeleteDeployment(env.test, env.namespace, deployment.Name)
 	}()
 
-	podName, containerName := trainerutils.WaitForNotebookPodRunning(env.test, env.namespace.Name)
+	podName, containerName := WaitForDeploymentPodRunning(env.test, env.namespace.Name, deployment.Name)
 
 	// Step 1: Wait for the ONLINE TrainJob (will be interrupted after first checkpoint)
 	onlineJobName := "speculator-online"
@@ -914,8 +906,8 @@ func RunSpeculatorOnlineTest(t *testing.T, vllmGpuCount int, trainGpuCount int) 
 
 	t.Log("Artifact check (no .safetensors, token_freq.pt, Arrow files on PVC) is enforced notebook-side via assertions")
 
-	err := PollNotebookLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
-	env.test.Expect(err).ShouldNot(HaveOccurred(), "Notebook execution reported FAILURE")
+	err := PollPodLogsForStatus(env.test, env.namespace.Name, podName, containerName, TestTimeoutDouble)
+	env.test.Expect(err).ShouldNot(HaveOccurred(), "Deployment runner execution reported FAILURE")
 
 	t.Log("All speculator ONLINE pipeline steps passed!")
 }
@@ -972,7 +964,7 @@ func verifySpeculatorOnlineSidecar(test Test, namespace, trainJobName string, ex
 	test.T().Fatalf("No completed training pod found to verify ONLINE sidecar for job %s", trainJobName)
 }
 
-func buildSpeculatorS3Exports(test Test) string {
+func buildSpeculatorS3Env(test Test) []corev1.EnvVar {
 	s3Endpoint, _ := GetStorageBucketDefaultEndpoint()
 	s3AccessKey, _ := GetStorageBucketAccessKeyId()
 	s3SecretKey, _ := GetStorageBucketSecretKey()
@@ -997,32 +989,30 @@ func buildSpeculatorS3Exports(test Test) string {
 		provider, err := trainerutils.GetS3Provider()
 		if err != nil {
 			test.T().Logf("Warning: Failed to create S3 provider to verify bucket: %v. Skipping S3 mode.", err)
-			return ""
+			return nil
 		}
 		ctx := test.Ctx()
 		exists, err := provider.BucketExists(ctx, modelsBucket)
 		if err != nil {
 			test.T().Logf("Warning: Failed to verify bucket existence for %s: %v. Skipping S3 mode.", modelsBucket, err)
-			return ""
+			return nil
 		}
 		if !exists {
 			test.T().Logf("Warning: Bucket %s does not exist. Skipping S3 mode. Will use HuggingFace.", modelsBucket)
-			return ""
+			return nil
 		}
 
 		test.T().Logf("S3 mode for models/datasets: endpoint=%s, bucket=%s", s3InternalEndpoint, modelsBucket)
-		return fmt.Sprintf(
-			"export AWS_DEFAULT_ENDPOINT=%s; "+
-				"export AWS_ACCESS_KEY_ID=%s; "+
-				"export AWS_SECRET_ACCESS_KEY=%s; "+
-				"export AWS_STORAGE_BUCKET=%s; "+
-				"export MODEL_S3_PREFIX=%s; "+
-				"export DATASET_S3_PREFIX=%s; ",
-			shellQuote(s3InternalEndpoint), shellQuote(s3AccessKey), shellQuote(s3SecretKey),
-			shellQuote(modelsBucket), shellQuote(modelS3Prefix), shellQuote(datasetS3Prefix),
-		)
+		return []corev1.EnvVar{
+			{Name: "AWS_DEFAULT_ENDPOINT", Value: s3InternalEndpoint},
+			{Name: "AWS_ACCESS_KEY_ID", Value: s3AccessKey},
+			{Name: "AWS_SECRET_ACCESS_KEY", Value: s3SecretKey},
+			{Name: "AWS_STORAGE_BUCKET", Value: modelsBucket},
+			{Name: "MODEL_S3_PREFIX", Value: modelS3Prefix},
+			{Name: "DATASET_S3_PREFIX", Value: datasetS3Prefix},
+		}
 	}
 
 	test.T().Log("HuggingFace mode: S3 not configured, will download model from HF Hub")
-	return ""
+	return nil
 }

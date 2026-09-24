@@ -106,7 +106,7 @@ func trainingHubRayJob(t *testing.T, algorithm string, numGpus int) {
 		)
 
 	// Poll notebook logs for definitive status using the shared helper.
-	err = PollNotebookLogsForStatus(test, namespace.Name,
+	err = PollPodLogsForStatus(test, namespace.Name,
 		NOTEBOOK_POD_NAME, NOTEBOOK_CONTAINER_NAME, TestTimeoutGpuProvisioning)
 	test.Expect(err).ShouldNot(HaveOccurred(),
 		fmt.Sprintf("%s notebook execution reported FAILURE", algorithm))
