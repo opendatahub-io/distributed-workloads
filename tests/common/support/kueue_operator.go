@@ -100,6 +100,12 @@ func SetupKueue(test Test, initialKueueState string, expectedFrameworks ...strin
 		}
 	})
 
+	if initialKueueState == "" {
+		test.T().Log("SetupKueue: no DataScienceCluster found; using standalone RHBoK")
+		VerifyKueueReady(test, expectedFrameworks...)
+		return
+	}
+
 	if initialKueueState == "Unmanaged" {
 		test.T().Log("SetupKueue: Kueue managementState was already Unmanaged, next verify status of 'Kueue CR'")
 		VerifyKueueReady(test, expectedFrameworks...)
@@ -153,6 +159,10 @@ func storeDSCState(t Test) {
 	t.T().Helper()
 	dsc, err := GetDSC(t, DefaultDSCName)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			t.T().Log("DataScienceCluster is not installed; skipping DSC diagnostics")
+			return
+		}
 		t.T().Logf("Failed to get DSC for diagnostics: %v", err)
 		return
 	}

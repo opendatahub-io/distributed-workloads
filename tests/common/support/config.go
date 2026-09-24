@@ -29,6 +29,9 @@ import (
 var ingressConfigResource = schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "ingresses"}
 var infrastructureConfigResource = schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "infrastructures"}
 
+// OdhImagePrefix is the registry and organization prefix used by ODH and standalone Trainer runtimes.
+const OdhImagePrefix = "quay.io/opendatahub"
+
 func GetOpenShiftIngressDomain(test Test) string {
 	test.T().Helper()
 
@@ -59,7 +62,7 @@ func GetOpenShiftApiUrl(test Test) string {
 
 // GetExpectedImagePrefix returns the expected container image prefix (registry + org)
 // by inspecting the rhods-operator deployment in the redhat-ods-operator namespace.
-// Returns "registry.redhat.io/rhoai" for RHOAI builds or "quay.io/opendatahub" for ODH builds.
+// Returns the RHOAI prefix for RHOAI builds or OdhImagePrefix for ODH builds.
 func GetExpectedImagePrefix(test Test) string {
 	test.T().Helper()
 

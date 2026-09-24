@@ -35,14 +35,19 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 	Tags(t, Smoke)
 	test := With(t)
 
-	isRhoai := IsRhoai(test)
-	imagePrefix := GetExpectedImagePrefix(test)
+	buildType, err := GetBuildType(test)
+	test.Expect(err).NotTo(HaveOccurred(), "Failed to identify installed ODH/RHOAI build")
+	isRhoai := buildType == RHOAIBuild
+	imagePrefix := OdhImagePrefix
+	if buildType != "" {
+		imagePrefix = GetExpectedImagePrefix(test)
+	}
 
 	// Build a map of expected runtimes for quick lookup
 	expectedRuntimeMap := make(map[string]trainerutils.ClusterTrainingRuntime)
 	for _, runtime := range trainerutils.ExpectedRuntimes {
 		if !isRhoai && trainerutils.IsSpeculatorRuntime(runtime.Name) {
-			test.T().Logf("Skipping speculator ClusterTrainingRuntime '%s' for ODH build", runtime.Name)
+			test.T().Logf("Skipping speculator ClusterTrainingRuntime '%s' for non-RHOAI installation", runtime.Name)
 			continue
 		}
 		expectedRuntimeMap[runtime.Name] = runtime
