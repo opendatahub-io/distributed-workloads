@@ -84,7 +84,9 @@ const (
 )
 
 // GetBuildType identifies the build from the operator subscription channel:
-// odh-stable is ODH; all other channels are assumed to be RHOAI.
+// odh-stable is ODH; all other channels are assumed to be RHOAI. An empty
+// build type is returned when neither ODH nor RHOAI is installed, which is
+// valid for standalone Trainer installations.
 func GetBuildType(test Test) (BuildType, error) {
 	test.T().Helper()
 
@@ -107,7 +109,8 @@ func GetBuildType(test Test) (BuildType, error) {
 		subscription = sub
 	}
 	if subscription == nil {
-		return "", fmt.Errorf("no ODH/RHOAI operator subscription found")
+		test.T().Log("No ODH/RHOAI operator subscription found; assuming standalone installation")
+		return "", nil
 	}
 	channel := subscription.Spec.Channel
 	buildType := RHOAIBuild
@@ -119,8 +122,9 @@ func GetBuildType(test Test) (BuildType, error) {
 	return buildType, nil
 }
 
-// IsRhoai reports whether the installed operator is a RHOAI build, failing the
-// test if the build cannot be identified.
+// IsRhoai reports whether the installed operator is a RHOAI build. It returns
+// false for standalone installations and fails the test only when build
+// detection encounters an API or subscription error.
 func IsRhoai(test Test) bool {
 	test.T().Helper()
 
