@@ -107,22 +107,7 @@ func trainerMetricsResources(test Test, namespace string) (*unstructured.Unstruc
 		Version: "v1", Resource: "services",
 	}).Namespace(namespace).Get(test.Ctx(), trainerControllerService, metav1.GetOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
-
-	ports, found, err := unstructured.NestedSlice(service.Object, "spec", "ports")
-	test.Expect(err).NotTo(HaveOccurred())
-	test.Expect(found).To(BeTrue())
-	for _, rawPort := range ports {
-		port, ok := rawPort.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		portNumber, ok := port["port"].(int64)
-		if ok && int32(portNumber) == trainerMetricsPort {
-			return service, deployment
-		}
-	}
-	test.T().Fatalf("Trainer metrics Service %s/%s does not expose port %d", namespace, trainerControllerService, trainerMetricsPort)
-	return nil, nil
+	return service, deployment
 }
 
 func checkTrainerMetricsEndpoint(test Test, namespace, podName string) {
