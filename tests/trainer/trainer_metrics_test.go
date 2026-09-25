@@ -53,7 +53,6 @@ func TestTrainerPrometheusScrape(t *testing.T) {
 	applicationsNamespace, err := GetApplicationsNamespace(test)
 	test.Expect(err).NotTo(HaveOccurred())
 
-	trainerMetricsResources(test, applicationsNamespace)
 	prometheus := GetOpenShiftPrometheusApiClient(test)
 	test.T().Logf("Waiting for Prometheus to discover Trainer ServiceMonitor target %s/%s", applicationsNamespace, trainerControllerService)
 
