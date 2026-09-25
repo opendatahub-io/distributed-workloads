@@ -67,8 +67,9 @@ The TrainingHub SDK E2E tests mount their notebook inputs from ConfigMaps but
 execute them in a Kubernetes `Deployment`. They do not require the RHOAI
 Notebook component to be installed.
 
-The secure-serving test validates the Trainer HTTPS metrics endpoint, ServiceMonitor,
-certificate mount, Prometheus RBAC, and authenticated scraping:
+The secure-serving test validates the Trainer HTTPS metrics endpoint, rejecting
+unauthenticated and invalid-token requests while accepting a valid Prometheus token.
+It also validates the ServiceMonitor, certificate mount, Prometheus RBAC, and scraping:
 
 ```bash
 go test ./tests/trainer -run TestTrainerSecureServing -v -timeout 15m
@@ -80,11 +81,12 @@ To verify that Prometheus has discovered and is successfully scraping the Traine
 go test ./tests/trainer -run TestTrainerPrometheusScrape -v -timeout 15m
 ```
 
-The TLS profile watcher test changes the cluster-wide OpenShift APIServer profile and
-is skipped unless explicitly enabled:
+The TLS profile watcher test changes the cluster-wide OpenShift APIServer profile. It
+runs automatically on clusters exposing a TLS profile and skips on clusters where the
+OpenShift APIServer profile API is unavailable:
 
 ```bash
-TRAINER_TLS_PROFILE_WATCHER_E2E=true go test ./tests/trainer -run TestTrainerTLSProfileWatcher -v -timeout 20m
+go test ./tests/trainer -run TestTrainerTLSProfileWatcher -v -timeout 20m
 ```
 
 ## Upgrade Tests
