@@ -81,11 +81,11 @@ To verify that Prometheus has discovered and is successfully scraping the Traine
 go test ./tests/trainer -run TestTrainerPrometheusScrape -v -timeout 15m
 ```
 
-The TLS profile watcher test changes the cluster-wide OpenShift APIServer profile. It
-requires explicit opt-in and also skips when the profile API is unavailable:
+The TLS profile watcher test is a Tier 3 destructive test. It changes the cluster-wide
+OpenShift APIServer profile and skips when the profile API is unavailable:
 
 ```bash
-TRAINER_TLS_PROFILE_WATCHER_E2E=true go test ./tests/trainer -run TestTrainerTLSProfileWatcher -v -timeout 20m
+go test ./tests/trainer -run TestTrainerTLSProfileWatcher -v -timeout 30m
 ```
 
 ## Upgrade Tests
