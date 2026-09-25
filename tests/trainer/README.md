@@ -82,11 +82,10 @@ go test ./tests/trainer -run TestTrainerPrometheusScrape -v -timeout 15m
 ```
 
 The TLS profile watcher test changes the cluster-wide OpenShift APIServer profile. It
-runs automatically on clusters exposing a TLS profile and skips on clusters where the
-OpenShift APIServer profile API is unavailable:
+requires explicit opt-in and also skips when the profile API is unavailable:
 
 ```bash
-go test ./tests/trainer -run TestTrainerTLSProfileWatcher -v -timeout 20m
+TRAINER_TLS_PROFILE_WATCHER_E2E=true go test ./tests/trainer -run TestTrainerTLSProfileWatcher -v -timeout 20m
 ```
 
 ## Upgrade Tests
