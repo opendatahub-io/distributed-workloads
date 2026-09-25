@@ -466,7 +466,10 @@ func checkTrainerMetricsEndpoint(test Test, namespace, podName string) {
 
 	request, err = http.NewRequestWithContext(test.Ctx(), http.MethodGet, metricsURL, nil)
 	test.Expect(err).NotTo(HaveOccurred())
-	request.Header.Set("Authorization", "Bearer invalid-token")
+	unauthorizedServiceAccount, err := test.Client().Core().CoreV1().ServiceAccounts(namespace).Get(
+		test.Ctx(), "default", metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	request.Header.Set("Authorization", "Bearer "+CreateToken(test, namespace, unauthorizedServiceAccount))
 	response = eventuallyMetricsRequest(test, client, request)
 	test.Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 	_ = response.Body.Close()
