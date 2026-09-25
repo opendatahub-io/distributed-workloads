@@ -35,7 +35,7 @@ var (
 )
 
 func TestTrainerTLSProfileWatcher(t *testing.T) {
-	Tags(t, Tier2)
+	Tags(t, Tier3)
 	test := With(t)
 	if !RunTrainerTLSProfileWatcherE2E() {
 		t.Skipf("set %s=true to run the cluster-wide TLS profile mutation test", TrainerTLSProfileWatcherE2E)
