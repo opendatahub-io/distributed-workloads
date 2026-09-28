@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -78,6 +79,10 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 		restoreCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
 		resource := test.Client().Dynamic().Resource(openShiftAPIServerGVR)
+		restoreDeployment := getTrainerDeployment(test, applicationsNamespace)
+		restoreBeforePod := trainerControllerPod(test, applicationsNamespace, restoreDeployment)
+		restoreBeforePodUIDs := trainerControllerPodUIDs(test, applicationsNamespace, restoreDeployment)
+		restoreBeforeRestartCount := trainerControllerRestartCount(restoreBeforePod)
 		var lastErr error
 		restoreErr := wait.PollUntilContextTimeout(
 			restoreCtx, 5*time.Second, 10*time.Minute, true,
@@ -105,10 +110,6 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 				test.T().Errorf("failed to restore OpenShift APIServer TLS profile: %v", restoreErr)
 			}
 		} else {
-			restoreDeployment := getTrainerDeployment(test, applicationsNamespace)
-			restoreBeforePod := trainerControllerPod(test, applicationsNamespace, restoreDeployment)
-			restoreBeforePodUIDs := trainerControllerPodUIDs(test, applicationsNamespace, restoreDeployment)
-			restoreBeforeRestartCount := trainerControllerRestartCount(restoreBeforePod)
 			restoreUpdatedAt := time.Now()
 			test.T().Logf("Restored APIServer TLS profile to %s", originalType)
 			waitForTrainerControllerRestart(test, applicationsNamespace, restoreDeployment, restoreBeforePod, restoreBeforePodUIDs, restoreBeforeRestartCount, restoreUpdatedAt)
@@ -311,12 +312,19 @@ type tlsProfileLock struct {
 	stop     chan struct{}
 	done     chan struct{}
 	lost     chan struct{}
+	lostOnce sync.Once
 }
 
 func (lock *tlsProfileLock) markLost() {
+	lock.lostOnce.Do(func() { close(lock.lost) })
+}
+
+func (lock *tlsProfileLock) isLost() bool {
 	select {
-	case lock.lost <- struct{}{}:
+	case <-lock.lost:
+		return true
 	default:
+		return false
 	}
 }
 
@@ -430,9 +438,12 @@ func acquireTLSProfileLock(test Test) *tlsProfileLock {
 				return
 			case <-ticker.C:
 				if renewErr := lock.renew(context.Background()); renewErr != nil {
-					lock.markLost()
-					test.T().Logf("lost TLS profile test lock while renewing: %v", renewErr)
-					return
+					if lock.isLost() || apierrors.IsConflict(renewErr) || apierrors.IsNotFound(renewErr) || apierrors.IsForbidden(renewErr) {
+						lock.markLost()
+						test.T().Logf("lost TLS profile test lock while renewing: %v", renewErr)
+						return
+					}
+					test.T().Logf("transient TLS profile test lock renewal failure; will retry: %v", renewErr)
 				}
 			}
 		}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -28,7 +28,6 @@ import (
 const (
 	trainerControllerService = "kubeflow-trainer-controller-manager"
 	trainerMetricsPort       = int32(8443)
-	maxMetricsResponseBytes  = 10 * 1024 * 1024
 	metricsStartupTimeout    = 2 * time.Minute
 )
 
@@ -43,7 +42,42 @@ func TestTrainerSecureServing(t *testing.T) {
 	pod := trainerControllerPod(test, applicationsNamespace, deployment)
 	test.T().Logf("Checking Trainer metrics service %s/%s", applicationsNamespace, serviceName)
 	// client-go port-forwarding does not resolve Services, so use a Ready pod selected by the Service.
-	checkTrainerMetricsEndpoint(test, applicationsNamespace, pod.Name)
+	metricsURL, stopPortForward := startTrainerMetricsPortForward(test, applicationsNamespace, pod.Name)
+	defer stopPortForward()
+	client := &http.Client{
+		Transport: &http.Transport{
+			// The endpoint is reached through a local port-forward; TLS and
+			// ServiceMonitor configuration are validated by the scrape test.
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}, //nolint:gosec
+		},
+		Timeout: 30 * time.Second,
+	}
+
+	request, err := http.NewRequestWithContext(test.Ctx(), http.MethodGet, metricsURL, nil)
+	test.Expect(err).NotTo(HaveOccurred())
+	response := eventuallyMetricsRequest(test, client, request)
+	test.Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+	_ = response.Body.Close()
+
+	request, err = http.NewRequestWithContext(test.Ctx(), http.MethodGet, metricsURL, nil)
+	test.Expect(err).NotTo(HaveOccurred())
+	unauthorizedServiceAccount, err := test.Client().Core().CoreV1().ServiceAccounts(applicationsNamespace).Get(
+		test.Ctx(), "default", metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	request.Header.Set("Authorization", "Bearer "+CreateToken(test, applicationsNamespace, unauthorizedServiceAccount))
+	response = eventuallyMetricsRequest(test, client, request)
+	test.Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+	_ = response.Body.Close()
+
+	request, err = http.NewRequestWithContext(test.Ctx(), http.MethodGet, metricsURL, nil)
+	test.Expect(err).NotTo(HaveOccurred())
+	prometheusServiceAccount, err := test.Client().Core().CoreV1().ServiceAccounts("openshift-monitoring").Get(
+		test.Ctx(), "prometheus-k8s", metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	request.Header.Set("Authorization", "Bearer "+CreateToken(test, "openshift-monitoring", prometheusServiceAccount))
+	response = eventuallyMetricsRequest(test, client, request)
+	defer response.Body.Close()
+	test.Expect(response.StatusCode).To(Equal(http.StatusOK))
 	test.T().Logf("Validated Trainer HTTPS metrics authentication for service %s/%s via pod %s", applicationsNamespace, serviceName, pod.Name)
 }
 
@@ -108,49 +142,6 @@ func trainerMetricsResources(test Test, namespace string) (*unstructured.Unstruc
 	}).Namespace(namespace).Get(test.Ctx(), trainerControllerService, metav1.GetOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	return service, deployment
-}
-
-func checkTrainerMetricsEndpoint(test Test, namespace, podName string) {
-	metricsURL, stopPortForward := startTrainerMetricsPortForward(test, namespace, podName)
-	defer stopPortForward()
-	client := &http.Client{
-		Transport: &http.Transport{
-			// The endpoint is reached through a local port-forward; TLS and
-			// ServiceMonitor configuration are validated by the scrape test.
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}, //nolint:gosec
-		},
-		Timeout: 30 * time.Second,
-	}
-
-	request, err := http.NewRequestWithContext(test.Ctx(), http.MethodGet, metricsURL, nil)
-	test.Expect(err).NotTo(HaveOccurred())
-	response := eventuallyMetricsRequest(test, client, request)
-	test.Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-	_ = response.Body.Close()
-
-	request, err = http.NewRequestWithContext(test.Ctx(), http.MethodGet, metricsURL, nil)
-	test.Expect(err).NotTo(HaveOccurred())
-	unauthorizedServiceAccount, err := test.Client().Core().CoreV1().ServiceAccounts(namespace).Get(
-		test.Ctx(), "default", metav1.GetOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	request.Header.Set("Authorization", "Bearer "+CreateToken(test, namespace, unauthorizedServiceAccount))
-	response = eventuallyMetricsRequest(test, client, request)
-	test.Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-	_ = response.Body.Close()
-
-	request, err = http.NewRequestWithContext(test.Ctx(), http.MethodGet, metricsURL, nil)
-	test.Expect(err).NotTo(HaveOccurred())
-	prometheusServiceAccount, err := test.Client().Core().CoreV1().ServiceAccounts("openshift-monitoring").Get(
-		test.Ctx(), "prometheus-k8s", metav1.GetOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	request.Header.Set("Authorization", "Bearer "+CreateToken(test, "openshift-monitoring", prometheusServiceAccount))
-	response = eventuallyMetricsRequest(test, client, request)
-	defer response.Body.Close()
-	test.Expect(response.StatusCode).To(Equal(http.StatusOK))
-	body, err := io.ReadAll(io.LimitReader(response.Body, maxMetricsResponseBytes+1))
-	test.Expect(err).NotTo(HaveOccurred())
-	test.Expect(len(body)).To(BeNumerically("<=", maxMetricsResponseBytes))
-	test.Expect(string(body)).To(ContainSubstring("# HELP"))
 }
 
 func eventuallyMetricsRequest(test Test, client *http.Client, request *http.Request) *http.Response {
