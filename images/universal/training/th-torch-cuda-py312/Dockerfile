@@ -140,6 +140,62 @@ RUN ln -sf /usr/local/cuda/lib64/libcudart.so \
 
 # Note: uv is kept in the final image — needed at runtime by openpipe-art
 
+# The SDK replaces the container entrypoint and execs mpirun directly, so
+# uid_entrypoint never runs on the launcher. The wrapper is linked at
+# /usr/local/bin/mpirun, which PATH lists before /usr/lib64/openmpi/bin.
+RUN dnf install -y --setopt=install_weak_deps=False openssh-server && dnf clean all \
+ && mkdir -p /var/run/sshd /home/mpiuser/.openmpi /etc/ssh/ssh_config.d \
+ && test -x /usr/lib64/openmpi/bin/mpirun \
+    || { echo "ERROR: base image has no OpenMPI at /usr/lib64/openmpi"; exit 1; }
+
+COPY mpi-ssh-client.conf /etc/ssh/ssh_config.d/99-mpi.conf
+COPY mpiuser-sshd.conf /home/mpiuser/.sshd_config
+
+RUN cat > /usr/local/bin/openshift-uid-exec.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if ! getent passwd "$(id -u)" >/dev/null 2>&1; then
+  if [ ! -w /etc/passwd ]; then
+    echo "ERROR: /etc/passwd is not writable; cannot register runtime UID" >&2
+    exit 1
+  fi
+  uid="$(id -u)"
+  # Prefer /home/mpiuser when SSH keys are mounted there (MPI TrainJob), even if
+  # the Jupyter base image sets HOME=/opt/app-root/src.
+  if [ -d /home/mpiuser/.ssh ]; then
+    home_dir=/home/mpiuser
+  else
+    home_dir="${HOME:-/home/mpiuser}"
+  fi
+  if [[ "$home_dir" == *:* || "$home_dir" == *$'\n'* || "$home_dir" == *$'\r'* ]]; then
+    echo "ERROR: HOME contains invalid characters for /etc/passwd entry" >&2
+    exit 1
+  fi
+  printf 'mpiuser:x:%s:0:mpiuser:%s:/bin/sh\n' "$uid" "$home_dir" >> /etc/passwd
+fi
+if [[ "$(basename "$0")" == "mpirun" ]]; then
+  exec /usr/lib64/openmpi/bin/mpirun "$@"
+fi
+exec "$@"
+EOF
+RUN chmod 0755 /usr/local/bin/openshift-uid-exec.sh \
+ && ln -sfn openshift-uid-exec.sh /usr/local/bin/mpirun \
+ && ln -sfn openshift-uid-exec.sh /usr/local/bin/uid_entrypoint.sh \
+ && ln -sfn /usr/lib64/openmpi/bin/orted /usr/bin/orted \
+ && ln -sfn /usr/lib64/openmpi/bin/mpiexec /usr/bin/mpiexec \
+ && if [ ! -e /usr/local/bin/python ]; then \
+      printf '#!/bin/sh\nexec /opt/app-root/bin/python "$@"\n' > /usr/local/bin/python \
+      && chmod 0755 /usr/local/bin/python; \
+    fi \
+ && grep -qxF 'LD_LIBRARY_PATH=/usr/lib64/openmpi/lib' /etc/environment \
+    || echo 'LD_LIBRARY_PATH=/usr/lib64/openmpi/lib' >> /etc/environment \
+ && chgrp -R 0 /home/mpiuser && chmod -R g=u /home/mpiuser \
+ && chmod g=u /etc/passwd
+
+ENV MPI_HOME=/usr/lib64/openmpi \
+    PATH=/usr/local/bin:/usr/lib64/openmpi/bin:${PATH} \
+    LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:${LD_LIBRARY_PATH}
+
 # Copy license file
 COPY LICENSE.md /licenses/cuda-license.md
 
