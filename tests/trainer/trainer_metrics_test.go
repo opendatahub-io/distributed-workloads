@@ -86,6 +86,18 @@ func TestTrainerPrometheusScrape(t *testing.T) {
 	test := With(t)
 	applicationsNamespace, err := GetApplicationsNamespace(test)
 	test.Expect(err).NotTo(HaveOccurred())
+	applicationsNamespaceResource, err := test.Client().Core().CoreV1().Namespaces().Get(
+		test.Ctx(), applicationsNamespace, metav1.GetOptions{})
+	if err != nil {
+		test.T().Fatalf("unable to inspect applications namespace %q: %v", applicationsNamespace, err)
+	}
+	if applicationsNamespaceResource.Labels["openshift.io/cluster-monitoring"] != "true" {
+		test.T().Logf("WARNING: applications namespace %q is not labeled for cluster monitoring", applicationsNamespace)
+		test.T().Fatalf(
+			"applications namespace %q is not labeled for cluster monitoring; set openshift.io/cluster-monitoring=true before running TestTrainerPrometheusScrape",
+			applicationsNamespace,
+		)
+	}
 
 	prometheus := GetOpenShiftPrometheusApiClient(test)
 	test.T().Logf("Waiting for Prometheus to discover Trainer ServiceMonitor target %s/%s", applicationsNamespace, trainerControllerService)
