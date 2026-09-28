@@ -70,7 +70,7 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 	newProfileSpec := tlsSecurityProfile(newProfile)
 	test.T().Logf("TLS profile watcher test will transition APIServer profile %s -> %s", originalType, newProfile)
 
-	test.T().Cleanup(func() {
+	restoreTLSProfile := func() {
 		if err := tlsProfileLock.EnsureHeld(context.Background()); err != nil {
 			test.T().Errorf("cannot restore APIServer TLS profile after losing test lock: %v", err)
 			return
@@ -83,6 +83,7 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 		restoreBeforePod := trainerControllerPod(test, applicationsNamespace, restoreDeployment)
 		restoreBeforePodUIDs := trainerControllerPodUIDs(test, applicationsNamespace, restoreDeployment)
 		restoreBeforeRestartCount := trainerControllerRestartCount(restoreBeforePod)
+		var restoreProfileUpdateStartedAt time.Time
 		var lastErr error
 		restoreErr := wait.PollUntilContextTimeout(
 			restoreCtx, 5*time.Second, 10*time.Minute, true,
@@ -95,6 +96,7 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 				if setErr := unstructured.SetNestedField(current.Object, originalProfileMap, "spec", "tlsSecurityProfile"); setErr != nil {
 					return false, setErr
 				}
+				restoreProfileUpdateStartedAt = time.Now()
 				_, updateErr := resource.Update(ctx, current, metav1.UpdateOptions{})
 				if updateErr != nil {
 					lastErr = updateErr
@@ -110,9 +112,8 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 				test.T().Errorf("failed to restore OpenShift APIServer TLS profile: %v", restoreErr)
 			}
 		} else {
-			restoreUpdatedAt := time.Now()
 			test.T().Logf("Restored APIServer TLS profile to %s", originalType)
-			waitForTrainerControllerRestart(test, applicationsNamespace, restoreDeployment, restoreBeforePod, restoreBeforePodUIDs, restoreBeforeRestartCount, restoreUpdatedAt)
+			waitForTrainerControllerRestart(test, applicationsNamespace, restoreDeployment, restoreBeforePod, restoreBeforePodUIDs, restoreBeforeRestartCount, restoreProfileUpdateStartedAt)
 			recoveryErr := wait.PollUntilContextTimeout(
 				restoreCtx, 5*time.Second, 10*time.Minute, true,
 				func(ctx context.Context) (bool, error) {
@@ -137,7 +138,7 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 				test.T().Logf("Trainer recovered after restoring APIServer TLS profile")
 			}
 		}
-	})
+	}
 
 	deployment := getTrainerDeployment(test, applicationsNamespace)
 	beforePod := trainerControllerPod(test, applicationsNamespace, deployment)
@@ -145,6 +146,7 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 	beforeRestartCount := trainerControllerRestartCount(beforePod)
 	test.T().Logf("Updating APIServer TLS profile; Trainer pod=%s restartCount=%d", beforePod.Name, beforeRestartCount)
 	resource := test.Client().Dynamic().Resource(openShiftAPIServerGVR)
+	var profileUpdateStartedAt time.Time
 	var lastErr error
 	updateErr := wait.PollUntilContextTimeout(
 		test.Ctx(), 5*time.Second, tlsProfileTransitionTimeout, true,
@@ -160,6 +162,7 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 			if setErr := unstructured.SetNestedField(current.Object, newProfileSpec, "spec", "tlsSecurityProfile"); setErr != nil {
 				return false, setErr
 			}
+			profileUpdateStartedAt = time.Now()
 			_, updateErr := resource.Update(ctx, current, metav1.UpdateOptions{})
 			if updateErr != nil {
 				lastErr = updateErr
@@ -174,10 +177,10 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 		}
 		test.Expect(updateErr).NotTo(HaveOccurred())
 	}
-	profileUpdatedAt := time.Now()
+	test.T().Cleanup(restoreTLSProfile)
 	test.T().Logf("APIServer TLS profile updated to %s; waiting for Trainer restart", newProfile)
 
-	waitForTrainerControllerRestart(test, applicationsNamespace, deployment, beforePod, beforePodUIDs, beforeRestartCount, profileUpdatedAt)
+	waitForTrainerControllerRestart(test, applicationsNamespace, deployment, beforePod, beforePodUIDs, beforeRestartCount, profileUpdateStartedAt)
 
 	// The controller should remain healthy after the profile transition.
 	test.Eventually(func(g Gomega, ctx context.Context) {
