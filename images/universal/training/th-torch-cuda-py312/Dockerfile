@@ -140,9 +140,10 @@ RUN ln -sf /usr/local/cuda/lib64/libcudart.so \
 
 # Note: uv is kept in the final image — needed at runtime by openpipe-art
 
-# The SDK replaces the container entrypoint and execs mpirun directly, so
-# uid_entrypoint never runs on the launcher. The wrapper is linked at
-# /usr/local/bin/mpirun, which PATH lists before /usr/lib64/openmpi/bin.
+# The SDK replaces the container entrypoint and execs an MPI launcher directly,
+# so uid_entrypoint never runs on the launcher. The wrapper is linked at
+# /usr/local/bin/mpirun and /usr/local/bin/mpiexec, which PATH lists before
+# /usr/lib64/openmpi/bin.
 RUN dnf install -y --setopt=install_weak_deps=False openssh-server && dnf clean all \
  && mkdir -p /var/run/sshd /home/mpiuser/.openmpi \
  && test -x /usr/lib64/openmpi/bin/mpirun \
@@ -154,6 +155,7 @@ COPY mpiuser-sshd.conf /home/mpiuser/.sshd_config
 # MPI helper names available in standard locations for OpenMPI's remote sshd.
 COPY --chmod=0755 openshift-uid-exec.sh /usr/local/bin/openshift-uid-exec.sh
 RUN ln -sfn openshift-uid-exec.sh /usr/local/bin/mpirun \
+ && ln -sfn openshift-uid-exec.sh /usr/local/bin/mpiexec \
  && ln -sfn openshift-uid-exec.sh /usr/local/bin/uid_entrypoint.sh \
  && ln -sfn /usr/lib64/openmpi/bin/orted /usr/bin/orted \
  && ln -sfn /usr/lib64/openmpi/bin/mpiexec /usr/bin/mpiexec \
