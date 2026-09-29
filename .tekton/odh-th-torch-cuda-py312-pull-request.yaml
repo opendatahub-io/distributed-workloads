@@ -37,6 +37,9 @@ spec:
     - 'odh-pr-{{revision}}'
   - name: pipeline-type
     value: pull-request
+  - name: build-platforms
+    value:
+    - linux-extra-fast/amd64
   pipelineRef:
     resolver: git
     params:

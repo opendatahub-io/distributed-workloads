@@ -31,6 +31,9 @@ spec:
     value: Dockerfile
   - name: path-context
     value: images/universal/training/th-torch-cuda-py312
+  - name: build-platforms
+    value:
+    - linux-extra-fast/amd64
   pipelineRef:
     resolver: git
     params:
