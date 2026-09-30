@@ -16,6 +16,7 @@
 ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cuda-py312-ubi9:3.6_ea2-v1.49
 ARG PYTHON_VERSION=3.12
 ARG DOWNSTREAM=false
+ARG OPENMPI_VERSION=4.1.6
 
 ################################################################################
 # Build Stage - Install Python Dependencies
@@ -47,6 +48,53 @@ RUN chmod -R g+w /opt/app-root/lib/python${PYTHON_VERSION}/site-packages \
 
 # Clean up
 RUN rm -rf /tmp/deps
+
+################################################################################
+# Build Stage - OpenMPI 4.1.6
+################################################################################
+FROM ${BASE_IMAGE} AS openmpi-builder
+
+ARG OPENMPI_VERSION
+
+USER 0
+
+COPY cuda.repo mellanox.repo /etc/yum.repos.d/
+RUN dnf install -y --setopt=install_weak_deps=False \
+        curl \
+        gcc \
+        gcc-c++ \
+        make \
+        perl \
+        tar \
+        gzip \
+        cuda-cudart-devel-13-0 \
+        rdma-core-devel \
+        libibverbs-devel \
+        librdmacm-devel \
+        hwloc-devel \
+        libevent-devel \
+        pmix-devel \
+        ucx-devel \
+        zlib-devel \
+ && curl -fsSLo /tmp/openmpi.tar.gz \
+        "https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-${OPENMPI_VERSION}.tar.gz" \
+ && tar -xzf /tmp/openmpi.tar.gz -C /tmp \
+ && cd "/tmp/openmpi-${OPENMPI_VERSION}" \
+ && ./configure \
+        --prefix=/usr/lib64/openmpi \
+        --with-cuda=/usr/local/cuda \
+        --with-ucx=/usr \
+        --with-verbs \
+        --with-hwloc \
+        --with-libevent=external \
+        --with-pmix=external \
+        --enable-mpi-cxx \
+        --enable-mpi1-compatibility \
+        --disable-silent-rules \
+ && make -j"$(nproc)" install \
+ && /usr/lib64/openmpi/bin/mpirun --version | grep -F "Open MPI v${OPENMPI_VERSION}" \
+ && /usr/lib64/openmpi/bin/ompi_info --parsable --all | grep -Eq 'built_with_cuda_support:value:true$' \
+ && /usr/lib64/openmpi/bin/ompi_info --parsable --param pml ucx | grep -q '^mca:pml:ucx:'
 
 ################################################################################
 # Final Stage - FIPS-friendly Runtime
@@ -119,6 +167,10 @@ fi
 ARG PYTHON_VERSION
 COPY --from=builder /opt/app-root/lib/python${PYTHON_VERSION}/site-packages /opt/app-root/lib/python${PYTHON_VERSION}/site-packages
 COPY --from=builder /opt/app-root/bin /opt/app-root/bin
+RUN dnf remove -y --noautoremove openmpi openmpi-devel \
+ && dnf clean all \
+ && ! rpm -q openmpi openmpi-devel
+COPY --from=openmpi-builder /usr/lib64/openmpi /usr/lib64/openmpi
 
 ################################################################################
 # Workarounds for vLLM 0.21 on UBI9
@@ -146,8 +198,7 @@ RUN ln -sf /usr/local/cuda/lib64/libcudart.so \
 # /usr/lib64/openmpi/bin.
 RUN dnf install -y --setopt=install_weak_deps=False openssh-server && dnf clean all \
  && mkdir -p /var/run/sshd /home/mpiuser/.openmpi \
- && test -x /usr/lib64/openmpi/bin/mpirun \
-    || { echo "ERROR: base image has no OpenMPI at /usr/lib64/openmpi"; exit 1; }
+ && /usr/lib64/openmpi/bin/mpirun --version | grep -F 'Open MPI v4.1.6'
 
 COPY mpiuser-sshd.conf /home/mpiuser/.sshd_config
 
