@@ -33,7 +33,7 @@ dependencies = [
     "xformers==0.0.35",
     
     # ML Training and Inference Libraries
-    "accelerate==1.14.0",
+    "accelerate>=1.15.0",
     "transformers==5.16.1",
     "peft==0.20.0",
     "datasets==5.0.1",
