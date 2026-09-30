@@ -20,6 +20,9 @@ metadata:
   name: odh-th-torch-rocm-py312-on-push
   namespace: open-data-hub-tenant
 spec:
+  timeouts:
+    pipeline: 3h
+    tasks: 3h
   params:
   - name: git-url
     value: '{{source_url}}'

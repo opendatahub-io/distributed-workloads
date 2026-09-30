@@ -18,6 +18,9 @@ metadata:
   name: odh-th-torch-cuda-py312-on-release-push
   namespace: open-data-hub-tenant
 spec:
+  timeouts:
+    pipeline: 3h
+    tasks: 3h
   params:
   - name: git-url
     value: '{{source_url}}'
