@@ -44,6 +44,25 @@ spec:
       value: main
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
+  taskRunSpecs:
+  - pipelineTaskName: build-images
+    stepSpecs:
+    - name: prepare-sboms
+      computeResources:
+        requests:
+          cpu: '3'
+          memory: 8Gi
+        limits:
+          cpu: '3'
+          memory: 8Gi
+    - name: sbom-syft-generate
+      computeResources:
+        requests:
+          cpu: '4'
+          memory: 16Gi
+        limits:
+          cpu: '4'
+          memory: 16Gi
   taskRunTemplate:
     serviceAccountName: build-pipeline-odh-th-torch-rocm-py312-ci
   workspaces:
