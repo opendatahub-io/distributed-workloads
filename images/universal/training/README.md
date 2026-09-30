@@ -48,6 +48,7 @@ All flavors include:
 - Flash Attention
 - Mamba SSM, Causal Conv1d
 - DeepSpeed, Liger Kernel
+- CUDA-aware OpenMPI and UCX for multi-node MPI workloads
 - NCCL for multi-GPU/multi-node training
 
 ### ROCm Image
@@ -255,5 +256,5 @@ ENV ROCM_HOME=/opt/rocm \
 ├── LICENSE.md              # License file
 ├── cuda.repo               # CUDA DNF repo (used only when DOWNSTREAM!=true, CUDA images)
 ├── rocm.repo               # ROCm DNF repo (used only when DOWNSTREAM!=true, ROCm images)
-└── mellanox.repo           # RDMA DNF repo (used only when DOWNSTREAM!=true, CUDA/ROCm images)
+└── mellanox.repo           # Optional RDMA DNF repo (ROCm image)
 ```

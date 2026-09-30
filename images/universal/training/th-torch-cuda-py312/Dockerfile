@@ -16,6 +16,10 @@
 ARG BASE_IMAGE=quay.io/opendatahub/odh-workbench-jupyter-minimal-cuda-py312-ubi9:3.6_ea2-v1.49
 ARG PYTHON_VERSION=3.12
 ARG DOWNSTREAM=false
+ARG OPENMPI_VERSION=4.1.6
+ARG UCX_VERSION=1.19.1
+ARG UCX_SHA256=0fe68f2592b7b378bdac7ccb78331e9e8c5be250f40be118edb1795e94c60209
+ARG OPENMPI_SHA256=44da277b8cdc234e71c62473305a09d63f4dcca292ca40335aab7c4bf0e6a566
 
 ################################################################################
 # Build Stage - Install Python Dependencies
@@ -33,7 +37,7 @@ USER 1001
 WORKDIR /opt/app-root/src
 
 # Install dependencies from AIPCC prod index
-RUN uv pip install --no-cache-dir --no-deps \
+RUN UV_LINK_MODE=copy uv pip install --no-cache-dir --no-deps \
     --index-strategy=unsafe-best-match \
     # For RHOAI 3.6GA "prod" suffix to be removed from index-url - https://redhat.atlassian.net/browse/AIPCC-32410
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/cuda13.0-ubi9-prod/simple/ \
@@ -47,6 +51,88 @@ RUN chmod -R g+w /opt/app-root/lib/python${PYTHON_VERSION}/site-packages \
 
 # Clean up
 RUN rm -rf /tmp/deps
+
+################################################################################
+# Build Stage - CUDA-aware OpenMPI from upstream sources
+################################################################################
+FROM ${BASE_IMAGE} AS openmpi-builder
+
+ARG DOWNSTREAM
+ARG OPENMPI_VERSION
+ARG UCX_VERSION
+ARG UCX_SHA256
+ARG OPENMPI_SHA256
+
+USER 0
+
+COPY cuda.repo /etc/yum.repos.d/
+# Replace the notebook base's UCX with the CUDA-enabled OpenUCX release.
+# The OpenMPI build uses the OS and CUDA repositories, not Mellanox OFED.
+RUN mkdir -p /tmp/ucx-rpms \
+ && if [ "${DOWNSTREAM}" != "true" ]; then \
+    dnf install -y --setopt=install_weak_deps=False --disablerepo='mlnx_ofed*' \
+        curl \
+        gcc \
+        gcc-c++ \
+        make \
+        perl \
+        tar \
+        gzip \
+        bzip2 \
+        cuda-cudart-devel-13-0 \
+        rdma-core-devel \
+        libibverbs-devel \
+        librdmacm-devel \
+        hwloc-devel \
+        libevent-devel \
+        pmix-devel \
+        zlib-devel \
+ && curl -fsSLo /tmp/ucx.tar.bz2 \
+        "https://github.com/openucx/ucx/releases/download/v${UCX_VERSION}/ucx-${UCX_VERSION}-rocky9-mofed24.10-cuda13-x86_64.tar.bz2" \
+ && echo "${UCX_SHA256}  /tmp/ucx.tar.bz2" | sha256sum -c - \
+ && tar -xjf /tmp/ucx.tar.bz2 -C /tmp/ucx-rpms \
+ && rpm -Uvh --nodeps --oldpackage --replacepkgs \
+        /tmp/ucx-rpms/ucx-${UCX_VERSION}-1.el9.x86_64.rpm \
+        /tmp/ucx-rpms/ucx-cuda-${UCX_VERSION}-1.el9.x86_64.rpm \
+        /tmp/ucx-rpms/ucx-ib-${UCX_VERSION}-1.el9.x86_64.rpm \
+        /tmp/ucx-rpms/ucx-ib-mlx5-${UCX_VERSION}-1.el9.x86_64.rpm \
+        /tmp/ucx-rpms/ucx-rdmacm-${UCX_VERSION}-1.el9.x86_64.rpm \
+        /tmp/ucx-rpms/ucx-devel-${UCX_VERSION}-1.el9.x86_64.rpm \
+ && dnf clean all \
+ && rm -f /tmp/ucx.tar.bz2 \
+        "/tmp/ucx-rpms/ucx-devel-${UCX_VERSION}-1.el9.x86_64.rpm"; \
+ fi
+
+RUN if [ "${DOWNSTREAM}" != "true" ]; then \
+    curl -fsSLo /tmp/openmpi.tar.gz \
+        "https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-${OPENMPI_VERSION}.tar.gz" \
+ && echo "${OPENMPI_SHA256}  /tmp/openmpi.tar.gz" | sha256sum -c - \
+ && tar -xzf /tmp/openmpi.tar.gz -C /tmp \
+ && cd "/tmp/openmpi-${OPENMPI_VERSION}" \
+ && rm -rf /usr/lib64/openmpi \
+ && ./configure \
+        --prefix=/usr/lib64/openmpi \
+        --with-cuda=/usr/local/cuda \
+        --with-ucx=/usr \
+        --with-verbs \
+        --with-hwloc \
+        --with-libevent=external \
+        --with-pmix=external \
+        --enable-mpi-cxx \
+        --enable-mpi1-compatibility \
+        --disable-silent-rules \
+ && make -j"$(nproc)" install \
+ && cd / \
+ && rm -rf /tmp/openmpi.tar.gz "/tmp/openmpi-${OPENMPI_VERSION}"; \
+ fi
+
+RUN if [ "${DOWNSTREAM}" != "true" ]; then \
+    /usr/lib64/openmpi/bin/mpirun --version | grep -F "mpirun (Open MPI) ${OPENMPI_VERSION}" \
+ && /usr/lib64/openmpi/bin/ompi_info --parsable --all | grep -Eq '(^|:)mpi_built_with_cuda_support:value:true$' \
+ && /usr/lib64/openmpi/bin/ompi_info --parsable --all | grep -Eq '(^|:)opal_built_with_cuda_support:value:true$' \
+ && /usr/lib64/openmpi/bin/ompi_info --parsable --param pml ucx | grep -q '^mca:pml:ucx:' \
+ && ucx_info -v | grep -q -- '--with-cuda'; \
+ fi
 
 ################################################################################
 # Final Stage - FIPS-friendly Runtime
@@ -69,6 +155,7 @@ WORKDIR /opt/app-root/src
 # - DOWNSTREAM=true: Skips this section (AIPCC base image has everything pre-configured)
 ################################################################################
 ARG DOWNSTREAM
+ARG OPENMPI_VERSION
 
 # Environment variables for NVIDIA and CUDA
 # These are safe to set in both modes - they define standard paths
@@ -87,17 +174,18 @@ ENV NVIDIA_VISIBLE_DEVICES=all \
 
 # System packages (MIDSTREAM ONLY - skipped when DOWNSTREAM=true)
 # Repo files for CUDA and RDMA packages
-COPY cuda.repo mellanox.repo /etc/yum.repos.d/
+COPY cuda.repo /etc/yum.repos.d/
 
 RUN if [ "${DOWNSTREAM}" != "true" ]; then \
     echo "MIDSTREAM BUILD: Installing system packages..." && \
-    dnf install -y --setopt=install_weak_deps=False \
+    dnf install -y --setopt=install_weak_deps=False --disablerepo='mlnx_ofed*' \
         perl \
         mesa-libGL \
         skopeo \
         libibverbs-utils \
         infiniband-diags \
         libibumad \
+        libmlx5 \
         librdmacm \
         librdmacm-utils \
         rdma-core \
@@ -119,6 +207,24 @@ fi
 ARG PYTHON_VERSION
 COPY --from=builder /opt/app-root/lib/python${PYTHON_VERSION}/site-packages /opt/app-root/lib/python${PYTHON_VERSION}/site-packages
 COPY --from=builder /opt/app-root/bin /opt/app-root/bin
+RUN if [ "${DOWNSTREAM}" != "true" ]; then \
+    dnf remove -y --noautoremove --disablerepo='mlnx_ofed*' openmpi openmpi-devel \
+    && rm -rf /usr/lib64/openmpi \
+    && dnf clean all \
+    && ! rpm -q openmpi openmpi-devel; \
+ fi
+ARG UCX_VERSION
+COPY --from=openmpi-builder /tmp/ucx-rpms /tmp/ucx-rpms
+RUN if [ "${DOWNSTREAM}" != "true" ]; then \
+    rpm -Uvh --nodeps --oldpackage --replacepkgs \
+        /tmp/ucx-rpms/ucx-${UCX_VERSION}-1.el9.x86_64.rpm \
+        /tmp/ucx-rpms/ucx-cuda-${UCX_VERSION}-1.el9.x86_64.rpm \
+        /tmp/ucx-rpms/ucx-ib-${UCX_VERSION}-1.el9.x86_64.rpm \
+        /tmp/ucx-rpms/ucx-ib-mlx5-${UCX_VERSION}-1.el9.x86_64.rpm \
+        /tmp/ucx-rpms/ucx-rdmacm-${UCX_VERSION}-1.el9.x86_64.rpm; \
+ fi \
+ && rm -rf /tmp/ucx-rpms
+COPY --from=openmpi-builder /usr/lib64/openmpi /usr/lib64/openmpi
 
 ################################################################################
 # Workarounds for vLLM 0.21 on UBI9
@@ -144,10 +250,13 @@ RUN ln -sf /usr/local/cuda/lib64/libcudart.so \
 # so uid_entrypoint never runs on the launcher. The wrapper is linked at
 # /usr/local/bin/mpirun and /usr/local/bin/mpiexec, which PATH lists before
 # /usr/lib64/openmpi/bin.
-RUN dnf install -y --setopt=install_weak_deps=False openssh-server && dnf clean all \
+RUN dnf install -y --setopt=install_weak_deps=False --disablerepo='mlnx_ofed*' openssh-server && dnf clean all \
  && mkdir -p /var/run/sshd /home/mpiuser/.openmpi \
- && test -x /usr/lib64/openmpi/bin/mpirun \
-    || { echo "ERROR: base image has no OpenMPI at /usr/lib64/openmpi"; exit 1; }
+ && if [ "${DOWNSTREAM}" != "true" ]; then \
+      /usr/lib64/openmpi/bin/mpirun --version | grep -F "mpirun (Open MPI) ${OPENMPI_VERSION}"; \
+    else \
+      test -x /usr/lib64/openmpi/bin/mpirun; \
+    fi
 
 COPY mpiuser-sshd.conf /home/mpiuser/.sshd_config
 
@@ -170,7 +279,14 @@ RUN ln -sfn openshift-uid-exec.sh /usr/local/bin/mpirun \
 
 ENV MPI_HOME=/usr/lib64/openmpi \
     PATH=/usr/local/bin:/usr/lib64/openmpi/bin:${PATH} \
-    LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:${LD_LIBRARY_PATH}
+    LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/usr/lib64/ucx:${LD_LIBRARY_PATH}
+
+RUN if [ "${DOWNSTREAM}" != "true" ]; then \
+    /usr/lib64/openmpi/bin/ompi_info --parsable --all | grep -Eq '(^|:)mpi_built_with_cuda_support:value:true$' \
+    && /usr/lib64/openmpi/bin/ompi_info --parsable --all | grep -Eq '(^|:)opal_built_with_cuda_support:value:true$' \
+    && /usr/lib64/openmpi/bin/ompi_info --parsable --param pml ucx | grep -q '^mca:pml:ucx:' \
+    && ucx_info -v | grep -q -- '--with-cuda'; \
+ fi
 
 # Copy license file
 COPY LICENSE.md /licenses/cuda-license.md
