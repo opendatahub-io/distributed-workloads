@@ -53,6 +53,7 @@ anthropic==1.0.0
     # via vllm
 anyio==4.14.2
     # via
+    #   -c (workspace)
     #   anthropic
     #   gql
     #   httpx
