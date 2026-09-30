@@ -36,18 +36,11 @@ import (
 )
 
 func TestTrainJobWithSFTtrainerFinetuning(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	runTrainJobWithSFTtrainer(t, "resources/config.json")
 }
 
 func TestTrainJobWithSFTtrainerLoRa(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	runTrainJobWithSFTtrainer(t, "resources/config_lora.json")
-}
-
-func TestTrainJobWithSFTtrainerQLoRa(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
-	runTrainJobWithSFTtrainer(t, "resources/config_qlora.json")
 }
 
 func runTrainJobWithSFTtrainer(t *testing.T, modelConfigFile string) {
@@ -234,7 +227,7 @@ func createSftTrainJob(test Test, namespace, runtimeName, localQueueName string,
 			},
 			RuntimePatches: []trainerv1alpha1.RuntimePatch{
 				{
-					Manager: "test-sft",
+					Manager: "redhat.com/test-sft",
 					TrainingRuntimeSpec: &trainerv1alpha1.TrainingRuntimeSpecPatch{
 						Template: &trainerv1alpha1.JobSetTemplatePatch{
 							Spec: &trainerv1alpha1.JobSetSpecPatch{

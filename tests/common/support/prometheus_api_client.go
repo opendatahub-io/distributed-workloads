@@ -38,7 +38,14 @@ func GetOpenShiftPrometheusApiClient(t Test) prometheusapiv1.API {
 		routerCA, err := t.Client().Core().CoreV1().Secrets("openshift-ingress-operator").Get(
 			t.Ctx(), "router-ca", metav1.GetOptions{})
 		t.Expect(err).NotTo(HaveOccurred())
-		rootCAs := x509.NewCertPool()
+		// Keep the system roots because the ingress controller may use a
+		// custom/public certificate (for example, Let's Encrypt) instead of
+		// the internal router CA. Append the router CA as well for clusters
+		// that use the default OpenShift ingress certificate.
+		rootCAs, err := x509.SystemCertPool()
+		if err != nil || rootCAs == nil {
+			rootCAs = x509.NewCertPool()
+		}
 		t.Expect(rootCAs.AppendCertsFromPEM(routerCA.Data["tls.crt"])).To(BeTrue())
 
 		tr := &http.Transport{
