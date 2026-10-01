@@ -6,9 +6,6 @@ End-to-end tests for fine-tuning Large Language Models (LLMs) using the [fms-hf-
 
 ```
 tests/fms/
-├── kfto/                           # Training Operator v1 (PyTorchJob) tests
-│   ├── kfto_kueue_sft_test.go      # Single-GPU SFT tests
-│   └── kfto_kueue_sft_GPU_test.go  # Multi-GPU SFT tests
 ├── trainer/                        # Trainer Operator v2 (TrainJob) tests
 │   ├── sft_trainjob_test.go        # Single-GPU SFT tests
 │   └── sft_trainjob_gpu_test.go    # Multi-GPU SFT tests
@@ -24,18 +21,6 @@ tests/fms/
 
 ## Test Categories
 
-### Training Operator v1 (KFTO) Tests
-
-Located in `kfto/`, these tests use **PyTorchJob** custom resources:
-
-| Test | Description | GPUs |
-|------|-------------|------|
-| `TestPytorchjobWithSFTtrainerFinetuning` | Full SFT fine-tuning | 1 |
-| `TestPytorchjobWithSFTtrainerLoRa` | LoRA fine-tuning | 1 |
-| `TestPytorchjobWithSFTtrainerQLoRa` | QLoRA fine-tuning | 1 |
-| `TestPytorchjobUsingKueueQuota` | Kueue quota management | 1 |
-| `TestMultiGpu*` (GPU tests) | Multi-GPU training | 2-8 |
-
 ### Trainer Operator v2 Tests
 
 Located in `trainer/`, these tests use **TrainJob** custom resources:
@@ -44,7 +29,6 @@ Located in `trainer/`, these tests use **TrainJob** custom resources:
 |------|-------------|------|
 | `TestTrainJobWithSFTtrainerFinetuning` | Full SFT fine-tuning | 1 |
 | `TestTrainJobWithSFTtrainerLoRa` | LoRA fine-tuning | 1 |
-| `TestTrainJobWithSFTtrainerQLoRa` | QLoRA fine-tuning | 1 |
 | `TestMultiGpuTrainJob*` (GPU tests) | Multi-GPU training | 2-8 |
 
 ## Environment Variables
