@@ -5,7 +5,7 @@ abnf==2.2.0
     # via polyfile-weave
 absl-py==2.5.0
     # via tensorboard
-accelerate==1.14.0
+accelerate==1.15.0
     # via
     #   th-torch-cpu-universal-image (pyproject.toml)
     #   peft
@@ -48,6 +48,7 @@ annotated-types==0.8.0
     # via pydantic
 anyio==4.14.2
     # via
+    #   -c (workspace)
     #   gql
     #   httpx
     #   openai
@@ -638,7 +639,9 @@ sqlalchemy==2.0.51
     #   alembic
     #   mlflow
 sqlparse==0.6.0
-    # via mlflow-skinny
+    # via
+    #   -c (workspace)
+    #   mlflow-skinny
 starlette==1.3.1
     # via
     #   -c (workspace)

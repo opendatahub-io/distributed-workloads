@@ -106,7 +106,6 @@ func TestMultiGpuTrainJobMerlinite7b(t *testing.T) {
 }
 
 func runMultiGpuTrainJob(t *testing.T, modelConfigFile string, numberOfGpus int, options ...Option[*trainerv1alpha1.TrainJob]) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	test := With(t)
 
 	namespace := test.CreateOrGetTestNamespace().Name
@@ -195,7 +194,7 @@ func createAlpacaTrainJob(test Test, namespace, runtimeName string, config corev
 			},
 			RuntimePatches: []trainerv1alpha1.RuntimePatch{
 				{
-					Manager: "test-sft-gpu",
+					Manager: "redhat.com/test-sft-gpu",
 					TrainingRuntimeSpec: &trainerv1alpha1.TrainingRuntimeSpecPatch{
 						Template: &trainerv1alpha1.JobSetTemplatePatch{
 							Spec: &trainerv1alpha1.JobSetSpecPatch{
