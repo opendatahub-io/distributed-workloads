@@ -122,7 +122,7 @@ RUN ln -sfn openshift-uid-exec.sh /usr/local/bin/mpirun \
  && grep -qxF 'LD_LIBRARY_PATH=/usr/lib64/openmpi/lib' /etc/environment \
     || echo 'LD_LIBRARY_PATH=/usr/lib64/openmpi/lib' >> /etc/environment \
  && chgrp -R 0 /home/mpiuser && chmod -R g=u /home/mpiuser \
- && chmod g=u /etc/passwd
+ && chmod 0644 /etc/passwd
 
 ENV MPI_HOME=/usr/lib64/openmpi \
     PATH=/usr/local/bin:/usr/lib64/openmpi/bin:${PATH} \
