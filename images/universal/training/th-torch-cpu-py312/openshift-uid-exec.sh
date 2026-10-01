@@ -1,9 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if ! getent passwd "$(id -u)" >/dev/null 2>&1; then
-  echo "ERROR: runtime UID $(id -u) has no passwd entry; OpenShift/CRI-O must provide UID mapping" >&2
-  exit 1
+uid="$(id -u)"
+if ! getent passwd "$uid" >/dev/null 2>&1; then
+  if [ ! -w /etc/passwd ]; then
+    echo "ERROR: /etc/passwd is not writable; cannot register runtime UID" >&2
+    exit 1
+  fi
+
+  home_dir="${HOME:-/home/mpiuser}"
+  if [ -d /home/mpiuser/.ssh ]; then
+    home_dir=/home/mpiuser
+  fi
+
+  if [[ "$home_dir" == *:* || "$home_dir" == *$'\n'* || "$home_dir" == *$'\r'* ]]; then
+    echo "ERROR: HOME contains invalid characters for /etc/passwd entry" >&2
+    exit 1
+  fi
+
+  printf 'mpiuser:x:%s:0:mpiuser:%s:/bin/sh\n' "$uid" "$home_dir" >> /etc/passwd
 fi
 
 launcher="$(basename "$0")"
