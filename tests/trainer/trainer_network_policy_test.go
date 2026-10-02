@@ -31,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
@@ -49,32 +48,33 @@ const (
 
 var curlConnectTimePattern = regexp.MustCompile(`CURL_TIMING time_connect=([0-9]+(?:\.[0-9]+)?)`)
 
-func TestTrainerNetworkPolicyWebhook(t *testing.T) {
+func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToWebhook(t *testing.T) {
 	Tags(t, Tier3)
-	runTrainerControllerNetworkPolicyTest(t, "webhook", "https", 9443, "/")
+	runTrainerControllerNetworkPolicyTest(t, "webhook", "https", "/")
 }
 
-func TestTrainerNetworkPolicyMetrics(t *testing.T) {
+func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToMetrics(t *testing.T) {
 	Tags(t, Tier3)
-	runTrainerControllerNetworkPolicyTest(t, "metrics", "https", 8443, "/metrics")
+	runTrainerControllerNetworkPolicyTest(t, "metrics", "https", "/metrics")
 }
 
-func TestTrainerNetworkPolicyHealth(t *testing.T) {
+func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToHealth(t *testing.T) {
 	Tags(t, Tier3)
-	runTrainerControllerNetworkPolicyTest(t, "health", "http", 8081, "/healthz")
+	runTrainerControllerNetworkPolicyTest(t, "health", "http", "/healthz")
 }
 
-func TestTrainerNetworkPolicyStatusServer(t *testing.T) {
+func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToStatusServer(t *testing.T) {
 	Tags(t, Tier3)
-	runTrainerControllerNetworkPolicyTest(t, "status-server", "https", 10443, "/")
+	runTrainerControllerNetworkPolicyTest(t, "status-server", "https", "/")
 }
 
-func TestTrainerNetworkPolicyUnpublished(t *testing.T) {
+// Probe an undeclared port to verify ingress is blocked beyond the named ports.
+func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToUnpublishedPort(t *testing.T) {
 	Tags(t, Tier3)
-	runTrainerControllerNetworkPolicyTest(t, "unpublished", "https", 31415, "/")
+	runTrainerControllerNetworkPolicyTestOnPort(t, "unpublished", "https", 31415, "/")
 }
 
-func TestTrainerNetworkPolicyWorkload(t *testing.T) {
+func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToWorkloadPort(t *testing.T) {
 	Tags(t, Tier3)
 	test := With(t)
 
@@ -116,7 +116,7 @@ func TestTrainerNetworkPolicyWorkload(t *testing.T) {
 		g.Expect(listErr).NotTo(HaveOccurred())
 		for i := range pods.Items {
 			candidate := &pods.Items[i]
-			if candidate.Status.Phase == corev1.PodRunning && podReady(candidate) && candidate.Status.PodIP != "" {
+			if candidate.Status.Phase == corev1.PodRunning && trainerutils.PodReady(candidate) && candidate.Status.PodIP != "" {
 				workloadPod = candidate.DeepCopy()
 				return
 			}
@@ -139,13 +139,29 @@ func TestTrainerNetworkPolicyWorkload(t *testing.T) {
 	})
 }
 
-func runTrainerControllerNetworkPolicyTest(t *testing.T, endpoint, scheme string, port int32, path string) {
+// Resolve a named manager port from the deployment, failing if it is missing.
+func runTrainerControllerNetworkPolicyTest(t *testing.T, portName, scheme, path string) {
+	t.Helper()
+	test := With(t)
+
+	// look up the port number from the port name on the deployment
+	applicationsNamespace, err := GetApplicationsNamespace(test)
+	test.Expect(err).NotTo(HaveOccurred())
+	deployment := trainerutils.GetTrainerControllerDeployment(test, applicationsNamespace)
+	port, err := trainerutils.TrainerControllerPort(deployment, portName)
+	test.Expect(err).NotTo(HaveOccurred())
+	runTrainerControllerNetworkPolicyTestOnPort(t, portName, scheme, port, path)
+}
+
+// Probe an explicit port number, including ports not declared on the deployment.
+func runTrainerControllerNetworkPolicyTestOnPort(t *testing.T, endpoint, scheme string, port int32, path string) {
+	t.Helper()
 	test := With(t)
 	sourceNamespace := test.NewTestNamespace().Name
 	applicationsNamespace, err := GetApplicationsNamespace(test)
 	test.Expect(err).NotTo(HaveOccurred())
-	deployment := getTrainerDeployment(test, applicationsNamespace)
-	targetPods := readyTrainerControllerPods(test, applicationsNamespace, deployment)
+	deployment := trainerutils.GetTrainerControllerDeployment(test, applicationsNamespace)
+	targetPods := trainerutils.ReadyTrainerControllerPods(test, applicationsNamespace, deployment)
 	logNetworkPolicies(test, sourceNamespace, applicationsNamespace)
 
 	for _, pod := range targetPods {
@@ -158,35 +174,6 @@ func runTrainerControllerNetworkPolicyTest(t *testing.T, endpoint, scheme string
 			Path:   path,
 		})
 	}
-}
-
-func readyTrainerControllerPods(test Test, namespace string, deployment *unstructured.Unstructured) []corev1.Pod {
-	test.T().Helper()
-	selector, _, err := unstructured.NestedStringMap(deployment.Object, "spec", "selector", "matchLabels")
-	test.Expect(err).NotTo(HaveOccurred())
-	desiredReplicas, found, err := unstructured.NestedInt64(deployment.Object, "spec", "replicas")
-	test.Expect(err).NotTo(HaveOccurred())
-	if !found {
-		desiredReplicas = 1
-	}
-	test.Expect(desiredReplicas).To(BeNumerically(">", 0), "Trainer deployment has no desired replicas")
-
-	var readyPods []corev1.Pod
-	test.Eventually(func(g Gomega, ctx context.Context) {
-		pods, listErr := test.Client().Core().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-			LabelSelector: labelsToSelector(selector),
-		})
-		g.Expect(listErr).NotTo(HaveOccurred())
-		readyPods = readyPods[:0]
-		for i := range pods.Items {
-			pod := &pods.Items[i]
-			if pod.Status.Phase == corev1.PodRunning && podReady(pod) && pod.Status.PodIP != "" {
-				readyPods = append(readyPods, *pod.DeepCopy())
-			}
-		}
-		g.Expect(readyPods).To(HaveLen(int(desiredReplicas)), "expected every Trainer controller replica to be Ready with a pod IP; observed pods: %+v", pods.Items)
-	}, TestTimeoutLong, 3*time.Second).WithContext(test.Ctx()).Should(Succeed())
-	return readyPods
 }
 
 type networkPolicyTarget struct {
