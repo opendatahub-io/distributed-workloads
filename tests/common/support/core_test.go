@@ -23,7 +23,37 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	fakecore "k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
+
+func TestCreatePod(t *testing.T) {
+	test := NewTest(t)
+	var requested *corev1.Pod
+	coreClient := test.client.Core().(*fakecore.Clientset)
+	coreClient.PrependReactor("create", "pods", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		requested = action.(k8stesting.CreateAction).GetObject().(*corev1.Pod)
+		created := requested.DeepCopy()
+		created.Name = "probe-abc123"
+		return true, created, nil
+	})
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{GenerateName: "probe-", Labels: map[string]string{"purpose": "test"}},
+		Spec:       corev1.PodSpec{RestartPolicy: corev1.RestartPolicyNever},
+	}
+	created := CreatePod(test, "arbitrary-namespace", pod)
+
+	test.Expect(requested).NotTo(gomega.BeNil())
+	test.Expect(requested.Name).To(gomega.BeEmpty())
+	test.Expect(requested.GenerateName).To(gomega.Equal("probe-"))
+	test.Expect(requested.Namespace).To(gomega.Equal("arbitrary-namespace"))
+	test.Expect(requested.Spec.RestartPolicy).To(gomega.Equal(corev1.RestartPolicyNever))
+	test.Expect(created.Name).To(gomega.Equal("probe-abc123"))
+	test.Expect(created.Namespace).To(gomega.Equal("arbitrary-namespace"))
+	test.Expect(pod.Namespace).To(gomega.BeEmpty(), "CreatePod should not mutate the caller's pod")
+}
 
 func TestGetPods(t *testing.T) {
 	test := NewTest(t)
