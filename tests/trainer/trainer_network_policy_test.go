@@ -131,6 +131,7 @@ func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToWorkloadPort(t *t
 
 	logNetworkPolicies(test, sourceNamespace, workloadNamespace)
 	probeTrainerNetworkPolicy(test, sourceNamespace, networkPolicyTarget{
+		Pod:    workloadPod,
 		Name:   workloadPod.Namespace + "/" + workloadPod.Name,
 		IP:     workloadPod.Status.PodIP,
 		Port:   trainerNetpolWorkloadPort,
@@ -167,6 +168,7 @@ func runTrainerControllerNetworkPolicyTestOnPort(t *testing.T, endpoint, scheme 
 	for _, pod := range targetPods {
 		test.T().Logf("Probing Trainer %s endpoint at %s/%s pod IP %s port %d", endpoint, applicationsNamespace, pod.Name, pod.Status.PodIP, port)
 		probeTrainerNetworkPolicy(test, sourceNamespace, networkPolicyTarget{
+			Pod:    &pod,
 			Name:   applicationsNamespace + "/" + pod.Name,
 			IP:     pod.Status.PodIP,
 			Port:   port,
@@ -177,6 +179,7 @@ func runTrainerControllerNetworkPolicyTestOnPort(t *testing.T, endpoint, scheme 
 }
 
 type networkPolicyTarget struct {
+	Pod    *corev1.Pod
 	Name   string
 	IP     string
 	Port   int32
@@ -241,9 +244,19 @@ func probeTrainerNetworkPolicy(test Test, sourceNamespace string, target network
 		g.Expect(terminated).NotTo(BeNil(), "curl container has not terminated; pod status: %+v", pod.Status)
 	}, TestTimeoutLong, 2*time.Second).WithContext(test.Ctx()).Should(Succeed())
 
+	// A timeout against a removed or unready destination does not prove isolation.
+	destination, err := test.Client().Core().CoreV1().Pods(target.Pod.Namespace).Get(test.Ctx(), target.Pod.Name, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred(), "destination pod disappeared")
+	test.Expect(destination.UID).To(Equal(target.Pod.UID), "destination pod was replaced")
+	test.Expect(destination.Status.PodIP).To(Equal(target.IP))
+	test.Expect(destination.Status.Phase).To(Equal(corev1.PodRunning))
+	test.Expect(trainerutils.PodReady(destination)).To(BeTrue(), "destination pod is no longer Ready")
+	test.Expect(destination.DeletionTimestamp).To(BeNil(), "destination pod is terminating")
+
 	output := GetPodLog(test, sourceNamespace, probe.Name, corev1.PodLogOptions{Container: trainerNetpolCurlContainer})
 	test.T().Logf("curl probe pod %s/%s terminated with exit code %d; logs:\n%s", sourceNamespace, probe.Name, terminated.ExitCode, output)
 	test.Expect(observedPod.Status.Phase).To(Equal(corev1.PodFailed), "one-shot curl pod should fail with curl's timeout exit status")
+	// Exit 28 also covers response timeouts, so require no established connection.
 	test.Expect(terminated.ExitCode).To(Equal(int32(28)), "expected curl to fail because the TCP connection timed out")
 	test.Expect(output).NotTo(ContainSubstring("Connected to"), "curl connected before timing out")
 
