@@ -104,6 +104,26 @@ func CreateSecretBinary(t Test, namespace string, content map[string][]byte) *co
 	return secret
 }
 
+// CreatePod creates the supplied pod in namespace. Callers own the pod spec,
+// including its restart policy and security settings.
+func CreatePod(t Test, namespace string, pod *corev1.Pod) *corev1.Pod {
+	t.T().Helper()
+
+	t.Expect(namespace).NotTo(gomega.BeEmpty())
+	t.Expect(pod).NotTo(gomega.BeNil())
+	t.Expect(pod.Name).To(gomega.BeEmpty(), "CreatePod requires GenerateName instead of a fixed name")
+	t.Expect(pod.GenerateName).NotTo(gomega.BeEmpty())
+	t.Expect(pod.Namespace).To(gomega.Or(gomega.BeEmpty(), gomega.Equal(namespace)), "pod namespace must be empty or match the namespace argument")
+
+	podToCreate := pod.DeepCopy()
+	podToCreate.Namespace = namespace
+	created, err := t.Client().Core().CoreV1().Pods(namespace).Create(t.Ctx(), podToCreate, metav1.CreateOptions{})
+	t.Expect(err).NotTo(gomega.HaveOccurred())
+	t.T().Logf("Created Pod %s/%s successfully", created.Namespace, created.Name)
+
+	return created
+}
+
 func Raw(t Test, obj runtime.Object) runtime.RawExtension {
 	t.T().Helper()
 	data, err := json.Marshal(obj)
