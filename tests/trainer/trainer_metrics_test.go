@@ -23,12 +23,13 @@ import (
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
+	trainerutils "github.com/opendatahub-io/distributed-workloads/tests/trainer/utils"
 )
 
 const (
-	trainerControllerService = "kubeflow-trainer-controller-manager"
-	trainerMetricsPort       = int32(8443)
-	metricsStartupTimeout    = 2 * time.Minute
+	trainerControllerMetricsService = "kubeflow-trainer-controller-manager"
+	trainerMetricsPort              = int32(8443)
+	metricsStartupTimeout           = 2 * time.Minute
 )
 
 func TestTrainerSecureServing(t *testing.T) {
@@ -39,7 +40,7 @@ func TestTrainerSecureServing(t *testing.T) {
 
 	service, deployment := trainerMetricsResources(test, applicationsNamespace)
 	serviceName := service.GetName()
-	pod := trainerControllerPod(test, applicationsNamespace, deployment)
+	pod := trainerutils.TrainerControllerPod(test, applicationsNamespace, deployment, 3*time.Minute)
 	test.T().Logf("Checking Trainer metrics service %s/%s", applicationsNamespace, serviceName)
 	// client-go port-forwarding does not resolve Services, so use a Ready pod selected by the Service.
 	metricsURL, stopPortForward := startTrainerMetricsPortForward(test, applicationsNamespace, pod.Name)
@@ -100,7 +101,7 @@ func TestTrainerPrometheusScrape(t *testing.T) {
 	}
 
 	prometheus := GetOpenShiftPrometheusApiClient(test)
-	test.T().Logf("Waiting for Prometheus to discover Trainer ServiceMonitor target %s/%s", applicationsNamespace, trainerControllerService)
+	test.T().Logf("Waiting for Prometheus to discover Trainer ServiceMonitor target %s/%s", applicationsNamespace, trainerControllerMetricsService)
 
 	var target prometheusapiv1.ActiveTarget
 	test.Eventually(func(g Gomega, ctx context.Context) {
@@ -109,7 +110,7 @@ func TestTrainerPrometheusScrape(t *testing.T) {
 		found := false
 		for _, candidate := range result.Active {
 			if string(candidate.Labels["namespace"]) != applicationsNamespace ||
-				string(candidate.Labels["service"]) != trainerControllerService {
+				string(candidate.Labels["service"]) != trainerControllerMetricsService {
 				continue
 			}
 			target = candidate
@@ -148,10 +149,10 @@ func TestTrainerPrometheusScrape(t *testing.T) {
 }
 
 func trainerMetricsResources(test Test, namespace string) (*unstructured.Unstructured, *unstructured.Unstructured) {
-	deployment := getTrainerDeployment(test, namespace)
+	deployment := trainerutils.GetTrainerControllerDeployment(test, namespace)
 	service, err := test.Client().Dynamic().Resource(schema.GroupVersionResource{
 		Version: "v1", Resource: "services",
-	}).Namespace(namespace).Get(test.Ctx(), trainerControllerService, metav1.GetOptions{})
+	}).Namespace(namespace).Get(test.Ctx(), trainerControllerMetricsService, metav1.GetOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	return service, deployment
 }
