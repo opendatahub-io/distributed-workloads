@@ -86,3 +86,11 @@ sync-agents-config: ## Sync AI agent skills and rules from ai/ to .claude/ and .
 .PHONY: verify-agents-config
 verify-agents-config: ## Verify AI agent config is in sync with ai/
 	@./hack/verify-agents-config.sh
+
+.PHONY: verify-requirements
+verify-requirements: ## Verify universal image dependency lockfiles.
+	@$(MAKE) verify-universal-requirements
+
+.PHONY: verify-universal-requirements
+verify-universal-requirements: ## Verify universal image requirements.txt files.
+	@bash ./hack/verify-universal-requirements.sh

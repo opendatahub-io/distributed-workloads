@@ -1,0 +1,36 @@
+name: Verify Universal Dependency Graphs
+
+on:
+  pull_request:
+    paths:
+      - 'images/universal/training/**/pyproject.toml'
+      - 'images/universal/training/**/requirements.txt'
+      - 'images/universal/training/**/Dockerfile'
+      - 'Makefile'
+      - 'hack/verify-universal-requirements.sh'
+      - '.github/workflows/verify-requirements.yml'
+  workflow_dispatch:
+
+env:
+  UV_VERSION: '0.11.29'
+
+jobs:
+  verify-universal:
+    name: Verify universal dependency graphs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: python -m pip install "uv==$UV_VERSION"
+
+      - name: Verify requirements dependency graphs
+        run: make verify-universal-requirements
