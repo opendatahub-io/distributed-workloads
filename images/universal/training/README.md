@@ -100,7 +100,7 @@ Check the **Product Status** field in the official CVE record at `https://www.cv
 Each CVE ticket targets a **single container image** identified by the image name in the ticket summary (e.g., `rhoai/odh-training-cuda124-torch25-py311-rhel9`). When fixing a CVE:
 
 - **Only modify files in the image directory that matches the ticket's target image.** Do not touch other image directories, even if they have the same vulnerability — those are tracked by separate tickets.
-- Map the image name to its directory: `odh-training-*` maps to `images/runtime/training/`, `odh-th*` maps to `images/universal/training/`.
+- Map the image name to its directory: `odh-th*` maps to `images/universal/training/`.
 - If the image name does not map to any existing directory, flag it — do not modify unrelated directories as a substitute.
 
 ### Updating the dependency

@@ -43,7 +43,7 @@ const (
 	DefaultClusterTrainingRuntimeOpenMPICUDA = "openmpi-cuda"
 
 	// DefaultClusterTrainingRuntimeOpenMPICUDAImage is the expected image suffix for the OpenMPI CUDA runtime
-	DefaultClusterTrainingRuntimeOpenMPICUDAImage = "odh-training-cuda130-torch210-py312-openmpi41"
+	DefaultClusterTrainingRuntimeOpenMPICUDAImage = "odh-th-torch-cuda-py312"
 
 	// DefaultTrainingHubRuntimeCUDA is the default CUDA runtime for training hub workloads
 	DefaultTrainingHubRuntimeCUDA = "training-hub"
