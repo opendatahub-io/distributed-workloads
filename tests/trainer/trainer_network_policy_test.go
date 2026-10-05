@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	trainerNetpolCurlImage       = "curlimages/curl:8.12.1"
+	trainerNetpolCurlImage       = "registry.access.redhat.com/ubi9/ubi-minimal:9.8-1790754119@sha256:eba570d04193d1523a8576b1c0ff00e681c9edb1a41d4742559b6e3ff457601e"
 	trainerNetpolCurlContainer   = "curl"
 	trainerNetpolWorkloadPort    = int32(18080)
 	trainerNetpolReadinessMarker = "TRAINER_NETPOL_LOCAL_HTTP_READY"
@@ -125,7 +125,7 @@ func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToWorkloadPort(t *t
 		Should(ContainSubstring(trainerNetpolReadinessMarker), "TrainJob HTTP listener did not pass its in-pod HTTP readiness request")
 	test.T().Logf("TrainJob pod %s/%s completed its local HTTP readiness request on port %d", workloadNamespace, workloadPod.Name, trainerNetpolWorkloadPort)
 
-	assertCrossNamespaceConnectionTimesOut(test, sourceNamespace, workloadPod, "http", trainerNetpolWorkloadPort)
+	assertNetworkConnectionTimesOut(test, sourceNamespace, workloadPod, "http", trainerNetpolWorkloadPort)
 }
 
 func runTrainerControllerNetworkPolicyTest(t *testing.T, scheme string, port int32) {
@@ -136,7 +136,7 @@ func runTrainerControllerNetworkPolicyTest(t *testing.T, scheme string, port int
 	test.Expect(err).NotTo(HaveOccurred())
 	deployment := trainerutils.GetTrainerControllerDeployment(test, applicationsNamespace)
 	pod := trainerutils.TrainerControllerPod(test, applicationsNamespace, deployment, TestTimeoutLong)
-	assertCrossNamespaceConnectionTimesOut(test, sourceNamespace, pod, scheme, port)
+	assertNetworkConnectionTimesOut(test, sourceNamespace, pod, scheme, port)
 }
 
 func controllerPortByName(t *testing.T, name string) int32 {
@@ -158,7 +158,7 @@ func controllerPortByName(t *testing.T, name string) int32 {
 }
 
 // assert that a pod from sourceNamespace cannot reach targetPod on targetPort.
-func assertCrossNamespaceConnectionTimesOut(test Test, sourceNamespace string, targetPod *corev1.Pod, scheme string, targetPort int32) {
+func assertNetworkConnectionTimesOut(test Test, sourceNamespace string, targetPod *corev1.Pod, scheme string, targetPort int32) {
 	test.T().Helper()
 	address := net.JoinHostPort(targetPod.Status.PodIP, strconv.Itoa(int(targetPort)))
 	url := fmt.Sprintf("%s://%s", scheme, address)
