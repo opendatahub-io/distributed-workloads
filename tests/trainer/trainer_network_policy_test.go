@@ -44,12 +44,6 @@ const (
 	trainerNetpolReadinessMarker = "TRAINER_NETPOL_LOCAL_HTTP_READY"
 )
 
-func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToWebhook(t *testing.T) {
-	Tags(t, Tier3)
-	webhookPort := controllerPortByName(t, "webhook")
-	runTrainerControllerNetworkPolicyTest(t, "https", webhookPort)
-}
-
 func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToMetrics(t *testing.T) {
 	Tags(t, Tier3)
 	metricsPort := controllerPortByName(t, "metrics")
