@@ -75,6 +75,35 @@ func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToWorkloadPort(t *t
 
 	workloadNamespace := test.NewTestNamespace().Name
 	sourceNamespace := test.NewTestNamespace().Name
+	runTrainerWorkloadNetworkPolicyTest(t, sourceNamespace, workloadNamespace)
+}
+
+func TestTrainerNetworkPolicyBlocksIngressFromOtherWorkloadsToWorkloadPort(t *testing.T) {
+	Tags(t, Tier2)
+	test := With(t)
+
+	workloadNamespace := test.NewTestNamespace().Name
+	sourceNamespace := workloadNamespace
+	runTrainerWorkloadNetworkPolicyTest(t, sourceNamespace, workloadNamespace)
+}
+
+// runTrainerControllerNetworkPolicyTest tests that a pod running in another namespace cannot reach the trainer controller
+// on port.
+func runTrainerControllerNetworkPolicyTest(t *testing.T, scheme string, port int32) {
+	t.Helper()
+	test := With(t)
+	sourceNamespace := test.NewTestNamespace().Name
+	applicationsNamespace, err := GetApplicationsNamespace(test)
+	test.Expect(err).NotTo(HaveOccurred())
+	deployment := trainerutils.GetTrainerControllerDeployment(test, applicationsNamespace)
+	pod := trainerutils.TrainerControllerPod(test, applicationsNamespace, deployment, TestTimeoutLong)
+	assertNetworkConnectionTimesOut(test, sourceNamespace, pod, scheme, port)
+}
+
+// runTrainerWorkloadNetworkPolicyTest checks that a pod in sourceNamespace cannot reach a workload created in workloadNamespace
+func runTrainerWorkloadNetworkPolicyTest(t *testing.T, sourceNamespace, workloadNamespace string) {
+	test := With(t)
+
 	image, err := trainerutils.GetImageFromClusterTrainingRuntime(test, trainerutils.DefaultClusterTrainingRuntimeCPU)
 	test.Expect(err).NotTo(HaveOccurred(), "unable to resolve the CPU ClusterTrainingRuntime image")
 
@@ -126,17 +155,6 @@ func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToWorkloadPort(t *t
 	test.T().Logf("TrainJob pod %s/%s completed its local HTTP readiness request on port %d", workloadNamespace, workloadPod.Name, trainerNetpolWorkloadPort)
 
 	assertNetworkConnectionTimesOut(test, sourceNamespace, workloadPod, "http", trainerNetpolWorkloadPort)
-}
-
-func runTrainerControllerNetworkPolicyTest(t *testing.T, scheme string, port int32) {
-	t.Helper()
-	test := With(t)
-	sourceNamespace := test.NewTestNamespace().Name
-	applicationsNamespace, err := GetApplicationsNamespace(test)
-	test.Expect(err).NotTo(HaveOccurred())
-	deployment := trainerutils.GetTrainerControllerDeployment(test, applicationsNamespace)
-	pod := trainerutils.TrainerControllerPod(test, applicationsNamespace, deployment, TestTimeoutLong)
-	assertNetworkConnectionTimesOut(test, sourceNamespace, pod, scheme, port)
 }
 
 func controllerPortByName(t *testing.T, name string) int32 {
