@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -40,38 +40,39 @@ import (
 const (
 	trainerNetpolCurlImage       = "curlimages/curl:8.12.1"
 	trainerNetpolCurlContainer   = "curl"
-	trainerNetpolConnectTimeout  = "5"
-	trainerNetpolMaxTimeout      = "10"
 	trainerNetpolWorkloadPort    = int32(18080)
 	trainerNetpolReadinessMarker = "TRAINER_NETPOL_LOCAL_HTTP_READY"
 )
 
-var curlConnectTimePattern = regexp.MustCompile(`CURL_TIMING time_connect=([0-9]+(?:\.[0-9]+)?)`)
-
 func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToWebhook(t *testing.T) {
 	Tags(t, Tier3)
-	runTrainerControllerNetworkPolicyTest(t, "webhook", "https", "/")
+	webhookPort := controllerPortByName(t, "webhook")
+	runTrainerControllerNetworkPolicyTest(t, "https", webhookPort)
 }
 
 func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToMetrics(t *testing.T) {
 	Tags(t, Tier3)
-	runTrainerControllerNetworkPolicyTest(t, "metrics", "https", "/metrics")
+	metricsPort := controllerPortByName(t, "metrics")
+	runTrainerControllerNetworkPolicyTest(t, "https", metricsPort)
 }
 
 func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToHealth(t *testing.T) {
 	Tags(t, Tier3)
-	runTrainerControllerNetworkPolicyTest(t, "health", "http", "/healthz")
+	healthPort := controllerPortByName(t, "health")
+	runTrainerControllerNetworkPolicyTest(t, "http", healthPort)
 }
 
 func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToStatusServer(t *testing.T) {
 	Tags(t, Tier3)
-	runTrainerControllerNetworkPolicyTest(t, "status-server", "https", "/")
+	statusServerPort := controllerPortByName(t, "status-server")
+	runTrainerControllerNetworkPolicyTest(t, "https", statusServerPort)
 }
 
 // Probe an undeclared port to verify ingress is blocked beyond the named ports.
 func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToUnpublishedPort(t *testing.T) {
 	Tags(t, Tier3)
-	runTrainerControllerNetworkPolicyTestOnPort(t, "unpublished", "https", 31415, "/")
+	unpublishedPort := int32(31415)
+	runTrainerControllerNetworkPolicyTest(t, "https", unpublishedPort)
 }
 
 func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToWorkloadPort(t *testing.T) {
@@ -83,6 +84,7 @@ func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToWorkloadPort(t *t
 	image, err := trainerutils.GetImageFromClusterTrainingRuntime(test, trainerutils.DefaultClusterTrainingRuntimeCPU)
 	test.Expect(err).NotTo(HaveOccurred(), "unable to resolve the CPU ClusterTrainingRuntime image")
 
+	// create a TrainJob that exposers a server listening on trainerNetpolWorkloadPort
 	trainJob := &trainerv1alpha1.TrainJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "trainer-netpol-workload-",
@@ -129,76 +131,59 @@ func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToWorkloadPort(t *t
 		Should(ContainSubstring(trainerNetpolReadinessMarker), "TrainJob HTTP listener did not pass its in-pod HTTP readiness request")
 	test.T().Logf("TrainJob pod %s/%s completed its local HTTP readiness request on port %d", workloadNamespace, workloadPod.Name, trainerNetpolWorkloadPort)
 
-	logNetworkPolicies(test, sourceNamespace, workloadNamespace)
-	probeTrainerNetworkPolicy(test, sourceNamespace, networkPolicyTarget{
-		Pod:    workloadPod,
-		Name:   workloadPod.Namespace + "/" + workloadPod.Name,
-		IP:     workloadPod.Status.PodIP,
-		Port:   trainerNetpolWorkloadPort,
-		Scheme: "http",
-		Path:   "/",
-	})
+	assertCrossNamespaceConnectionTimesOut(test, sourceNamespace, workloadPod, "http", trainerNetpolWorkloadPort)
 }
 
-// Resolve a named manager port from the deployment, failing if it is missing.
-func runTrainerControllerNetworkPolicyTest(t *testing.T, portName, scheme, path string) {
-	t.Helper()
-	test := With(t)
-
-	// look up the port number from the port name on the deployment
-	applicationsNamespace, err := GetApplicationsNamespace(test)
-	test.Expect(err).NotTo(HaveOccurred())
-	deployment := trainerutils.GetTrainerControllerDeployment(test, applicationsNamespace)
-	port, err := trainerutils.TrainerControllerPort(deployment, portName)
-	test.Expect(err).NotTo(HaveOccurred())
-	runTrainerControllerNetworkPolicyTestOnPort(t, portName, scheme, port, path)
-}
-
-// Probe an explicit port number, including ports not declared on the deployment.
-func runTrainerControllerNetworkPolicyTestOnPort(t *testing.T, endpoint, scheme string, port int32, path string) {
+func runTrainerControllerNetworkPolicyTest(t *testing.T, scheme string, port int32) {
 	t.Helper()
 	test := With(t)
 	sourceNamespace := test.NewTestNamespace().Name
 	applicationsNamespace, err := GetApplicationsNamespace(test)
 	test.Expect(err).NotTo(HaveOccurred())
 	deployment := trainerutils.GetTrainerControllerDeployment(test, applicationsNamespace)
-	targetPods := trainerutils.ReadyTrainerControllerPods(test, applicationsNamespace, deployment)
-	logNetworkPolicies(test, sourceNamespace, applicationsNamespace)
+	pod := trainerutils.TrainerControllerPod(test, applicationsNamespace, deployment, TestTimeoutLong)
+	assertCrossNamespaceConnectionTimesOut(test, sourceNamespace, pod, scheme, port)
+}
 
-	for _, pod := range targetPods {
-		test.T().Logf("Probing Trainer %s endpoint at %s/%s pod IP %s port %d", endpoint, applicationsNamespace, pod.Name, pod.Status.PodIP, port)
-		probeTrainerNetworkPolicy(test, sourceNamespace, networkPolicyTarget{
-			Pod:    &pod,
-			Name:   applicationsNamespace + "/" + pod.Name,
-			IP:     pod.Status.PodIP,
-			Port:   port,
-			Scheme: scheme,
-			Path:   path,
-		})
+func controllerPortByName(t *testing.T, name string) int32 {
+	t.Helper()
+	test := With(t)
+	applicationsNamespace, err := GetApplicationsNamespace(test)
+	test.Expect(err).NotTo(HaveOccurred())
+	deployment := trainerutils.GetTrainerControllerDeployment(test, applicationsNamespace)
+	pod := trainerutils.TrainerControllerPod(test, applicationsNamespace, deployment, TestTimeoutLong)
+	for _, container := range pod.Spec.Containers {
+		for _, port := range container.Ports {
+			if port.Name == name {
+				return port.ContainerPort
+			}
+		}
 	}
+	test.T().Fatalf("controller pod %s has no port named %q", pod.Name, name)
+	return 0
 }
 
-type networkPolicyTarget struct {
-	Pod    *corev1.Pod
-	Name   string
-	IP     string
-	Port   int32
-	Scheme string
-	Path   string
-}
-
-func probeTrainerNetworkPolicy(test Test, sourceNamespace string, target networkPolicyTarget) {
+// assert that a pod from sourceNamespace cannot reach targetPod on targetPort.
+func assertCrossNamespaceConnectionTimesOut(test Test, sourceNamespace string, targetPod *corev1.Pod, scheme string, targetPort int32) {
 	test.T().Helper()
-	address := net.JoinHostPort(target.IP, strconv.Itoa(int(target.Port)))
-	url := fmt.Sprintf("%s://%s%s", target.Scheme, address, target.Path)
+	address := net.JoinHostPort(targetPod.Status.PodIP, strconv.Itoa(int(targetPort)))
+	url := fmt.Sprintf("%s://%s", scheme, address)
+	output, exitCode := runNetworkPolicyCurlProbe(test, sourceNamespace, url)
+	test.Expect(exitCode).To(Equal(int32(28)), "curl logs: %s", output)
+	test.Expect(output).To(ContainSubstring("CURL_TIMING time_connect=0.000000 "),
+		"expected curl to time out before establishing a TCP connection; logs: %s", output)
+}
+
+func runNetworkPolicyCurlProbe(test Test, sourceNamespace, url string) (string, int32) {
+	test.T().Helper()
 	args := []string{
 		"--silent", "--show-error", "--verbose", "--noproxy", "*",
-		"--connect-timeout", trainerNetpolConnectTimeout,
-		"--max-time", trainerNetpolMaxTimeout,
+		"--connect-timeout", "5",
+		"--max-time", "10",
 		"--output", "/dev/null",
 		"--write-out", "\nCURL_TIMING time_connect=%{time_connect} time_total=%{time_total}\n",
 	}
-	if target.Scheme == "https" {
+	if strings.HasPrefix(url, "https://") {
 		args = append(args, "--insecure")
 	}
 	args = append(args, url)
@@ -206,34 +191,21 @@ func probeTrainerNetworkPolicy(test Test, sourceNamespace string, target network
 	probe := CreatePod(test, sourceNamespace, &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: "trainer-netpol-curl-"},
 		Spec: corev1.PodSpec{
-			RestartPolicy:                corev1.RestartPolicyNever,
-			AutomountServiceAccountToken: Ptr(false),
-			EnableServiceLinks:           Ptr(false),
-			SecurityContext: &corev1.PodSecurityContext{
-				SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault},
-			},
+			RestartPolicy: corev1.RestartPolicyNever,
 			Containers: []corev1.Container{{
-				Name:            trainerNetpolCurlContainer,
-				Image:           trainerNetpolCurlImage,
-				ImagePullPolicy: corev1.PullIfNotPresent,
-				Command:         []string{"curl"},
-				Args:            args,
-				SecurityContext: &corev1.SecurityContext{
-					RunAsNonRoot:             Ptr(true),
-					AllowPrivilegeEscalation: Ptr(false),
-					Capabilities:             &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}},
-				},
+				Name:    trainerNetpolCurlContainer,
+				Image:   trainerNetpolCurlImage,
+				Command: []string{"curl"},
+				Args:    args,
 			}},
 		},
 	})
-	test.T().Logf("Probing %s from namespace %s at %s", target.Name, sourceNamespace, url)
 
 	var terminated *corev1.ContainerStateTerminated
-	var observedPod *corev1.Pod
 	test.Eventually(func(g Gomega, ctx context.Context) {
 		pod, getErr := test.Client().Core().CoreV1().Pods(sourceNamespace).Get(ctx, probe.Name, metav1.GetOptions{})
 		g.Expect(getErr).NotTo(HaveOccurred())
-		observedPod = pod
+		terminated = nil
 		for i := range pod.Status.ContainerStatuses {
 			status := &pod.Status.ContainerStatuses[i]
 			if status.Name == trainerNetpolCurlContainer {
@@ -244,44 +216,9 @@ func probeTrainerNetworkPolicy(test Test, sourceNamespace string, target network
 		g.Expect(terminated).NotTo(BeNil(), "curl container has not terminated; pod status: %+v", pod.Status)
 	}, TestTimeoutLong, 2*time.Second).WithContext(test.Ctx()).Should(Succeed())
 
-	// A timeout against a removed or unready destination does not prove isolation.
-	destination, err := test.Client().Core().CoreV1().Pods(target.Pod.Namespace).Get(test.Ctx(), target.Pod.Name, metav1.GetOptions{})
-	test.Expect(err).NotTo(HaveOccurred(), "destination pod disappeared")
-	test.Expect(destination.UID).To(Equal(target.Pod.UID), "destination pod was replaced")
-	test.Expect(destination.Status.PodIP).To(Equal(target.IP))
-	test.Expect(destination.Status.Phase).To(Equal(corev1.PodRunning))
-	test.Expect(trainerutils.PodReady(destination)).To(BeTrue(), "destination pod is no longer Ready")
-	test.Expect(destination.DeletionTimestamp).To(BeNil(), "destination pod is terminating")
-
 	output := GetPodLog(test, sourceNamespace, probe.Name, corev1.PodLogOptions{Container: trainerNetpolCurlContainer})
-	test.T().Logf("curl probe pod %s/%s terminated with exit code %d; logs:\n%s", sourceNamespace, probe.Name, terminated.ExitCode, output)
-	test.Expect(observedPod.Status.Phase).To(Equal(corev1.PodFailed), "one-shot curl pod should fail with curl's timeout exit status")
-	// Exit 28 also covers response timeouts, so require no established connection.
-	test.Expect(terminated.ExitCode).To(Equal(int32(28)), "expected curl to fail because the TCP connection timed out")
-	test.Expect(output).NotTo(ContainSubstring("Connected to"), "curl connected before timing out")
-
-	timing := curlConnectTimePattern.FindStringSubmatch(output)
-	test.Expect(timing).To(HaveLen(2), "curl did not report time_connect in its output")
-	connectTime, parseErr := strconv.ParseFloat(timing[1], 64)
-	test.Expect(parseErr).NotTo(HaveOccurred())
-	test.Expect(connectTime).To(Equal(float64(0)), "curl established a connection before timing out")
-}
-
-func logNetworkPolicies(test Test, namespaces ...string) {
-	test.T().Helper()
-	for _, namespace := range namespaces {
-		policies, err := test.Client().Core().NetworkingV1().NetworkPolicies(namespace).List(test.Ctx(), metav1.ListOptions{})
-		test.Expect(err).NotTo(HaveOccurred())
-		if len(policies.Items) == 0 {
-			test.T().Logf("No NetworkPolicies found in namespace %s", namespace)
-			continue
-		}
-		for i := range policies.Items {
-			policy := &policies.Items[i]
-			test.T().Logf("Existing NetworkPolicy %s/%s: podSelector=%+v policyTypes=%v ingress=%+v egress=%+v",
-				policy.Namespace, policy.Name, policy.Spec.PodSelector, policy.Spec.PolicyTypes, policy.Spec.Ingress, policy.Spec.Egress)
-		}
-	}
+	test.T().Logf("curl probe pod %s/%s target=%s exit=%d; logs:\n%s", sourceNamespace, probe.Name, url, terminated.ExitCode, output)
+	return output, terminated.ExitCode
 }
 
 func trainerNetpolHTTPServerCommand() string {

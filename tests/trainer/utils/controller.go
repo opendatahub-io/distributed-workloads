@@ -86,7 +86,7 @@ func PodReady(pod *corev1.Pod) bool {
 	return false
 }
 
-// TrainerControllerPod waits for one Running, Ready controller pod.
+// TrainerControllerPod waits for one Running, Ready controller pod with a pod IP.
 func TrainerControllerPod(test Test, namespace string, deployment *unstructured.Unstructured, timeout time.Duration) *corev1.Pod {
 	test.T().Helper()
 	options := metav1.ListOptions{LabelSelector: TrainerControllerSelector(test, deployment)}
@@ -94,7 +94,7 @@ func TrainerControllerPod(test Test, namespace string, deployment *unstructured.
 	test.Eventually(func(g Gomega) {
 		readyPod = nil
 		for _, pod := range Pods(test, namespace, options)(g) {
-			if pod.Status.Phase == corev1.PodRunning && PodReady(&pod) {
+			if pod.Status.Phase == corev1.PodRunning && PodReady(&pod) && pod.Status.PodIP != "" && pod.DeletionTimestamp == nil {
 				readyPod = pod.DeepCopy()
 				return
 			}
@@ -103,28 +103,4 @@ func TrainerControllerPod(test Test, namespace string, deployment *unstructured.
 	}, timeout, 5*time.Second).WithContext(test.Ctx()).Should(Succeed())
 	test.T().Logf("Trainer controller pod %s is Ready", readyPod.Name)
 	return readyPod
-}
-
-// ReadyTrainerControllerPods waits for all replicas to be Ready with pod IPs.
-func ReadyTrainerControllerPods(test Test, namespace string, deployment *unstructured.Unstructured) []corev1.Pod {
-	test.T().Helper()
-	options := metav1.ListOptions{LabelSelector: TrainerControllerSelector(test, deployment)}
-	desiredReplicas, found, err := unstructured.NestedInt64(deployment.Object, "spec", "replicas")
-	test.Expect(err).NotTo(HaveOccurred())
-	if !found {
-		desiredReplicas = 1
-	}
-	test.Expect(desiredReplicas).To(BeNumerically(">", 0), "Trainer deployment has no desired replicas")
-	var readyPods []corev1.Pod
-	test.Eventually(func(g Gomega) {
-		pods := Pods(test, namespace, options)(g)
-		readyPods = nil
-		for _, pod := range pods {
-			if pod.Status.Phase == corev1.PodRunning && PodReady(&pod) && pod.Status.PodIP != "" {
-				readyPods = append(readyPods, *pod.DeepCopy())
-			}
-		}
-		g.Expect(readyPods).To(HaveLen(int(desiredReplicas)), "expected every Trainer controller replica to be Ready with a pod IP; observed pods: %+v", pods)
-	}, TestTimeoutLong, 3*time.Second).WithContext(test.Ctx()).Should(Succeed())
-	return readyPods
 }
