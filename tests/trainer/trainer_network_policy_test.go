@@ -45,32 +45,32 @@ const (
 )
 
 func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToMetrics(t *testing.T) {
-	Tags(t, Tier3)
+	Tags(t, Tier2)
 	metricsPort := controllerPortByName(t, "metrics")
 	runTrainerControllerNetworkPolicyTest(t, "https", metricsPort)
 }
 
 func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToHealth(t *testing.T) {
-	Tags(t, Tier3)
+	Tags(t, Tier2)
 	healthPort := controllerPortByName(t, "health")
 	runTrainerControllerNetworkPolicyTest(t, "http", healthPort)
 }
 
 func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToStatusServer(t *testing.T) {
-	Tags(t, Tier3)
+	Tags(t, Tier2)
 	statusServerPort := controllerPortByName(t, "status-server")
 	runTrainerControllerNetworkPolicyTest(t, "https", statusServerPort)
 }
 
 // Probe an undeclared port to verify ingress is blocked beyond the named ports.
 func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToUnpublishedPort(t *testing.T) {
-	Tags(t, Tier3)
+	Tags(t, Tier2)
 	unpublishedPort := int32(31415)
 	runTrainerControllerNetworkPolicyTest(t, "https", unpublishedPort)
 }
 
 func TestTrainerNetworkPolicyBlocksIngressFromOtherNamespacesToWorkloadPort(t *testing.T) {
-	Tags(t, Tier3)
+	Tags(t, Tier2)
 	test := With(t)
 
 	workloadNamespace := test.NewTestNamespace().Name
