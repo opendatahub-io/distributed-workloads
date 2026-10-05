@@ -17,12 +17,10 @@ limitations under the License.
 package trainer
 
 import (
-	"fmt"
 	"time"
 
 	. "github.com/onsi/gomega"
 
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -56,24 +54,6 @@ func TrainerControllerSelector(test Test, deployment *unstructured.Unstructured)
 	test.Expect(err).NotTo(HaveOccurred())
 	test.Expect(parsed.Empty()).To(BeFalse(), "Trainer deployment has an empty selector")
 	return parsed.String()
-}
-
-// TrainerControllerPort resolves a declared manager port; missing names are errors.
-func TrainerControllerPort(deployment *unstructured.Unstructured, portName string) (int32, error) {
-	var typed appsv1.Deployment
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(deployment.Object, &typed); err != nil {
-		return 0, err
-	}
-	for _, container := range typed.Spec.Template.Spec.Containers {
-		if container.Name == "manager" {
-			for _, port := range container.Ports {
-				if port.Name == portName {
-					return port.ContainerPort, nil
-				}
-			}
-		}
-	}
-	return 0, fmt.Errorf("Trainer deployment %s/%s manager container has no port named %q", deployment.GetNamespace(), deployment.GetName(), portName)
 }
 
 // PodReady reports the pod's Ready condition.

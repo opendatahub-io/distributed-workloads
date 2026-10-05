@@ -45,19 +45,6 @@ func controllerPortDeployment() *unstructured.Unstructured {
 	}}
 }
 
-func TestTrainerControllerPortUsesDeploymentPort(t *testing.T) {
-	port, err := TrainerControllerPort(controllerPortDeployment(), "webhook")
-	if err != nil || port != 19443 {
-		t.Fatalf("expected deployment port 19443, got port=%d err=%v", port, err)
-	}
-}
-
-func TestTrainerControllerPortRejectsMissingManagerPort(t *testing.T) {
-	if _, err := TrainerControllerPort(controllerPortDeployment(), "unpublished"); err == nil {
-		t.Fatal("expected an error for a port declared only on a sidecar")
-	}
-}
-
 func TestPodReadyRequiresTrueCondition(t *testing.T) {
 	pod := &corev1.Pod{}
 	if PodReady(pod) {
