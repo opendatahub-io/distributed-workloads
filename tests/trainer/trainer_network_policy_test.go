@@ -93,10 +93,7 @@ func runTrainerControllerNetworkPolicyTest(t *testing.T, scheme string, port int
 	t.Helper()
 	test := With(t)
 	sourceNamespace := test.NewTestNamespace().Name
-	applicationsNamespace, err := GetApplicationsNamespace(test)
-	test.Expect(err).NotTo(HaveOccurred())
-	deployment := trainerutils.GetTrainerControllerDeployment(test, applicationsNamespace)
-	pod := trainerutils.TrainerControllerPod(test, applicationsNamespace, deployment, TestTimeoutLong)
+	pod := trainerutils.GetTrainerControllerPod(test, TestTimeoutLong)
 	assertNetworkConnectionTimesOut(test, sourceNamespace, pod, scheme, port)
 }
 
@@ -160,10 +157,7 @@ func runTrainerWorkloadNetworkPolicyTest(t *testing.T, sourceNamespace, workload
 func controllerPortByName(t *testing.T, name string) int32 {
 	t.Helper()
 	test := With(t)
-	applicationsNamespace, err := GetApplicationsNamespace(test)
-	test.Expect(err).NotTo(HaveOccurred())
-	deployment := trainerutils.GetTrainerControllerDeployment(test, applicationsNamespace)
-	pod := trainerutils.TrainerControllerPod(test, applicationsNamespace, deployment, TestTimeoutLong)
+	pod := trainerutils.GetTrainerControllerPod(test, TestTimeoutLong)
 	for _, container := range pod.Spec.Containers {
 		for _, port := range container.Ports {
 			if port.Name == name {
