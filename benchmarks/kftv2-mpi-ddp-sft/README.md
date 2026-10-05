@@ -12,7 +12,7 @@ Distributed Supervised Fine-Tuning benchmark using **PyTorch DDP** with **MPI** 
 | Communication backend | MPI |
 | Gradient sync | DDP automatic allreduce via MPI |
 | Runtime | `openmpi-cuda-benchmark` |
-| Image | `quay.io/opendatahub/odh-training-cuda130-torch210-py312-openmpi41:odh-stable` |
+| Image | `quay.io/opendatahub/odh-th-torch-cuda-py312:odh-stable` |
 
 ### MPI communication patterns exercised
 
