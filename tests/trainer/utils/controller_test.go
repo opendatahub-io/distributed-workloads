@@ -20,30 +20,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
-
-func controllerPortDeployment() *unstructured.Unstructured {
-	return &unstructured.Unstructured{Object: map[string]interface{}{
-		"metadata": map[string]interface{}{"name": TrainerControllerDeployment, "namespace": "applications"},
-		"spec": map[string]interface{}{
-			"template": map[string]interface{}{
-				"spec": map[string]interface{}{
-					"containers": []interface{}{
-						map[string]interface{}{
-							"name":  "sidecar",
-							"ports": []interface{}{map[string]interface{}{"name": "unpublished", "containerPort": int64(31415)}},
-						},
-						map[string]interface{}{
-							"name":  "manager",
-							"ports": []interface{}{map[string]interface{}{"name": "webhook", "containerPort": int64(19443)}},
-						},
-					},
-				},
-			},
-		},
-	}}
-}
 
 func TestPodReadyRequiresTrueCondition(t *testing.T) {
 	pod := &corev1.Pod{}
