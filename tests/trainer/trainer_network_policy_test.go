@@ -38,7 +38,6 @@ import (
 )
 
 const (
-	trainerNetpolCurlImage       = "registry.access.redhat.com/ubi9/ubi-minimal:9.8-1790754119@sha256:eba570d04193d1523a8576b1c0ff00e681c9edb1a41d4742559b6e3ff457601e"
 	trainerNetpolCurlContainer   = "curl"
 	trainerNetpolWorkloadPort    = int32(18080)
 	trainerNetpolReadinessMarker = "TRAINER_NETPOL_LOCAL_HTTP_READY"
@@ -200,7 +199,7 @@ func runNetworkPolicyCurlProbe(test Test, sourceNamespace, url string) (string, 
 			RestartPolicy: corev1.RestartPolicyNever,
 			Containers: []corev1.Container{{
 				Name:    trainerNetpolCurlContainer,
-				Image:   trainerNetpolCurlImage,
+				Image:   GetCurlImage(),
 				Command: []string{"curl"},
 				Args:    args,
 			}},
