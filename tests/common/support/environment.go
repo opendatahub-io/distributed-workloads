@@ -77,6 +77,8 @@ const (
 	bloomModelImageEnvVar = "BLOOM_MODEL_IMAGE"
 	// The environment variable referring to image containing Stanford Alpaca dataset
 	alpacaDatasetImageEnvVar = "ALPACA_DATASET_IMAGE"
+	// The environment variable referring to an image containing curl
+	curlImageEnvVar = "CURL_IMAGE"
 )
 
 type ClusterType string
@@ -269,6 +271,10 @@ func GetBloomModelImage() string {
 
 func GetAlpacaDatasetImage() string {
 	return lookupEnvOrDefault(alpacaDatasetImageEnvVar, "quay.io/ksuta/alpaca-dataset@sha256:2e90f631180c7b2c916f9569b914b336b612e8ae86efad82546adc5c9fcbbb8d")
+}
+
+func GetCurlImage() string {
+	return lookupEnvOrDefault(curlImageEnvVar, "registry.redhat.io/ubi9/ubi-minimal:9.8-1790754119@sha256:eba570d04193d1523a8576b1c0ff00e681c9edb1a41d4742559b6e3ff457601e")
 }
 
 func lookupEnvOrDefault(key, value string) string {

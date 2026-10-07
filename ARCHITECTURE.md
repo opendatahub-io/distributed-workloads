@@ -127,9 +127,6 @@ images/
 ├── model/
 │   └── bloom560m/                 BLOOM-560M model image
 ├── runtime/
-│   ├── training/                  Runtime training images (Trainer v2)
-│   │   ├── py312-cuda130-torch210-openmpi41/
-│   │   └── py312-rocm64-torch29-openmpi41/
 │   ├── ray/                       Ray runtime images
 │   │   ├── cuda/                    CUDA variants
 │   │   └── rocm/                    ROCm variants
@@ -146,8 +143,7 @@ images/
 
 Key distinction for dependency management (matters for CVE fixes):
 
-- **Runtime training images** (`images/runtime/training/`) use `Pipfile`/`Pipfile.lock` (pipenv) and pull from public PyPI. Two openmpi41 variants are exceptions that use `pyproject.toml`/`requirements.txt` instead. See `images/runtime/training/README.md`.
-- **Universal training images** (`images/universal/training/`) use `pyproject.toml`/`requirements.txt` (pip) and pull from a private AIPCC PyPI index. See `images/universal/training/README.md`.
+- **Universal training images** (`images/universal/training/`) provide the supported training environments, including the CUDA image used for OpenMPI workloads. They use `pyproject.toml`/`requirements.txt` (pip) and pull from a private AIPCC PyPI index. See `images/universal/training/README.md`.
 
 ## Examples
 

@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
 	coordinationv1 "k8s.io/api/coordination/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -21,10 +21,10 @@ import (
 
 	. "github.com/opendatahub-io/distributed-workloads/tests/common"
 	. "github.com/opendatahub-io/distributed-workloads/tests/common/support"
+	trainerutils "github.com/opendatahub-io/distributed-workloads/tests/trainer/utils"
 )
 
 const (
-	trainerControllerDeployment = "kubeflow-trainer-controller-manager"
 	tlsProfileLeaseName         = "trainer-tls-profile-e2e"
 	tlsProfileLeaseNamespace    = "openshift-config"
 	tlsProfileTransitionTimeout = 3 * time.Minute
@@ -79,9 +79,9 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 		restoreCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
 		resource := test.Client().Dynamic().Resource(openShiftAPIServerGVR)
-		restoreDeployment := getTrainerDeployment(test, applicationsNamespace)
-		restoreBeforePod := trainerControllerPod(test, applicationsNamespace, restoreDeployment)
-		restoreBeforePodUIDs := trainerControllerPodUIDs(test, applicationsNamespace, restoreDeployment)
+		restoreSelector := trainerutils.TrainerControllerSelector(test)
+		restoreBeforePod := trainerutils.GetTrainerControllerPod(test, tlsProfileTransitionTimeout)
+		restoreBeforePodUIDs := trainerControllerPodUIDs(test, applicationsNamespace, restoreSelector)
 		restoreBeforeRestartCount := trainerControllerRestartCount(restoreBeforePod)
 		var restoreProfileUpdateStartedAt time.Time
 		var lastErr error
@@ -113,7 +113,7 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 			}
 		} else {
 			test.T().Logf("Restored APIServer TLS profile to %s", originalType)
-			waitForTrainerControllerRestart(test, applicationsNamespace, restoreDeployment, restoreBeforePod, restoreBeforePodUIDs, restoreBeforeRestartCount, restoreProfileUpdateStartedAt)
+			waitForTrainerControllerRestart(test, applicationsNamespace, restoreSelector, restoreBeforePod, restoreBeforePodUIDs, restoreBeforeRestartCount, restoreProfileUpdateStartedAt)
 			recoveryErr := wait.PollUntilContextTimeout(
 				restoreCtx, 5*time.Second, 10*time.Minute, true,
 				func(ctx context.Context) (bool, error) {
@@ -128,8 +128,7 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 					if typeErr != nil || currentType != originalType {
 						return false, nil
 					}
-					deployment := getTrainerDeployment(test, applicationsNamespace)
-					return trainerControllerReady(test, applicationsNamespace, deployment, ctx)
+					return trainerControllerReady(test, applicationsNamespace, restoreSelector, ctx)
 				},
 			)
 			if recoveryErr != nil {
@@ -140,9 +139,9 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 		}
 	}
 
-	deployment := getTrainerDeployment(test, applicationsNamespace)
-	beforePod := trainerControllerPod(test, applicationsNamespace, deployment)
-	beforePodUIDs := trainerControllerPodUIDs(test, applicationsNamespace, deployment)
+	selector := trainerutils.TrainerControllerSelector(test)
+	beforePod := trainerutils.GetTrainerControllerPod(test, tlsProfileTransitionTimeout)
+	beforePodUIDs := trainerControllerPodUIDs(test, applicationsNamespace, selector)
 	beforeRestartCount := trainerControllerRestartCount(beforePod)
 	test.T().Logf("Updating APIServer TLS profile; Trainer pod=%s restartCount=%d", beforePod.Name, beforeRestartCount)
 	resource := test.Client().Dynamic().Resource(openShiftAPIServerGVR)
@@ -180,11 +179,11 @@ func TestTrainerTLSProfileWatcher(t *testing.T) {
 	test.T().Cleanup(restoreTLSProfile)
 	test.T().Logf("APIServer TLS profile updated to %s; waiting for Trainer restart", newProfile)
 
-	waitForTrainerControllerRestart(test, applicationsNamespace, deployment, beforePod, beforePodUIDs, beforeRestartCount, profileUpdateStartedAt)
+	waitForTrainerControllerRestart(test, applicationsNamespace, selector, beforePod, beforePodUIDs, beforeRestartCount, profileUpdateStartedAt)
 
 	// The controller should remain healthy after the profile transition.
 	test.Eventually(func(g Gomega, ctx context.Context) {
-		updated := getTrainerDeployment(test, applicationsNamespace)
+		updated := trainerutils.GetTrainerControllerDeployment(test)
 		g.Expect(deploymentAvailable(updated)).To(BeTrue())
 	}, tlsProfileTransitionTimeout, 5*time.Second).WithContext(test.Ctx()).Should(Succeed())
 	test.T().Logf("Trainer controller recovered after TLS profile transition")
@@ -200,74 +199,30 @@ func tlsSecurityProfile(profileType string) map[string]interface{} {
 	return profile
 }
 
-func getTrainerDeployment(test Test, namespace string) *unstructured.Unstructured {
-	deployment, err := test.Client().Dynamic().Resource(schema.GroupVersionResource{
-		Group: "apps", Version: "v1", Resource: "deployments",
-	}).Namespace(namespace).Get(test.Ctx(), trainerControllerDeployment, metav1.GetOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	return deployment
-}
-
-func trainerControllerPod(test Test, namespace string, deployment *unstructured.Unstructured) *corev1.Pod {
-	selector, _, err := unstructured.NestedStringMap(deployment.Object, "spec", "selector", "matchLabels")
-	test.Expect(err).NotTo(HaveOccurred())
-	var readyPod *corev1.Pod
-	test.Eventually(func(g Gomega, ctx context.Context) {
-		readyPod = nil
-		pods, listErr := test.Client().Core().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-			LabelSelector: labelsToSelector(selector),
-		})
-		g.Expect(listErr).NotTo(HaveOccurred())
-		for i := range pods.Items {
-			if pods.Items[i].Status.Phase == corev1.PodRunning && podReady(&pods.Items[i]) {
-				readyPod = &pods.Items[i]
-				return
-			}
-		}
-		g.Expect(readyPod).NotTo(BeNil(), "Trainer controller pod is not ready")
-	}, tlsProfileTransitionTimeout, 5*time.Second).WithContext(test.Ctx()).Should(Succeed())
-	test.T().Logf("Trainer controller pod %s is Ready (restartCount=%d)", readyPod.Name, trainerControllerRestartCount(readyPod))
-	return readyPod
-}
-
-func podReady(pod *corev1.Pod) bool {
-	for _, condition := range pod.Status.Conditions {
-		if condition.Type == corev1.PodReady {
-			return condition.Status == corev1.ConditionTrue
-		}
-	}
-	return false
-}
-
-func trainerControllerPodUIDs(test Test, namespace string, deployment *unstructured.Unstructured) map[string]struct{} {
-	selector, _, err := unstructured.NestedStringMap(deployment.Object, "spec", "selector", "matchLabels")
-	test.Expect(err).NotTo(HaveOccurred())
-	pods, err := test.Client().Core().CoreV1().Pods(namespace).List(test.Ctx(), metav1.ListOptions{
-		LabelSelector: labelsToSelector(selector),
+func trainerControllerPodUIDs(test Test, namespace, selector string) map[string]struct{} {
+	pods := GetPods(test, namespace, metav1.ListOptions{
+		LabelSelector: selector,
 	})
-	test.Expect(err).NotTo(HaveOccurred())
-	ids := make(map[string]struct{}, len(pods.Items))
-	for _, pod := range pods.Items {
+	ids := make(map[string]struct{}, len(pods))
+	for _, pod := range pods {
 		ids[string(pod.UID)] = struct{}{}
 	}
 	return ids
 }
 
-func waitForTrainerControllerRestart(test Test, namespace string, deployment *unstructured.Unstructured, beforePod *corev1.Pod, beforePodUIDs map[string]struct{}, beforeRestartCount int32, profileUpdatedAt time.Time) {
-	selector, _, err := unstructured.NestedStringMap(deployment.Object, "spec", "selector", "matchLabels")
-	test.Expect(err).NotTo(HaveOccurred())
+func waitForTrainerControllerRestart(test Test, namespace, selector string, beforePod *corev1.Pod, beforePodUIDs map[string]struct{}, beforeRestartCount int32, profileUpdatedAt time.Time) {
 	test.Eventually(func(g Gomega, ctx context.Context) {
 		pods, listErr := test.Client().Core().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-			LabelSelector: labelsToSelector(selector),
+			LabelSelector: selector,
 		})
 		g.Expect(listErr).NotTo(HaveOccurred())
 		for i := range pods.Items {
 			pod := &pods.Items[i]
-			if _, existed := beforePodUIDs[string(pod.UID)]; !existed && podReady(pod) && pod.CreationTimestamp.Time.After(profileUpdatedAt) {
+			if _, existed := beforePodUIDs[string(pod.UID)]; !existed && trainerutils.PodReady(pod) && pod.CreationTimestamp.Time.After(profileUpdatedAt) {
 				test.T().Logf("Trainer pod was replaced after TLS profile change: %s -> %s", beforePod.Name, pod.Name)
 				return
 			}
-			if pod.UID == beforePod.UID && podReady(pod) && trainerControllerRestartCount(pod) > beforeRestartCount {
+			if pod.UID == beforePod.UID && trainerutils.PodReady(pod) && trainerControllerRestartCount(pod) > beforeRestartCount {
 				test.T().Logf("Trainer container restarted in pod %s: restartCount %d -> %d", pod.Name, beforeRestartCount, trainerControllerRestartCount(pod))
 				return
 			}
@@ -285,19 +240,15 @@ func trainerControllerRestartCount(pod *corev1.Pod) int32 {
 	return 0
 }
 
-func trainerControllerReady(test Test, namespace string, deployment *unstructured.Unstructured, ctx context.Context) (bool, error) {
-	selector, _, err := unstructured.NestedStringMap(deployment.Object, "spec", "selector", "matchLabels")
-	if err != nil {
-		return false, err
-	}
+func trainerControllerReady(test Test, namespace, selector string, ctx context.Context) (bool, error) {
 	pods, err := test.Client().Core().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labelsToSelector(selector),
+		LabelSelector: selector,
 	})
 	if err != nil {
 		return false, err
 	}
 	for i := range pods.Items {
-		if pods.Items[i].Status.Phase == corev1.PodRunning && podReady(&pods.Items[i]) {
+		if pods.Items[i].Status.Phase == corev1.PodRunning && trainerutils.PodReady(&pods.Items[i]) {
 			return true, nil
 		}
 	}
@@ -454,19 +405,9 @@ func acquireTLSProfileLock(test Test) *tlsProfileLock {
 	return lock
 }
 
-func labelsToSelector(labels map[string]string) string {
-	items := make([]string, 0, len(labels))
-	for key, value := range labels {
-		items = append(items, key+"="+value)
-	}
-	return strings.Join(items, ",")
-}
-
-func deploymentAvailable(deployment *unstructured.Unstructured) bool {
-	conditions, _, _ := unstructured.NestedSlice(deployment.Object, "status", "conditions")
-	for _, rawCondition := range conditions {
-		condition := rawCondition.(map[string]interface{})
-		if condition["type"] == "Available" && condition["status"] == "True" {
+func deploymentAvailable(deployment *appsv1.Deployment) bool {
+	for _, condition := range deployment.Status.Conditions {
+		if condition.Type == appsv1.DeploymentAvailable && condition.Status == corev1.ConditionTrue {
 			return true
 		}
 	}

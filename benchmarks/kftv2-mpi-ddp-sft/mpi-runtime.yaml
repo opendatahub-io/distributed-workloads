@@ -33,7 +33,7 @@ spec:
             template:
               spec:
                 containers:
-                - image: quay.io/opendatahub/odh-training-cuda130-torch210-py312-openmpi41:odh-stable
+                - image: quay.io/opendatahub/odh-th-torch-cuda-py312:odh-stable
                   name: node
                   resources:
                     limits:
@@ -55,7 +55,7 @@ spec:
                   command:
                   - /usr/local/bin/uid_entrypoint.sh
                   - /usr/sbin/sshd
-                  image: quay.io/opendatahub/odh-training-cuda130-torch210-py312-openmpi41:odh-stable
+                  image: quay.io/opendatahub/odh-th-torch-cuda-py312:odh-stable
                   name: node
                   readinessProbe:
                     initialDelaySeconds: 3
