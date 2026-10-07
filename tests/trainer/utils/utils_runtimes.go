@@ -43,7 +43,7 @@ const (
 	DefaultClusterTrainingRuntimeOpenMPICUDA = "openmpi-cuda"
 
 	// DefaultClusterTrainingRuntimeOpenMPICUDAImage is the expected image suffix for the OpenMPI CUDA runtime
-	DefaultClusterTrainingRuntimeOpenMPICUDAImage = "odh-training-cuda130-torch210-py312-openmpi41"
+	DefaultClusterTrainingRuntimeOpenMPICUDAImage = "odh-th-torch-cuda-py312"
 
 	// DefaultTrainingHubRuntimeCUDA is the default CUDA runtime for training hub workloads
 	DefaultTrainingHubRuntimeCUDA = "training-hub"
@@ -123,7 +123,7 @@ var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: DefaultClusterTrainingRuntimeCUDA, Image: "odh-th-torch-cuda-py312"},
 	{Name: DefaultClusterTrainingRuntimeROCm, Image: "odh-th-torch-rocm-py312"},
 	{Name: DefaultClusterTrainingRuntimeCPU, Image: "odh-th-torch-cpu-py312"},
-	//	{Name: DefaultClusterTrainingRuntimeOpenMPICUDA, Image: DefaultClusterTrainingRuntimeOpenMPICUDAImage},
+	{Name: DefaultClusterTrainingRuntimeOpenMPICUDA, Image: DefaultClusterTrainingRuntimeOpenMPICUDAImage},
 	{Name: "torch-distributed-cuda130-torch211-py312", Image: "odh-th-torch-cuda-py312"},
 	{Name: "torch-distributed-rocm714-torch211-py312", Image: "odh-th-torch-rocm-py312"},
 	{Name: "torch-distributed-cpu-torch211-py312", Image: "odh-th-torch-cpu-py312"},
