@@ -196,12 +196,20 @@ func runNetworkPolicyCurlProbe(test Test, sourceNamespace, url string) (string, 
 	probe := CreatePod(test, sourceNamespace, &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: "trainer-netpol-curl-"},
 		Spec: corev1.PodSpec{
+			SecurityContext: &corev1.PodSecurityContext{
+				SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault},
+			},
 			RestartPolicy: corev1.RestartPolicyNever,
 			Containers: []corev1.Container{{
 				Name:    trainerNetpolCurlContainer,
 				Image:   GetCurlImage(),
 				Command: []string{"curl"},
 				Args:    args,
+				SecurityContext: &corev1.SecurityContext{
+					AllowPrivilegeEscalation: Ptr(false),
+					RunAsNonRoot:             Ptr(true),
+					Capabilities:             &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}},
+				},
 			}},
 		},
 	})
