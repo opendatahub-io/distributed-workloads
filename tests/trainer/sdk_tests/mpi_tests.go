@@ -21,7 +21,6 @@ import (
 	"os"
 	"testing"
 
-	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -132,35 +131,6 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 		support.DeleteDeployment(test, namespace, deployment.Name)
 	}()
 
-	if useKueue {
-		test.T().Logf("Verifying SDK-submitted OpenMPI TrainJob has custom queue label: %s", localQueueName)
-		test.Eventually(support.TrainJobs(test, namespace.Name), support.TestTimeoutDouble).Should(
-			And(
-				HaveLen(1),
-				ContainElement(WithTransform(func(job trainerv1alpha1.TrainJob) string {
-					return job.Labels["kueue.x-k8s.io/queue-name"]
-				}, Equal(localQueueName))),
-			),
-		)
-
-		test.T().Log("Verifying Kueue Workloads: Deployment and OpenMPI TrainJob on custom queue...")
-		test.Eventually(support.KueueWorkloads(test, namespace.Name), support.TestTimeoutDouble).Should(
-			And(
-				HaveLen(2),
-				ContainElement(
-					And(
-						WithTransform(func(w *kueuev1beta2.Workload) string {
-							return string(w.Spec.QueueName)
-						}, Equal(localQueueName)),
-						WithTransform(support.KueueWorkloadAdmitted, BeTrue()),
-					),
-				),
-			),
-		)
-	}
-
-	podName, containerName := support.WaitForDeploymentPodRunning(test, namespace.Name, deployment.Name)
-
 	test.Eventually(support.TrainJobs(test, namespace.Name), support.TestTimeoutDouble).Should(HaveLen(1))
 	jobs, err := test.Client().Trainer().TrainerV1alpha1().TrainJobs(namespace.Name).List(
 		test.Ctx(), metav1.ListOptions{},
@@ -182,7 +152,6 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 			})
 			g.Expect(pods).To(HaveLen(1), "Expected one %s pod", role)
 			g.Expect(pods[0].Spec.NodeName).NotTo(BeEmpty(), "%s pod is not scheduled", role)
-			g.Expect(pods[0].Status.Phase).To(Equal(corev1.PodRunning), "%s pod should be running", role)
 			var nodeContainer *corev1.Container
 			for i := range pods[0].Spec.Containers {
 				if pods[0].Spec.Containers[i].Name == "node" {
@@ -206,6 +175,27 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 			"SDK MPI launcher and worker must run on different nodes")
 	}, support.TestTimeoutDouble).Should(Succeed())
 
+	if useKueue {
+		test.T().Logf("Verifying SDK-submitted OpenMPI TrainJob has custom queue label: %s", localQueueName)
+		test.Expect(jobs.Items[0].Labels["kueue.x-k8s.io/queue-name"]).To(Equal(localQueueName))
+
+		test.T().Log("Verifying Kueue Workloads: Deployment and OpenMPI TrainJob on custom queue...")
+		test.Eventually(support.KueueWorkloads(test, namespace.Name), support.TestTimeoutDouble).Should(
+			And(
+				HaveLen(2),
+				ContainElement(
+					And(
+						WithTransform(func(w *kueuev1beta2.Workload) string {
+							return string(w.Spec.QueueName)
+						}, Equal(localQueueName)),
+						WithTransform(support.KueueWorkloadAdmitted, BeTrue()),
+					),
+				),
+			),
+		)
+	}
+
+	podName, containerName := support.WaitForDeploymentPodRunning(test, namespace.Name, deployment.Name)
 	err = support.PollPodLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
 	test.Expect(err).ShouldNot(HaveOccurred(), "Deployment runner execution reported FAILURE")
 

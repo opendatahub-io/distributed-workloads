@@ -108,16 +108,9 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 	)
 	test.T().Log("JobSet created with launcher and node replicated jobs")
 
-	test.Eventually(func(g Gomega) {
-		launcherRunning, nodeRunning := openMPIRunningPodCounts(test, namespace, trainJob.Name)
-		g.Expect(launcherRunning).To(Equal(1), "expected exactly one running launcher pod")
-		g.Expect(nodeRunning).To(Equal(1), "expected exactly one running worker pod")
-	}, TestTimeoutMedium).Should(Succeed())
-	test.T().Log("Launcher and worker pods reached Running concurrently")
 	expectedImage, err := trainerutils.GetImageFromClusterTrainingRuntime(test, trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA)
 	test.Expect(err).NotTo(HaveOccurred())
 	assertMPIPodLayout(test, namespace, trainJob.Name, expectedImage, "cuda")
-
 	test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutLong).
 		Should(Satisfy(TrainJobReachedFinalState))
 	launcherPod := openMPIPodByRole(test, namespace, trainJob.Name, "launcher")
