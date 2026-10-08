@@ -187,3 +187,4 @@ WORKDIR /opt/app-root/src
 
 ENTRYPOINT ["/usr/local/bin/entrypoint-universal.sh"]
 CMD ["start-notebook.sh"]
+
