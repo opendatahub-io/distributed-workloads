@@ -52,13 +52,13 @@ func runMPITrainJob(t *testing.T, deviceMode string) {
 		mpiCollectivesScript: readFile(test, "resources/"+mpiCollectivesScript),
 	})
 
-	runtimeRef := trainerv1alpha1.RuntimeRef{Name: trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA}
-	expectedImage, err := trainerutils.GetImageFromClusterTrainingRuntime(test, runtimeRef.Name)
-	test.Expect(err).NotTo(HaveOccurred())
+	runtimeName := trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA
 	if deviceMode == "cpu" {
-		runtimeRef.Name, expectedImage = createCPUOpenMPIRuntime(test, namespace)
-		runtimeRef.Kind = Ptr("TrainingRuntime")
+		runtimeName = trainerutils.DefaultClusterTrainingRuntimeOpenMPICPU
 	}
+	runtimeRef := trainerv1alpha1.RuntimeRef{Name: runtimeName}
+	expectedImage, err := trainerutils.GetImageFromClusterTrainingRuntime(test, runtimeName)
+	test.Expect(err).NotTo(HaveOccurred())
 
 	trainJob := createMPITrainJob(test, namespace, configMap.Name, runtimeRef, deviceMode)
 	launcherPod, _ := assertMPIPodLayout(test, namespace, trainJob.Name, expectedImage, deviceMode)
@@ -78,45 +78,6 @@ func runMPITrainJob(t *testing.T, deviceMode string) {
 	test.Expect(jobset).To(WithTransform(JobSetReplicatedJobsCount, Equal(2)),
 		"MPI JobSet should have launcher and node replicated jobs")
 	assertMPICollectivesMarkers(test, logs, deviceMode)
-}
-
-func createCPUOpenMPIRuntime(test Test, namespace string) (string, string) {
-	test.T().Helper()
-
-	source, err := test.Client().Trainer().TrainerV1alpha1().ClusterTrainingRuntimes().Get(
-		test.Ctx(), trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA, metav1.GetOptions{},
-	)
-	test.Expect(err).NotTo(HaveOccurred(), "Failed to get OpenMPI runtime configuration")
-	image, err := trainerutils.GetImageFromClusterTrainingRuntime(test, trainerutils.DefaultClusterTrainingRuntimeCPU)
-	test.Expect(err).NotTo(HaveOccurred(), "Failed to get universal CPU image")
-
-	runtime := &trainerv1alpha1.TrainingRuntime{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-openmpi-cpu-",
-			Namespace:    namespace,
-			Labels: map[string]string{
-				"trainer.kubeflow.org/framework": "openmpi",
-			},
-		},
-		Spec: *source.Spec.DeepCopy(),
-	}
-	imageCount := 0
-	for i := range runtime.Spec.Template.Spec.ReplicatedJobs {
-		containers := runtime.Spec.Template.Spec.ReplicatedJobs[i].Template.Spec.Template.Spec.Containers
-		for j := range containers {
-			if containers[j].Name == "node" {
-				containers[j].Image = image
-				imageCount++
-			}
-		}
-	}
-	test.Expect(imageCount).To(Equal(2), "OpenMPI launcher and worker images must both be set")
-
-	created, err := test.Client().Trainer().TrainerV1alpha1().TrainingRuntimes(namespace).Create(
-		test.Ctx(), runtime, metav1.CreateOptions{},
-	)
-	test.Expect(err).NotTo(HaveOccurred(), "Failed to create CPU OpenMPI TrainingRuntime")
-	return created.Name, image
 }
 
 func createMPITrainJob(test Test, namespace, configMapName string, runtimeRef trainerv1alpha1.RuntimeRef, deviceMode string) *trainerv1alpha1.TrainJob {
