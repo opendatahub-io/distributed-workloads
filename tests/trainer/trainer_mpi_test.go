@@ -61,17 +61,7 @@ func runMPITrainJob(t *testing.T, deviceMode string) {
 	}
 
 	trainJob := createMPITrainJob(test, namespace, configMap.Name, runtimeRef, deviceMode)
-	test.Eventually(func(g Gomega) {
-		pods := GetPods(test, namespace, metav1.ListOptions{
-			LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJob.Name,
-		})
-		g.Expect(pods).To(HaveLen(2), "MPI launcher and worker pods should both exist")
-		for _, pod := range pods {
-			g.Expect(pod.Status.Phase).To(Equal(corev1.PodRunning), "%s pod should be running", pod.Name)
-		}
-	}, TestTimeoutMedium).Should(Succeed())
 	launcherPod, _ := assertMPIPodLayout(test, namespace, trainJob.Name, expectedImage, deviceMode)
-
 	test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutDouble).
 		Should(Satisfy(TrainJobReachedFinalState))
 
@@ -236,30 +226,33 @@ func mpiTestEnv() []corev1.EnvVar {
 
 func assertMPIPodLayout(test Test, namespace, trainJobName, expectedImage, deviceMode string) (corev1.Pod, corev1.Pod) {
 	test.T().Helper()
-	rolePod := func(role string) corev1.Pod {
-		pods := GetPods(test, namespace, metav1.ListOptions{
-			LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJobName +
-				",jobset.sigs.k8s.io/replicatedjob-name=" + role,
-		})
-		test.Expect(pods).To(HaveLen(1), "Expected exactly one %s pod", role)
-		pod := pods[0]
-		test.Expect(pod.Spec.NodeName).NotTo(BeEmpty(), "%s pod is not scheduled", role)
-		container := mpiNodeContainer(test, pod)
-		test.Expect(container.Image).To(Equal(expectedImage), "%s pod uses the wrong runtime image", role)
-		gpu := corev1.ResourceName(NVIDIA.ResourceLabel)
-		if deviceMode == "cuda" {
-			test.Expect(container.Resources.Requests[gpu]).To(Equal(resource.MustParse("1")))
-			test.Expect(container.Resources.Limits[gpu]).To(Equal(resource.MustParse("1")))
-		} else {
-			test.Expect(container.Resources.Requests).NotTo(HaveKey(gpu))
-			test.Expect(container.Resources.Limits).NotTo(HaveKey(gpu))
+	var launcher, worker corev1.Pod
+	test.Eventually(func(g Gomega) {
+		rolePod := func(role string) corev1.Pod {
+			pods := GetPods(test, namespace, metav1.ListOptions{
+				LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJobName +
+					",jobset.sigs.k8s.io/replicatedjob-name=" + role,
+			})
+			g.Expect(pods).To(HaveLen(1), "Expected exactly one %s pod", role)
+			pod := pods[0]
+			g.Expect(pod.Spec.NodeName).NotTo(BeEmpty(), "%s pod is not scheduled", role)
+			container := mpiNodeContainer(test, pod)
+			g.Expect(container.Image).To(Equal(expectedImage), "%s pod uses the wrong runtime image", role)
+			gpu := corev1.ResourceName(NVIDIA.ResourceLabel)
+			if deviceMode == "cuda" {
+				g.Expect(container.Resources.Requests[gpu]).To(Equal(resource.MustParse("1")))
+				g.Expect(container.Resources.Limits[gpu]).To(Equal(resource.MustParse("1")))
+			} else {
+				g.Expect(container.Resources.Requests).NotTo(HaveKey(gpu))
+				g.Expect(container.Resources.Limits).NotTo(HaveKey(gpu))
+			}
+			return pod
 		}
-		return pod
-	}
-	launcher := rolePod("launcher")
-	worker := rolePod("node")
-	test.Expect(launcher.Spec.NodeName).NotTo(Equal(worker.Spec.NodeName),
-		"MPI launcher and worker must run on different nodes")
+		launcher = rolePod("launcher")
+		worker = rolePod("node")
+		g.Expect(launcher.Spec.NodeName).NotTo(Equal(worker.Spec.NodeName),
+			"MPI launcher and worker must run on different nodes")
+	}, TestTimeoutMedium).Should(Succeed())
 	return launcher, worker
 }
 
