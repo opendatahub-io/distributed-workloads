@@ -123,7 +123,7 @@ var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: DefaultClusterTrainingRuntimeCUDA, Image: "odh-th-torch-cuda-py312"},
 	{Name: DefaultClusterTrainingRuntimeROCm, Image: "odh-th-torch-rocm-py312"},
 	{Name: DefaultClusterTrainingRuntimeCPU, Image: "odh-th-torch-cpu-py312"},
-	//	{Name: DefaultClusterTrainingRuntimeOpenMPICUDA, Image: DefaultClusterTrainingRuntimeOpenMPICUDAImage},
+	{Name: DefaultClusterTrainingRuntimeOpenMPICUDA, Image: DefaultClusterTrainingRuntimeOpenMPICUDAImage},
 	{Name: "torch-distributed-cuda130-torch211-py312", Image: "odh-th-torch-cuda-py312"},
 	{Name: "torch-distributed-rocm714-torch211-py312", Image: "odh-th-torch-rocm-py312"},
 	{Name: "torch-distributed-cpu-torch211-py312", Image: "odh-th-torch-cpu-py312"},
