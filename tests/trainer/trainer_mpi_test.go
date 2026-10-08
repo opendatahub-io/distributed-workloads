@@ -190,9 +190,7 @@ func createMPITrainJob(test Test, namespace, configMapName string, runtimeRef tr
 				Command: []string{
 					"mpirun", "python", "/etc/mpi-test/" + mpiCollectivesScript, "--device", deviceMode,
 				},
-				Env: append(mpiTestEnv(), corev1.EnvVar{
-					Name: "MPI_TEST_HOLD_SECONDS", Value: "30",
-				}),
+				Env:              mpiTestEnv(),
 				ResourcesPerNode: resources,
 			},
 			RuntimePatches: []trainerv1alpha1.RuntimePatch{{

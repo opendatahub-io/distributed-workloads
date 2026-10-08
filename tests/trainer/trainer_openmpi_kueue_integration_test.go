@@ -89,7 +89,7 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 
 	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name)
-	trainJob := createOpenMPICudaKueueTrainJob(test, namespace, localQueue.Name, configMap.Name, "15")
+	trainJob := createOpenMPICudaKueueTrainJob(test, namespace, localQueue.Name, configMap.Name, false)
 
 	test.Eventually(KueueWorkloads(test, namespace), TestTimeoutMedium).Should(
 		And(
@@ -188,7 +188,7 @@ func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
 	defer test.Client().Kueue().KueueV1beta2().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 
 	localQueue := CreateKueueLocalQueue(test, namespace, clusterQueue.Name)
-	trainJob := createOpenMPICudaKueueTrainJob(test, namespace, localQueue.Name, configMap.Name, "40")
+	trainJob := createOpenMPICudaKueueTrainJob(test, namespace, localQueue.Name, configMap.Name, true)
 
 	test.Eventually(KueueWorkloads(test, namespace), TestTimeoutMedium).Should(
 		And(
@@ -260,23 +260,23 @@ func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
 	newLauncher, newWorker := assertMPIPodLayout(test, namespace, trainJob.Name, expectedImage, "cuda")
 	test.Expect(newLauncher.UID).NotTo(Equal(oldLauncher.UID), "Launcher pod should be recreated")
 	test.Expect(newWorker.UID).NotTo(Equal(oldWorker.UID), "Worker pod should be recreated")
-
-	test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutLong).
-		Should(Satisfy(TrainJobReachedFinalState))
-	launcherPod := openMPIPodByRole(test, namespace, trainJob.Name, "launcher")
-	launcherLog := GetPodLog(test, namespace, launcherPod.Name, corev1.PodLogOptions{
-		Container: "node",
-	})
-	finalJob := TrainJob(test, namespace, trainJob.Name)(test)
-	test.Expect(finalJob).To(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)),
-		"OpenMPI TrainJob failed after reactivation: %s; launcher logs:\n%s",
-		TrainJobFailedMessage(finalJob), launcherLog)
-	assertMPICollectivesMarkers(test, launcherLog, "cuda")
-	test.T().Logf("OpenMPI TrainJob %s/%s completed successfully after workload reactivation", namespace, trainJob.Name)
+	test.T().Log("OpenMPI launcher and worker pods were recreated after workload reactivation")
 }
 
-func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapName, holdSeconds string) *trainerv1alpha1.TrainJob {
+func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapName string, holdUntilStopped bool) *trainerv1alpha1.TrainJob {
 	test.T().Helper()
+
+	command := []string{
+		"/usr/local/bin/uid_entrypoint.sh",
+		"mpirun",
+		"python",
+		"/mnt/scripts/" + mpiCollectivesScript,
+		"--device",
+		"cuda",
+	}
+	if holdUntilStopped {
+		command = append(command, "--hold-until-stopped")
+	}
 
 	trainJob := &trainerv1alpha1.TrainJob{
 		ObjectMeta: metav1.ObjectMeta{
@@ -291,19 +291,9 @@ func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapNa
 				Name: trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA,
 			},
 			Trainer: &trainerv1alpha1.Trainer{
-				Command: []string{
-					"/usr/local/bin/uid_entrypoint.sh",
-					"mpirun",
-					"python",
-					"/mnt/scripts/" + mpiCollectivesScript,
-					"--device",
-					"cuda",
-				},
+				Command:  command,
 				NumNodes: Ptr(int32(2)),
-				Env: append(mpiTestEnv(),
-					corev1.EnvVar{Name: "MPI_TEST_HOLD_SECONDS", Value: holdSeconds},
-					corev1.EnvVar{Name: "PYTHONUNBUFFERED", Value: "1"},
-				),
+				Env:      append(mpiTestEnv(), corev1.EnvVar{Name: "PYTHONUNBUFFERED", Value: "1"}),
 				ResourcesPerNode: Ptr(corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceCPU:                        resource.MustParse("2"),

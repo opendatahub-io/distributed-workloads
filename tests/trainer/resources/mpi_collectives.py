@@ -4,7 +4,7 @@
 
 import argparse
 import os
-import time
+import threading
 
 import torch
 import torch.distributed as dist
@@ -22,20 +22,13 @@ def _expect(operation, tensor, expected, device):
         raise AssertionError(f"{operation}: got {actual}, expected {expected}")
 
 
-def run_collectives(device_mode):
+def run_collectives(device_mode, hold_until_stopped=False):
     if device_mode not in ("cpu", "cuda"):
         raise ValueError(f"Unsupported device mode: {device_mode}")
 
     rank = os.environ.get("OMPI_COMM_WORLD_RANK", "unknown")
     operation = "setup"
     try:
-        hold_seconds = float(os.environ.get("MPI_TEST_HOLD_SECONDS", "0"))
-        if hold_seconds < 0:
-            raise ValueError("MPI_TEST_HOLD_SECONDS must be non-negative")
-        if hold_seconds:
-            print(f"MPI COLLECTIVES HOLD rank={rank} seconds={hold_seconds}", flush=True)
-            time.sleep(hold_seconds)
-
         if not dist.is_mpi_available():
             raise RuntimeError("PyTorch was built without the MPI backend")
 
@@ -134,6 +127,9 @@ def run_collectives(device_mode):
             f"MPI COLLECTIVES PASSED device={device_mode} rank={rank} world_size={world_size}",
             flush=True,
         )
+        if hold_until_stopped:
+            print(f"MPI COLLECTIVES HOLDING rank={rank}", flush=True)
+            threading.Event().wait()
     except Exception as exc:
         print(
             f"MPI COLLECTIVES FAILED device={device_mode} rank={rank} "
@@ -149,5 +145,6 @@ def run_collectives(device_mode):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", choices=("cpu", "cuda"), required=True)
+    parser.add_argument("--hold-until-stopped", action="store_true")
     arguments = parser.parse_args()
-    run_collectives(arguments.device)
+    run_collectives(arguments.device, arguments.hold_until_stopped)
