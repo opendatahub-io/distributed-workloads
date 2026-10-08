@@ -122,7 +122,7 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 		command,
 		cm.Name,
 		rwxPvc,
-		support.ContainerSizeMedium,
+		support.ContainerSizeSmall,
 		common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCUDA),
 		env,
 		deploymentOptions...,
@@ -246,11 +246,11 @@ func setupOpenMPIGpuKueue(test support.Test, namespaceName string, accelerator s
 						Resources: []kueuev1beta2.ResourceQuota{
 							{
 								Name:         corev1.ResourceCPU,
-								NominalQuota: resource.MustParse("7"),
+								NominalQuota: resource.MustParse("5"),
 							},
 							{
 								Name:         corev1.ResourceMemory,
-								NominalQuota: resource.MustParse("40Gi"),
+								NominalQuota: resource.MustParse("7Gi"),
 							},
 							{
 								Name:         corev1.ResourceName(accelerator.ResourceLabel),

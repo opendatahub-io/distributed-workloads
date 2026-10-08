@@ -74,7 +74,7 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 							},
 							{
 								Name:         corev1.ResourceMemory,
-								NominalQuota: resource.MustParse("16Gi"),
+								NominalQuota: resource.MustParse("4Gi"),
 							},
 							{
 								Name:         corev1.ResourceName(NVIDIA.ResourceLabel),
@@ -166,7 +166,7 @@ func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
 							},
 							{
 								Name:         corev1.ResourceMemory,
-								NominalQuota: resource.MustParse("16Gi"),
+								NominalQuota: resource.MustParse("4Gi"),
 							},
 							{
 								Name:         corev1.ResourceName(NVIDIA.ResourceLabel),
@@ -290,12 +290,12 @@ func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapNa
 				ResourcesPerNode: Ptr(corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceCPU:                        resource.MustParse("2"),
-						corev1.ResourceMemory:                     resource.MustParse("8Gi"),
+						corev1.ResourceMemory:                     resource.MustParse("2Gi"),
 						corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse("1"),
 					},
 					Limits: corev1.ResourceList{
 						corev1.ResourceCPU:                        resource.MustParse("2"),
-						corev1.ResourceMemory:                     resource.MustParse("8Gi"),
+						corev1.ResourceMemory:                     resource.MustParse("2Gi"),
 						corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse("1"),
 					},
 				}),
@@ -351,7 +351,7 @@ func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapNa
 																VolumeSource: corev1.VolumeSource{
 																	EmptyDir: &corev1.EmptyDirVolumeSource{
 																		Medium:    corev1.StorageMediumMemory,
-																		SizeLimit: Ptr(resource.MustParse("8Gi")),
+																		SizeLimit: Ptr(resource.MustParse("2Gi")),
 																	},
 																},
 															},
@@ -400,7 +400,7 @@ func createOpenMPICudaKueueTrainJob(test Test, namespace, queueName, configMapNa
 																VolumeSource: corev1.VolumeSource{
 																	EmptyDir: &corev1.EmptyDirVolumeSource{
 																		Medium:    corev1.StorageMediumMemory,
-																		SizeLimit: Ptr(resource.MustParse("8Gi")),
+																		SizeLimit: Ptr(resource.MustParse("2Gi")),
 																	},
 																},
 															},
