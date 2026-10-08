@@ -86,11 +86,11 @@ func createMPITrainJob(test Test, namespace, configMapName string, runtimeRef tr
 	resources := &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
 			corev1.ResourceCPU:    resource.MustParse("2"),
-			corev1.ResourceMemory: resource.MustParse("8Gi"),
+			corev1.ResourceMemory: resource.MustParse("2Gi"),
 		},
 		Limits: corev1.ResourceList{
 			corev1.ResourceCPU:    resource.MustParse("2"),
-			corev1.ResourceMemory: resource.MustParse("8Gi"),
+			corev1.ResourceMemory: resource.MustParse("2Gi"),
 		},
 	}
 	if deviceMode == "cuda" {
@@ -179,7 +179,6 @@ func mpiPodAntiAffinity() *corev1.Affinity {
 
 func mpiTestEnv() []corev1.EnvVar {
 	return []corev1.EnvVar{
-		{Name: "HOME", Value: "/home/mpiuser"},
 		{Name: "OMPI_MCA_pml", Value: "ob1"},
 		{Name: "OMPI_MCA_btl", Value: "self,tcp"},
 	}
