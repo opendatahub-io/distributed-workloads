@@ -23,6 +23,11 @@ fi
 
 launcher="$(basename "$0")"
 if [[ "$launcher" == "mpirun" || "$launcher" == "mpiexec" ]]; then
+  max_nofile="${MPIRUN_MAX_NOFILE:-65536}"
+  if [ "$(ulimit -n)" -gt "$max_nofile" ]; then
+    ulimit -n "$max_nofile"
+  fi
+
   # Scope the MPI SSH settings to OpenMPI worker launches. This image is also
   # used as a notebook image, so a global ssh_config drop-in would break users
   # connecting to normal SSH services such as GitHub.
