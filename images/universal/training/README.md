@@ -204,6 +204,16 @@ uv pip compile --generate-hashes \
   pyproject.toml
 ```
 
+### Verify Universal Requirements
+
+From the repository root:
+
+```bash
+UV_SYSTEM_CERTS=true make verify-universal-requirements
+```
+
+The AIPCC PyPI index may be reachable through different endpoints depending on the network. Some environments present a certificate chain rooted in an internal CA that is available in the platform trust store but not in `uv`'s default bundled CA set. In that case, `uv` can report `UnknownIssuer`. `UV_SYSTEM_CERTS=true` tells `uv` to use the platform certificate store instead. Environments that reach the index through a publicly trusted endpoint do not need this setting. Set the same variable when running `uv pip compile` locally if it reports the same TLS error.
+
 ---
 
 ## Environment Variables (Midstream)
