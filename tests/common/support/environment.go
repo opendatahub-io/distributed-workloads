@@ -274,7 +274,7 @@ func GetAlpacaDatasetImage() string {
 }
 
 func GetCurlImage() string {
-	return lookupEnvOrDefault(curlImageEnvVar, "registry.redhat.io/ubi9/ubi-minimal:9.8-1790754119@sha256:eba570d04193d1523a8576b1c0ff00e681c9edb1a41d4742559b6e3ff457601e")
+	return lookupEnvOrDefault(curlImageEnvVar, "registry.redhat.io/ubi9/ubi-minimal@sha256:eba570d04193d1523a8576b1c0ff00e681c9edb1a41d4742559b6e3ff457601e")
 }
 
 func lookupEnvOrDefault(key, value string) string {
