@@ -33,7 +33,6 @@ import (
 )
 
 func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
@@ -135,7 +134,6 @@ func TestOpenMPICudaTrainJobKueueIntegration(t *testing.T) {
 }
 
 func TestOpenMPICudaTrainJobKueueWorkloadDeactivateReactivate(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
 	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)

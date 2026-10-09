@@ -9,13 +9,37 @@ from torch import nn
 from torch.utils.data import DataLoader, Subset
 
 
+def _init_process_group():
+    """Use PyTorch MPI when available; otherwise OpenMPI launch + NCCL/gloo."""
+    if dist.is_mpi_available():
+        dist.init_process_group(backend="mpi")
+        return
+
+    if "RANK" not in os.environ and "OMPI_COMM_WORLD_RANK" in os.environ:
+        os.environ["RANK"] = os.environ["OMPI_COMM_WORLD_RANK"]
+    if "WORLD_SIZE" not in os.environ and "OMPI_COMM_WORLD_SIZE" in os.environ:
+        os.environ["WORLD_SIZE"] = os.environ["OMPI_COMM_WORLD_SIZE"]
+    if "LOCAL_RANK" not in os.environ and "OMPI_COMM_WORLD_LOCAL_RANK" in os.environ:
+        os.environ["LOCAL_RANK"] = os.environ["OMPI_COMM_WORLD_LOCAL_RANK"]
+    if os.environ.get("OMPI_COMM_WORLD_RANK", "0") == "0":
+        os.environ["MASTER_ADDR"] = socket.gethostname()
+    else:
+        hnp = os.environ.get("OMPI_MCA_orte_hnp_uri", "")
+        if "@" in hnp:
+            host = hnp.split("@", 1)[1].split(":", 1)[0]
+            if host:
+                os.environ["MASTER_ADDR"] = host
+    os.environ.setdefault("MASTER_PORT", "29500")
+    backend = "nccl" if torch.cuda.is_available() else "gloo"
+    dist.init_process_group(backend=backend, init_method="env://")
+
+
 def train_mpi_fashion_mnist():
-    local_rank = int(os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK", "0"))
+    local_rank = int(os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK", os.environ.get("LOCAL_RANK", "0")))
     expected_size = 2
     hostname = socket.gethostname()
 
-    # Explicitly initialize PyTorch distributed with MPI backend for this E2E.
-    dist.init_process_group(backend="mpi")
+    _init_process_group()
     rank = dist.get_rank()
     size = dist.get_world_size()
     assert size == expected_size, f"Expected {expected_size} MPI processes, got {size}"
