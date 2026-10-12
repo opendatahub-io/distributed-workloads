@@ -8,10 +8,16 @@ metadata:
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
+    # TODO: Once DW e2e tests are moved into the trainer repository, remove
+    # the tests/** trigger and stop triggering this CPU image build for
+    # CUDA/ROCm image changes.
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "pull_request"
       && target_branch == "main"
       && ( "images/universal/training/th-torch-cpu-py312/**".pathChanged()
+            || "images/universal/training/th-torch-cuda-py312/**".pathChanged()
+            || "images/universal/training/th-torch-rocm-py312/**".pathChanged()
+            || "tests/**".pathChanged()
             || ".tekton/odh-th-torch-cpu-py312-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
