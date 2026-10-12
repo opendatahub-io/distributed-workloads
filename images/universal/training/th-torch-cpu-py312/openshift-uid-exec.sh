@@ -23,6 +23,8 @@ fi
 
 launcher="$(basename "$0")"
 if [[ "$launcher" == "mpirun" || "$launcher" == "mpiexec" ]]; then
+  # Bound the inherited open-file limit for MPI startup, as in
+  # https://github.com/kubeflow/trainer/pull/3783.
   max_nofile="${MPIRUN_MAX_NOFILE:-65536}"
   if [ "$(ulimit -n)" -gt "$max_nofile" ]; then
     ulimit -n "$max_nofile"
