@@ -42,6 +42,9 @@ const (
 	// DefaultClusterTrainingRuntimeOpenMPICUDA is the default runtime for OpenMPI CUDA workloads
 	DefaultClusterTrainingRuntimeOpenMPICUDA = "openmpi-cuda"
 
+	// DefaultClusterTrainingRuntimeOpenMPICPU is the default runtime for OpenMPI CPU workloads
+	DefaultClusterTrainingRuntimeOpenMPICPU = "openmpi-cpu"
+
 	// DefaultClusterTrainingRuntimeOpenMPICUDAImage is the expected image suffix for the OpenMPI CUDA runtime
 	DefaultClusterTrainingRuntimeOpenMPICUDAImage = "odh-th-torch-cuda-py312"
 
@@ -69,6 +72,7 @@ var DefaultClusterTrainingRuntimes = []string{
 	DefaultClusterTrainingRuntimeROCm,
 	DefaultClusterTrainingRuntimeCPU,
 	DefaultClusterTrainingRuntimeOpenMPICUDA,
+	DefaultClusterTrainingRuntimeOpenMPICPU,
 	DefaultTrainingHubRuntimeCUDA,
 	DefaultTrainingHubRuntimeCPU,
 	DefaultTrainingHubRuntimeROCm,
@@ -76,6 +80,7 @@ var DefaultClusterTrainingRuntimes = []string{
 
 var mpiRuntimes = map[string]bool{
 	DefaultClusterTrainingRuntimeOpenMPICUDA: true,
+	DefaultClusterTrainingRuntimeOpenMPICPU:  true,
 }
 
 var speculatorRuntimes = map[string]bool{
@@ -123,7 +128,8 @@ var ExpectedRuntimes = []ClusterTrainingRuntime{
 	{Name: DefaultClusterTrainingRuntimeCUDA, Image: "odh-th-torch-cuda-py312"},
 	{Name: DefaultClusterTrainingRuntimeROCm, Image: "odh-th-torch-rocm-py312"},
 	{Name: DefaultClusterTrainingRuntimeCPU, Image: "odh-th-torch-cpu-py312"},
-	//	{Name: DefaultClusterTrainingRuntimeOpenMPICUDA, Image: DefaultClusterTrainingRuntimeOpenMPICUDAImage},
+	{Name: DefaultClusterTrainingRuntimeOpenMPICUDA, Image: DefaultClusterTrainingRuntimeOpenMPICUDAImage},
+	{Name: DefaultClusterTrainingRuntimeOpenMPICPU, Image: "odh-th-torch-cpu-py312"},
 	{Name: "torch-distributed-cuda130-torch211-py312", Image: "odh-th-torch-cuda-py312"},
 	{Name: "torch-distributed-rocm714-torch211-py312", Image: "odh-th-torch-rocm-py312"},
 	{Name: "torch-distributed-cpu-torch211-py312", Image: "odh-th-torch-cpu-py312"},

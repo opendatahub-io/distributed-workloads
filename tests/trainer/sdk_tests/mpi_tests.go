@@ -21,7 +21,6 @@ import (
 	"os"
 	"testing"
 
-	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -37,7 +36,7 @@ import (
 const (
 	mpiNotebookName       = "mpi.ipynb"
 	mpiNotebookPath       = "resources/" + mpiNotebookName
-	mpiScriptName         = "fashion_mnist_mpi.py"
+	mpiScriptName         = "mpi_collectives.py"
 	mpiTrainingScriptPath = "resources/" + mpiScriptName
 )
 
@@ -123,7 +122,7 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 		command,
 		cm.Name,
 		rwxPvc,
-		support.ContainerSizeMedium,
+		support.ContainerSizeSmall,
 		common.GetRecommendedNotebookImageFromImageStream(test, common.NotebookImageStreamTrainingHubCUDA),
 		env,
 		deploymentOptions...,
@@ -132,16 +131,53 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 		support.DeleteDeployment(test, namespace, deployment.Name)
 	}()
 
+	test.Eventually(support.TrainJobs(test, namespace.Name), support.TestTimeoutDouble).Should(HaveLen(1))
+	jobs, err := test.Client().Trainer().TrainerV1alpha1().TrainJobs(namespace.Name).List(
+		test.Ctx(), metav1.ListOptions{},
+	)
+	test.Expect(err).NotTo(HaveOccurred(), "Failed to list SDK-submitted MPI TrainJobs")
+	test.Expect(jobs.Items).To(HaveLen(1), "Expected one SDK-submitted MPI TrainJob")
+	expectedImage, err := trainerutils.GetImageFromClusterTrainingRuntime(
+		test, trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA,
+	)
+	test.Expect(err).NotTo(HaveOccurred())
+
+	var launcher corev1.Pod
+	var worker corev1.Pod
+	test.Eventually(func(g Gomega) {
+		for _, role := range []string{"launcher", "node"} {
+			pods := support.GetPods(test, namespace.Name, metav1.ListOptions{
+				LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + jobs.Items[0].Name +
+					",jobset.sigs.k8s.io/replicatedjob-name=" + role,
+			})
+			g.Expect(pods).To(HaveLen(1), "Expected one %s pod", role)
+			g.Expect(pods[0].Spec.NodeName).NotTo(BeEmpty(), "%s pod is not scheduled", role)
+			var nodeContainer *corev1.Container
+			for i := range pods[0].Spec.Containers {
+				if pods[0].Spec.Containers[i].Name == "node" {
+					nodeContainer = &pods[0].Spec.Containers[i]
+					break
+				}
+			}
+			g.Expect(nodeContainer).NotTo(BeNil(), "%s pod has no OpenMPI node container", role)
+			container := *nodeContainer
+			g.Expect(container.Image).To(Equal(expectedImage), "%s pod uses the wrong image", role)
+			gpu := corev1.ResourceName(accelerator.ResourceLabel)
+			g.Expect(container.Resources.Requests[gpu]).To(Equal(resource.MustParse("1")))
+			g.Expect(container.Resources.Limits[gpu]).To(Equal(resource.MustParse("1")))
+			if role == "launcher" {
+				launcher = pods[0]
+			} else {
+				worker = pods[0]
+			}
+		}
+		g.Expect(launcher.Spec.NodeName).NotTo(Equal(worker.Spec.NodeName),
+			"SDK MPI launcher and worker must run on different nodes")
+	}, support.TestTimeoutDouble).Should(Succeed())
+
 	if useKueue {
 		test.T().Logf("Verifying SDK-submitted OpenMPI TrainJob has custom queue label: %s", localQueueName)
-		test.Eventually(support.TrainJobs(test, namespace.Name), support.TestTimeoutDouble).Should(
-			And(
-				HaveLen(1),
-				ContainElement(WithTransform(func(job trainerv1alpha1.TrainJob) string {
-					return job.Labels["kueue.x-k8s.io/queue-name"]
-				}, Equal(localQueueName))),
-			),
-		)
+		test.Expect(jobs.Items[0].Labels["kueue.x-k8s.io/queue-name"]).To(Equal(localQueueName))
 
 		test.T().Log("Verifying Kueue Workloads: Deployment and OpenMPI TrainJob on custom queue...")
 		test.Eventually(support.KueueWorkloads(test, namespace.Name), support.TestTimeoutDouble).Should(
@@ -160,9 +196,16 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 	}
 
 	podName, containerName := support.WaitForDeploymentPodRunning(test, namespace.Name, deployment.Name)
-
 	err = support.PollPodLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
 	test.Expect(err).ShouldNot(HaveOccurred(), "Deployment runner execution reported FAILURE")
+
+	launcherLogs := support.GetPodLog(test, namespace.Name, launcher.Name, corev1.PodLogOptions{
+		Container: "node",
+	})
+	for _, rank := range []int{0, 1} {
+		marker := fmt.Sprintf("MPI COLLECTIVES PASSED device=cuda rank=%d world_size=2", rank)
+		test.Expect(launcherLogs).To(ContainSubstring(marker), "Missing SDK MPI success marker for rank %d", rank)
+	}
 }
 
 func newMPITestNamespace(test support.Test, useKueue bool) *corev1.Namespace {
@@ -203,11 +246,11 @@ func setupOpenMPIGpuKueue(test support.Test, namespaceName string, accelerator s
 						Resources: []kueuev1beta2.ResourceQuota{
 							{
 								Name:         corev1.ResourceCPU,
-								NominalQuota: resource.MustParse("7"),
+								NominalQuota: resource.MustParse("5"),
 							},
 							{
 								Name:         corev1.ResourceMemory,
-								NominalQuota: resource.MustParse("40Gi"),
+								NominalQuota: resource.MustParse("7Gi"),
 							},
 							{
 								Name:         corev1.ResourceName(accelerator.ResourceLabel),

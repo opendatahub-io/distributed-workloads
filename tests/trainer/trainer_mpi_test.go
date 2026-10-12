@@ -17,6 +17,7 @@ limitations under the License.
 package trainer
 
 import (
+	"fmt"
 	"testing"
 
 	trainerv1alpha1 "github.com/kubeflow/trainer/v2/pkg/apis/trainer/v1alpha1"
@@ -31,49 +32,102 @@ import (
 	trainerutils "github.com/opendatahub-io/distributed-workloads/tests/trainer/utils"
 )
 
-func TestMultiNodeOpenMPITrainJob(t *testing.T) {
-	t.Skip("Skip until upstream Kueue fix is merged, see https://github.com/kubeflow/trainer/issues/3888")
-	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
-	test := With(t)
+const mpiCollectivesScript = "mpi_collectives.py"
 
+func TestMultiNodeOpenMPICpuTrainJob(t *testing.T) {
+	Tags(t, Tier1, MultiNode(2))
+	runMPITrainJob(t, "cpu")
+}
+
+func TestMultiNodeOpenMPITrainJob(t *testing.T) {
+	Tags(t, KftoCuda, MultiNodeGpu(2, NVIDIA))
+	runMPITrainJob(t, "cuda")
+}
+
+func runMPITrainJob(t *testing.T, deviceMode string) {
+	test := With(t)
 	namespace := test.NewTestNamespace().Name
 
-	mpiScriptConfigMap := CreateConfigMap(test, namespace, map[string][]byte{
-		"fashion_mnist_mpi.py": readFile(test, "resources/fashion_mnist_mpi.py"),
+	configMap := CreateConfigMap(test, namespace, map[string][]byte{
+		mpiCollectivesScript: readFile(test, "resources/"+mpiCollectivesScript),
 	})
-	trainJob := createMPITrainJob(test, namespace, mpiScriptConfigMap.Name)
 
+	runtimeName := trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA
+	if deviceMode == "cpu" {
+		runtimeName = trainerutils.DefaultClusterTrainingRuntimeOpenMPICPU
+	}
+	runtimeRef := trainerv1alpha1.RuntimeRef{Name: runtimeName}
+	expectedImage, err := trainerutils.GetImageFromClusterTrainingRuntime(test, runtimeName)
+	test.Expect(err).NotTo(HaveOccurred())
+
+	trainJob := createMPITrainJob(test, namespace, configMap.Name, runtimeRef, deviceMode)
+	launcherPod, _ := assertMPIPodLayout(test, namespace, trainJob.Name, expectedImage, deviceMode)
 	test.Eventually(TrainJob(test, namespace, trainJob.Name), TestTimeoutDouble).
 		Should(Satisfy(TrainJobReachedFinalState))
 
+	logs := GetPodLog(test, namespace, launcherPod.Name, corev1.PodLogOptions{
+		Container: "node",
+	})
+
 	finalJob := TrainJob(test, namespace, trainJob.Name)(test)
 	test.Expect(finalJob).To(WithTransform(TrainJobConditionComplete, Equal(metav1.ConditionTrue)),
-		"TrainJob %s/%s should be complete; TrainJobFailed message: %s",
-		namespace, trainJob.Name, TrainJobFailedMessage(finalJob))
-
-	test.T().Logf("MPI TrainJob %s/%s completed successfully", namespace, trainJob.Name)
+		"TrainJob %s/%s should complete; failure: %s; launcher logs:\n%s",
+		namespace, trainJob.Name, TrainJobFailedMessage(finalJob), logs)
 
 	jobset := SingleJobSet(test, namespace)(test)
 	test.Expect(jobset).To(WithTransform(JobSetReplicatedJobsCount, Equal(2)),
-		"MPI JobSet should have exactly 2 replicatedJobs (launcher + node)")
-
-	launcherPods := GetPods(test, namespace, metav1.ListOptions{
-		LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJob.Name + ",jobset.sigs.k8s.io/replicatedjob-name=launcher",
-	})
-	test.Expect(launcherPods).To(HaveLen(1), "Expected exactly 1 launcher pod")
-
-	logs := GetPodLog(test, namespace, launcherPods[0].Name, corev1.PodLogOptions{})
-	test.Expect(logs).To(ContainSubstring("MPI TrainJob test PASSED"),
-		"Launcher logs should contain MPI success marker")
-	test.Expect(logs).To(ContainSubstring("[Rank 0/2]"),
-		"Launcher logs should show rank 0 of 2 processes")
-	test.Expect(logs).To(ContainSubstring("[Rank 1/2]"),
-		"Launcher logs should show rank 1 of 2 processes")
-	test.T().Logf("Launcher pod logs:\n%s", logs)
+		"MPI JobSet should have launcher and node replicated jobs")
+	assertMPICollectivesMarkers(test, logs, deviceMode)
 }
 
-func createMPITrainJob(test Test, namespace, scriptConfigMapName string) *trainerv1alpha1.TrainJob {
+func createMPITrainJob(test Test, namespace, configMapName string, runtimeRef trainerv1alpha1.RuntimeRef, deviceMode string) *trainerv1alpha1.TrainJob {
 	test.T().Helper()
+
+	resources := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("2"),
+			corev1.ResourceMemory: resource.MustParse("2Gi"),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("2"),
+			corev1.ResourceMemory: resource.MustParse("2Gi"),
+		},
+	}
+	if deviceMode == "cuda" {
+		gpu := corev1.ResourceName(NVIDIA.ResourceLabel)
+		resources.Requests[gpu] = resource.MustParse("1")
+		resources.Limits[gpu] = resource.MustParse("1")
+	}
+
+	replicatedJobs := make([]trainerv1alpha1.ReplicatedJobPatch, 0, 2)
+	for _, role := range []string{"launcher", "node"} {
+		replicatedJobs = append(replicatedJobs, trainerv1alpha1.ReplicatedJobPatch{
+			Name: role,
+			Template: &trainerv1alpha1.JobTemplatePatch{
+				Spec: &trainerv1alpha1.JobSpecPatch{
+					Template: &trainerv1alpha1.PodTemplatePatch{
+						Spec: &trainerv1alpha1.PodSpecPatch{
+							Affinity: mpiPodAntiAffinity(),
+							Containers: []trainerv1alpha1.ContainerPatch{{
+								Name: "node",
+								VolumeMounts: []corev1.VolumeMount{{
+									Name: "mpi-test-script", MountPath: "/etc/mpi-test", ReadOnly: true,
+								}},
+							}},
+							Volumes: []corev1.Volume{{
+								Name: "mpi-test-script",
+								VolumeSource: corev1.VolumeSource{
+									ConfigMap: &corev1.ConfigMapVolumeSource{
+										LocalObjectReference: corev1.LocalObjectReference{Name: configMapName},
+									},
+								},
+							}},
+						},
+					},
+				},
+			},
+		})
+	}
 
 	trainJob := &trainerv1alpha1.TrainJob{
 		ObjectMeta: metav1.ObjectMeta{
@@ -81,115 +135,102 @@ func createMPITrainJob(test Test, namespace, scriptConfigMapName string) *traine
 			Namespace:    namespace,
 		},
 		Spec: trainerv1alpha1.TrainJobSpec{
-			RuntimeRef: trainerv1alpha1.RuntimeRef{
-				Name: trainerutils.DefaultClusterTrainingRuntimeOpenMPICUDA,
-			},
+			RuntimeRef: runtimeRef,
 			Trainer: &trainerv1alpha1.Trainer{
 				NumNodes: Ptr(int32(2)),
 				Command: []string{
-					"mpirun",
-					"python", "/etc/mpi-test/fashion_mnist_mpi.py",
+					"mpirun", "python", "/etc/mpi-test/" + mpiCollectivesScript, "--device", deviceMode,
 				},
-				ResourcesPerNode: &corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse("1"),
-					},
-					Limits: corev1.ResourceList{
-						corev1.ResourceName(NVIDIA.ResourceLabel): resource.MustParse("1"),
-					},
-				},
+				Env:              mpiTestEnv(),
+				ResourcesPerNode: resources,
 			},
-			RuntimePatches: []trainerv1alpha1.RuntimePatch{
-				{
-					Manager: "test-mpi",
-					TrainingRuntimeSpec: &trainerv1alpha1.TrainingRuntimeSpecPatch{
-						Template: &trainerv1alpha1.JobSetTemplatePatch{
-							Spec: &trainerv1alpha1.JobSetSpecPatch{
-								ReplicatedJobs: []trainerv1alpha1.ReplicatedJobPatch{
-									{
-										Name: "launcher",
-										Template: &trainerv1alpha1.JobTemplatePatch{
-											Spec: &trainerv1alpha1.JobSpecPatch{
-												Template: &trainerv1alpha1.PodTemplatePatch{
-													Spec: &trainerv1alpha1.PodSpecPatch{
-														Containers: []trainerv1alpha1.ContainerPatch{
-															{
-																Name: "node",
-																VolumeMounts: []corev1.VolumeMount{
-																	{
-																		Name:      "mpi-test-script",
-																		MountPath: "/etc/mpi-test",
-																	},
-																},
-															},
-														},
-														Volumes: []corev1.Volume{
-															{
-																Name: "mpi-test-script",
-																VolumeSource: corev1.VolumeSource{
-																	ConfigMap: &corev1.ConfigMapVolumeSource{
-																		LocalObjectReference: corev1.LocalObjectReference{
-																			Name: scriptConfigMapName,
-																		},
-																	},
-																},
-															},
-														},
-													},
-												},
-											},
-										},
-									},
-									{
-										Name: "node",
-										Template: &trainerv1alpha1.JobTemplatePatch{
-											Spec: &trainerv1alpha1.JobSpecPatch{
-												Template: &trainerv1alpha1.PodTemplatePatch{
-													Spec: &trainerv1alpha1.PodSpecPatch{
-														Containers: []trainerv1alpha1.ContainerPatch{
-															{
-																Name: "node",
-																VolumeMounts: []corev1.VolumeMount{
-																	{
-																		Name:      "mpi-test-script",
-																		MountPath: "/etc/mpi-test",
-																	},
-																},
-															},
-														},
-														Volumes: []corev1.Volume{
-															{
-																Name: "mpi-test-script",
-																VolumeSource: corev1.VolumeSource{
-																	ConfigMap: &corev1.ConfigMapVolumeSource{
-																		LocalObjectReference: corev1.LocalObjectReference{
-																			Name: scriptConfigMapName,
-																		},
-																	},
-																},
-															},
-														},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
+			RuntimePatches: []trainerv1alpha1.RuntimePatch{{
+				Manager: "opendatahub.io/mpi-e2e",
+				TrainingRuntimeSpec: &trainerv1alpha1.TrainingRuntimeSpecPatch{
+					Template: &trainerv1alpha1.JobSetTemplatePatch{
+						Spec: &trainerv1alpha1.JobSetSpecPatch{ReplicatedJobs: replicatedJobs},
 					},
 				},
-			},
+			}},
 		},
 	}
 
 	created, err := test.Client().Trainer().TrainerV1alpha1().TrainJobs(namespace).Create(
-		test.Ctx(),
-		trainJob,
-		metav1.CreateOptions{},
+		test.Ctx(), trainJob, metav1.CreateOptions{},
 	)
 	test.Expect(err).NotTo(HaveOccurred(), "Failed to create MPI TrainJob")
-	test.T().Logf("Created MPI TrainJob %s/%s successfully", created.Namespace, created.Name)
-
 	return created
+}
+
+func mpiPodAntiAffinity() *corev1.Affinity {
+	return &corev1.Affinity{
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{{
+				LabelSelector: &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{{
+						Key: "jobset.sigs.k8s.io/jobset-name", Operator: metav1.LabelSelectorOpExists,
+					}},
+				},
+				TopologyKey: "kubernetes.io/hostname",
+			}},
+		},
+	}
+}
+
+func mpiTestEnv() []corev1.EnvVar {
+	return []corev1.EnvVar{
+		{Name: "OMPI_MCA_pml", Value: "ob1"},
+		{Name: "OMPI_MCA_btl", Value: "self,tcp"},
+	}
+}
+
+func assertMPIPodLayout(test Test, namespace, trainJobName, expectedImage, deviceMode string) (corev1.Pod, corev1.Pod) {
+	test.T().Helper()
+	var launcher, worker corev1.Pod
+	test.Eventually(func(g Gomega) {
+		rolePod := func(role string) corev1.Pod {
+			pods := GetPods(test, namespace, metav1.ListOptions{
+				LabelSelector: "jobset.sigs.k8s.io/jobset-name=" + trainJobName +
+					",jobset.sigs.k8s.io/replicatedjob-name=" + role,
+			})
+			g.Expect(pods).To(HaveLen(1), "Expected exactly one %s pod", role)
+			pod := pods[0]
+			g.Expect(pod.Spec.NodeName).NotTo(BeEmpty(), "%s pod is not scheduled", role)
+			container := mpiNodeContainer(test, pod)
+			g.Expect(container.Image).To(Equal(expectedImage), "%s pod uses the wrong runtime image", role)
+			gpu := corev1.ResourceName(NVIDIA.ResourceLabel)
+			if deviceMode == "cuda" {
+				g.Expect(container.Resources.Requests[gpu]).To(Equal(resource.MustParse("1")))
+				g.Expect(container.Resources.Limits[gpu]).To(Equal(resource.MustParse("1")))
+			} else {
+				g.Expect(container.Resources.Requests).NotTo(HaveKey(gpu))
+				g.Expect(container.Resources.Limits).NotTo(HaveKey(gpu))
+			}
+			return pod
+		}
+		launcher = rolePod("launcher")
+		worker = rolePod("node")
+		g.Expect(launcher.Spec.NodeName).NotTo(Equal(worker.Spec.NodeName),
+			"MPI launcher and worker must run on different nodes")
+	}, TestTimeoutMedium).Should(Succeed())
+	return launcher, worker
+}
+
+func mpiNodeContainer(test Test, pod corev1.Pod) corev1.Container {
+	test.T().Helper()
+	for _, container := range pod.Spec.Containers {
+		if container.Name == "node" {
+			return container
+		}
+	}
+	test.T().Fatalf("Pod %s has no OpenMPI node container", pod.Name)
+	return corev1.Container{}
+}
+
+func assertMPICollectivesMarkers(test Test, logs, deviceMode string) {
+	test.T().Helper()
+	for _, rank := range []int{0, 1} {
+		marker := fmt.Sprintf("MPI COLLECTIVES PASSED device=%s rank=%d world_size=2", deviceMode, rank)
+		test.Expect(logs).To(ContainSubstring(marker), "Missing MPI success marker for rank %d", rank)
+	}
 }
