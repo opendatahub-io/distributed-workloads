@@ -31,7 +31,7 @@ import (
 	trainerutils "github.com/opendatahub-io/distributed-workloads/tests/trainer/utils"
 )
 
-func TestDefaultClusterTrainingRuntimes(t *testing.T) {
+func TestRuntimes(t *testing.T) {
 	Tags(t, Smoke)
 	test := With(t)
 
