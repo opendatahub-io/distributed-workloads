@@ -19,6 +19,8 @@ package sdk_tests
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -36,7 +38,7 @@ import (
 const (
 	mpiNotebookName       = "mpi.ipynb"
 	mpiNotebookPath       = "resources/" + mpiNotebookName
-	mpiScriptName         = "mpi_collectives.py"
+	mpiScriptName         = "mpi_vqe.py"
 	mpiTrainingScriptPath = "resources/" + mpiScriptName
 )
 
@@ -197,14 +199,33 @@ func runOpenMPICudaDistributedTraining(t *testing.T, accelerator support.Acceler
 
 	podName, containerName := support.WaitForDeploymentPodRunning(test, namespace.Name, deployment.Name)
 	err = support.PollPodLogsForStatus(test, namespace.Name, podName, containerName, support.TestTimeoutDouble)
+	notebookLogs := support.GetPodLog(test, namespace.Name, podName, corev1.PodLogOptions{
+		Container: containerName,
+	})
+	support.WriteToOutputDir(test, "mpi-vqe-notebook", support.Log, []byte(notebookLogs))
 	test.Expect(err).ShouldNot(HaveOccurred(), "Deployment runner execution reported FAILURE")
 
 	launcherLogs := support.GetPodLog(test, namespace.Name, launcher.Name, corev1.PodLogOptions{
 		Container: "node",
 	})
+	support.WriteToOutputDir(test, "mpi-vqe-launcher", support.Log, []byte(launcherLogs))
 	for _, rank := range []int{0, 1} {
-		marker := fmt.Sprintf("MPI COLLECTIVES PASSED device=cuda rank=%d world_size=2", rank)
-		test.Expect(launcherLogs).To(ContainSubstring(marker), "Missing SDK MPI success marker for rank %d", rank)
+		marker := regexp.MustCompile(fmt.Sprintf(
+			`MPI VQE PASSED device=cuda rank=%d world_size=2 steps=([1-9][0-9]*) initial_energy=(-?[0-9]+\.[0-9]+) final_energy=(-?[0-9]+\.[0-9]+)`,
+			rank,
+		))
+		energyValues := marker.FindStringSubmatch(launcherLogs)
+		if len(energyValues) != 4 {
+			test.T().Fatalf("Missing SDK MPI VQE training result for rank %d", rank)
+		}
+		initialEnergy, err := strconv.ParseFloat(energyValues[2], 64)
+		test.Expect(err).NotTo(HaveOccurred())
+		finalEnergy, err := strconv.ParseFloat(energyValues[3], 64)
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Expect(finalEnergy).To(BeNumerically("<", initialEnergy),
+			"SDK MPI VQE energy did not improve for rank %d", rank)
+		test.T().Logf("MPI VQE rank %d: %s steps, energy %.6f -> %.6f",
+			rank, energyValues[1], initialEnergy, finalEnergy)
 	}
 }
 

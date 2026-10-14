@@ -67,6 +67,9 @@ The TrainingHub SDK E2E tests mount their notebook inputs from ConfigMaps but
 execute them in a Kubernetes `Deployment`. They do not require the RHOAI
 Notebook component to be installed.
 
+The [MPI SDK VQE test](resources/README-mpi-vqe.md) uses two GPU nodes to
+validate cross-node MPI training through the SDK and Kueue.
+
 The secure-serving test validates the Trainer HTTPS metrics endpoint, rejecting
 unauthenticated and invalid-token requests while accepting a valid Prometheus token.
 It also validates the ServiceMonitor, certificate mount, Prometheus RBAC, and scraping:
