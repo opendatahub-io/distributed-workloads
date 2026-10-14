@@ -2,7 +2,6 @@
 
 """Train a two-qubit H2 variational circuit across two MPI ranks."""
 
-import argparse
 import os
 
 import torch
@@ -19,13 +18,9 @@ H2_HAMILTONIAN = (
 TRAINING_STEPS = 25
 
 
-def _device(device_mode):
-    if device_mode == "cpu":
-        return torch.device("cpu")
-    if device_mode != "cuda":
-        raise ValueError(f"Unsupported device mode: {device_mode}")
+def _cuda_device():
     if not torch.cuda.is_available():
-        raise RuntimeError("CUDA mode requires an available CUDA device")
+        raise RuntimeError("VQE training requires an available CUDA device")
 
     local_rank_value = os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK")
     if local_rank_value is None:
@@ -65,14 +60,14 @@ def _energy(theta, hamiltonian):
     )
 
 
-def run_vqe(device_mode):
+def run_vqe():
     rank = os.environ.get("OMPI_COMM_WORLD_RANK", "unknown")
     operation = "setup"
     try:
         if not dist.is_mpi_available():
             raise RuntimeError("PyTorch was built without the MPI backend")
 
-        device = _device(device_mode)
+        device = _cuda_device()
         dist.init_process_group(backend="mpi")
         rank = dist.get_rank()
         world_size = dist.get_world_size()
@@ -94,7 +89,7 @@ def run_vqe(device_mode):
                 initial_energy = global_energy.item()
             if step % 5 == 0:
                 print(
-                    f"MPI VQE PROGRESS device={device_mode} rank={rank} "
+                    f"MPI VQE PROGRESS device=cuda rank={rank} "
                     f"step={step} energy={global_energy.item():.6f}",
                     flush=True,
                 )
@@ -117,14 +112,14 @@ def run_vqe(device_mode):
             )
 
         print(
-            f"MPI VQE PASSED device={device_mode} rank={rank} world_size={world_size} "
+            f"MPI VQE PASSED device=cuda rank={rank} world_size={world_size} "
             f"steps={TRAINING_STEPS} initial_energy={initial_energy:.6f} "
             f"final_energy={final_energy:.6f} final_theta={theta.item():.6f}",
             flush=True,
         )
     except Exception as exc:
         print(
-            f"MPI VQE FAILED device={device_mode} rank={rank} "
+            f"MPI VQE FAILED device=cuda rank={rank} "
             f"operation={operation} error={exc}",
             flush=True,
         )
@@ -135,7 +130,4 @@ def run_vqe(device_mode):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--device", choices=("cpu", "cuda"), required=True)
-    arguments = parser.parse_args()
-    run_vqe(arguments.device)
+    run_vqe()
