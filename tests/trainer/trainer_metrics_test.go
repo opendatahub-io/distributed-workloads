@@ -123,7 +123,7 @@ func TestTrainerPrometheusScrape(t *testing.T) {
 		target.Labels["job"], target.Labels["instance"], target.Labels["namespace"], target.Labels["service"],
 	)
 	test.Eventually(func(g Gomega, ctx context.Context) {
-		value, warnings, queryErr := prometheus.Query(ctx, fmt.Sprintf("up{%s}", targetSelector), time.Now())
+		value, warnings, _, queryErr := prometheus.Query(ctx, fmt.Sprintf("up{%s}", targetSelector), time.Now())
 		g.Expect(queryErr).NotTo(HaveOccurred())
 		g.Expect(warnings).To(BeEmpty())
 		up, ok := value.(model.Vector)
@@ -133,7 +133,7 @@ func TestTrainerPrometheusScrape(t *testing.T) {
 			g.Expect(float64(sample.Value)).To(Equal(float64(1)))
 		}
 
-		value, warnings, queryErr = prometheus.Query(ctx, fmt.Sprintf("certwatcher_read_certificate_total{%s}", targetSelector), time.Now())
+		value, warnings, _, queryErr = prometheus.Query(ctx, fmt.Sprintf("certwatcher_read_certificate_total{%s}", targetSelector), time.Now())
 		g.Expect(queryErr).NotTo(HaveOccurred())
 		g.Expect(warnings).To(BeEmpty())
 		metrics, ok := value.(model.Vector)

@@ -43,7 +43,7 @@ func readFile(t support.Test, fileName string) []byte {
 func OpenShiftPrometheusGpuUtil(test support.Test, pod corev1.Pod, gpu support.Accelerator) func(g Gomega) prometheusmodel.Vector {
 	return func(g Gomega) prometheusmodel.Vector {
 		prometheusApiClient := support.GetOpenShiftPrometheusApiClient(test)
-		result, warnings, err := prometheusApiClient.Query(test.Ctx(), gpu.PrometheusGpuUtilizationLabel, time.Now(), prometheusapiv1.WithTimeout(5*time.Second))
+		result, warnings, _, err := prometheusApiClient.Query(test.Ctx(), gpu.PrometheusGpuUtilizationLabel, time.Now(), prometheusapiv1.WithTimeout(5*time.Second))
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(warnings).Should(HaveLen(0))
 
