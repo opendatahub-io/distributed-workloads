@@ -321,7 +321,7 @@ func createAlpacaTrainJob(test Test, namespace, runtimeName string, config corev
 func openShiftPrometheusGpuUtil(test Test, namespace string) func(g Gomega) prometheusmodel.Vector {
 	return func(g Gomega) prometheusmodel.Vector {
 		prometheusApiClient := GetOpenShiftPrometheusApiClient(test)
-		result, warnings, err := prometheusApiClient.Query(test.Ctx(), "DCGM_FI_DEV_GPU_UTIL", time.Now(), prometheusapiv1.WithTimeout(5*time.Second))
+		result, warnings, _, err := prometheusApiClient.Query(test.Ctx(), "DCGM_FI_DEV_GPU_UTIL", time.Now(), prometheusapiv1.WithTimeout(5*time.Second))
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(warnings).Should(HaveLen(0))
 
