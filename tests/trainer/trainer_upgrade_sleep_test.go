@@ -112,6 +112,7 @@ func createSleepTrainJob(test Test, namespace string) *trainerv1alpha1.TrainJob 
 }
 
 func sleepPodRestartCount(pod corev1.Pod) int {
+
 	return int(pod.Status.ContainerStatuses[0].RestartCount)
 }
 
