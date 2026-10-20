@@ -1,4 +1,16 @@
 pull_request_rules:
+  - name: Request changes when torch-cpu ITS check fails or is pending
+    conditions:
+      - -closed
+      - or:
+          - check-failure=Go unit tests
+          - check-pending=Go unit tests
+    actions:
+      review:
+        type: REQUEST_CHANGES
+        message: >-
+          The odh-th-torch-cpu-py312-ci integration test check is failing or still
+          pending. This PR cannot be merged until it passes.
   - name: Auto-approve lake-gate PRs
     conditions:
       - base=stable
