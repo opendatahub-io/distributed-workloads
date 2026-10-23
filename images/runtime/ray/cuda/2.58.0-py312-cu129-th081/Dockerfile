@@ -213,7 +213,8 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir pyzmq
 
 # Rebuild wandb-core with CGO for FIPS. wandb is installed from wheel above;
-# only the Go binary must be rebuilt (arrow-rs-wrapper stays from the wheel).
+# only the Go binary must be rebuilt (arrow-rs-wrapper stays from the wheel);
+# wandb-xpu (Rust/aws-lc) is removed — not needed on CUDA images.
 RUN dnf install -y golang gcc openssl-devel && \
     WANDB_VERSION=0.28.0 && \
     SITE_PACKAGES=$(python -c 'import site; print(site.getsitepackages()[0])') && \
@@ -228,6 +229,7 @@ RUN dnf install -y golang gcc openssl-devel && \
       -o "${SITE_PACKAGES}/wandb/bin/wandb-core" \
       -mod=vendor cmd/wandb-core/main.go && \
     rm -rf /tmp/wandb-build && \
+    rm -f "${SITE_PACKAGES}/wandb/bin/wandb-xpu" && \
     dnf remove -y golang gcc openssl-devel && \
     dnf clean all
 
