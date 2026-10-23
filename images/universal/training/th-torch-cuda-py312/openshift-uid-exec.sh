@@ -23,6 +23,37 @@ fi
 
 launcher="$(basename "$0")"
 if [[ "$launcher" == "mpirun" || "$launcher" == "mpiexec" ]]; then
+  # Wait for the TrainJob hostfile names before OpenMPI starts SSH daemons.
+  # Set RHOAI_TRAINER_ENABLE_MPI_HOST_WAIT=false to skip this check.
+  hostfile="${OMPI_MCA_orte_default_hostfile:-}"
+  host_wait_enabled="${RHOAI_TRAINER_ENABLE_MPI_HOST_WAIT:-true}"
+  if [[ "$host_wait_enabled" != "false" && -n "$hostfile" && -f "$hostfile" ]]; then
+    dns_deadline=$((SECONDS + 60))
+    while read -r host _ || [[ -n "$host" ]]; do
+      [[ -z "$host" || "$host" == \#* ]] && continue
+      wait_logged=false
+      while :; do
+        remaining=$((dns_deadline - SECONDS))
+        if (( remaining <= 0 )); then
+          echo "ERROR: MPI host '$host' did not resolve within 60 seconds" >&2
+          exit 1
+        fi
+        if timeout "${remaining}s" getent hosts "$host" >/dev/null 2>&1; then
+          break
+        fi
+        if (( SECONDS >= dns_deadline )); then
+          echo "ERROR: MPI host '$host' did not resolve within 60 seconds" >&2
+          exit 1
+        fi
+        if [[ "$wait_logged" == false ]]; then
+          echo "Waiting for MPI host '$host' to resolve" >&2
+          wait_logged=true
+        fi
+        sleep 1
+      done
+    done < "$hostfile"
+  fi
+
   # Bound the inherited open-file limit for MPI startup, as in
   # https://github.com/kubeflow/trainer/pull/3783.
   max_nofile="${MPIRUN_MAX_NOFILE:-65536}"
