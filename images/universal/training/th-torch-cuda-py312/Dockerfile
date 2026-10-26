@@ -37,8 +37,7 @@ USER 1001
 WORKDIR /opt/app-root/src
 
 # Install dependencies from AIPCC prod index
-RUN UV_LINK_MODE=copy uv pip install --no-cache-dir --no-deps \
-    --index-strategy=unsafe-best-match \
+RUN pip install --no-cache-dir --no-deps \
     # For RHOAI 3.6GA "prod" suffix to be removed from index-url - https://redhat.atlassian.net/browse/AIPCC-32410
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/cuda13.0-ubi9-prod/simple/ \
     -r /tmp/deps/requirements.txt
@@ -234,7 +233,7 @@ COPY --from=openmpi-builder /usr/lib64/openmpi /usr/lib64/openmpi
 # that trigger import cv2 during pkgutil scanning in vLLM's multiprocessing.spawn
 # child processes, which fails with libavcodec.so.60 not found on UBI9
 # See: https://github.com/vllm-project/vllm/issues/40741
-RUN uv pip uninstall opencv-python-headless polyfile-weave 2>/dev/null || true
+RUN pip uninstall --yes opencv-python-headless polyfile-weave
 
 # tilelang ships a libcudart_stub.so that shadows the real CUDA runtime
 # in vLLM subprocesses, causing CUDA initialization failures.
@@ -243,8 +242,6 @@ RUN uv pip uninstall opencv-python-headless polyfile-weave 2>/dev/null || true
 # Fix: replace the stub with a symlink to the real CUDA runtime library.
 RUN ln -sf /usr/local/cuda/lib64/libcudart.so \
     /opt/app-root/lib/python${PYTHON_VERSION}/site-packages/tilelang/lib/libcudart_stub.so
-
-# Note: uv is kept in the final image — needed at runtime by openpipe-art
 
 # The SDK replaces the container entrypoint and execs an MPI launcher directly,
 # so uid_entrypoint never runs on the launcher. The wrapper is linked at

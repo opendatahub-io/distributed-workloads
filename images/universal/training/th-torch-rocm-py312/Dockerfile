@@ -32,8 +32,7 @@ USER 1001
 WORKDIR /opt/app-root/src
 
 # Install dependencies from AIPCC prod index
-RUN uv pip install --no-cache-dir \
-    --index-strategy=unsafe-best-match \
+RUN pip install --no-cache-dir \
     # For RHOAI 3.6GA "prod" suffix to be removed from index-url - https://redhat.atlassian.net/browse/AIPCC-32410
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/rocm7.14-ubi9-prod/simple/ \
     -r /tmp/deps/requirements.txt
