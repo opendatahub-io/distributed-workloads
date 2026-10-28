@@ -473,7 +473,7 @@ liger-kernel==0.8.1
     #   instructlab-training
     #   rhai-innovation-mini-trainer
     #   training-hub
-litellm==1.84.0
+litellm==1.102.2
     # via
     #   -c (workspace)
     #   --override (workspace)
