@@ -158,12 +158,23 @@ func GetRecommendedNotebookImageFromImageStream(t Test, imageStreamName string) 
 
 	is := GetImageStream(t, odhNamespace, imageStreamName)
 	for _, tag := range is.Spec.Tags {
-		if tag.Annotations["opendatahub.io/workbench-image-recommended"] == "true" {
-			for _, statusTag := range is.Status.Tags {
-				if statusTag.Tag == tag.Name && len(statusTag.Items) > 0 {
-					t.T().Logf("Using notebook image from ImageStream %s:%s: %s", imageStreamName, tag.Name, statusTag.Items[0].DockerImageReference)
-					return statusTag.Items[0].DockerImageReference
-				}
+		if tag.Annotations["opendatahub.io/workbench-image-recommended"] != "true" {
+			continue
+		}
+
+		// The image stream importer resolves a multi-arch image to a single
+		// platform manifest, so prefer the source reference from the spec: a tag
+		// or manifest list digest lets the kubelet select the platform matching
+		// the node.
+		if tag.From != nil && tag.From.Kind == "DockerImage" && tag.From.Name != "" {
+			t.T().Logf("Using notebook image from ImageStream %s:%s source: %s", imageStreamName, tag.Name, tag.From.Name)
+			return tag.From.Name
+		}
+
+		for _, statusTag := range is.Status.Tags {
+			if statusTag.Tag == tag.Name && len(statusTag.Items) > 0 {
+				t.T().Logf("Using notebook image from ImageStream %s:%s: %s", imageStreamName, tag.Name, statusTag.Items[0].DockerImageReference)
+				return statusTag.Items[0].DockerImageReference
 			}
 		}
 	}
