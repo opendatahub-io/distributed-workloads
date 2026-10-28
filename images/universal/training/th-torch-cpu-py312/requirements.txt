@@ -285,7 +285,7 @@ kubeflow-trainer-api==2.3.0rc3
     # via kubeflow
 kubernetes==30.1.0
     # via kubeflow
-litellm==1.84.0
+litellm==1.102.2
     # via
     #   -c (workspace)
     #   --override (workspace)
