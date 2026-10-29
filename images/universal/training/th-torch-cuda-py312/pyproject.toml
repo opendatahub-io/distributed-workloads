@@ -3,7 +3,7 @@
 # To regenerate requirements.txt:
 #   uv pip compile --python-platform=linux --python-version=3.12 \
 #     --index-strategy=unsafe-best-match \
-#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/cuda13.0-ubi9-prod/simple/ \
+#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/cuda13.0-ubi9-test/simple/ \
 #     -o requirements.txt pyproject.toml
 #
 # Note: override-dependencies and constraint-dependencies are in [tool.uv] below.
@@ -33,8 +33,8 @@ dependencies = [
     "xformers==0.0.35",
     
     # ML Training and Inference Libraries
-    "accelerate>=1.15.0",
-    "transformers==5.16.1",
+    "accelerate==1.14.0",
+    "transformers==5.17.0",
     "peft==0.20.0",
     "datasets==5.0.1",
     
@@ -44,18 +44,18 @@ dependencies = [
     "aiofiles==25.1.0",
     "deprecated>=1.3.1",
     "typer>=0.27.2",
-    "protobuf>=3.20.0",
+    "protobuf>=7.36.1",
     "safetensors==0.8.0",
     "py-cpuinfo>=9.0.0",
     
     # Deep Learning Utilities
-    "numpy>=2.4.6",
+    "numpy>=2.3.5",
     "rich>=15.0.0",
     "tensorboard==2.20.0",
-    "bitsandbytes==0.50.1",
+    "bitsandbytes==0.50.2",
     "liger-kernel==0.8.1",
     "einops==0.8.2",
-    "kernels==0.16.0",
+    "kernels==0.16.1",
     
     # Tokenization
     "sentencepiece==0.2.2",
@@ -66,21 +66,21 @@ dependencies = [
     "deepspeed==0.19.5",
     
     # MLOps
-    "mlflow==3.15.1",
-    "wandb==0.23.1",
+    "mlflow==3.16.0",
     
     # Storage
     "s3fs==2025.9.0",
     
     # Training Frameworks
-    "training_hub[lora,cuda,grpo]==0.10.0",
+    "training_hub[lora,cuda,grpo]==0.11.2",
     "instructlab-training==0.16.2",
     "rhai-innovation-mini-trainer==0.9.0",
-    "unsloth==2026.9.4+rhaiv.0",
-    "unsloth-zoo==2026.9.3+rhaiv.1",
+    "unsloth==2026.10.19+rhaiv.0",
+    "unsloth-zoo==2026.10.19+rhaiv.0",
+
     
     # Kubeflow SDK
-    "kubeflow==0.4.1+rhaiv.2",
+    "kubeflow==0.5.0+rhaiv.0",
     "kubeflow_spark_api==2.4.0",
     "pyspark_connect==4.2.0",
     
@@ -98,7 +98,7 @@ dependencies = [
     "openpipe-art==0.5.18",
     
     # Inference
-    "vllm==0.28.0+rhaiv.1",
+    "vllm==0.31.0+rhaiv.2",
 ]
 
 [tool.uv]
@@ -106,24 +106,24 @@ environments = [
     "sys_platform == 'linux' and implementation_name == 'cpython'",
 ]
 index-strategy = "unsafe-best-match"
-index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/cuda13.0-ubi9-prod/simple/"
+index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/cuda13.0-ubi9-test/simple/"
 override-dependencies = [
-    "numba==0.67.0",
-    "llvmlite==0.49.0",
-    "apache-tvm-ffi==0.1.10",
-    "tilelang==0.1.12",
-    "protobuf==6.33.6",
-    "numpy==2.4.6",
+    "numba==0.65.0",
+    "llvmlite==0.47.0",
+    "apache-tvm-ffi==0.1.9",
+    "tilelang==0.1.8",
+    "protobuf==7.36.1",
+    "numpy==2.3.5",
     "litellm==1.84.0"
 ]
 constraint-dependencies = [
     "aiohttp>=3.14.3",
-    "anyio>=4.14.2",
-    "gitpython>=3.1.59",
+    "anyio>=4.15.1",
+    "gitpython>=3.1.62",
     "pillow>=12.3.0",
-    "litellm>=1.84.0",
     "pyasn1>=0.6.4",
+    "pyjwt>=2.15.0",  # CUDA CVE minimum for the image
     "sqlparse>=0.6.0",
-    "starlette>=1.3.1",
-    "openai<3.0",  # Required for openpipe-art vllm runtime compatibility
+    "starlette>=1.6.0",
+    "openai==2.54.0",  # Required for openpipe-art vllm runtime compatibility
 ]
