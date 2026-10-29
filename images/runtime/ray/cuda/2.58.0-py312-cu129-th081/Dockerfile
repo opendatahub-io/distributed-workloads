@@ -163,6 +163,13 @@ RUN pip install --no-cache-dir --no-deps --force-reinstall \
 # verl: --no-deps because its numpy<2.0.0 pin conflicts with vllm's numpy>=2.
 RUN pip install --no-cache-dir --no-deps verl==0.8.0
 
+# unsloth + unsloth-zoo: --no-deps because their torchao>=0.13.0 and
+# datasets constraints conflict with this image's torch 2.9.0 stack.
+RUN pip install --no-cache-dir --no-deps \
+    --extra-index-url https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/cuda12.9-ubi9-prod/simple/ \
+    "unsloth==2026.9.4+rhaiv.0" \
+    "unsloth-zoo==2026.9.3+rhaiv.1"
+
 # vllm 0.13.0 + verl 0.8.0 runtime dependencies.
 # Many deps (aiohttp, fastapi, pydantic, numpy, ray, transformers, etc.) are
 # already installed via Pipfile.lock and are not repeated here.
@@ -213,7 +220,8 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir pyzmq
 
 # Rebuild wandb-core with CGO for FIPS. wandb is installed from wheel above;
-# only the Go binary must be rebuilt (arrow-rs-wrapper stays from the wheel).
+# only the Go binary must be rebuilt (arrow-rs-wrapper stays from the wheel);
+# wandb-xpu (Rust/aws-lc) is removed — not needed on CUDA images.
 RUN dnf install -y golang gcc openssl-devel && \
     WANDB_VERSION=0.28.0 && \
     SITE_PACKAGES=$(python -c 'import site; print(site.getsitepackages()[0])') && \
@@ -228,8 +236,12 @@ RUN dnf install -y golang gcc openssl-devel && \
       -o "${SITE_PACKAGES}/wandb/bin/wandb-core" \
       -mod=vendor cmd/wandb-core/main.go && \
     rm -rf /tmp/wandb-build && \
+    rm -f "${SITE_PACKAGES}/wandb/bin/wandb-xpu" && \
     dnf remove -y golang gcc openssl-devel && \
     dnf clean all
+
+# Writable cache for Hugging Face datasets/models (container runs as non-root)
+ENV HF_HOME=/tmp/huggingface
 
 # Restore user workspace
 USER 1001
