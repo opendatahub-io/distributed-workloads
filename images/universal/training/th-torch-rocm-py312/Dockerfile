@@ -31,10 +31,9 @@ COPY --chown=1001:0 pyproject.toml requirements.txt ./
 USER 1001
 WORKDIR /opt/app-root/src
 
-# Install dependencies from the target AIPCC index
+# Install dependencies from AIPCC prod index
 RUN uv pip install --no-cache-dir \
     --index-strategy=unsafe-best-match \
-    # Use the AIPCC RHOAI 3.6 ROCm 7.14 production index.
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/rocm7.14-ubi9/simple/ \
     -r /tmp/deps/requirements.txt
 
@@ -50,9 +49,7 @@ RUN rm -rf /tmp/deps
 ################################################################################
 # Final Stage - FIPS-friendly Runtime
 ################################################################################
-# Inherit the resolved Python environment directly. Copying site-packages onto
-# a second base-image layer leaves stale duplicate .dist-info directories.
-FROM builder AS final
+FROM ${BASE_IMAGE} AS final
 
 LABEL name="th-torch-rocm-py312" \
       summary="ROCm 7.14 Python 3.12 Training Hub 11 PyTorch 2.12.0 image on UBI9" \
@@ -112,7 +109,10 @@ fi
 # END MIDSTREAM ONLY
 ################################################################################
 
+# Copy Python site-packages and CLI entry points from builder stage
 ARG PYTHON_VERSION
+COPY --from=builder /opt/app-root/lib/python${PYTHON_VERSION}/site-packages /opt/app-root/lib/python${PYTHON_VERSION}/site-packages
+COPY --from=builder /opt/app-root/bin /opt/app-root/bin
 
 # Remove uv from final image (not needed at runtime)
 RUN rm -f /opt/app-root/bin/uv
