@@ -47,10 +47,8 @@ dependencies = [
     # Deep Learning Utilities
     "numpy==2.3.5",
     "rich==15.0.0",
-    # The lockfile's 2.21.0 is absent from the target RHOAI 3.6 ROCm index.
     "tensorboard==2.20.0",
     "bitsandbytes==0.50.2",
-    # The lockfile's 0.8.1 is absent from the target ROCm index.
     "liger-kernel==0.8.2",
     "einops==0.8.2",
     "kernels==0.16.1",
@@ -73,7 +71,6 @@ dependencies = [
     "training_hub[lora]==0.11.2",
     "instructlab-training==0.16.2",
     "rhai-innovation-mini-trainer==0.9.0",
-    # RHAI fork releases that raise the Transformers cap to 5.17.0.
     "unsloth==2026.10.19+rhaiv.0",
     "unsloth-zoo==2026.10.19+rhaiv.0",
     
@@ -94,14 +91,12 @@ environments = [
 index-strategy = "unsafe-best-match"
 index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/rocm7.14-ubi9/simple/"
 override-dependencies = [
-    # training-hub[lora] declares xformers, but the ROCm index has no wheel.
     "xformers ; sys_platform == 'win32'",
     "numba==0.65.0",
     "numpy==2.3.5",
     "protobuf==7.36.1",
 ]
 constraint-dependencies = [
-    # Earlier AIPCC builds cap protobuf below 7; 0.156.0 supports the lockfile pin.
     "databricks-sdk==0.156.0",
     "aiohttp>=3.14.3",
     "anyio>=4.14.2",
