@@ -8,7 +8,7 @@
 #
 # Note: override-dependencies and constraint-dependencies are in [tool.uv] below.
 #
-# Overrides needed: mamba-ssm pins tilelang==0.1.9 and apache-tvm-ffi<=0.1.9 but vllm needs 0.1.9 and 0.1.10 respectively.
+# Overrides needed: vllm pins numba==0.65.0, tilelang==0.1.12, apache-tvm-ffi==0.1.11 while mamba-ssm pins tilelang==0.1.8, apache-tvm-ffi<=0.1.9; overrides follow the versions validated on main.
 #
 
 [project]
@@ -33,7 +33,7 @@ dependencies = [
     "xformers==0.0.35",
     
     # ML Training and Inference Libraries
-    "accelerate==1.14.0",
+    "accelerate>=1.15.0",
     "transformers==5.17.0",
     "peft==0.20.0",
     "datasets==5.0.1",
@@ -49,7 +49,7 @@ dependencies = [
     "py-cpuinfo>=9.0.0",
     
     # Deep Learning Utilities
-    "numpy>=2.3.5",
+    "numpy>=2.4.6",
     "rich>=15.0.0",
     "tensorboard==2.20.0",
     "bitsandbytes==0.50.2",
@@ -69,13 +69,15 @@ dependencies = [
     "mlflow==3.16.0",
     
     # Storage
-    "s3fs==2025.9.0",
+    "s3fs==2026.6.0",
     
     # Training Frameworks
     "training_hub[lora,cuda,grpo]==0.11.2",
     "instructlab-training==0.16.2",
     "rhai-innovation-mini-trainer==0.9.0",
     "unsloth==2026.10.19+rhaiv.0",
+    # unsloth imports unsloth_zoo unconditionally but only declares it under extras,
+    # so pin it explicitly to the RHAI fork build matching the unsloth release.
     "unsloth-zoo==2026.10.19+rhaiv.0",
 
     
@@ -108,22 +110,28 @@ environments = [
 index-strategy = "unsafe-best-match"
 index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/cuda13.0-ubi9/simple/"
 override-dependencies = [
-    "numba==0.65.0",
-    "llvmlite==0.47.0",
-    "apache-tvm-ffi==0.1.9",
-    "tilelang==0.1.8",
+    "numba==0.67.0",
+    "llvmlite==0.49.0",
+    "apache-tvm-ffi==0.1.10",
+    "tilelang==0.1.12",
     "protobuf==7.36.1",
-    "numpy==2.3.5",
-    "litellm==1.84.0"
+    "numpy==2.4.6",
+    "litellm==1.102.2"
 ]
 constraint-dependencies = [
     "aiohttp>=3.14.3",
     "anyio>=4.15.1",
-    "gitpython>=3.1.62",
-    "pillow>=12.3.0",
+    "gitpython>=3.2.0",
+    "pillow>=13.0.0",
     "pyasn1>=0.6.4",
     "pyjwt>=2.15.0",
     "sqlparse>=0.6.0",
     "starlette>=1.6.0",
     "openai==2.54.0",  # Required for openpipe-art vllm runtime compatibility
+    "fsspec>=2026.6.0",
+    "graphql-core>=3.2.12",
+    "urllib3>=2.8.0",
+    "msgpack>=1.2.3",
+    "dnspython>=2.9.0",
+    "wrapt>=2.2.2",
 ]
