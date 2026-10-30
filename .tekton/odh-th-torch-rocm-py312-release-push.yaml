@@ -11,7 +11,7 @@ metadata:
       event == "push"
       && target_branch == "3.6-GA"
       && ( "images/universal/training/th-torch-rocm-py312/**".pathChanged()
-            || ".tekton/odh-th-torch-rocm-py312-push.yaml".pathChanged() )
+            || ".tekton/odh-th-torch-rocm-py312-release-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-release
