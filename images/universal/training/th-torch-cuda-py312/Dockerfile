@@ -39,7 +39,7 @@ WORKDIR /opt/app-root/src
 # Install dependencies from AIPCC prod index
 RUN UV_LINK_MODE=copy uv pip install --no-cache-dir --no-deps \
     --index-strategy=unsafe-best-match \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/cuda13.0-ubi9-test/simple/ \
+    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/cuda13.0-ubi9/simple/ \
     -r /tmp/deps/requirements.txt
 
 # Fix permissions for OpenShift
@@ -139,7 +139,7 @@ RUN if [ "${DOWNSTREAM}" != "true" ]; then \
 FROM ${BASE_IMAGE} AS final
 
 LABEL name="th-torch-cuda-py312" \
-      summary="CUDA 13.0.2 Python 3.12 Training Hub 10 PyTorch 2.13.0 image on UBI9" \
+      summary="CUDA 13.0.2 Python 3.12 Training Hub 11 PyTorch 2.13.0 image on UBI9" \
       description="Universal CUDA training image combining Jupyter workbench and runtime ML stack on UBI9" \
       io.k8s.display-name="CUDA Python 3.12 Universal Training Image" \
       io.k8s.description="Universal CUDA training image: Jupyter workbench by default; runtime when command provided."

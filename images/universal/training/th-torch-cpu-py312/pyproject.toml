@@ -49,11 +49,9 @@ dependencies = [
     "py-cpuinfo==9.0.0",
     "rich==15.0.0",
     "aiofiles==25.1.0",
-    # The lockfile's 2.21.0 is absent from the RHOAI 3.6 CPU test index.
     "tensorboard==2.20.0",
     
     # Storage & MLOps
-    # The lockfile's 2026.6.0 is absent; newer builds conflict with datasets 5.0.1.
     "s3fs==2025.9.0",
     "mlflow==3.16.0",
     
