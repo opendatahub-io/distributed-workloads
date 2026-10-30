@@ -67,7 +67,7 @@ def redact_text(text: str) -> str:
 
 def get_required_version():
     """Get required kubeflow version from env or use default."""
-    return os.environ.get("KUBEFLOW_REQUIRED_VERSION", "0.4.1+rhaiv.2")
+    return os.environ.get("KUBEFLOW_REQUIRED_VERSION", "0.5.0+rhaiv.0")
 
 
 def get_rhai_pypi_index() -> str:
@@ -75,23 +75,23 @@ def get_rhai_pypi_index() -> str:
     Get the appropriate Red Hat PyPI index URL based on accelerator type.
     
     kubeflow package is NOT on public PyPI - only on Red Hat indexes:
-    - CPU: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/cpu-ubi9-prod/simple/
-    - CUDA: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/cuda13.0-ubi9-prod/simple/
-    - ROCm: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2/rocm7.14-ubi9-prod/simple/
+    - CPU: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/cpu-ubi9/simple/
+    - CUDA: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/cuda13.0-ubi9/simple/
+    - ROCm: https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/rocm7.14-ubi9/simple/
     """
     custom_index = os.environ.get("KUBEFLOW_PYPI_INDEX_URL")
     if custom_index:
         return custom_index
 
     gpu_type = os.environ.get("GPU_TYPE", "cpu").lower()
-    base = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6-EA2"
+    base = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6"
     
     if "nvidia" in gpu_type or "cuda" in gpu_type:
-        return f"{base}/cuda13.0-ubi9-prod/simple/"
+        return f"{base}/cuda13.0-ubi9/simple/"
     elif "amd" in gpu_type or "rocm" in gpu_type:
-        return f"{base}/rocm7.14-ubi9-prod/simple/"
+        return f"{base}/rocm7.14-ubi9/simple/"
     else:
-        return f"{base}/cpu-ubi9-prod/simple/"
+        return f"{base}/cpu-ubi9/simple/"
 
 
 def verify_kubeflow_version():
