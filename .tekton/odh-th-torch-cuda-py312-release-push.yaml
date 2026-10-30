@@ -1,3 +1,4 @@
+# Retry the CUDA 3.6 GA release build after namespace quota delays.
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
