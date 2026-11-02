@@ -90,7 +90,10 @@ index-strategy = "unsafe-best-match"
 index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/cpu-ubi9/simple/"
 override-dependencies = [
     "litellm==1.102.2",
-    "numpy==2.4.6"
+    "numpy==2.4.6",
+    # AIPCC has no data-server wheels for these architectures. TensorBoard
+    # falls back to its Python loader when the optional server is absent.
+    "tensorboard-data-server==0.7.2; platform_machine != 'ppc64le' and platform_machine != 's390x'",
 ]
 constraint-dependencies = [
     "aiohttp>=3.14.3",
@@ -109,3 +112,7 @@ constraint-dependencies = [
     "wrapt>=2.2.2",
     "tqdm>=4.70.1",
 ]
+
+[tool.uv.pip]
+# Keep the data-server architecture condition when refreshing requirements.txt.
+no-strip-markers = true
