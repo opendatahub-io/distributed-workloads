@@ -86,7 +86,7 @@ certifi==2026.10.23
     #   kubernetes
     #   requests
     #   sentry-sdk
-cffi==2.1.1
+cffi==2.1.1 ; platform_python_implementation != 'PyPy'
     # via cryptography
 chardet==7.6.0
     # via polyfile-weave
@@ -203,7 +203,7 @@ graphql-relay==3.2.0
     # via graphene
 graphviz==0.21
     # via polyfile-weave
-greenlet==3.5.5
+greenlet==3.5.5 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
     # via sqlalchemy
 grpcio==1.83.0
     # via
@@ -212,13 +212,13 @@ grpcio==1.83.0
     #   tensorboard
 grpcio-status==1.83.0
     # via pyspark-connect
-gunicorn==26.1.0
+gunicorn==26.1.0 ; sys_platform != 'win32'
     # via mlflow
 h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
-hf-xet==1.6.0
+hf-xet==1.6.0 ; platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'
     # via huggingface-hub
 httpcore==1.0.9
     # via httpx
@@ -502,7 +502,7 @@ pyasn1==0.6.4
     #   pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
-pycparser==3.0
+pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
     # via cffi
 pydantic==2.13.4
     # via
@@ -678,8 +678,10 @@ tenacity==9.1.4
     # via weave
 tensorboard==2.20.0
     # via th-torch-cpu-universal-image (pyproject.toml)
-tensorboard-data-server==0.7.2
-    # via tensorboard
+tensorboard-data-server==0.7.2 ; platform_machine != 'ppc64le' and platform_machine != 's390x'
+    # via
+    #   --override (workspace)
+    #   tensorboard
 threadpoolctl==3.6.0
     # via scikit-learn
 tiktoken==0.13.0
