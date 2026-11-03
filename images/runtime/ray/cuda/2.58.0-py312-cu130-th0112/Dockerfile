@@ -36,7 +36,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
 
 # Install CUDA runtime and development packages (without exact patch versions)
 # Only NCCL requires explicit version for compatibility
-RUN yum upgrade -y && yum install -y \
+RUN yum clean all && yum upgrade -y && yum install -y \
     make \
     findutils \
     cuda-cudart-13-0 \
@@ -99,7 +99,10 @@ RUN pip install --no-cache-dir --no-deps --force-reinstall \
     "xformers==0.0.35"
 
 # verl: --no-deps because its numpy<2.0.0 pin conflicts with vllm's numpy>=2.
-RUN pip install --no-cache-dir --no-deps verl==0.9.0
+# TransferQueue is a required runtime dependency of verl (imported unconditionally
+# in main_ppo.py) but not bundled in the verl wheel.
+RUN pip install --no-cache-dir --no-deps verl==0.9.0 && \
+    pip install --no-cache-dir --no-deps TransferQueue==0.1.8
 
 # unsloth + unsloth-zoo: --no-deps because their torchao>=0.13.0 and
 # datasets constraints conflict with this image's torch 2.13.0 stack.
