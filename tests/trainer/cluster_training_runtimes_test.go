@@ -46,10 +46,6 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 	// Build a map of expected runtimes for quick lookup
 	expectedRuntimeMap := make(map[string]trainerutils.ClusterTrainingRuntime)
 	for _, runtime := range trainerutils.ExpectedRuntimes {
-		if !isRhoai && trainerutils.IsSpeculatorRuntime(runtime.Name) {
-			test.T().Logf("Skipping speculator ClusterTrainingRuntime '%s' for non-RHOAI installation", runtime.Name)
-			continue
-		}
 		expectedRuntimeMap[runtime.Name] = runtime
 	}
 
@@ -66,10 +62,6 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 
 	// Iterate over runtimes present in the cluster
 	for _, runtime := range runtimeList.Items {
-		if !isRhoai && trainerutils.IsSpeculatorRuntime(runtime.Name) {
-			continue
-		}
-
 		expectedRuntime, found := expectedRuntimeMap[runtime.Name]
 		if !found {
 			unexpectedRuntimes = append(unexpectedRuntimes, runtime.Name)
@@ -98,7 +90,8 @@ func TestDefaultClusterTrainingRuntimes(t *testing.T) {
 		test.T().Logf("Image referred in ClusterTrainingRuntime is %s", foundImage)
 
 		if trainerutils.IsSpeculatorRuntime(runtime.Name) {
-			expectedRegistry := GetExpectedRegistry(test)
+			// The speculator runtimes use Red Hat-hosted images on both RHOAI and ODH.
+			expectedRegistry := "registry.redhat.io"
 			test.Expect(foundImage).To(HavePrefix(expectedRegistry+"/"),
 				"Speculator image %s should originate from registry %s", foundImage, expectedRegistry)
 			test.Expect(foundImage).To(ContainSubstring(expectedRuntime.Image),
