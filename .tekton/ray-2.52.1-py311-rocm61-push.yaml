@@ -13,7 +13,7 @@ metadata:
       && ( "images/runtime/ray/rocm/2.52.1-py311-rocm61/**".pathChanged()
             || ".tekton/ray-2.52.1-py311-rocm61-push.yaml".pathChanged() )
   labels:
-    appstudio.openshift.io/application: opendatahub-builds
+    appstudio.openshift.io/application: distributed-workloads
     appstudio.openshift.io/component: odh-ray-2-52-1-py311-rocm61-ci
     pipelines.appstudio.openshift.io/type: build
   name: odh-ray-2-52-1-py311-rocm61-on-push
@@ -85,7 +85,7 @@ spec:
       limits:
         memory: 2Gi
   taskRunTemplate:
-    serviceAccountName: build-pipeline-ray-rocm
+    serviceAccountName: build-pipeline-odh-ray-2-52-1-py311-rocm61-ci
   workspaces:
   - name: git-auth
     secret:

@@ -13,7 +13,7 @@ metadata:
       && ( "images/runtime/ray/cuda/2.58.0-py312-cu130-th0112/**".pathChanged()
             || ".tekton/ray-2.58.0-py312-cu130-th0112-push.yaml".pathChanged() )
   labels:
-    appstudio.openshift.io/application: opendatahub-builds
+    appstudio.openshift.io/application: distributed-workloads
     appstudio.openshift.io/component: odh-ray-2-58-0-py312-cu130-th0112-ci
     pipelines.appstudio.openshift.io/type: build
   name: odh-ray-2-58-0-py312-cu130-th0112-on-push
@@ -98,7 +98,7 @@ spec:
       limits:
         memory: 6Gi
   taskRunTemplate:
-    serviceAccountName: build-pipeline-ray-cuda
+    serviceAccountName: build-pipeline-odh-ray-2-58-0-py312-cu130-th0112-ci
   workspaces:
   - name: git-auth
     secret:

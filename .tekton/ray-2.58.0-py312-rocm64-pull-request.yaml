@@ -15,7 +15,7 @@ metadata:
       && ( "images/runtime/ray/rocm/2.58.0-py312-rocm64/**".pathChanged()
             || ".tekton/ray-2.58.0-py312-rocm64-pull-request.yaml".pathChanged() )
   labels:
-    appstudio.openshift.io/application: opendatahub-builds
+    appstudio.openshift.io/application: distributed-workloads
     appstudio.openshift.io/component: odh-ray-2-58-0-py312-rocm64-ci
     pipelines.appstudio.openshift.io/type: build
   name: odh-ray-2-58-0-py312-rocm64-on-pull-request
@@ -30,7 +30,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-ray-2-58-0-py312-rocm64:odh-pr
+    value: quay.io/redhat-user-workloads/open-data-hub-tenant/odh-ray-2-58-0-py312-rocm64-ci:odh-pr
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'
@@ -92,7 +92,7 @@ spec:
       limits:
         memory: 2Gi
   taskRunTemplate:
-    serviceAccountName: build-pipeline-ray-rocm
+    serviceAccountName: build-pipeline-odh-ray-2-58-0-py312-rocm64-ci
   workspaces:
   - name: git-auth
     secret:
