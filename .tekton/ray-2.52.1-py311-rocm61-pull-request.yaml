@@ -30,10 +30,10 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-ray-2-52-1-py311-rocm61:odh-pr
+    value: quay.io/modh/ray:odh-pr-{{pull_request_number}}-2.52.1-py311-rocm61-{{revision}}
   - name: additional-tags
     value:
-    - 'odh-pr-{{revision}}'
+    - 'odh-pr-{{pull_request_number}}-2.52.1-py311-rocm61'
   - name: image-expires-after
     value: 5d
   - name: dockerfile
