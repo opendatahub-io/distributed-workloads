@@ -85,7 +85,7 @@ spec:
       limits:
         memory: 2Gi
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-ray-2-58-0-py312-rocm64-ci
+    serviceAccountName: build-pipeline-ray-rocm
   workspaces:
   - name: git-auth
     secret:

@@ -8,6 +8,7 @@ metadata:
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-comment: "^/build-konflux([[:space:]]|$)"
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "pull_request"
       && target_branch == "main"
@@ -91,7 +92,7 @@ spec:
       limits:
         memory: 2Gi
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-ray-2-52-1-py311-cu121-ci
+    serviceAccountName: build-pipeline-ray-cuda
   workspaces:
   - name: git-auth
     secret:
