@@ -48,10 +48,12 @@ jobs:
             py_raw=$(echo "$flavor" | grep -oP 'py\K\d+')
             py_version="${py_raw:0:1}.${py_raw:1}"
 
-            # Run from inside the directory so uv comments match the original format
+            # Run from inside the directory so uv comments match the original format.
+            # Resolve for UBI9's glibc (2.34): generic "linux" targets manylinux_2_17
+            # and misses manylinux_2_28-only wheels (e.g. nvidia-cutlass-dsl).
             (cd "$dir" && uv pip compile \
               --upgrade \
-              --python-platform=linux \
+              --python-platform=x86_64-manylinux_2_34 \
               "--python-version=$py_version" \
               --index-strategy=unsafe-best-match \
               "--index-url=$index_url" \
