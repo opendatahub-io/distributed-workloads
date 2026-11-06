@@ -509,7 +509,7 @@ mamba-ssm==2.3.2.post1
     #   instructlab-training
     #   rhai-innovation-mini-trainer
     #   training-hub
-markdown==3.11.2
+markdown==3.11.3
     # via tensorboard
 markdown-it-py==4.2.0
     # via rich
