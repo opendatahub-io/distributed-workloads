@@ -146,7 +146,7 @@ fastuuid==0.14.0
     # via litellm
 fickling==0.1.12
     # via polyfile-weave
-filelock==3.32.3
+filelock==4.2.6
     # via
     #   datasets
     #   huggingface-hub
