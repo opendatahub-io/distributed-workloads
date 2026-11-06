@@ -455,8 +455,7 @@ func TestSetupCustomRuntimeUpgradeTrainJob(t *testing.T) {
 }
 
 func TestRunCustomRuntimeUpgradeTrainJob(t *testing.T) {
-	t.Skip("Skip due to issue RHOAIENG-87834")
-	// Tags(t, PostUpgrade)
+	Tags(t, PostUpgrade)
 	test := With(t)
 	SetupKueue(test, initialKueueState, TrainJobFramework)
 
@@ -604,7 +603,7 @@ func createCustomRuntimeUpgradeTrainJob(test Test, namespace, localQueueName str
 			},
 			RuntimePatches: []trainerv1alpha1.RuntimePatch{
 				{
-					Manager: "test-kueue-upgrade",
+					Manager: "redhat.com/test-kueue-upgrade",
 					TrainingRuntimeSpec: &trainerv1alpha1.TrainingRuntimeSpecPatch{
 						Template: &trainerv1alpha1.JobSetTemplatePatch{
 							Spec: &trainerv1alpha1.JobSetSpecPatch{
