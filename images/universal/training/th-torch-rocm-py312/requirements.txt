@@ -144,7 +144,7 @@ email-validator==2.3.0
     # via pydantic
 fastapi==0.139.2
     # via mlflow-skinny
-filelock==3.32.3
+filelock==4.2.5
     # via
     #   datasets
     #   huggingface-hub

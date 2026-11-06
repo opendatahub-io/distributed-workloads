@@ -114,4 +114,5 @@ constraint-dependencies = [
     "msgpack>=1.2.3",
     "wrapt>=2.2.2",
     "oauthlib>=4.0.0",
+    "filelock>=4.2.1",
 ]
