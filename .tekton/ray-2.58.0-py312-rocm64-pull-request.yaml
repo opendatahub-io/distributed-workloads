@@ -1,0 +1,99 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/distributed-workloads?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-comment: "^/build-konflux"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "pull_request"
+      && target_branch == "main"
+      && ( "images/runtime/ray/rocm/2.58.0-py312-rocm64/**".pathChanged()
+            || ".tekton/ray-2.58.0-py312-rocm64-pull-request.yaml".pathChanged() )
+  labels:
+    appstudio.openshift.io/application: distributed-workloads
+    appstudio.openshift.io/component: odh-ray-2-58-0-py312-rocm64-ci
+    pipelines.appstudio.openshift.io/type: build
+  name: odh-ray-2-58-0-py312-rocm64-on-pull-request
+  namespace: open-data-hub-tenant
+spec:
+  timeouts:
+    pipeline: 10h
+    tasks: 8h
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: output-image
+    value: quay.io/modh/ray:odh-pr-{{pull_request_number}}-2.58.0-py312-rocm64-{{revision}}
+  - name: additional-tags
+    value:
+    - 'odh-pr-{{pull_request_number}}-2.58.0-py312-rocm64'
+  - name: image-expires-after
+    value: 5d
+  - name: dockerfile
+    value: Dockerfile
+  - name: path-context
+    value: images/runtime/ray/rocm/2.58.0-py312-rocm64
+  - name: pipeline-type
+    value: pull-request
+  - name: build-source-image
+    value: "false"
+  - name: build-platforms
+    value:
+    - linux-extra-fast/amd64
+  # Future Ray tests attach through a Konflux IntegrationTestScenario for
+  # this component. Its test pipeline can add Ray tasks using the snapshot's
+  # built image by digest without changing this shared build pipeline.
+  pipelineRef:
+    resolver: git
+    params:
+    - name: url
+      value: https://github.com/opendatahub-io/odh-konflux-central.git
+    - name: revision
+      value: main
+    - name: pathInRepo
+      value: pipeline/multi-arch-container-build.yaml
+  taskRunSpecs:
+  - pipelineTaskName: build-images
+    stepSpecs:
+    - name: build
+      computeResources:
+        requests:
+          memory: 10Gi
+        limits:
+          memory: 10Gi
+    - name: prepare-sboms
+      computeResources:
+        requests:
+          cpu: '3'
+          memory: 8Gi
+        limits:
+          cpu: '3'
+          memory: 8Gi
+    - name: sbom-syft-generate
+      computeResources:
+        requests:
+          cpu: '2'
+          memory: 8Gi
+        limits:
+          cpu: '2'
+          memory: 8Gi
+  - pipelineTaskName: prefetch-dependencies
+    computeResources:
+      requests:
+        cpu: '1'
+        memory: 2Gi
+      limits:
+        memory: 2Gi
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-odh-ray-2-58-0-py312-rocm64-ci
+  workspaces:
+  - name: git-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
