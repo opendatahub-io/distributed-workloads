@@ -670,7 +670,7 @@ nvidia-ml-py==13.615.71
     # via flashinfer-python
 nvtx==0.2.15
     # via vllm
-oauthlib==4.0.0
+oauthlib==4.0.1
     # via
     #   kubernetes
     #   requests-oauthlib
