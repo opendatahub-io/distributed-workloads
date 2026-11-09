@@ -111,6 +111,7 @@ constraint-dependencies = [
     "urllib3>=2.8.0",
     "wrapt>=2.2.2",
     "tqdm>=4.70.1",
+    "oauthlib>=4.0.0",
 ]
 
 [tool.uv.pip]
