@@ -12,13 +12,13 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "pull_request"
       && target_branch == "main"
-      && ( "images/runtime/ray/cuda/2.52.1-py311-cu121/**".pathChanged()
-            || ".tekton/ray-2.52.1-py311-cu121-pull-request.yaml".pathChanged() )
+      && ( "images/runtime/ray/cuda/2.60.0-py312-cu130-th0112/**".pathChanged()
+            || ".tekton/ray-2.60.0-py312-cu130-th0112-pull-request.yaml".pathChanged() )
   labels:
     appstudio.openshift.io/application: distributed-workloads
-    appstudio.openshift.io/component: odh-ray-2-52-1-py311-cu121-ci
+    appstudio.openshift.io/component: ray-th
     pipelines.appstudio.openshift.io/type: build
-  name: odh-ray-2-52-1-py311-cu121-on-pull-request
+  name: odh-ray-2-60-0-py312-cu130-th0112-on-pull-request
   namespace: open-data-hub-tenant
 spec:
   timeouts:
@@ -30,23 +30,24 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/ray:odh-pr-{{pull_request_number}}-2.52.1-py311-cu121-{{revision}}
+    value: quay.io/modh/ray:odh-2.60.0-py312-cu130-th0112-pr-{{pull_request_number}}-{{revision}}
   - name: additional-tags
     value:
-    - 'odh-pr-{{pull_request_number}}-2.52.1-py311-cu121'
+    - 'odh-2.60.0-py312-cu130-th0112-pr-{{pull_request_number}}'
   - name: image-expires-after
     value: 5d
   - name: dockerfile
     value: Dockerfile
   - name: path-context
-    value: images/runtime/ray/cuda/2.52.1-py311-cu121
+    value: images/runtime/ray/cuda/2.60.0-py312-cu130-th0112
   - name: pipeline-type
     value: pull-request
   - name: build-source-image
     value: "false"
   - name: build-platforms
     value:
-    - linux-extra-fast/amd64
+    - linux-d160-c8xlarge/amd64
+    - linux-d160-c8xlarge/arm64
   # Future Ray tests attach through a Konflux IntegrationTestScenario for
   # this component. Its test pipeline can add Ray tasks using the snapshot's
   # built image by digest without changing this shared build pipeline.
@@ -65,9 +66,15 @@ spec:
     - name: build
       computeResources:
         requests:
-          memory: 10Gi
+          memory: 16Gi
         limits:
-          memory: 10Gi
+          memory: 32Gi
+    - name: push
+      computeResources:
+        requests:
+          memory: 4Gi
+        limits:
+          memory: 8Gi
     - name: prepare-sboms
       computeResources:
         requests:
@@ -91,8 +98,14 @@ spec:
         memory: 2Gi
       limits:
         memory: 2Gi
+  - pipelineTaskName: ecosystem-cert-preflight-checks
+    computeResources:
+      requests:
+        memory: 6Gi
+      limits:
+        memory: 6Gi
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-ray-2-52-1-py311-cu121-ci
+    serviceAccountName: build-pipeline-ray-th
   workspaces:
   - name: git-auth
     secret:

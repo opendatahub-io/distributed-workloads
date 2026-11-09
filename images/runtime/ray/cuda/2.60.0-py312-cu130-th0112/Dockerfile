@@ -1,5 +1,5 @@
 ARG PYTHON_VERSION=312
-ARG IMAGE_TAG=9.8-1788412553
+ARG IMAGE_TAG=9.8-1793738546
 
 FROM registry.access.redhat.com/ubi9/python-${PYTHON_VERSION}:${IMAGE_TAG}
 
@@ -98,11 +98,11 @@ RUN pip install --no-cache-dir --no-deps --force-reinstall \
     "causal-conv1d==1.7.0" \
     "xformers==0.0.35"
 
-# verl: --no-deps because its numpy<2.0.0 pin conflicts with vllm's numpy>=2.
+# verl: --no-deps because its numpy pin conflicts with vllm's numpy.
 # TransferQueue is a required runtime dependency of verl (imported unconditionally
-# in main_ppo.py) but not bundled in the verl wheel.
-RUN pip install --no-cache-dir --no-deps verl==0.9.0 && \
-    pip install --no-cache-dir --no-deps TransferQueue==0.1.8
+# in main_ppo.py) but not bundled in the verl wheel; verl 0.9.1 needs >=0.1.10.
+RUN pip install --no-cache-dir --no-deps verl==0.9.1 && \
+    pip install --no-cache-dir --no-deps TransferQueue==0.1.10
 
 # unsloth + unsloth-zoo: --no-deps because their torchao>=0.13.0 and
 # datasets constraints conflict with this image's torch 2.13.0 stack.
@@ -111,7 +111,7 @@ RUN pip install --no-cache-dir --no-deps \
     "unsloth==2026.10.19+rhaiv.0" \
     "unsloth-zoo==2026.10.19+rhaiv.0"
 
-# vllm 0.31.0 + verl 0.9.0 runtime dependencies.
+# vllm 0.31.0 + verl 0.9.1 runtime dependencies.
 # Many deps (aiohttp, fastapi, pydantic, numpy, ray, transformers, etc.) are
 # already installed via Pipfile.lock and are not repeated here.
 RUN pip install --no-cache-dir \

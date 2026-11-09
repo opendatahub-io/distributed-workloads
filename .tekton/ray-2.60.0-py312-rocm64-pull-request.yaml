@@ -12,13 +12,13 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "pull_request"
       && target_branch == "main"
-      && ( "images/runtime/ray/rocm/2.58.0-py312-rocm64/**".pathChanged()
-            || ".tekton/ray-2.58.0-py312-rocm64-pull-request.yaml".pathChanged() )
+      && ( "images/runtime/ray/rocm/2.60.0-py312-rocm64/**".pathChanged()
+            || ".tekton/ray-2.60.0-py312-rocm64-pull-request.yaml".pathChanged() )
   labels:
     appstudio.openshift.io/application: distributed-workloads
-    appstudio.openshift.io/component: odh-ray-2-58-0-py312-rocm64-ci
+    appstudio.openshift.io/component: ray-rocm
     pipelines.appstudio.openshift.io/type: build
-  name: odh-ray-2-58-0-py312-rocm64-on-pull-request
+  name: odh-ray-2-60-0-py312-rocm64-on-pull-request
   namespace: open-data-hub-tenant
 spec:
   timeouts:
@@ -30,16 +30,16 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/ray:odh-pr-{{pull_request_number}}-2.58.0-py312-rocm64-{{revision}}
+    value: quay.io/modh/ray:odh-2.60.0-py312-rocm64-pr-{{pull_request_number}}-{{revision}}
   - name: additional-tags
     value:
-    - 'odh-pr-{{pull_request_number}}-2.58.0-py312-rocm64'
+    - 'odh-2.60.0-py312-rocm64-pr-{{pull_request_number}}'
   - name: image-expires-after
     value: 5d
   - name: dockerfile
     value: Dockerfile
   - name: path-context
-    value: images/runtime/ray/rocm/2.58.0-py312-rocm64
+    value: images/runtime/ray/rocm/2.60.0-py312-rocm64
   - name: pipeline-type
     value: pull-request
   - name: build-source-image
@@ -92,7 +92,7 @@ spec:
       limits:
         memory: 2Gi
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-ray-2-58-0-py312-rocm64-ci
+    serviceAccountName: build-pipeline-ray-rocm
   workspaces:
   - name: git-auth
     secret:

@@ -5,20 +5,18 @@ metadata:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/distributed-workloads?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-comment: "^/build-konflux"
     pipelinesascode.tekton.dev/on-cel-expression: |
-      event == "pull_request"
+      event == "push"
       && target_branch == "main"
-      && ( "images/runtime/ray/cuda/2.58.0-py312-cu128/**".pathChanged()
-            || ".tekton/ray-2.58.0-py312-cu128-pull-request.yaml".pathChanged() )
+      && ( "images/runtime/ray/cuda/2.60.0-py312-cu128/**".pathChanged()
+            || ".tekton/ray-2.60.0-py312-cu128-push.yaml".pathChanged() )
   labels:
     appstudio.openshift.io/application: distributed-workloads
-    appstudio.openshift.io/component: odh-ray-2-58-0-py312-cu128-ci
+    appstudio.openshift.io/component: ray-cuda
     pipelines.appstudio.openshift.io/type: build
-  name: odh-ray-2-58-0-py312-cu128-on-pull-request
+  name: odh-ray-2-60-0-py312-cu128-on-push
   namespace: open-data-hub-tenant
 spec:
   timeouts:
@@ -30,27 +28,22 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/ray:odh-pr-{{pull_request_number}}-2.58.0-py312-cu128-{{revision}}
+    value: quay.io/modh/ray:2.60.0-py312-cu128
   - name: additional-tags
     value:
-    - 'odh-pr-{{pull_request_number}}-2.58.0-py312-cu128'
-  - name: image-expires-after
-    value: 5d
+    - '2.60.0-py312-cu128-{{revision}}'
   - name: dockerfile
     value: Dockerfile
   - name: path-context
-    value: images/runtime/ray/cuda/2.58.0-py312-cu128
+    value: images/runtime/ray/cuda/2.60.0-py312-cu128
   - name: pipeline-type
-    value: pull-request
+    value: push
   - name: build-source-image
     value: "false"
   - name: build-platforms
     value:
     - linux-d160-c8xlarge/amd64
     - linux-d160-c8xlarge/arm64
-  # Future Ray tests attach through a Konflux IntegrationTestScenario for
-  # this component. Its test pipeline can add Ray tasks using the snapshot's
-  # built image by digest without changing this shared build pipeline.
   pipelineRef:
     resolver: git
     params:
@@ -105,7 +98,7 @@ spec:
       limits:
         memory: 6Gi
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-ray-2-58-0-py312-cu128-ci
+    serviceAccountName: build-pipeline-ray-cuda
   workspaces:
   - name: git-auth
     secret:
