@@ -134,4 +134,5 @@ constraint-dependencies = [
     "msgpack>=1.2.3",
     "dnspython>=2.9.0",
     "wrapt>=2.2.2",
+    "oauthlib>=4.0.0",
 ]
