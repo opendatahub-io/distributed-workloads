@@ -113,4 +113,5 @@ constraint-dependencies = [
     "urllib3>=2.8.0",
     "msgpack>=1.2.3",
     "wrapt>=2.2.2",
+    "oauthlib>=4.0.0",
 ]
