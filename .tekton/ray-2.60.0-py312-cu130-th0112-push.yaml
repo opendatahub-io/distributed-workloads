@@ -1,0 +1,105 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/distributed-workloads?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push"
+      && target_branch == "main"
+      && ( "images/runtime/ray/cuda/2.60.0-py312-cu130-th0112/**".pathChanged()
+            || ".tekton/ray-2.60.0-py312-cu130-th0112-push.yaml".pathChanged() )
+  labels:
+    appstudio.openshift.io/application: distributed-workloads
+    appstudio.openshift.io/component: ray-th
+    pipelines.appstudio.openshift.io/type: build
+  name: odh-ray-2-60-0-py312-cu130-th0112-on-push
+  namespace: open-data-hub-tenant
+spec:
+  timeouts:
+    pipeline: 10h
+    tasks: 8h
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: output-image
+    value: quay.io/modh/ray:2.60.0-py312-cu130-th0112
+  - name: additional-tags
+    value:
+    - '2.60.0-py312-cu130-th0112-{{revision}}'
+  - name: dockerfile
+    value: Dockerfile
+  - name: path-context
+    value: images/runtime/ray/cuda/2.60.0-py312-cu130-th0112
+  - name: pipeline-type
+    value: push
+  - name: build-source-image
+    value: "false"
+  - name: build-platforms
+    value:
+    - linux-d160-c8xlarge/amd64
+    - linux-d160-c8xlarge/arm64
+  pipelineRef:
+    resolver: git
+    params:
+    - name: url
+      value: https://github.com/opendatahub-io/odh-konflux-central.git
+    - name: revision
+      value: main
+    - name: pathInRepo
+      value: pipeline/multi-arch-container-build.yaml
+  taskRunSpecs:
+  - pipelineTaskName: build-images
+    stepSpecs:
+    - name: build
+      computeResources:
+        requests:
+          memory: 16Gi
+        limits:
+          memory: 32Gi
+    - name: push
+      computeResources:
+        requests:
+          memory: 4Gi
+        limits:
+          memory: 8Gi
+    - name: prepare-sboms
+      computeResources:
+        requests:
+          cpu: '3'
+          memory: 8Gi
+        limits:
+          cpu: '3'
+          memory: 8Gi
+    - name: sbom-syft-generate
+      computeResources:
+        requests:
+          cpu: '2'
+          memory: 8Gi
+        limits:
+          cpu: '2'
+          memory: 8Gi
+  - pipelineTaskName: prefetch-dependencies
+    computeResources:
+      requests:
+        cpu: '1'
+        memory: 2Gi
+      limits:
+        memory: 2Gi
+  - pipelineTaskName: ecosystem-cert-preflight-checks
+    computeResources:
+      requests:
+        memory: 6Gi
+      limits:
+        memory: 6Gi
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-ray-th
+  workspaces:
+  - name: git-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
