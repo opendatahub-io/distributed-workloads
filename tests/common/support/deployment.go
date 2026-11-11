@@ -71,6 +71,11 @@ func CreateDeployment(
 	options ...DeploymentOption,
 ) *appsv1.Deployment {
 	test.T().Helper()
+	stopTiming := StartTiming(test, "deployment_create", namespace.Name, "", map[string]string{
+		"container": config.ContainerName,
+		"image":     config.Image,
+	})
+	defer stopTiming()
 
 	labels := map[string]string{
 		DeploymentLabelKey:         DeploymentLabelValue,
@@ -149,6 +154,8 @@ func copyLabels(labels map[string]string) map[string]string {
 // to disappear. Deletion is idempotent so it can safely be used from cleanup.
 func DeleteDeployment(test Test, namespace *corev1.Namespace, deploymentName string) {
 	test.T().Helper()
+	stopTiming := StartTiming(test, "deployment_cleanup", namespace.Name, deploymentName, nil)
+	defer stopTiming()
 	err := test.Client().Core().AppsV1().Deployments(namespace.Name).Delete(test.Ctx(), deploymentName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		test.Expect(err).NotTo(gomega.HaveOccurred())
@@ -163,6 +170,8 @@ func DeleteDeployment(test Test, namespace *corev1.Namespace, deploymentName str
 // and returns its name and primary container name.
 func WaitForDeploymentPodRunning(test Test, namespace, deploymentName string) (string, string) {
 	test.T().Helper()
+	stopTiming := StartTiming(test, "deployment_pod_ready", namespace, deploymentName, nil)
+	defer stopTiming()
 	deployment, err := test.Client().Core().AppsV1().Deployments(namespace).Get(test.Ctx(), deploymentName, metav1.GetOptions{})
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 	labelSelector := metav1.FormatLabelSelector(deployment.Spec.Selector)
