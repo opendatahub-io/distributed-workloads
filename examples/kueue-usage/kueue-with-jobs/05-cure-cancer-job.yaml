@@ -1,0 +1,26 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: cure-cancer-
+  labels:
+    kueue.x-k8s.io/priority-class: human-critical
+    kueue.x-k8s.io/queue-name: emergency-queue
+spec:
+  parallelism: 3
+  completions: 3
+  suspend: true
+  template:
+    spec:
+      containers:
+      - name: cancer-treatment-model-update
+        image: gcr.io/k8s-staging-perf-tests/sleep:v0.1.0
+        args: ["60s"]
+        resources:
+          requests:
+            cpu: 50m
+            memory: "50Mi"
+      restartPolicy: Never
+
+
+
