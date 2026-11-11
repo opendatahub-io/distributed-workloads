@@ -1,0 +1,96 @@
+# MPI SFT Benchmark — Qwen 2.5 7B + GSM8K
+# Target: IBMCloud gx3d-160x1792x8h100 nodes (8x H100 80GB per node)
+#
+# Algorithm:  SFT (Supervised Fine-Tuning) via TRL SFTTrainer
+# Model:      Qwen/Qwen2.5-7B-Instruct
+# Dataset:    openai/gsm8k (~7.5K grade-school math problems)
+# Distributed: PyTorch DDP with MPI backend via Kubeflow TrainJob
+# Network:    150 Gbps RoCE
+#
+# MPI communication patterns exercised:
+#   - allreduce   (gradient synchronisation every step)
+#
+# Prerequisites:
+#   kubectl create namespace kftv2-mpi-sft
+#   kubectl create configmap mpi-sft-scripts \
+#     --from-file=train_sft.py \
+#     -n kftv2-mpi-sft
+#
+# Run:
+#   kubectl apply -f trainjob.yaml
+#
+# Logs:
+#   kubectl logs -n kftv2-mpi-sft \
+#     -l batch.kubernetes.io/job-name=mpi-sft-benchmark-launcher-0 \
+#     --tail=-1 -f
+#
+# Scaling strategy (8xH100 per node):
+#   - 1 node  (  8 GPUs):  numNodes: 1  — default
+#   - 2 nodes ( 16 GPUs):  numNodes: 2  — first inter-node scaling point
+#   - 4 nodes ( 32 GPUs):  numNodes: 4  — mid-scale benchmark
+#   - 16 nodes (128 GPUs): numNodes: 16 — extrapolation target
+---
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainJob
+metadata:
+  name: mpi-sft-benchmark
+  namespace: kftv2-mpi-sft
+spec:
+  runtimeRef:
+    apiGroup: trainer.kubeflow.org
+    kind: ClusterTrainingRuntime
+    name: odh-mpi-cuda-openmpi-aipcc
+  trainer:
+    command:
+    - sh
+    - -c
+    - "sleep 5 && mpirun python /mnt/scripts/train_sft.py"
+    numNodes: 1
+    resourcesPerNode:
+      limits:
+        nvidia.com/gpu: "8"
+        memory: 1200Gi
+        cpu: "120"
+      requests:
+        nvidia.com/gpu: "8"
+        memory: 1200Gi
+        cpu: "120"
+  podTemplateOverrides:
+  - spec:
+      containers:
+      - name: node
+        env:
+        - name: HF_HOME
+          value: /tmp/hf_cache
+        - name: SFT_MODEL
+          value: Qwen/Qwen2.5-7B-Instruct
+        - name: SFT_MAX_STEPS
+          value: "50"
+        - name: SFT_BATCH_SIZE
+          value: "1"
+        - name: SFT_MAX_SEQ_LENGTH
+          value: "1024"
+        - name: SFT_LEARNING_RATE
+          value: "5e-7"
+        volumeMounts:
+        - mountPath: /mnt/scripts
+          name: scripts
+        - mountPath: /dev/shm
+          name: dshm
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                jobset.sigs.k8s.io/jobset-name: mpi-sft-benchmark
+            topologyKey: kubernetes.io/hostname
+      volumes:
+      - name: scripts
+        configMap:
+          name: mpi-sft-scripts
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 16Gi
+    targetJobs:
+    - name: node
