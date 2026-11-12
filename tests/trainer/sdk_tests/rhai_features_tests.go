@@ -74,6 +74,7 @@ type RhaiFeatureConfig struct {
 	NumGpusPerNode            int         // GPUs per node for multi-GPU tests (default: 1)
 	NotebookPath              string      // Path to notebook file (default: rhai_features.ipynb)
 	NotebookName              string      // Name of notebook file (default: rhai_features.ipynb)
+	EnableModelDataS3         bool        // Download the model and dataset from S3 to the shared PVC
 }
 
 // RunRhaiFeaturesProgressionTest runs the e2e test for RHAI features with progression tracking
@@ -115,6 +116,23 @@ func RunRhaiFeaturesAllTest(t *testing.T, accelerator Accelerator, numNodes int)
 		Accelerator:               accelerator,
 		NumNodes:                  numNodes,
 		NumGpusPerNode:            1,
+	})
+}
+
+// RunRhaiModelDataStagingTest validates model and dataset downloads to the shared PVC.
+// The notebook requires these artifacts and loads them for training, so a successful
+// TrainJob also verifies that the staged data is usable by the training pods.
+func RunRhaiModelDataStagingTest(t *testing.T, accelerator Accelerator) {
+	runRhaiFeaturesTestWithConfig(t, RhaiFeatureConfig{
+		EnableProgressionTracking: false,
+		EnableJitCheckpoint:       false,
+		CheckpointOutputDir:       "/workspace/checkpoints",
+		CheckpointSaveStrategy:    "epoch",
+		CheckpointSaveTotalLimit:  "1",
+		Accelerator:               accelerator,
+		NumNodes:                  1,
+		NumGpusPerNode:            1,
+		EnableModelDataS3:         true,
 	})
 }
 
@@ -335,7 +353,7 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 	// This is separate from checkpoint storage which uses its own bucket
 	// Verify bucket exists before setting AWS_STORAGE_BUCKET to ensure notebook can access it
 	var s3Env []corev1.EnvVar
-	if s3Endpoint != "" && modelsBucket != "" {
+	if config.EnableModelDataS3 && s3Endpoint != "" && modelsBucket != "" {
 		// Verify bucket exists before using it
 		provider, err := trainerutils.GetS3Provider()
 		if err == nil {
@@ -361,7 +379,10 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		}
 	}
 	if len(s3Env) == 0 {
-		test.T().Log("HuggingFace mode: S3 not configured for models/datasets, will download from HF Hub")
+		if config.EnableModelDataS3 {
+			t.Fatalf("model/dataset S3 staging requested but storage configuration is incomplete")
+		}
+		test.T().Log("Deterministic in-memory mode: model/dataset S3 staging is disabled")
 	}
 
 	// Create Data Connection secret for cloud checkpointing (if configured)
@@ -428,6 +449,10 @@ func runRhaiFeaturesTestWithConfig(t *testing.T, config RhaiFeatureConfig) {
 		{Name: "NUM_GPUS_PER_NODE", Value: fmt.Sprintf("%d", numGpusPerNode)},
 		{Name: "GPU_TYPE", Value: gpuType},
 	}, s3Env...)
+	if config.EnableModelDataS3 {
+		env = append(env, corev1.EnvVar{Name: "ENABLE_MODEL_DATA_S3", Value: "true"})
+		test.T().Log("Model/dataset S3 staging is enabled for the dedicated S3 staging scenario")
+	}
 	env = append(env, dataConnectionEnv...)
 	env = append(env, buildKubeflowInstallEnv()...)
 	shellCmd := fmt.Sprintf(
