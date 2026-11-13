@@ -1,5 +1,12 @@
 # Distributed Workloads
 
+## Security
+
+See [SECURITY.md](SECURITY.md) for our security policy, including the trust
+model for the training runtime images built in this repository. The image and
+runtime naming policy is documented in
+[images/universal/training/README.md](images/universal/training/README.md).
+
 ## Examples
 
 * Fine-Tune LLMs with Ray and DeepSpeed on OpenShift AI

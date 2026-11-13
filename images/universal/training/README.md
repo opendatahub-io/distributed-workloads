@@ -29,6 +29,25 @@ When `DOWNSTREAM=true`:
 
 ---
 
+## Security and Trust Model
+
+See the repository [SECURITY.md](../../../SECURITY.md) for the full policy. In summary:
+
+- These images are execution environments: customers run their own code and choose which data, models, and artifacts that code operates on.
+- Loading untrusted model checkpoints, serialized models, or configuration files is a customer trust decision, not a vulnerability in these images. We do not guarantee that artifacts a customer chooses to load are safe.
+- We do address vulnerabilities in the software we ship and the dependencies we pre-install.
+
+## Image and Runtime Naming Policy
+
+Going forward, we provide **one ClusterTrainingRuntime and one runtime image per accelerator type** per runtime flavour (e.g. `-cpu`, `-cuda`, `-rocm` variants), rather than onboarding a new image/runtime per release or dependency version:
+
+- Image and runtime names must never encode package or dependency versions. Names like `universal-training-cuda` are correct; names like `th-torch-cuda-py312` are legacy.
+- Existing versioned image directories in this repository are legacy and remain only until they age out. Do not create new ones.
+- Dependencies are updated in place to address CVEs; the image tag (not the name) identifies the release a customer is running.
+- The contents of each supported image are documented in the [supported configuration documentation](https://access.redhat.com/articles/rhoai-supported-configs-3.x).
+
+---
+
 ## Image Flavors
 
 | Flavor | Directory | Use Case |
