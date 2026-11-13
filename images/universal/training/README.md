@@ -44,6 +44,7 @@ Going forward, we provide **one ClusterTrainingRuntime and one runtime image per
 - Image and runtime names must never encode package or dependency versions. Names like `universal-training-cuda` are correct; names like `th-torch-cuda-py312` are legacy.
 - Existing versioned image directories in this repository are legacy and remain only until they age out. Do not create new ones.
 - Dependencies are updated in place to address CVEs; the image tag (not the name) identifies the release a customer is running.
+- ClusterTrainingRuntimes are updated as part of a release upgrade: TrainJobs created after an upgrade use the new image automatically. To continue using a previous image, customers create a custom ClusterTrainingRuntime referencing it, or specify the image per TrainJob via the runtime patches API. Previous images are not removed.
 - The contents of each supported image are documented in the [supported configuration documentation](https://access.redhat.com/articles/rhoai-supported-configs-3.x).
 
 ---
@@ -191,8 +192,11 @@ Update to dependencies **other than** CUDA, ROCm, PyTorch, or Training Hub.
 
 **Note:** This policy is not being back-ported. The existing versioned image
 directories (e.g. `th-torch-cuda-py312/`) are legacy -- they keep their current
-names and continue to receive dependency updates until they age out. Do not
-rename them or create new directories following the old convention.
+names and continue to receive dependency updates while they are listed in the
+[supported configuration documentation](https://access.redhat.com/articles/rhoai-supported-configs-3.x).
+Retirement of an image is announced in the release notes of the release where
+it is no longer included. Do not rename legacy directories or create new
+directories following the old convention.
 
 ---
 
