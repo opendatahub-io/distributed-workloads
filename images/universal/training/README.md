@@ -29,9 +29,29 @@ When `DOWNSTREAM=true`:
 
 ---
 
+## Security and Trust Model
+
+See the repository [SECURITY.md](../../../SECURITY.md) for the full policy. In summary:
+
+- These images are execution environments: customers run their own code and choose which data, models, and artifacts that code operates on.
+- Loading untrusted model checkpoints, serialized models, or configuration files is a customer trust decision, not a vulnerability in these images. We do not guarantee that artifacts a customer chooses to load are safe.
+- We do address vulnerabilities in the software we ship and the dependencies we pre-install.
+
+## Image and Runtime Naming Policy
+
+Going forward, we provide **one ClusterTrainingRuntime and one runtime image per accelerator type** per runtime flavour (e.g. `-cpu`, `-cuda`, `-rocm` variants), rather than onboarding a new image/runtime per release or dependency version:
+
+- Image and runtime names must never encode package or dependency versions. Names like `universal-training-cuda` are correct; names like `th-torch-cuda-py312` are legacy.
+- Existing versioned image directories in this repository are legacy and remain only until they age out. Do not create new ones.
+- Dependencies are updated in place to address CVEs; the image tag (not the name) identifies the release a customer is running.
+- ClusterTrainingRuntimes are updated as part of a release upgrade: TrainJobs created after an upgrade use the new image automatically. To continue using an image from a previous release, customers may either create a custom ClusterTrainingRuntime or override the image per TrainJob via `spec.trainer.image`.
+- The contents of each supported image are documented in the [supported configuration documentation](https://access.redhat.com/articles/rhoai-supported-configs-3.x).
+
+---
+
 ## Image Flavors
 
-| Flavor | Directory | Use Case |
+| Flavor | Directory (legacy names) | Use Case |
 |--------|-----------|----------|
 | **CUDA** | `th-torch-cuda-py312/` | NVIDIA GPU training |
 | **ROCm** | `th-torch-rocm-py312/` | AMD GPU training |
@@ -158,22 +178,25 @@ Update to dependencies **other than** CUDA, ROCm, PyTorch, or Training Hub.
 
 ### Scenario 2: Major Version Bump (CUDA / ROCm / PyTorch / Training Hub)
 
-**New folder required:**
+**No new folder.** Per the [naming policy](#image-and-runtime-naming-policy), each accelerator variant has a single image directory that is updated in place -- we do not create a new directory for a new CUDA, ROCm, PyTorch, Training Hub, or Python version, and we do not onboard a new image per release.
 
 1. Check `training-hub`'s dependencies - ensure all are available in the target AIPCC index
 2. Coordinate with AIPCC team for the new index with updated major packages
 3. Coordinate with Notebooks team for the new base image
-4. Create new directory following naming convention:
-   - CUDA: `th-torch-cuda-py<PYTHON_VERSION>/`
-   - ROCm: `th-torch-rocm-py<PYTHON_VERSION>/`
-   - CPU: `th-torch-cpu-py<PYTHON_VERSION>/`
-5. Copy files from previous version and update:
+4. Update the existing image directory in place:
    - `Dockerfile` - update base image, package versions
    - `pyproject.toml` - update dependencies to match `training-hub` requirements
-   - `entrypoint-universal.sh`, `LICENSE.md`
    - Repository files if needed (`cuda.repo`, `rocm.repo`, `mellanox.repo`)
-6. Regenerate `requirements.txt` with new AIPCC index
-7. Build and test
+5. Regenerate `requirements.txt` with new AIPCC index
+6. Build and test
+
+**Note:** This policy is not being back-ported. The existing versioned image
+directories (e.g. `th-torch-cuda-py312/`) are legacy -- they keep their current
+names and continue to receive dependency updates while they are listed in the
+[supported configuration documentation](https://access.redhat.com/articles/rhoai-supported-configs-3.x).
+Retirement of an image is announced in the release notes of the release where
+it is no longer included. Do not rename legacy directories or create new
+directories following the old convention.
 
 ---
 

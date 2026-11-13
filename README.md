@@ -1,5 +1,17 @@
 # Distributed Workloads
 
+## Security
+
+See [SECURITY.md](SECURITY.md) for our security policy, including the trust
+model for the training runtime images built in this repository. 
+
+## Images
+
+This repository builds training images for two frameworks:
+
+- **Kubeflow Trainer v2** -- universal training images (`images/universal/training/`), one per accelerator type (CPU, CUDA, ROCm). See [images/universal/training/README.md](images/universal/training/README.md).
+- **Ray** -- Ray-based training images (`images/runtime/ray/`). See [images/runtime/README.md](images/runtime/README.md).
+
 ## Examples
 
 * Fine-Tune LLMs with Ray and DeepSpeed on OpenShift AI
