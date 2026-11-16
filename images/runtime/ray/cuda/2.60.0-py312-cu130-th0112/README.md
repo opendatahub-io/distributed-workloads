@@ -6,5 +6,5 @@ It includes the following layers:
 * UBI 9
 * Python 3.12
 * CUDA 13.0
-* Ray 2.58.0
+* Ray 2.60.0
 * Training Hub 0.11.2
