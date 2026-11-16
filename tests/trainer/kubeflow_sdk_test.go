@@ -123,6 +123,12 @@ func TestRhaiFeaturesCPU(t *testing.T) {
 	sdktests.RunRhaiFeaturesAllTest(t, support.CPU, 1)
 }
 
+// Model and dataset staging test - validates S3 downloads to the shared PVC.
+func TestRhaiModelDataStagingCPU(t *testing.T) {
+	Tags(t, Tier2)
+	sdktests.RunRhaiModelDataStagingTest(t, support.CPU)
+}
+
 // CUDA (NVIDIA) GPU tests - 2 nodes, 1 GPU each
 func TestRhaiTrainingProgressionCuda(t *testing.T) {
 	Tags(t, KftoCuda, MultiNodeGpu(2, support.NVIDIA))
