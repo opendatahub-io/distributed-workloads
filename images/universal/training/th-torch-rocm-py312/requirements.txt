@@ -24,7 +24,7 @@ aiofiles==25.1.0
     #   training-hub
 aiohappyeyeballs==2.7.1
     # via aiohttp
-aiohttp==3.14.3
+aiohttp==3.14.5
     # via
     #   -c (workspace)
     #   aiobotocore
@@ -146,6 +146,7 @@ fastapi==0.139.2
     # via mlflow-skinny
 filelock==4.2.5
     # via
+    #   -c (workspace)
     #   datasets
     #   huggingface-hub
     #   torch
@@ -396,6 +397,7 @@ numpy==2.4.6
     #   unsloth-zoo
 oauthlib==4.0.1
     # via
+    #   -c (workspace)
     #   kubernetes
     #   requests-oauthlib
 opentelemetry-api==1.44.0
@@ -838,7 +840,7 @@ xxhash==3.8.1
     # via
     #   datasets
     #   training-hub
-yarl==1.24.5
+yarl==1.25.1
     # via aiohttp
 zipp==4.1.0
     # via importlib-metadata
