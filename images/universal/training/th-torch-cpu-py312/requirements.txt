@@ -144,10 +144,13 @@ fastapi==0.139.2
     # via mlflow-skinny
 fastuuid==0.14.0
     # via litellm
-fickling==0.1.12
-    # via polyfile-weave
+fickling==0.1.13
+    # via
+    #   -c (workspace)
+    #   polyfile-weave
 filelock==4.2.6
     # via
+    #   -c (workspace)
     #   datasets
     #   huggingface-hub
     #   polyfile-weave
@@ -385,6 +388,7 @@ numpy==2.4.6
     #   transformers
 oauthlib==4.0.1
     # via
+    #   -c (workspace)
     #   kubernetes
     #   requests-oauthlib
 openai==2.54.0
