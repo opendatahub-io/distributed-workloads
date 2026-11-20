@@ -32,8 +32,7 @@ USER 1001
 WORKDIR /opt/app-root/src
 
 # Install dependencies from AIPCC prod index
-RUN uv pip install --no-cache-dir \
-    --index-strategy=unsafe-best-match \
+RUN pip install --no-cache-dir --no-deps \
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/rocm7.14-ubi9/simple/ \
     -r /tmp/deps/requirements.txt
 
