@@ -10,13 +10,13 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push"
       && target_branch == "main"
-      && ( "images/runtime/ray/rocm/2.58.0-py312-rocm64/**".pathChanged()
-            || ".tekton/ray-2.58.0-py312-rocm64-push.yaml".pathChanged() )
+      && ( "images/runtime/ray/rocm/2.60.0-py312-rocm64/**".pathChanged()
+            || ".tekton/ray-2.60.0-py312-rocm64-push.yaml".pathChanged() )
   labels:
     appstudio.openshift.io/application: distributed-workloads
-    appstudio.openshift.io/component: odh-ray-2-58-0-py312-rocm64-ci
+    appstudio.openshift.io/component: ray-rocm
     pipelines.appstudio.openshift.io/type: build
-  name: odh-ray-2-58-0-py312-rocm64-on-push
+  name: odh-ray-2-60-0-py312-rocm64-on-push
   namespace: open-data-hub-tenant
 spec:
   timeouts:
@@ -28,14 +28,14 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/ray:2.58.0-py312-rocm64
+    value: quay.io/modh/ray:2.60.0-py312-rocm64
   - name: additional-tags
     value:
-    - '2.58.0-py312-rocm64-{{revision}}'
+    - '2.60.0-py312-rocm64-{{revision}}'
   - name: dockerfile
     value: Dockerfile
   - name: path-context
-    value: images/runtime/ray/rocm/2.58.0-py312-rocm64
+    value: images/runtime/ray/rocm/2.60.0-py312-rocm64
   - name: pipeline-type
     value: push
   - name: build-source-image
@@ -85,7 +85,7 @@ spec:
       limits:
         memory: 2Gi
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-ray-2-58-0-py312-rocm64-ci
+    serviceAccountName: build-pipeline-ray-rocm
   workspaces:
   - name: git-auth
     secret:

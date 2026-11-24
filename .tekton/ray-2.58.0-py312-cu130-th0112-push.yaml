@@ -98,7 +98,7 @@ spec:
       limits:
         memory: 6Gi
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-ray-2-58-0-py312-cu130-th0112-ci
+    serviceAccountName: build-pipeline-ray-cuda
   workspaces:
   - name: git-auth
     secret:
