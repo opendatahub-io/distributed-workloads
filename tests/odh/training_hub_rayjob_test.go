@@ -96,14 +96,31 @@ func trainingHubRayJob(t *testing.T, algorithm string, numGpus int) {
 		test.Eventually(Notebooks(test, namespace), TestTimeoutGpuProvisioning).Should(HaveLen(0))
 	}()
 
-	// Wait for the RayCluster to be created and running
-	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutGpuProvisioning).
-		Should(
+	// Wait for the RayCluster to be created and running. Fail fast if the
+	// notebook reports FAILURE while we wait (e.g. model download or dataset
+	// prep fails before the RayJob is ever submitted) -- otherwise the test
+	// burns the full timeout waiting for a cluster that will never appear.
+	test.Eventually(func(g Gomega) {
+		if len(Notebooks(test, namespace)(g)) > 0 {
+			// Use the Eventually-scoped g so transient log-fetch errors
+			// (e.g. pod restarting) are retried rather than fatal.
+			notebookLogs := PodLog(test, namespace.Name, NOTEBOOK_POD_NAME,
+				corev1.PodLogOptions{Container: NOTEBOOK_CONTAINER_NAME})(g)
+			if strings.Contains(notebookLogs, "NOTEBOOK_STATUS: FAILURE") {
+				// Eventually polls synchronously on the test goroutine, so
+				// Fatalf here aborts the test immediately.
+				test.T().Fatalf("%s notebook execution reported FAILURE before the RayCluster was created", algorithm)
+			}
+		}
+		// RayClusters(...) returns an async getter; it must be invoked with
+		// the Eventually-scoped g to obtain the slice (as Notebooks above).
+		g.Expect(RayClusters(test, namespace.Name)(g)).To(
 			And(
 				HaveLen(1),
 				ContainElement(WithTransform(RayClusterState, Equal(rayv1.Ready))),
 			),
 		)
+	}, TestTimeoutGpuProvisioning).Should(Succeed())
 
 	// Poll notebook logs for definitive status using the shared helper.
 	err = PollPodLogsForStatus(test, namespace.Name,
@@ -157,6 +174,12 @@ func getTrainingHubNotebookCommand(rayImage, scriptConfigMap, algorithm, pvcName
 		"/bin/sh",
 		"-c",
 		s3Exports +
+			// The notebook image's codeflare-sdk has proven unstable (broken dev
+			// builds have shipped, e.g. calling build_ray_cluster_spec as a method
+			// that doesn't exist). Install a known-good release so test results
+			// don't depend on notebook image drift. The notebook also bypasses the
+			// SDK's hardcoded ray version check, which never matches custom images.
+			"pip install 'codeflare-sdk==0.40.1' && " +
 			"pip install papermill huggingface_hub datasets s3fs && " +
 			"if papermill /opt/app-root/notebooks/{{.NotebookConfigMapFileName}}" +
 			" /opt/app-root/src/mcad-out.ipynb -p namespace {{.Namespace}} -p ray_image " + rayImage +

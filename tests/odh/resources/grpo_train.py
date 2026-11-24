@@ -41,6 +41,27 @@ result = lora_grpo(
     lora_alpha=lora_alpha,
     learning_rate=learning_rate,
     gpu_memory_utilization=gpu_memory_utilization,
+    # OLMo-2-1B has max_position_embeddings=4096; the default prompt length
+    # (16384) + response (512) exceeds it and vLLM refuses to start.
+    # 3072 + 512 = 3584 fits. Longer prompts are filtered out
+    # (data.filter_overlong_prompts=True).
+    max_prompt_length=3072,
+    # Transfer weights layer-by-layer instead of materializing the full
+    # state dict: the default sync peaks at ~63GiB on the GPU (CUDA OOM
+    # next to the sleeping vLLM engine's resident weights on 80Gi A100s).
+    # layered_summon requires vLLM to preload real weights (verl raises
+    # "To use layered_summon ... let rollout.load_format=safetensors"
+    # with the default load_format=dummy), so load the model from the
+    # local safetensors at engine init.
+    layered_summon=True,
+    load_format="safetensors",
+    # 7B full fine-tuning needs the GPU relieved during the weight sync
+    # (~63GiB gather + ~16GiB sleeping vLLM weights on 80Gi A100s):
+    # offload actor params and optimizer states to CPU between phases,
+    # and skip vLLM CUDA-graph capture (~0.5GiB per engine).
+    param_offload=True,
+    optimizer_offload=True,
+    enforce_eager=True,
 )
 
 print("GRPO training completed")
