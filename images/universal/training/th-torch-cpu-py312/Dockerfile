@@ -134,6 +134,17 @@ COPY --chmod=0755 entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
 RUN fix-permissions /opt/app-root -P \
  && chmod -R g+w /opt/app-root/lib/python${PYTHON_VERSION}/site-packages
 
+# Replace compromised vendored roots with the clean system trust bundle
+# (RHAI-50506 / CVE-2026-114406 eMudhra).
+RUN set -eu; \
+    system_bundle=/etc/pki/tls/certs/ca-bundle.crt; \
+    for bundle in \
+        /opt/app-root/lib/python${PYTHON_VERSION}/site-packages/pip/_vendor/certifi/cacert.pem \
+        /opt/app-root/lib/python${PYTHON_VERSION}/site-packages/certifi/cacert.pem; do \
+        cp "$system_bundle" "$bundle"; \
+        cmp -s "$system_bundle" "$bundle"; \
+    done
+
 USER 1001
 WORKDIR /opt/app-root/src
 

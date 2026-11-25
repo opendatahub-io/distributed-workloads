@@ -533,11 +533,11 @@ mistral-common==1.13.1
     # via vllm
 ml-dtypes==0.7.0
     # via tilelang
-mlflow==3.16.0
+mlflow==3.17.2
     # via th-torch-cuda-universal-image (pyproject.toml)
-mlflow-skinny==3.16.0
+mlflow-skinny==3.17.2
     # via mlflow
-mlflow-tracing==3.16.0
+mlflow-tracing==3.17.2
     # via mlflow
 model-hosting-container-standards==0.1.16
     # via vllm
@@ -801,6 +801,8 @@ pillow==13.0.0
     #   torchvision
     #   unsloth-zoo
     #   vllm
+pip==26.3
+    # via th-torch-cuda-universal-image (pyproject.toml)
 platformdirs==4.14.8
     # via sigstore
 pluggy==1.7.0

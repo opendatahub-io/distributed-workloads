@@ -1,7 +1,7 @@
 # CPU Universal Image Python Dependencies
 #
 # To regenerate requirements.txt:
-#   uv pip compile --python-platform=x86_64-manylinux_2_34 --python-version=3.12 \
+#   uv pip compile --python-platform=linux --python-version=3.12 \
 #     --index-strategy=unsafe-best-match \
 #     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/cpu-ubi9/simple/ \
 #     -o requirements.txt pyproject.toml
@@ -13,33 +13,36 @@ version = "0.1.0"
 requires-python = "==3.12.*"
 
 dependencies = [
+    # Use the AIPCC pip build that reads the system CA bundle.
+    "pip~=26.3.0",
+
     # ===================================================================
     # ML/AI DEPENDENCIES (added on top of base image)
     # Base image deps are NOT listed here - pip install is additive
     # Strict AIPCC-only: all packages must be available in AIPCC index
     # ===================================================================
-    
+
     # PyTorch CPU version
     "torch==2.13.0",
-    
+
     # Triton (CPU compatible for JIT compilation)
     "triton==3.7.1",
-    
+
     # ML Training and Inference Libraries
     "accelerate>=1.15.0",
     "transformers==5.17.0",
     "peft==0.20.0",
     "datasets==5.0.1",
     "trl==1.13.0",
-    
+
     # Deep Learning Utilities (CPU-compatible)
     "einops==0.8.2",
     "numba==0.67.0",
-    
+
     # Tokenization
     "sentencepiece==0.2.2",
     "tokenizers==0.23.2",
-    
+
     # Core Dependencies
     "numpy>=2.4.6",
     "tqdm>=4.70.0",
@@ -50,16 +53,16 @@ dependencies = [
     "rich==15.0.0",
     "aiofiles==25.1.0",
     "tensorboard==2.20.0",
-    
+
     # Storage & MLOps
     "s3fs==2026.6.0",
-    "mlflow==3.16.0",
-    
+    "mlflow==3.17.2",
+
     # Training Frameworks
     "training_hub==0.11.2",
     "instructlab-training==0.16.2",
     "rhai-innovation-mini-trainer==0.9.0",
-    
+
     # Kubeflow SDK
     "kubeflow==0.5.0+rhaiv.0",
     "kubeflow_spark_api==2.4.0",
@@ -67,10 +70,10 @@ dependencies = [
 
     # OpenPipe ART
     "openpipe-art==0.5.18",
-    
+
     # Model Management
     "model_registry==0.3.14",
-    
+
     # Note: GPU-specific packages are NOT included:
     # - flash-attn (requires CUDA/ROCm)
     # - bitsandbytes (GPU-focused)
@@ -91,18 +94,19 @@ index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/cpu-ubi9/
 override-dependencies = [
     "litellm==1.102.2",
     "numpy==2.4.6",
+    "grpcio>=1.84.1",
     # AIPCC has no data-server wheels for these architectures. TensorBoard
     # falls back to its Python loader when the optional server is absent.
     "tensorboard-data-server==0.7.2; platform_machine != 'ppc64le' and platform_machine != 's390x'",
 ]
 constraint-dependencies = [
-    "aiohttp>=3.14.3",
+    "aiohttp>=3.14.4",
     "anyio>=4.15.1",
     "certifi>=2026.10.19",
     "gitpython>=3.2.0",
     "pillow>=13.0.0",
     "litellm>=1.101.0",
-    "pyasn1>=0.6.4",
+    "pyasn1>=0.6.5",
     "sqlparse>=0.6.0",
     "starlette>=1.6.0",
     "openai<3.0",  # Required for openpipe-art vllm runtime compatibility
