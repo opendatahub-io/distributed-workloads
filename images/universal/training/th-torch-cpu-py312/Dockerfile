@@ -142,7 +142,7 @@ RUN set -eu; \
         /opt/app-root/lib/python${PYTHON_VERSION}/site-packages/pip/_vendor/certifi/cacert.pem \
         /opt/app-root/lib/python${PYTHON_VERSION}/site-packages/certifi/cacert.pem; do \
         cp "$system_bundle" "$bundle"; \
-        cmp -s "$system_bundle" "$bundle"; \
+        [ "$(sha256sum < "$system_bundle")" = "$(sha256sum < "$bundle")" ]; \
     done
 
 USER 1001
