@@ -510,7 +510,9 @@ mamba-ssm==2.3.2.post1
     #   rhai-innovation-mini-trainer
     #   training-hub
 markdown==3.11.3
-    # via tensorboard
+    # via
+    #   -c (workspace)
+    #   tensorboard
 markdown-it-py==4.3.0
     # via rich
 markupsafe==3.0.4
