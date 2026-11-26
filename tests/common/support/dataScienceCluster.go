@@ -54,7 +54,7 @@ const (
 
 var DscGVR = schema.GroupVersionResource{
 	Group:    "datasciencecluster.opendatahub.io",
-	Version:  "v2",
+	Version:  "v3",
 	Resource: "datascienceclusters",
 }
 
