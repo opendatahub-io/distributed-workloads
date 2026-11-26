@@ -1,0 +1,29 @@
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: LocalQueue
+metadata:
+  name: emergency-queue
+spec:
+  description: "Queue for the emergency training jobs (Climate Change, Alzheimer, Cancer)."
+  clusterQueue: emergency-cluster-queue
+
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: LocalQueue
+metadata:
+  name: llm-queue
+spec:
+  description: "Queue for the LLM model's training jobs."
+  clusterQueue: llm-cluster-queue
+
+
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: LocalQueue
+metadata:
+  name: gai-queue
+spec:
+  description: "Queue for the GAI (General Artificial Intelligence) model's training jobs."
+  clusterQueue: gai-cluster-queue
+
+
