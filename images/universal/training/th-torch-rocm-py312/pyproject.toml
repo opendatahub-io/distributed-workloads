@@ -99,10 +99,10 @@ override-dependencies = [
     "xformers ; sys_platform == 'win32'",
     "numba==0.67.0",
     "numpy==2.4.6",
-    "grpcio>=1.84.1",
     "protobuf==7.36.1",
 ]
 constraint-dependencies = [
+    "grpcio>=1.84.1",
     "certifi>=2026.10.19",
     "databricks-sdk==0.156.0",
     "aiohttp>=3.14.4",

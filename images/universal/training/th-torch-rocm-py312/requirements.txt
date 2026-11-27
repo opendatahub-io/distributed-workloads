@@ -203,7 +203,7 @@ graphql-relay==3.2.0
     # via graphene
 grpcio==1.85.3
     # via
-    #   --override (workspace)
+    #   -c (workspace)
     #   tensorboard
     #   tensorflow-rocm
 gunicorn==26.2.0
