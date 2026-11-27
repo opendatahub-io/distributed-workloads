@@ -36,9 +36,8 @@ COPY --chown=1001:0 pyproject.toml requirements.txt ./
 USER 1001
 WORKDIR /opt/app-root/src
 
-# Install dependencies from AIPCC prod index
-RUN UV_LINK_MODE=copy uv pip install --no-cache-dir --no-deps \
-    --index-strategy=unsafe-best-match \
+# Install dependencies from AIPCC prod index (pip, not uv — eMudhra / FIPS)
+RUN pip install --no-cache-dir --no-deps \
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/cuda13.0-ubi9/simple/ \
     -r /tmp/deps/requirements.txt
 
@@ -233,7 +232,7 @@ COPY --from=openmpi-builder /usr/lib64/openmpi /usr/lib64/openmpi
 # that trigger import cv2 during pkgutil scanning in vLLM's multiprocessing.spawn
 # child processes, which fails with libavcodec.so.60 not found on UBI9
 # See: https://github.com/vllm-project/vllm/issues/40741
-RUN uv pip uninstall opencv-python-headless polyfile-weave 2>/dev/null || true
+RUN pip uninstall --yes opencv-python-headless polyfile-weave 2>/dev/null || true
 
 # tilelang ships a libcudart_stub.so that shadows the real CUDA runtime
 # in vLLM subprocesses, causing CUDA initialization failures.
@@ -243,7 +242,10 @@ RUN uv pip uninstall opencv-python-headless polyfile-weave 2>/dev/null || true
 RUN ln -sf /usr/local/cuda/lib64/libcudart.so \
     /opt/app-root/lib/python${PYTHON_VERSION}/site-packages/tilelang/lib/libcudart_stub.so
 
-# Note: uv is kept in the final image — needed at runtime by openpipe-art
+# Drop uv inherited from the CUDA notebook base. Its embedded webpki-roots still
+# contain distrusted emSign CAs (RHAI-23454 / CVE-2026-114406). openpipe-art does
+# not require uv at runtime — the CPU image already ships without it.
+RUN rm -f /opt/app-root/bin/uv /opt/app-root/bin/uvx
 
 # The SDK replaces the container entrypoint and execs an MPI launcher directly,
 # so uid_entrypoint never runs on the launcher. The wrapper is linked at
@@ -300,6 +302,17 @@ COPY --chmod=0755 entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
 # Fix permissions for OpenShift (final stage)
 RUN fix-permissions /opt/app-root -P \
  && chmod -R g+w /opt/app-root/lib/python${PYTHON_VERSION}/site-packages
+
+# Replace compromised vendored roots with the clean system trust bundle
+# (RHAI-50506 / CVE-2026-114406 eMudhra).
+RUN set -eu; \
+    system_bundle=/etc/pki/tls/certs/ca-bundle.crt; \
+    for bundle in \
+        /opt/app-root/lib/python${PYTHON_VERSION}/site-packages/pip/_vendor/certifi/cacert.pem \
+        /opt/app-root/lib/python${PYTHON_VERSION}/site-packages/certifi/cacert.pem; do \
+        cp "$system_bundle" "$bundle"; \
+        [ "$(sha256sum < "$system_bundle")" = "$(sha256sum < "$bundle")" ]; \
+    done
 
 USER 1001
 WORKDIR /opt/app-root/src

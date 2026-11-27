@@ -32,8 +32,7 @@ USER 1001
 WORKDIR /opt/app-root/src
 
 # Install dependencies from AIPCC prod index
-RUN uv pip install --no-cache-dir \
-    --index-strategy=unsafe-best-match \
+RUN pip install --no-cache-dir --no-deps \
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.6/rocm7.14-ubi9/simple/ \
     -r /tmp/deps/requirements.txt
 
@@ -131,6 +130,17 @@ RUN fix-permissions /opt/app-root -P \
 # Load AMD SMI before Torch's dependencies so torchrun GPU auto-detection works.
 RUN test -r "${ROCM_HOME}/lib/libamd_smi.so.26"
 ENV LD_PRELOAD="${LD_PRELOAD}:${ROCM_HOME}/lib/libamd_smi.so.26"
+
+# Replace compromised vendored roots with the clean system trust bundle
+# (RHAI-50506 / CVE-2026-114406 eMudhra).
+RUN set -eu; \
+    system_bundle=/etc/pki/tls/certs/ca-bundle.crt; \
+    for bundle in \
+        /opt/app-root/lib/python${PYTHON_VERSION}/site-packages/pip/_vendor/certifi/cacert.pem \
+        /opt/app-root/lib/python${PYTHON_VERSION}/site-packages/certifi/cacert.pem; do \
+        cp "$system_bundle" "$bundle"; \
+        [ "$(sha256sum < "$system_bundle")" = "$(sha256sum < "$bundle")" ]; \
+    done
 
 USER 1001
 WORKDIR /opt/app-root/src
