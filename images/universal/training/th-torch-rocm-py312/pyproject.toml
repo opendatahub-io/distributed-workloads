@@ -119,6 +119,13 @@ constraint-dependencies = [
     "wrapt>=2.2.2",
     "oauthlib>=4.0.0",
     "filelock>=4.2.1",
+    # setuptools 82+ no longer bundles pkg_resources, which tensorboard 2.20.0
+    # imports unconditionally in tensorboard/data/server_ingester.py; without it
+    # the tensorboard smoke test in Dockerfile.konflux and any tensorboard
+    # launch fail with ModuleNotFoundError. 81.0.0 is the last release that
+    # still ships pkg_resources. Drop this constraint once tensorboard is
+    # updated to a version that no longer uses pkg_resources.
+    "setuptools<82",
 ]
 
 [tool.uv.pip]

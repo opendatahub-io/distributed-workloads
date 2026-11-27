@@ -631,6 +631,7 @@ sentencepiece==0.2.2
     #   unsloth-zoo
 setuptools==81.0.0
     # via
+    #   -c (workspace)
     #   tensorboard
     #   tensorflow-rocm
     #   torch
