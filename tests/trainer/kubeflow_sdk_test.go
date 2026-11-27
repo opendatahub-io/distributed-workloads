@@ -87,6 +87,33 @@ func TestOsftCallbacksTrainingHubSingleNodeSingleGPU(t *testing.T) {
 	sdktests.RunOsftCallbacksTrainingHub(t, 1)
 }
 
+// TestJitCheckpointLoraSftTrainingHubSingleNode tests that LoRA SFT saves a JIT checkpoint on SIGTERM and a new job resumes from it,
+// on 2 GPUs (or JIT_NUM_GPUS), falling back to 1 GPU when no node has 2
+func TestJitCheckpointLoraSftTrainingHubSingleNode(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunJitCheckpointTrainingHub(t, "lora_sft", sdktests.JitScenarioResume, 2)
+}
+
+// TestJitCheckpointSftTrainingHubSingleNode tests that SFT saves a JIT checkpoint on SIGTERM and a new job resumes from it,
+// on 2 GPUs (or JIT_NUM_GPUS), falling back to 1 GPU when no node has 2
+func TestJitCheckpointSftTrainingHubSingleNode(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunJitCheckpointTrainingHub(t, "sft", sdktests.JitScenarioResume, 2)
+}
+
+// TestJitCheckpointOsftTrainingHubSingleNode tests that OSFT saves a JIT checkpoint on SIGTERM and a new job resumes from it,
+// on 2 GPUs (or JIT_NUM_GPUS), falling back to 1 GPU when no node has 2
+func TestJitCheckpointOsftTrainingHubSingleNode(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunJitCheckpointTrainingHub(t, "osft", sdktests.JitScenarioResume, 2)
+}
+
+// TestJitCheckpointIncompleteTrainingHubSingleNodeSingleGPU tests that a checkpoint marked incomplete is not used for resume
+func TestJitCheckpointIncompleteTrainingHubSingleNodeSingleGPU(t *testing.T) {
+	Tags(t, KftoCuda, Gpu(support.NVIDIA))
+	sdktests.RunJitCheckpointTrainingHub(t, "lora_sft", sdktests.JitScenarioIncomplete, 1)
+}
+
 // Multi-node, multi-GPU tests (2 nodes, 1 GPU each)
 
 // TestOsftTrainingHubMultiNodeMultiGPU tests OSFT training using TrainingHubTrainer
