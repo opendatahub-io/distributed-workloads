@@ -128,7 +128,7 @@ cffi==2.1.1
     # via cryptography
 chardet==7.7.0
     # via polyfile-weave
-charset-normalizer==3.5.2
+charset-normalizer==3.5.3
     # via
     #   pdfminer-six
     #   requests
@@ -162,6 +162,7 @@ cryptography==50.0.2
     #   pdfminer-six
     #   pyjwt
     #   rfc3161-client
+    #   securesystemslib
     #   sigstore
 cuda-bindings==13.0.3
     # via
@@ -191,7 +192,7 @@ cut-cross-entropy==25.1.1
     # via unsloth-zoo
 cycler==0.12.1
     # via matplotlib
-databricks-sdk==0.169.0
+databricks-sdk==0.170.0
     # via
     #   mlflow-skinny
     #   mlflow-tracing
@@ -1006,7 +1007,6 @@ requests==2.33.0
     #   opentelemetry-exporter-http-transport
     #   opentelemetry-exporter-otlp-proto-http
     #   requests-oauthlib
-    #   sigstore
     #   tiktoken
     #   training-hub
     #   unsloth-zoo
@@ -1065,13 +1065,15 @@ scipy==1.18.1
     #   scikit-learn
     #   skops
 securesystemslib==1.6.0
-    # via tuf
+    # via
+    #   sigstore
+    #   tuf
 sentencepiece==0.2.2
     # via
     #   th-torch-cuda-universal-image (pyproject.toml)
     #   unsloth-zoo
     #   vllm
-sentry-sdk==2.75.0
+sentry-sdk==2.76.0
     # via
     #   fastapi-cloud-cli
     #   weave
@@ -1089,7 +1091,7 @@ setuptools==80.10.2
     #   vllm
 shellingham==1.5.4
     # via typer
-sigstore==4.5.1
+sigstore==4.6.0
     # via kernels
 sigstore-models==0.0.6
     # via sigstore
@@ -1119,7 +1121,7 @@ sqlparse==0.6.1
     # via
     #   -c (workspace)
     #   mlflow-skinny
-sse-starlette==3.7.0
+sse-starlette==3.7.1
     # via mcp
 starlette==1.10.0
     # via
@@ -1350,6 +1352,7 @@ urllib3==2.8.0
     #   kubernetes
     #   requests
     #   sentry-sdk
+    #   sigstore
     #   training-hub
     #   tuf
 uvicorn==0.54.0

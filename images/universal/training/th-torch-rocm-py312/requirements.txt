@@ -81,7 +81,7 @@ certifi==2026.11.20
     #   requests
 cffi==2.1.1
     # via cryptography
-charset-normalizer==3.5.2
+charset-normalizer==3.5.3
     # via requests
 click==8.5.1
     # via
@@ -101,6 +101,7 @@ cryptography==50.0.2
     #   google-auth
     #   mlflow
     #   rfc3161-client
+    #   securesystemslib
     #   sigstore
 cut-cross-entropy==25.1.1
     # via unsloth-zoo
@@ -145,7 +146,7 @@ email-validator==2.4.0
     # via pydantic
 fastapi==0.165.0
     # via mlflow-skinny
-filelock==4.2.12
+filelock==4.3.0
     # via
     #   -c (workspace)
     #   datasets
@@ -186,7 +187,7 @@ gitpython==3.2.1
     # via
     #   -c (workspace)
     #   mlflow-skinny
-google-auth==2.63.0
+google-auth==2.63.1
     # via
     #   databricks-sdk
     #   kubernetes
@@ -578,7 +579,6 @@ requests==2.33.0
     #   kubernetes
     #   mlflow-skinny
     #   requests-oauthlib
-    #   sigstore
     #   tensorflow-rocm
     #   training-hub
     #   unsloth-zoo
@@ -621,7 +621,9 @@ scipy==1.18.1
     #   scikit-learn
     #   skops
 securesystemslib==1.6.0
-    # via tuf
+    # via
+    #   sigstore
+    #   tuf
 sentencepiece==0.2.2
     # via
     #   th-torch-rocm-universal-image (pyproject.toml)
@@ -634,7 +636,7 @@ setuptools==81.0.0
     #   training-hub
 shellingham==1.5.4
     # via typer
-sigstore==4.5.1
+sigstore==4.6.0
     # via kernels
 sigstore-models==0.0.6
     # via sigstore
@@ -802,11 +804,12 @@ urllib3==2.8.0
     #   id
     #   kubernetes
     #   requests
+    #   sigstore
     #   training-hub
     #   tuf
 uvicorn==0.54.0
     # via mlflow-skinny
-wcwidth==0.9.4
+wcwidth==0.9.5
     # via prettytable
 websocket-client==1.9.2
     # via kubernetes
